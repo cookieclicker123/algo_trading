@@ -35,13 +35,65 @@ class FinlightWebSocketService:
         self.max_reconnect_attempts = 10
         self.reconnect_delay = 5  # seconds
         
-    def _on_article(self, raw_data: Dict[str, Any]):
+    def _on_article(self, raw_data):
         """Handle incoming article from WebSocket."""
         try:
-            logger.info("Received article from Finlight", data=raw_data)
+            logger.info("Received article from Finlight", data=str(raw_data)[:200])
+            
+            # Convert Article object to dict if needed
+            if hasattr(raw_data, '__dict__'):
+                # It's an Article object, convert to dict
+                logger.info("Converting Article object to dict")
+                # Extract tickers from Finlight's AI companies field
+                tickers = []
+                
+                # Check for companies field (main field for ticker data)
+                if hasattr(raw_data, 'companies') and raw_data.companies:
+                    companies = raw_data.companies
+                    if isinstance(companies, list):
+                        # Extract ticker from each company object
+                        for company in companies:
+                            if isinstance(company, dict) and 'ticker' in company:
+                                ticker = company['ticker']
+                                if ticker and ticker.strip():
+                                    tickers.append(ticker.strip().upper())
+                            elif hasattr(company, 'ticker') and company.ticker:
+                                ticker = company.ticker
+                                if ticker and str(ticker).strip():
+                                    tickers.append(str(ticker).strip().upper())
+                    elif isinstance(companies, str):
+                        tickers = [companies.strip().upper()] if companies.strip() else []
+                
+                # Check for tickers field directly (fallback)
+                elif hasattr(raw_data, 'tickers') and raw_data.tickers:
+                    tickers_data = raw_data.tickers
+                    if isinstance(tickers_data, list):
+                        tickers = [str(ticker).strip().upper() for ticker in tickers_data if ticker and str(ticker).strip()]
+                    elif isinstance(tickers_data, str):
+                        tickers = [tickers_data.strip().upper()] if tickers_data.strip() else []
+                
+                article_dict = {
+                    'id': getattr(raw_data, 'id', None),
+                    'title': getattr(raw_data, 'title', ''),
+                    'content': getattr(raw_data, 'content', ''),
+                    'summary': getattr(raw_data, 'summary', ''),
+                    'author': getattr(raw_data, 'author', None),
+                    'published_at': getattr(raw_data, 'publishDate', None),
+                    'updated_at': None,
+                    'url': getattr(raw_data, 'link', None),
+                    'tickers': tickers,
+                    'tags': [],
+                    'category': None,
+                    'source': getattr(raw_data, 'source', None)
+                }
+                logger.info("Article dict created", title=article_dict.get('title', 'No title'), tickers=tickers)
+            else:
+                # It's already a dict
+                logger.info("Data is already a dict")
+                article_dict = raw_data
             
             # Convert to standardized format
-            standardized_article = self.processor.process_raw_article(raw_data)
+            standardized_article = self.processor.process_raw_article(article_dict)
             
             # Call the callback
             self.article_callback(standardized_article)
@@ -63,13 +115,16 @@ class FinlightWebSocketService:
             if not api_key:
                 raise ValueError("FINLIGHT_API_KEY not found in environment variables")
             
-            # Initialize client
+            # Initialize client with websocket takeover to handle multiple connections
             self.client = FinlightApi(
-                config=ApiConfig(api_key=api_key)
+                config=ApiConfig(api_key=api_key),
+                websocket_takeover=True
             )
             
-            # Create payload
+            # Create payload with includeEntities to get ticker data
             payload = GetArticlesWebSocketParams()
+            # Add includeEntities parameter to get company/ticker information
+            payload.includeEntities = True
             
             # Connect
             await self.client.websocket.connect(

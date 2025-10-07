@@ -4,13 +4,14 @@ JSON storage utility for managing article data with rolling window and 24-hour a
 import json
 import os
 from datetime import datetime, timezone, timedelta
-from typing import List, Dict, Any, Set, Optional
+from typing import List, Dict, Any, Set, Optional, Union
 from pathlib import Path
 import asyncio
 import aiofiles
 
 from ..config.settings import get_storage_config
 from ..models.benzinga_models import BenzingaArticle
+from ..models.base_models import StandardizedArticle
 
 
 class ArticleStorage:
@@ -37,7 +38,7 @@ class ArticleStorage:
         self.tmp_dir.mkdir(exist_ok=True)
         
         # Track processed article IDs to avoid duplicates
-        self.processed_ids: Set[int] = set()
+        self.processed_ids: Set[Union[int, str]] = set()
         self._load_existing_ids()
     
     def _load_existing_ids(self):
@@ -47,7 +48,7 @@ class ArticleStorage:
         self.processed_ids = set()
         print("Starting with empty processed IDs set - delta approach will handle deduplication")
     
-    async def store_articles(self, articles: List[BenzingaArticle]) -> List[BenzingaArticle]:
+    async def store_articles(self, articles: List[Union[BenzingaArticle, StandardizedArticle]]) -> List[Union[BenzingaArticle, StandardizedArticle]]:
         """
         Store new articles in JSON format, avoiding duplicates.
         
@@ -60,12 +61,18 @@ class ArticleStorage:
         new_articles = []
         
         for article in articles:
+            # Get article ID based on type
+            if isinstance(article, BenzingaArticle):
+                article_id = article.benzinga_id
+            else:  # StandardizedArticle
+                article_id = f"{article.source.value}_{article.source_id}"
+            
             # Skip if we've already processed this article
-            if article.benzinga_id in self.processed_ids:
+            if article_id in self.processed_ids:
                 continue
             
             # Add to processed set
-            self.processed_ids.add(article.benzinga_id)
+            self.processed_ids.add(article_id)
             new_articles.append(article)
         
         if not new_articles:
@@ -76,7 +83,10 @@ class ArticleStorage:
         
         # Add new articles
         for article in new_articles:
-            existing_articles.append(article.to_dict())
+            if isinstance(article, BenzingaArticle):
+                existing_articles.append(article.to_dict())
+            else:  # StandardizedArticle
+                existing_articles.append(article.model_dump())
         
         # Save updated articles
         await self._save_articles(existing_articles)
