@@ -14,6 +14,8 @@ dependencies = [
     "structlog>=23.2.0",          # Structured logging
     "tenacity>=8.2.0",            # Retry logic with exponential backoff
     "aiofiles>=23.0.0",           # Async file operations
+    "python-telegram-bot>=20.7",  # Telegram bot API
+    "groq>=0.9.0",                # Groq API for LLM classification
 ]
 
 [project.optional-dependencies]

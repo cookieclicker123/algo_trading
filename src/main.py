@@ -35,7 +35,9 @@ class NewsFlashStandalone:
         try:
             # Initialize services
             self.article_processor = ArticleProcessor()
-            self.feed_manager = FeedManager()
+            
+            # Pass the article processor to FeedManager to avoid duplication
+            self.feed_manager = FeedManager(article_processor=self.article_processor)
             
             # Add custom handlers if needed
             self.article_processor.add_handler(self._log_high_relevance_articles)

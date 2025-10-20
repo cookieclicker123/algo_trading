@@ -65,9 +65,45 @@ Add your API keys:
 ```env
 POLYGON_API_KEY=your_polygon_api_key_here
 FINLIGHT_API_KEY=your_finlight_api_key_here
+
+# Optional: Telegram notifications (Phase 1 - all articles, no filtering yet)
+TELEGRAM_ENABLED=false
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
+TELEGRAM_CHAT_ID=your_telegram_chat_id_here
 ```
 
-### 5. Verify Installation
+### 5. Optional: Configure Telegram Notifications
+
+To receive news alerts on Telegram:
+
+1. **Create a Bot**:
+   - Open Telegram and message `@BotFather`
+   - Send: `/newbot`
+   - Follow the instructions to name your bot
+   - Copy the bot token provided
+
+2. **Get Your Chat ID**:
+   - Message `@userinfobot` on Telegram
+   - It will reply with your chat ID
+   - Copy the numeric ID
+
+3. **Update .env**:
+   ```env
+   TELEGRAM_ENABLED=true
+   TELEGRAM_BOT_TOKEN=1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
+   TELEGRAM_CHAT_ID=123456789
+   ```
+
+4. **Test Connection** (Optional):
+   ```bash
+   python -m tests.test_telegram_bot_connection
+   ```
+   
+   This will send test messages to verify your bot is working correctly.
+
+**Note**: Phase 1 sends ALL articles to Telegram without filtering. Phase 2 will add AI classification to only send high-signal news.
+
+### 6. Verify Installation
 ```bash
 # Run tests to verify everything works
 pytest tests/ -v

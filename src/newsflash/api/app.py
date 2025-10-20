@@ -35,7 +35,9 @@ def create_app() -> FastAPI:
         
         # Initialize services
         article_processor = ArticleProcessor()
-        feed_manager = FeedManager()
+        
+        # Pass article processor to FeedManager to avoid duplication
+        feed_manager = FeedManager(article_processor=article_processor)
         
         # Start all feeds in background
         asyncio.create_task(start_all_feeds())

@@ -17,19 +17,27 @@ logger = get_logger(__name__)
 class FeedManager:
     """Manages multiple news feeds and coordinates article processing."""
     
-    def __init__(self):
+    def __init__(self, article_processor: Optional[ArticleProcessor] = None):
         """Initialize the feed manager."""
         self.processors: Dict[NewsSource, Any] = {}
         self.is_running = False
         self.stats = MultiSourceStats()
         
-        # Initialize article processor
-        self.article_processor = ArticleProcessor()
+        # Use provided article processor or create new one
+        if article_processor:
+            self.article_processor = article_processor
+        else:
+            self.article_processor = ArticleProcessor()
         
         # Initialize source processors
         self._initialize_processors()
         
-        logger.info("FeedManager initialized with processors", sources=list(self.processors.keys()))
+        logger.info(
+            "FeedManager initialized with processors", 
+            sources=list(self.processors.keys()),
+            telegram_enabled_1=getattr(self.article_processor.telegram, 'enabled_1', False),
+            telegram_enabled_2=getattr(self.article_processor.telegram, 'enabled_2', False)
+        )
     
     def _initialize_processors(self):
         """Initialize processors for each news source."""
@@ -69,6 +77,16 @@ class FeedManager:
         """Start all configured news feeds independently."""
         logger.info("Starting all news feeds independently")
         self.is_running = True
+        
+        # Start Telegram notification queue processor (if enabled)
+        telegram_task = None
+        telegram_enabled = (getattr(self.article_processor.telegram, 'enabled_1', False) or 
+                           getattr(self.article_processor.telegram, 'enabled_2', False))
+        if telegram_enabled and not self.article_processor.telegram.test_mode:
+            telegram_task = asyncio.create_task(
+                self.article_processor.telegram.start()
+            )
+            logger.info("Dual Telegram notification service started")
         
         # Start Benzinga polling (independent task)
         if NewsSource.BENZINGA in self.processors:
@@ -147,6 +165,14 @@ class FeedManager:
         """Stop all news feeds."""
         logger.info("Stopping all news feeds")
         self.is_running = False
+        
+        # Stop Telegram notification service
+        if self.article_processor.telegram.enabled:
+            try:
+                await self.article_processor.telegram.stop()
+                logger.info("Telegram notification service stopped")
+            except Exception as e:
+                logger.error("Error stopping Telegram service", error=str(e))
         
         # Stop Benzinga
         if NewsSource.BENZINGA in self.processors:
