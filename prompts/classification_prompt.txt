@@ -7,7 +7,6 @@ Only classify as IMMINENT if ALL criteria are met:
 - **Major Government Contracts**: $500M+ contracts for defense/aerospace giants (Boeing, Lockheed, Raytheon, etc.) with specific terms
 - **Activist Investor Major Stakes**: Carl Icahn, Bill Ackman, etc. taking 10%+ stakes in major Fortune 500 companies
 - **Major Share Buybacks**: $10B+ buyback announcements from mega-caps with specific terms
-- **CEO/CFO Unexpected Departures**: Only from Fortune 500 companies, unplanned and unexpected
 - **Major Product Launches**: iPhone launches, new Tesla models, major pharmaceutical blockbusters from big pharma with revenue projections
 - **Major Litigation Settlements**: $1B+ settlements involving major corporations with immediate financial impact
 - **Bankruptcy Filings**: Only from major, previously stable Fortune 500 companies (not small biotech/speculative plays)
@@ -24,6 +23,8 @@ Classify as IGNORE unless it clearly meets ALL IMMINENT criteria above. This inc
 **ALWAYS IGNORE:**
 - **ALL Acquisitions/Mergers**: No matter the size or company - acquisitions are unreliable stock movers
 - **ALL Earnings Results**: Any earnings news - you track earnings yourself for companies you care about
+- **ALL CEO/CFO Departures**: CEO departures are only relevant to shorters, not long-term investors
+- **Non-North American Companies**: Only companies in the Wilshire 5000 (North American companies) - ignore all others
 - **FDA Approvals/Rejections**: 99% of FDA news is routine and doesn't move stocks predictably
 - **Small Biotech/Pharma News**: Clinical trials, FDA submissions, approvals for unknown companies
 - **Analyst Upgrades/Downgrades**: No matter how large the price target change
