@@ -15,6 +15,7 @@ from ..models.classification_models import NewsClassification, ClassificationRes
 from ..config.settings import get_telegram_config, get_telegram_config_2
 from ..utils.timezone_utils import get_published_timestamp
 from .yfinance_service import get_yfinance_service
+from .telegram_trade_handler import get_telegram_trade_handler
 
 logger = structlog.get_logger(__name__)
 
@@ -56,6 +57,12 @@ class DualTelegramNotifier:
         # Initialize bot 1
         self.bot_1: Optional[Bot] = None
         self.enabled_1 = self.config_1["enabled"]
+        
+        # Initialize trading handler for Bot 1 (Chinese bot)
+        self.trade_handler = None
+        if self.enabled_1 and self.config_1.get("bot_token"):
+            self.trade_handler = get_telegram_trade_handler(self.config_1["bot_token"])
+        
         if not test_mode and self.config_1["bot_token"] and self.enabled_1:
             self.bot_1 = Bot(token=self.config_1["bot_token"])
             logger.info("Primary Telegram bot initialized", chat_id=self.config_1["chat_id"])
@@ -189,6 +196,27 @@ class DualTelegramNotifier:
         
         return "\n".join(message_parts)
     
+    def _format_trading_options(self, tickers: list) -> str:
+        """Format trading options for IMMINENT news."""
+        if not tickers:
+            return ""
+        
+        ticker_list = ", ".join(tickers) if len(tickers) > 1 else tickers[0]
+        
+        trading_options = (
+            f"\n\n🎯 TRADING OPTIONS:\n"
+            f"📊 Tickers: {ticker_list}\n"
+            f"💰 Amount: $100 per trade\n"
+            f"⏰ Reply within 30 minutes\n\n"
+            f"Reply with:\n"
+            f"• 'trade' - Trade default ticker\n"
+            f"• 'trade {tickers[0]}' - Trade specific ticker\n"
+            f"• 'ignore' - Ignore this news\n"
+            f"• No reply = ignore"
+        )
+        
+        return trading_options
+    
     async def send_notification(
         self,
         article: Union[BenzingaArticle, StandardizedArticle],
@@ -223,12 +251,23 @@ class DualTelegramNotifier:
         # Queue messages for both bots
         success_count = 0
         
+        # Extract tickers for trading options
+        if isinstance(article, BenzingaArticle):
+            tickers = article.tickers
+        else:  # StandardizedArticle
+            tickers = article.tickers
+        
         if self.enabled_1:
             # Bot 1 gets Chinese translation
             if self.translator:
                 try:
                     chinese_message_data = await self.translator.translate_to_chinese(message_data)
                     chinese_message = self.format_message(chinese_message_data)
+                    
+                    # Add trading options for IMMINENT news
+                    if classification and classification.classification == NewsClassification.IMMINENT:
+                        chinese_message += self._format_trading_options(tickers)
+                    
                     await self.message_queue_1.put((chinese_message, article))
                     success_count += 1
                     logger.debug("Chinese message queued for primary Telegram bot")
@@ -236,11 +275,21 @@ class DualTelegramNotifier:
                     logger.error("Failed to translate message for bot 1", error=str(e))
                     # Fallback to English
                     english_message = self.format_message(message_data)
+                    
+                    # Add trading options for IMMINENT news
+                    if classification and classification.classification == NewsClassification.IMMINENT:
+                        english_message += self._format_trading_options(tickers)
+                    
                     await self.message_queue_1.put((english_message, article))
                     success_count += 1
             else:
                 # No translator available, send English
                 english_message = self.format_message(message_data)
+                
+                # Add trading options for IMMINENT news
+                if classification and classification.classification == NewsClassification.IMMINENT:
+                    english_message += self._format_trading_options(tickers)
+                
                 await self.message_queue_1.put((english_message, article))
                 success_count += 1
         
@@ -339,6 +388,11 @@ class DualTelegramNotifier:
         self.is_running = True
         logger.info("Dual Telegram notification service started")
         
+        # Start trade handler
+        if self.trade_handler:
+            await self.trade_handler.start()
+            logger.info("Started Telegram trade handler")
+        
         # Start queue processors for both bots
         tasks = []
         
@@ -375,6 +429,11 @@ class DualTelegramNotifier:
         
         logger.info("Stopping dual Telegram notification service")
         self.is_running = False
+        
+        # Stop trade handler
+        if self.trade_handler:
+            await self.trade_handler.stop()
+            logger.info("Stopped Telegram trade handler")
         
         # Process remaining messages in both queues
         for queue, bot, chat_id, bot_name in [
