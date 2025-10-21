@@ -150,18 +150,19 @@ class YFinanceService:
             if quarterly_income is None or quarterly_income.empty:
                 return {'current_earnings': 'N/A', 'earnings_growth': 'N/A'}
             
-            # Get most recent earnings (first row) - try different column names
-            earnings_column = None
-            for col in ['Net Income', 'Net Income Common Stockholders', 'Total Revenue']:
-                if col in quarterly_income.columns:
-                    earnings_column = col
+            # Look for Net Income in the rows (not columns)
+            net_income_row = None
+            for idx, row_name in enumerate(quarterly_income.index):
+                if 'Net Income' in str(row_name) and 'Continuing' in str(row_name):
+                    net_income_row = quarterly_income.iloc[idx]
                     break
             
-            if earnings_column is None:
+            if net_income_row is None:
                 return {'current_earnings': 'N/A', 'earnings_growth': 'N/A'}
             
-            current_earnings = quarterly_income.iloc[0][earnings_column]
-            earnings_values = quarterly_income[earnings_column].tolist()
+            # Get the most recent quarter (first column)
+            current_earnings = net_income_row.iloc[0]
+            earnings_values = net_income_row.tolist()
             earnings_growth = self._calculate_growth_rate(earnings_values)
             
             return {
@@ -178,19 +179,19 @@ class YFinanceService:
             if quarterly_financials is None or quarterly_financials.empty:
                 return {'current_revenue': 'N/A', 'revenue_growth': 'N/A'}
             
-            # Try different column names for revenue
-            revenue_column = None
-            for col in ['Total Revenue', 'Revenue', 'Sales']:
-                if col in quarterly_financials.columns:
-                    revenue_column = col
+            # Look for Total Revenue in the rows (not columns)
+            revenue_row = None
+            for idx, row_name in enumerate(quarterly_financials.index):
+                if 'Total Revenue' in str(row_name):
+                    revenue_row = quarterly_financials.iloc[idx]
                     break
             
-            if revenue_column is None:
+            if revenue_row is None:
                 return {'current_revenue': 'N/A', 'revenue_growth': 'N/A'}
             
-            # Get most recent revenue (first row)
-            current_revenue = quarterly_financials.iloc[0][revenue_column]
-            revenue_values = quarterly_financials[revenue_column].tolist()
+            # Get the most recent quarter (first column)
+            current_revenue = revenue_row.iloc[0]
+            revenue_values = revenue_row.tolist()
             revenue_growth = self._calculate_growth_rate(revenue_values)
             
             return {
@@ -204,31 +205,14 @@ class YFinanceService:
     def _process_margin_data(self, quarterly_financials, info) -> Dict[str, Any]:
         """Process margin data."""
         try:
-            # Get gross margin from quarterly financials
-            gross_margin = None
-            if quarterly_financials is not None and not quarterly_financials.empty:
-                # Try different column names for gross profit and revenue
-                gross_profit_col = None
-                revenue_col = None
-                
-                for col in ['Gross Profit', 'Total Revenue']:
-                    if col in quarterly_financials.columns:
-                        if col == 'Gross Profit':
-                            gross_profit_col = col
-                        elif col == 'Total Revenue':
-                            revenue_col = col
-                
-                if gross_profit_col and revenue_col:
-                    gross_profit = quarterly_financials.iloc[0][gross_profit_col]
-                    total_revenue = quarterly_financials.iloc[0][revenue_col]
-                    if total_revenue and total_revenue > 0:
-                        gross_margin = (gross_profit / total_revenue) * 100
+            # Get gross margin from company info (more reliable)
+            gross_margin = info.get('grossMargins', None)
             
-            # Get net margin from info
+            # Get net margin from company info
             net_margin = info.get('profitMargins', None)
             
             return {
-                'gross_margin': f"{gross_margin:.1f}%" if gross_margin else 'N/A',
+                'gross_margin': f"{gross_margin * 100:.1f}%" if gross_margin else 'N/A',
                 'net_margin': f"{net_margin * 100:.1f}%" if net_margin else 'N/A'
             }
         except Exception as e:
