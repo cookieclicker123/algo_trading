@@ -13,7 +13,6 @@ sys.path.insert(0, str(Path(__file__).parent))
 from newsflash.services.feed_manager import FeedManager
 from newsflash.services.article_processor import ArticleProcessor
 from newsflash.utils.logging_config import setup_logging, get_logger
-from newsflash.config.settings import get_server_config
 
 # Setup logging
 setup_logging()

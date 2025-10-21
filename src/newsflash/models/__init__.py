@@ -1,18 +1,17 @@
 """Data models for the multi-source news trading system."""
 
-from .benzinga_models import BenzingaArticle, BenzingaNewsResponse, NewsPollingState, BenzingaArticleProcessor
-from .finlight_models import FinlightArticle, FinlightArticleProcessor
-from .base_models import StandardizedArticle, NewsSource, ArticleProcessor, MultiSourceStats
+from .benzinga_models import BenzingaArticle, BenzingaNewsResponse, NewsPollingState, convert_benzinga_to_standardized
+from .finlight_models import FinlightArticle, convert_finlight_to_standardized
+from .base_models import StandardizedArticle, NewsSource, MultiSourceStats
 
 __all__ = [
     "BenzingaArticle", 
     "BenzingaNewsResponse", 
     "NewsPollingState", 
-    "BenzingaArticleProcessor",
+    "convert_benzinga_to_standardized",
     "FinlightArticle", 
-    "FinlightArticleProcessor",
+    "convert_finlight_to_standardized",
     "StandardizedArticle", 
     "NewsSource", 
-    "ArticleProcessor", 
     "MultiSourceStats"
 ]

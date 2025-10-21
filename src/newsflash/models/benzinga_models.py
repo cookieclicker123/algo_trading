@@ -93,35 +93,24 @@ class BenzingaArticle(BaseModel):
         return self.dict()
 
 
-class BenzingaArticleProcessor(ArticleProcessor):
-    """Processor for converting Benzinga articles to standardized format."""
-    
-    def __init__(self):
-        super().__init__(source=NewsSource.BENZINGA)
-    
-    def process_raw_article(self, raw_data: Dict[str, Any]) -> StandardizedArticle:
-        """Convert raw Benzinga article data to standardized format."""
-        
-        # Parse the raw data into a BenzingaArticle first
-        benzinga_article = BenzingaArticle(**raw_data)
-        
-        # Convert to standardized format
-        return StandardizedArticle(
-            source=NewsSource.BENZINGA,
-            source_id=str(benzinga_article.benzinga_id),
-            title=benzinga_article.title,
-            content=benzinga_article.body,
-            summary=benzinga_article.teaser,
-            author=benzinga_article.author,
-            published=benzinga_article.published,
-            updated=benzinga_article.last_updated,
-            url=benzinga_article.url,
-            tickers=benzinga_article.tickers,
-            tags=benzinga_article.tags,
-            categories=benzinga_article.channels,
-            images=benzinga_article.images,
-            raw_data=raw_data
-        )
+def convert_benzinga_to_standardized(benzinga_article: BenzingaArticle) -> StandardizedArticle:
+    """Convert BenzingaArticle to StandardizedArticle format."""
+    return StandardizedArticle(
+        source=NewsSource.BENZINGA,
+        source_id=str(benzinga_article.benzinga_id),
+        title=benzinga_article.title,
+        content=benzinga_article.body,
+        summary=benzinga_article.teaser,
+        author=benzinga_article.author,
+        published=benzinga_article.published,
+        updated=benzinga_article.last_updated,
+        url=benzinga_article.url,
+        tickers=benzinga_article.tickers,
+        tags=benzinga_article.tags,
+        categories=benzinga_article.channels,
+        images=benzinga_article.images,
+        raw_data=benzinga_article.dict()
+    )
 
 
 class BenzingaNewsResponse(BaseModel):

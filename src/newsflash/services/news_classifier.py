@@ -19,8 +19,8 @@ class NewsClassifier:
     """
     Classifies news articles using Groq's Llama 3 model.
     
-    Determines if articles are IMMINENT (immediate trading opportunity),
-    NOTEWORTHY (worth monitoring), or IGNORE (filter out).
+    Determines if articles are IMMINENT (immediate trading opportunity)
+    or IGNORE (filter out - no trading signal).
     """
     
     def __init__(
@@ -62,7 +62,7 @@ class NewsClassifier:
         except Exception as e:
             logger.error("Failed to load classification prompt", error=str(e))
             # Fallback to minimal prompt
-            return "Classify the news headline as IMMINENT, NOTEWORTHY, or IGNORE. Return JSON only."
+            return "Classify the news headline as IMMINENT or IGNORE. Return JSON only."
     
     def _format_article_for_classification(
         self,

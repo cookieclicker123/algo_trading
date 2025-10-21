@@ -20,7 +20,7 @@ from newsflash.models.classification_models import (
     ClassificationResult,
     NewsClassification,
 )
-from newsflash.services.telegram_service import TelegramNotifier
+from newsflash.services.dual_telegram_service import DualTelegramNotifier
 
 # Load environment variables
 load_dotenv()
@@ -70,7 +70,7 @@ async def test_bot_connection():
     print("\nAttempting to send test message...\n")
     
     # Initialize notifier (NOT in test mode)
-    notifier = TelegramNotifier(
+    notifier = DualTelegramNotifier(
         bot_token=bot_token,
         chat_id=chat_id,
         enabled=True,
@@ -96,7 +96,7 @@ async def test_bot_connection():
     
     # Create a test classification
     test_classification = ClassificationResult(
-        classification=NewsClassification.NOTEWORTHY,
+        classification=NewsClassification.IGNORE,
         confidence="HIGH",
         reasoning="System test message for bot verification",
     )
@@ -147,7 +147,7 @@ async def test_multiple_messages():
         print("⚠️  Skipping - credentials not configured")
         return
     
-    notifier = TelegramNotifier(
+    notifier = DualTelegramNotifier(
         bot_token=bot_token,
         chat_id=chat_id,
         enabled=True,

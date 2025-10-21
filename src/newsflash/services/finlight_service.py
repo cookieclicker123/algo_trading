@@ -8,7 +8,7 @@ from finlight_client.models import GetArticlesWebSocketParams
 
 from ..config.settings import get_api_key
 from ..utils.logging_config import get_logger
-from ..models.finlight_models import FinlightArticleProcessor
+from ..models.finlight_models import convert_finlight_to_standardized
 from ..models.base_models import StandardizedArticle
 
 logger = get_logger(__name__)
@@ -28,7 +28,6 @@ class FinlightWebSocketService:
         self.client: Optional[FinlightApi] = None
         self.is_connected = False
         self.is_running = False
-        self.processor = FinlightArticleProcessor()
         
         # Connection state
         self.reconnect_attempts = 0
@@ -93,7 +92,7 @@ class FinlightWebSocketService:
                 article_dict = raw_data
             
             # Convert to standardized format
-            standardized_article = self.processor.process_raw_article(article_dict)
+            standardized_article = convert_finlight_to_standardized(article_dict)
             
             # Call the callback
             self.article_callback(standardized_article)

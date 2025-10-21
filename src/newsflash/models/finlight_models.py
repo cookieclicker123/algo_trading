@@ -46,48 +46,42 @@ class FinlightArticle(BaseModel):
         return [ticker.upper().strip() for ticker in v if ticker.strip()]
 
 
-class FinlightArticleProcessor(ArticleProcessor):
-    """Processor for converting Finlight articles to standardized format."""
+def convert_finlight_to_standardized(raw_data: Dict[str, Any]) -> StandardizedArticle:
+    """Convert raw Finlight article data to standardized format."""
     
-    def __init__(self):
-        super().__init__(source=NewsSource.FINLIGHT)
-    
-    def process_raw_article(self, raw_data: Dict[str, Any]) -> StandardizedArticle:
-        """Convert raw Finlight article data to standardized format."""
-        
-        # Parse the raw data into a FinlightArticle first
-        try:
-            finlight_article = FinlightArticle(**raw_data)
-        except Exception as e:
-            # If parsing fails, create a minimal article from available data
-            finlight_article = FinlightArticle(
-                title=raw_data.get('title', 'Unknown Title'),
-                content=raw_data.get('content'),
-                summary=raw_data.get('summary'),
-                author=raw_data.get('author'),
-                published_at=raw_data.get('published_at'),
-                updated_at=raw_data.get('updated_at'),
-                url=raw_data.get('url'),
-                tickers=raw_data.get('tickers', []),
-                tags=raw_data.get('tags', []),
-                category=raw_data.get('category'),
-                source=raw_data.get('source')
-            )
-        
-        # Convert to standardized format
-        return StandardizedArticle(
-            source=NewsSource.FINLIGHT,
-            source_id=str(finlight_article.id) if finlight_article.id else f"finlight_{hash(finlight_article.title)}",
-            title=finlight_article.title,
-            content=finlight_article.content,
-            summary=finlight_article.summary,
-            author=finlight_article.author,
-            published=finlight_article.published_at or datetime.now(),
-            updated=finlight_article.updated_at,
-            url=finlight_article.url,
-            tickers=finlight_article.tickers,
-            tags=finlight_article.tags,
-            categories=[finlight_article.category] if finlight_article.category else [],
-            images=[],  # Finlight may not provide images in initial implementation
-            raw_data=raw_data
+    # Parse the raw data into a FinlightArticle first
+    try:
+        finlight_article = FinlightArticle(**raw_data)
+    except Exception as e:
+        # If parsing fails, create a minimal article from available data
+        finlight_article = FinlightArticle(
+            title=raw_data.get('title', 'Unknown Title'),
+            content=raw_data.get('content'),
+            summary=raw_data.get('summary'),
+            author=raw_data.get('author'),
+            published_at=raw_data.get('published_at'),
+            updated_at=raw_data.get('updated_at'),
+            url=raw_data.get('url'),
+            tickers=raw_data.get('tickers', []),
+            tags=raw_data.get('tags', []),
+            category=raw_data.get('category'),
+            source=raw_data.get('source')
         )
+    
+    # Convert to standardized format
+    return StandardizedArticle(
+        source=NewsSource.FINLIGHT,
+        source_id=str(finlight_article.id) if finlight_article.id else f"finlight_{hash(finlight_article.title)}",
+        title=finlight_article.title,
+        content=finlight_article.content,
+        summary=finlight_article.summary,
+        author=finlight_article.author,
+        published=finlight_article.published_at or datetime.now(),
+        updated=finlight_article.updated_at,
+        url=finlight_article.url,
+        tickers=finlight_article.tickers,
+        tags=finlight_article.tags,
+        categories=[finlight_article.category] if finlight_article.category else [],
+        images=[],  # Finlight may not provide images in initial implementation
+        raw_data=raw_data
+    )
