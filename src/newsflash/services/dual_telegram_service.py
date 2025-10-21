@@ -13,6 +13,8 @@ from ..models.base_models import StandardizedArticle
 from ..models.benzinga_models import BenzingaArticle
 from ..models.classification_models import NewsClassification, ClassificationResult
 from ..config.settings import get_telegram_config, get_telegram_config_2
+from ..utils.timezone_utils import get_published_timestamp
+from .yfinance_service import get_yfinance_service
 
 logger = structlog.get_logger(__name__)
 
@@ -40,6 +42,17 @@ class DualTelegramNotifier:
         self.config_1 = get_telegram_config()
         self.config_2 = get_telegram_config_2()
         
+        # Initialize translation service (import here to avoid circular import)
+        try:
+            from .translation_service import get_translation_service
+            self.translator = get_translation_service()
+        except ImportError:
+            logger.warning("Translation service not available")
+            self.translator = None
+        
+        # Initialize yfinance service
+        self.yfinance_service = get_yfinance_service()
+        
         # Initialize bot 1
         self.bot_1: Optional[Bot] = None
         self.enabled_1 = self.config_1["enabled"]
@@ -65,20 +78,20 @@ class DualTelegramNotifier:
             total_bots = sum([self.enabled_1, self.enabled_2])
             logger.info(f"Dual Telegram service initialized with {total_bots} active bots")
     
-    def format_message(
+    async def format_message_data(
         self,
         article: Union[BenzingaArticle, StandardizedArticle],
         classification: Optional[ClassificationResult] = None,
-    ) -> str:
+    ) -> dict:
         """
-        Format article into Telegram message.
+        Format article and classification into message data structure.
         
         Args:
-            article: Article to format
-            classification: Optional classification result
+            article: The article to format
+            classification: The classification result
             
         Returns:
-            Formatted message string
+            Message data dictionary
         """
         # Get classification emoji and label
         if classification:
@@ -86,15 +99,14 @@ class DualTelegramNotifier:
                 emoji = "🚨"
                 label = "IMMINENT"
                 confidence = classification.confidence
-                header = f"{emoji} {label} | {confidence} CONFIDENCE"
             else:
                 # IGNORE classification - should never reach here
                 logger.error("IGNORE classification sent to Telegram - this is a bug!")
-                return ""  # Return empty string to prevent sending
+                return {}  # Return empty dict to prevent sending
         else:
             # No classification provided - this is an error, should not happen
             logger.error("Article sent to Telegram without classification - this is a bug!")
-            return ""  # Return empty string to prevent sending
+            return {}  # Return empty dict to prevent sending
         
         # Extract tickers
         if isinstance(article, BenzingaArticle):
@@ -108,17 +120,72 @@ class DualTelegramNotifier:
             url = article.url or "No URL available"
             source = article.source.value.title()
         
-        # Format tickers
-        ticker_line = ", ".join(tickers) if tickers else "No tickers"
+        # Format tickers with "Company Symbol:" prefix
+        ticker_display = f"Company Symbol: '{', '.join(tickers)}'" if tickers else "Company Symbol: 'N/A'"
         
-        # Build message
+        # Get publication timestamp in GMT
+        published_gmt = get_published_timestamp(article)
+        
+        # Get fundamental data for the first ticker (if available)
+        fundamental_data = None
+        if tickers and len(tickers) > 0:
+            try:
+                fundamental_data = await self.yfinance_service.get_fundamental_data(tickers[0])
+                logger.info("Fundamental data fetched", ticker=tickers[0])
+            except Exception as e:
+                logger.error("Failed to fetch fundamental data", ticker=tickers[0], error=str(e))
+        
+        # Build message data
+        message_data = {
+            "emoji": emoji,
+            "classification": label,
+            "confidence": confidence,
+            "tickers": ticker_display,
+            "headline": title,
+            "url": url,
+            "source": source,
+            "published_gmt": published_gmt,
+            "fundamental_data": fundamental_data
+        }
+        
+        return message_data
+    
+    def format_message(self, message_data: dict) -> str:
+        """
+        Format message data into Telegram message string.
+        
+        Args:
+            message_data: The message data dictionary
+            
+        Returns:
+            Formatted message string
+        """
+        if not message_data:
+            return ""
+            
+        header = f"{message_data['emoji']} {message_data['classification']} | {message_data['confidence']} CONFIDENCE"
+        
         message_parts = [
             header,
-            ticker_line,
-            title,
-            f"🔗 {url}",
-            f"📡 Source: {source}",
+            message_data["tickers"],
+            message_data["headline"],
+            f"🔗 {message_data['url']}",
+            f"📡 Source: {message_data['source']}",
+            f"🕐 Published: {message_data.get('published_gmt', 'Unknown')} GMT",
         ]
+        
+        # Add fundamental data if available
+        fundamental_data = message_data.get('fundamental_data')
+        if fundamental_data:
+            message_parts.extend([
+                "",
+                "📊 FUNDAMENTAL DATA:",
+                f"💰 Price: {fundamental_data['price_volume']['current_price']} ({fundamental_data['price_volume']['price_change_10min']})",
+                f"💵 Earnings: {fundamental_data['earnings']['current_earnings']} ({fundamental_data['earnings']['earnings_growth']})",
+                f"📈 Revenue: {fundamental_data['revenue']['current_revenue']} ({fundamental_data['revenue']['revenue_growth']})",
+                f"📊 Margins: Gross {fundamental_data['margins']['gross_margin']}, Net {fundamental_data['margins']['net_margin']}",
+                f"📊 Volume: {fundamental_data['price_volume']['current_volume']} ({fundamental_data['price_volume']['volume_change_10min']})"
+            ])
         
         return "\n".join(message_parts)
     
@@ -137,17 +204,18 @@ class DualTelegramNotifier:
         Returns:
             True if notification was sent/queued successfully to at least one bot
         """
-        # Format message
-        message = self.format_message(article, classification)
+        # Format message data
+        message_data = await self.format_message_data(article, classification)
         
-        if not message:  # Empty message means we shouldn't send
+        if not message_data:  # Empty data means we shouldn't send
             return False
         
         # In test mode, just log the message
         if self.test_mode:
+            english_message = self.format_message(message_data)
             logger.info(
                 "TEST MODE: Would send Telegram message to both bots",
-                message=message,
+                message=english_message,
                 article_id=getattr(article, 'benzinga_id', getattr(article, 'source_id', 'unknown'))
             )
             return True
@@ -156,14 +224,32 @@ class DualTelegramNotifier:
         success_count = 0
         
         if self.enabled_1:
-            await self.message_queue_1.put((message, article))
-            success_count += 1
-            logger.debug("Message queued for primary Telegram bot")
+            # Bot 1 gets Chinese translation
+            if self.translator:
+                try:
+                    chinese_message_data = await self.translator.translate_to_chinese(message_data)
+                    chinese_message = self.format_message(chinese_message_data)
+                    await self.message_queue_1.put((chinese_message, article))
+                    success_count += 1
+                    logger.debug("Chinese message queued for primary Telegram bot")
+                except Exception as e:
+                    logger.error("Failed to translate message for bot 1", error=str(e))
+                    # Fallback to English
+                    english_message = self.format_message(message_data)
+                    await self.message_queue_1.put((english_message, article))
+                    success_count += 1
+            else:
+                # No translator available, send English
+                english_message = self.format_message(message_data)
+                await self.message_queue_1.put((english_message, article))
+                success_count += 1
         
         if self.enabled_2:
-            await self.message_queue_2.put((message, article))
+            # Bot 2 gets English message
+            english_message = self.format_message(message_data)
+            await self.message_queue_2.put((english_message, article))
             success_count += 1
-            logger.debug("Message queued for secondary Telegram bot")
+            logger.debug("English message queued for secondary Telegram bot")
         
         return success_count > 0
     
