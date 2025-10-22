@@ -9,7 +9,7 @@ import sys
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from newsflash.services.dual_telegram_service import DualTelegramNotifier
+from newsflash.services.telegram_service import TelegramNotifier
 from newsflash.models.benzinga_models import BenzingaArticle
 from newsflash.models.classification_models import NewsClassification, ClassificationResult
 from newsflash.utils.logging_config import setup_logging, get_logger
@@ -24,7 +24,7 @@ async def test_yfinance_integration():
     """Test the yfinance integration with dual Telegram service."""
     
     # Initialize dual Telegram notifier
-    telegram_notifier = DualTelegramNotifier(test_mode=True)
+    telegram_notifier = TelegramNotifier(test_mode=True)
     
     # Create sample article with AAPL ticker for testing
     test_time = datetime(2025, 10, 21, 18, 30, 0)

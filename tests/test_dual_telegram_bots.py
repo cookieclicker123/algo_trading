@@ -14,7 +14,7 @@ async def test_dual_bots():
     """Test both Telegram bots working together."""
     
     # Import here to avoid import issues
-    from newsflash.services.dual_telegram_service import DualTelegramNotifier
+    from newsflash.services.telegram_service import TelegramNotifier
     from newsflash.models.benzinga_models import BenzingaArticle
     from newsflash.models.classification_models import NewsClassification, ClassificationResult
     from datetime import datetime
@@ -43,9 +43,9 @@ async def test_dual_bots():
         print("TELEGRAM_CHAT_ID_2=your_secondary_chat_id")
         return
     
-    # Initialize dual notifier
-    print("🔧 Initializing Dual Telegram Notifier...")
-    notifier = DualTelegramNotifier(test_mode=False)
+    # Initialize notifier
+    print("🔧 Initializing Telegram Notifier...")
+    notifier = TelegramNotifier(test_mode=False)
     
     print(f"Primary Bot Enabled: {'✅' if notifier.enabled_1 else '❌'}")
     print(f"Secondary Bot Enabled: {'✅' if notifier.enabled_2 else '❌'}")

@@ -57,37 +57,6 @@ class BenzingaArticle(BaseModel):
         now = datetime.now(timezone.utc)
         return (now - self.published).total_seconds() < (hours * 3600)
     
-    @property
-    def trading_relevance_score(self) -> int:
-        """
-        Calculate trading relevance score based on content indicators.
-        This is a stub - AI classification will replace this.
-        """
-        score = 0
-        
-        # High-value channels
-        if 'exclusives' in self.channels:
-            score += 3
-        if 'trading ideas' in self.channels:
-            score += 2
-        
-        # High-impact keywords
-        high_impact_keywords = [
-            'merger', 'acquisition', 'earnings', 'contract', 'partnership',
-            'fda', 'approval', 'clinical trial', 'ipo', 'bankruptcy'
-        ]
-        
-        title_body_text = (self.title + ' ' + (self.teaser or '') + ' ' + (self.body or '')).lower()
-        for keyword in high_impact_keywords:
-            if keyword in title_body_text:
-                score += 1
-        
-        # Multiple tickers often indicate broader market impact
-        if len(self.tickers) > 3:
-            score += 1
-        
-        return min(score, 10)  # Cap at 10
-    
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return self.dict()
@@ -138,10 +107,9 @@ class BenzingaNewsResponse(BaseModel):
             return None
         return max(self.results, key=lambda x: x.published)
     
-    @property
-    def high_relevance_articles(self) -> List[BenzingaArticle]:
-        """Get articles with high trading relevance (score >= 5)."""
-        return [article for article in self.results if article.trading_relevance_score >= 5]
+    def get_articles_by_channel(self, channel: str) -> List[BenzingaArticle]:
+        """Get articles from a specific channel."""
+        return [article for article in self.results if channel in article.channels]
 
 
 class NewsPollingState(BaseModel):

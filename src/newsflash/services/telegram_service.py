@@ -1,5 +1,5 @@
 """
-Dual Telegram notification service for news alerts.
+Telegram notification service for news alerts.
 Supports sending to both primary and secondary Telegram bots.
 """
 import asyncio
@@ -20,7 +20,7 @@ from .telegram_trade_handler import get_telegram_trade_handler
 logger = structlog.get_logger(__name__)
 
 
-class DualTelegramNotifier:
+class TelegramNotifier:
     """
     Service for sending formatted news alerts to both Telegram bots.
     
@@ -32,7 +32,7 @@ class DualTelegramNotifier:
         test_mode: bool = False,
     ):
         """
-        Initialize dual Telegram notifier.
+        Initialize Telegram notifier.
         
         Args:
             test_mode: If True, write to JSON instead of sending to Telegram
@@ -80,10 +80,10 @@ class DualTelegramNotifier:
         self.is_running = False
         
         if test_mode:
-            logger.info("Dual Telegram service in test mode - messages will be logged only")
+            logger.info("Telegram service in test mode - messages will be logged only")
         else:
             total_bots = sum([self.enabled_1, self.enabled_2])
-            logger.info(f"Dual Telegram service initialized with {total_bots} active bots")
+            logger.info(f"Telegram service initialized with {total_bots} active bots")
     
     async def format_message_data(
         self,
@@ -376,17 +376,17 @@ class DualTelegramNotifier:
                 await asyncio.sleep(1.0)
     
     async def start(self) -> None:
-        """Start the dual Telegram notification service."""
+        """Start the Telegram notification service."""
         if self.test_mode:
-            logger.info("Dual Telegram service not started (test mode)")
+            logger.info("Telegram service not started (test mode)")
             return
         
         if self.is_running:
-            logger.warning("Dual Telegram service already running")
+            logger.warning("Telegram service already running")
             return
         
         self.is_running = True
-        logger.info("Dual Telegram notification service started")
+        logger.info("Telegram notification service started")
         
         # Start trade handler
         if self.trade_handler:
@@ -423,11 +423,11 @@ class DualTelegramNotifier:
             await asyncio.gather(*tasks, return_exceptions=True)
     
     async def stop(self) -> None:
-        """Stop the dual Telegram notification service."""
+        """Stop the Telegram notification service."""
         if not self.is_running:
             return
         
-        logger.info("Stopping dual Telegram notification service")
+        logger.info("Stopping Telegram notification service")
         self.is_running = False
         
         # Stop trade handler
@@ -449,4 +449,4 @@ class DualTelegramNotifier:
                 except Exception as e:
                     logger.error(f"Error sending queued message during shutdown ({bot_name})", error=str(e))
         
-        logger.info("Dual Telegram notification service stopped")
+        logger.info("Telegram notification service stopped")

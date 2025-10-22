@@ -1,5 +1,5 @@
 """
-Article processing service for handling new articles from multiple sources.
+Article processing service for handling new articles from Benzinga.
 """
 import asyncio
 from typing import List, Callable, Awaitable, Optional, Union
@@ -7,7 +7,7 @@ from ..models.benzinga_models import BenzingaArticle
 from ..models.base_models import StandardizedArticle
 from ..utils.json_storage import ArticleStorage
 from ..utils.logging_config import get_logger
-from ..services.dual_telegram_service import DualTelegramNotifier
+from ..services.telegram_service import TelegramNotifier
 from ..services.news_classifier import NewsClassifier
 from ..config.settings import get_classification_config
 
@@ -16,25 +16,25 @@ logger = get_logger(__name__)
 
 class ArticleProcessor:
     """
-    Processes new articles through multiple handlers from various sources.
+    Processes new articles through multiple handlers from Benzinga.
     
     Features:
     - JSON storage with rolling window
-    - Multi-source article support (Benzinga, Finlight, etc.)
+    - Benzinga article support
     - Custom article handlers
     - Error handling for each processor
     - Async processing pipeline
     """
     
-    def __init__(self, telegram_notifier: Optional[DualTelegramNotifier] = None):
+    def __init__(self, telegram_notifier: Optional[TelegramNotifier] = None):
         self.storage = ArticleStorage()
         self.handlers: List[Callable[[Union[BenzingaArticle, StandardizedArticle]], Awaitable[None]]] = []
         
-        # Initialize dual Telegram notifier if provided or from config
+        # Initialize Telegram notifier if provided or from config
         if telegram_notifier:
             self.telegram = telegram_notifier
         else:
-            self.telegram = DualTelegramNotifier(test_mode=False)
+            self.telegram = TelegramNotifier(test_mode=False)
         
         # Initialize AI classifier
         classification_config = get_classification_config()
@@ -130,7 +130,6 @@ class ArticleProcessor:
                 source_id=article.source_id,
                 title=article.title,  # Full title, not truncated
                 tickers=article.tickers,
-                relevance_score=article.trading_relevance_score,
                 categories=article.categories,
                 published=article.published.isoformat()
             )
@@ -140,7 +139,6 @@ class ArticleProcessor:
                 benzinga_id=article.benzinga_id,
                 title=article.title,  # Full title, not truncated
                 tickers=article.tickers,
-                relevance_score=article.trading_relevance_score,
                 channels=article.channels,
                 published=article.published.isoformat()
             )

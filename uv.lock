@@ -424,20 +424,6 @@ wheels = [
 ]
 
 [[package]]
-name = "finlight-client"
-version = "2.0.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pydantic" },
-    { name = "requests" },
-    { name = "websockets" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/c2/76/c4ce6363a1509ff637c4a5b0b8a5dcb84c67a3ff5d4749187691f288a995/finlight_client-2.0.1.tar.gz", hash = "sha256:f11e35f78667112e6b9fd5ee2d9c399cb5e35b6fd587a89a0af90f9f2e7de0f2", size = 19401, upload-time = "2025-10-04T13:52:49.159Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/af/be/4dcb2932d4f5de03a31263a376df349610715b6a134634d2afa43495747d/finlight_client-2.0.1-py3-none-any.whl", hash = "sha256:ccac42f07bd583d7a08cba6e22e243d53a9fc53471ac01f2a436bf7898b69234", size = 18597, upload-time = "2025-10-04T13:52:45.275Z" },
-]
-
-[[package]]
 name = "frozendict"
 version = "2.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -739,7 +725,6 @@ source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
     { name = "fastapi" },
-    { name = "finlight-client" },
     { name = "groq" },
     { name = "httpx" },
     { name = "ib-insync" },
@@ -768,7 +753,6 @@ requires-dist = [
     { name = "aiofiles", specifier = ">=23.0.0" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=23.0.0" },
     { name = "fastapi", specifier = ">=0.104.0" },
-    { name = "finlight-client", specifier = ">=1.0.0" },
     { name = "groq", specifier = ">=0.9.0" },
     { name = "httpx", specifier = ">=0.25.0" },
     { name = "ib-insync", specifier = ">=0.9.86" },

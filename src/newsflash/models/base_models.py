@@ -10,7 +10,6 @@ from enum import Enum
 class NewsSource(str, Enum):
     """Enumeration of supported news sources."""
     BENZINGA = "benzinga"
-    FINLIGHT = "finlight"
 
 
 class StandardizedArticle(BaseModel):
@@ -77,37 +76,6 @@ class StandardizedArticle(BaseModel):
         now = datetime.now(timezone.utc)
         return (now - self.published).total_seconds() < (hours * 3600)
     
-    @property
-    def trading_relevance_score(self) -> int:
-        """
-        Calculate trading relevance score based on content indicators.
-        This is a stub - AI classification will replace this.
-        """
-        score = 0
-        
-        # High-impact keywords
-        high_impact_keywords = [
-            'merger', 'acquisition', 'earnings', 'contract', 'partnership',
-            'fda', 'approval', 'clinical trial', 'ipo', 'bankruptcy',
-            'dividend', 'split', 'buyback', 'guidance', 'beat', 'miss'
-        ]
-        
-        # Combine title, summary, and content for analysis
-        content_text = (self.title + ' ' + (self.summary or '') + ' ' + (self.content or '')).lower()
-        for keyword in high_impact_keywords:
-            if keyword in content_text:
-                score += 1
-        
-        # Multiple tickers often indicate broader market impact
-        if len(self.tickers) > 3:
-            score += 1
-        
-        # High-value categories
-        if any(cat.lower() in ['exclusives', 'trading ideas', 'breaking'] for cat in self.categories):
-            score += 2
-        
-        return min(score, 10)  # Cap at 10
-    
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return self.dict()
@@ -121,24 +89,3 @@ class ArticleProcessor(BaseModel):
     def process_raw_article(self, raw_data: Dict[str, Any]) -> StandardizedArticle:
         """Convert raw article data to standardized format."""
         raise NotImplementedError("Subclasses must implement process_raw_article")
-
-
-class MultiSourceStats(BaseModel):
-    """Statistics for multiple news sources."""
-    
-    sources: Dict[NewsSource, Dict[str, Any]] = Field(default_factory=dict, description="Stats per source")
-    total_articles: int = Field(default=0, description="Total articles across all sources")
-    last_updated: datetime = Field(default_factory=lambda: datetime.now(), description="Last update time")
-    
-    def add_source_stats(self, source: NewsSource, stats: Dict[str, Any]):
-        """Add statistics for a specific source."""
-        self.sources[source] = stats
-        self.last_updated = datetime.now()
-    
-    def get_total_articles(self) -> int:
-        """Calculate total articles across all sources."""
-        total = 0
-        for source_stats in self.sources.values():
-            if 'articles_processed' in source_stats:
-                total += source_stats['articles_processed']
-        return total

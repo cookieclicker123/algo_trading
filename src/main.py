@@ -38,9 +38,6 @@ class NewsFlashStandalone:
             # Pass the article processor to FeedManager to avoid duplication
             self.feed_manager = FeedManager(article_processor=self.article_processor)
             
-            # Add custom handlers if needed
-            self.article_processor.add_handler(self._log_high_relevance_articles)
-            
             # Start all feeds
             await self.feed_manager.start_all_feeds()
             
@@ -54,32 +51,6 @@ class NewsFlashStandalone:
             if self.feed_manager:
                 await self.feed_manager.stop_all_feeds()
             logger.info("NewsFlash standalone system stopped")
-    
-    async def _log_high_relevance_articles(self, article):
-        """Log articles with high trading relevance."""
-        if article.trading_relevance_score >= 5:
-            # Handle both BenzingaArticle and StandardizedArticle
-            if hasattr(article, 'source'):
-                # StandardizedArticle
-                logger.info(
-                    "HIGH RELEVANCE ARTICLE",
-                    source=article.source,
-                    source_id=article.source_id,
-                    title=article.title,
-                    tickers=article.tickers,
-                    relevance_score=article.trading_relevance_score,
-                    categories=article.categories
-                )
-            else:
-                # BenzingaArticle
-                logger.info(
-                    "HIGH RELEVANCE ARTICLE",
-                    benzinga_id=article.benzinga_id,
-                    title=article.title,
-                    tickers=article.tickers,
-                    relevance_score=article.trading_relevance_score,
-                    channels=article.channels
-                )
     
     def stop(self):
         """Stop the system gracefully."""

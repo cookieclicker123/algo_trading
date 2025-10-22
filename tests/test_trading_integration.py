@@ -10,7 +10,7 @@ import sys
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from newsflash.services.dual_telegram_service import DualTelegramNotifier
+from newsflash.services.telegram_service import TelegramNotifier
 from newsflash.services.ibkr_trading_service import get_ibkr_trading_service, TradeRequest
 from newsflash.models.benzinga_models import BenzingaArticle
 from newsflash.models.classification_models import NewsClassification, ClassificationResult
@@ -28,7 +28,7 @@ async def test_trading_integration():
     logger.info("Testing IBKR trading integration with Telegram")
     
     # Initialize services
-    telegram_notifier = DualTelegramNotifier(test_mode=True)
+    telegram_notifier = TelegramNotifier(test_mode=True)
     trading_service = get_ibkr_trading_service()
     
     # Create sample IMMINENT article

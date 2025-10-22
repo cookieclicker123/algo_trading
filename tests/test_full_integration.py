@@ -10,7 +10,7 @@ import sys
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from newsflash.services.dual_telegram_service import DualTelegramNotifier
+from newsflash.services.telegram_service import TelegramNotifier
 from newsflash.services.ibkr_trading_service import get_ibkr_trading_service, TradeRequest
 from newsflash.services.telegram_trade_handler import get_telegram_trade_handler
 from newsflash.models.benzinga_models import BenzingaArticle
