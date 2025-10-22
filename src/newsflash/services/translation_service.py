@@ -2,7 +2,6 @@
 Translation service for converting English financial news to Chinese.
 """
 import json
-import structlog
 from typing import Dict, Any
 from groq import Groq
 

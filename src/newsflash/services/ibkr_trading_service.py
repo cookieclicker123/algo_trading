@@ -3,7 +3,6 @@ Interactive Brokers trading service for automated trade execution.
 Connects to real IBKR account for live trading.
 """
 import asyncio
-import structlog
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 from dataclasses import dataclass

@@ -3,7 +3,6 @@ Unified feed manager for handling Benzinga news source.
 """
 import asyncio
 from typing import Dict, Any, List, Optional
-from datetime import datetime
 
 from ..utils.logging_config import get_logger
 from ..models.base_models import StandardizedArticle, NewsSource
@@ -30,7 +29,8 @@ class FeedManager:
         if article_processor:
             self.article_processor = article_processor
         else:
-            self.article_processor = ArticleProcessor()
+            from .article_processor import get_article_processor
+            self.article_processor = get_article_processor()
         
         # Initialize source processors
         self._initialize_processors()

@@ -3,7 +3,6 @@ YFinance service for fetching fundamental and real-time market data.
 Only called for IMMINENT news to respect rate limits.
 """
 import yfinance as yf
-import structlog
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 

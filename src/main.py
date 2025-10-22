@@ -1,5 +1,5 @@
 """
-Main entry point for standalone multi-source news polling.
+Main entry point for standalone news polling.
 Run with: python -m src.main
 """
 import asyncio
@@ -10,8 +10,7 @@ from pathlib import Path
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
-from newsflash.services.feed_manager import FeedManager
-from newsflash.services.article_processor import ArticleProcessor
+from newsflash.services.service_container import initialize_services
 from newsflash.utils.logging_config import setup_logging, get_logger
 
 # Setup logging
@@ -20,26 +19,22 @@ logger = get_logger(__name__)
 
 
 class NewsFlashStandalone:
-    """Standalone multi-source news polling application."""
+    """Standalone news polling application."""
     
     def __init__(self):
-        self.article_processor = None
-        self.feed_manager = None
+        self.container = None
         self.shutdown_event = asyncio.Event()
     
     async def start(self):
-        """Start the standalone multi-source polling system."""
-        logger.info("Starting NewsFlash standalone multi-source polling system")
+        """Start the standalone polling system."""
+        logger.info("Starting NewsFlash standalone polling system")
         
         try:
-            # Initialize services
-            self.article_processor = ArticleProcessor()
+            # Initialize service container
+            self.container = initialize_services()
             
-            # Pass the article processor to FeedManager to avoid duplication
-            self.feed_manager = FeedManager(article_processor=self.article_processor)
-            
-            # Start all feeds
-            await self.feed_manager.start_all_feeds()
+            # Start all services
+            await self.container.start_all_services()
             
             # Wait for shutdown signal
             await self.shutdown_event.wait()
@@ -48,8 +43,8 @@ class NewsFlashStandalone:
             logger.error("Error in standalone system", error=str(e))
             raise
         finally:
-            if self.feed_manager:
-                await self.feed_manager.stop_all_feeds()
+            if self.container:
+                await self.container.stop_all_services()
             logger.info("NewsFlash standalone system stopped")
     
     def stop(self):

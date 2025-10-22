@@ -1,7 +1,6 @@
 """
 Article processing service for handling new articles from Benzinga.
 """
-import asyncio
 from typing import List, Callable, Awaitable, Optional, Union
 from ..models.benzinga_models import BenzingaArticle
 from ..models.base_models import StandardizedArticle
@@ -26,23 +25,26 @@ class ArticleProcessor:
     - Async processing pipeline
     """
     
-    def __init__(self, telegram_notifier: Optional[TelegramNotifier] = None):
-        self.storage = ArticleStorage()
+    def __init__(
+        self, 
+        telegram_notifier: Optional[TelegramNotifier] = None,
+        classifier: Optional[NewsClassifier] = None,
+        storage: Optional[ArticleStorage] = None,
+    ):
+        """
+        Initialize article processor with optional dependencies.
+        
+        Args:
+            telegram_notifier: Optional Telegram notifier (injected dependency)
+            classifier: Optional news classifier (injected dependency)
+            storage: Optional article storage (injected dependency)
+        """
+        # Use injected dependencies or create defaults
+        self.storage = storage or ArticleStorage()
+        self.telegram = telegram_notifier or TelegramNotifier(test_mode=False)
+        self.classifier = classifier or self._create_default_classifier()
+        
         self.handlers: List[Callable[[Union[BenzingaArticle, StandardizedArticle]], Awaitable[None]]] = []
-        
-        # Initialize Telegram notifier if provided or from config
-        if telegram_notifier:
-            self.telegram = telegram_notifier
-        else:
-            self.telegram = TelegramNotifier(test_mode=False)
-        
-        # Initialize AI classifier
-        classification_config = get_classification_config()
-        self.classifier = NewsClassifier(
-            api_key=classification_config["api_key"],
-            model=classification_config["model"],
-            enabled=classification_config["enabled"]
-        )
         
         logger.info(
             "ArticleProcessor initialized",
@@ -50,6 +52,15 @@ class ArticleProcessor:
             telegram_enabled_2=self.telegram.enabled_2,
             telegram_test_mode=self.telegram.test_mode,
             classification_enabled=self.classifier.enabled
+        )
+    
+    def _create_default_classifier(self) -> NewsClassifier:
+        """Create default classifier from config."""
+        classification_config = get_classification_config()
+        return NewsClassifier(
+            api_key=classification_config["api_key"],
+            model=classification_config["model"],
+            enabled=classification_config["enabled"]
         )
     
     def add_handler(self, handler: Callable[[Union[BenzingaArticle, StandardizedArticle]], Awaitable[None]]):
@@ -234,3 +245,26 @@ class ArticleProcessor:
             "handlers_count": len(self.handlers),
             "storage_stats": storage_stats,
         }
+
+
+def get_article_processor(
+    telegram_notifier: Optional[TelegramNotifier] = None,
+    classifier: Optional[NewsClassifier] = None,
+    storage: Optional[ArticleStorage] = None,
+) -> ArticleProcessor:
+    """
+    Get article processor instance with optional dependencies.
+    
+    Args:
+        telegram_notifier: Optional Telegram notifier (injected dependency)
+        classifier: Optional news classifier (injected dependency)
+        storage: Optional article storage (injected dependency)
+        
+    Returns:
+        ArticleProcessor instance
+    """
+    return ArticleProcessor(
+        telegram_notifier=telegram_notifier,
+        classifier=classifier,
+        storage=storage,
+    )

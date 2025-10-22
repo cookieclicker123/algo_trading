@@ -1,87 +1,91 @@
 """
-FastAPI application for the multi-source news trading system.
+FastAPI application for the news trading system.
+Uses service container for proper dependency injection.
 """
 from fastapi import FastAPI, HTTPException
 import asyncio
 
-from ..services.feed_manager import FeedManager
-from ..services.article_processor import ArticleProcessor
-from ..models.base_models import NewsSource
+from ..services.service_container import get_service_container, initialize_services
 from ..utils.logging_config import get_logger
 
 logger = get_logger(__name__)
-
-# Global instances (will be initialized in main)
-feed_manager: FeedManager = None
-article_processor: ArticleProcessor = None
 
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     app = FastAPI(
         title="NewsFlash Trading System",
-        description="Real-time multi-source news polling and processing system",
+        description="Real-time news polling and processing system",
         version="2.0.0"
     )
     
     @app.on_event("startup")
     async def startup_event():
         """Initialize services on startup."""
-        global feed_manager, article_processor
+        logger.info("Starting NewsFlash API server")
         
-        logger.info("Starting NewsFlash API server with multi-source feeds")
-        
-        # Initialize services
-        article_processor = ArticleProcessor()
-        
-        # Pass article processor to FeedManager to avoid duplication
-        feed_manager = FeedManager(article_processor=article_processor)
-        
-        # Start all feeds in background
-        asyncio.create_task(start_all_feeds())
+        try:
+            # Initialize service container
+            container = initialize_services()
+            
+            # Start all services
+            await container.start_all_services()
+            
+            logger.info("API server startup completed successfully")
+            
+        except Exception as e:
+            logger.error("Failed to start API server", error=str(e))
+            raise
     
     @app.on_event("shutdown")
     async def shutdown_event():
         """Cleanup on shutdown."""
-        global feed_manager
-        
         logger.info("Shutting down NewsFlash API server")
         
-        if feed_manager:
-            await feed_manager.stop_all_feeds()
+        try:
+            container = get_service_container()
+            await container.stop_all_services()
+            
+            logger.info("API server shutdown completed")
+            
+        except Exception as e:
+            logger.error("Error during API server shutdown", error=str(e))
     
     @app.get("/")
     async def root():
         """Root endpoint."""
-        return {
-            "service": "NewsFlash Trading System",
-            "status": "running",
-            "version": "2.0.0",
-            "sources": [source.value for source in feed_manager.get_available_sources()] if feed_manager else []
-        }
+        try:
+            container = get_service_container()
+            feed_manager = container.get_feed_manager()
+            
+            return {
+                "service": "NewsFlash Trading System",
+                "status": "running",
+                "version": "2.0.0",
+                "sources": ["benzinga"],  # Single source now
+                "healthy": container.is_healthy()
+            }
+        except Exception as e:
+            logger.error("Root endpoint error", error=str(e))
+            raise HTTPException(status_code=503, detail="Service not available")
     
     @app.get("/health")
     async def health_check():
         """Health check endpoint."""
         try:
-            if not feed_manager:
-                raise HTTPException(status_code=503, detail="Feed manager not initialized")
+            container = get_service_container()
             
-            # Check health of all sources
-            source_health = {}
-            overall_healthy = True
-            
-            for source in feed_manager.get_available_sources():
-                is_healthy = feed_manager.is_source_healthy(source)
-                source_health[source.value] = is_healthy
-                if not is_healthy:
-                    overall_healthy = False
+            if not container.is_healthy():
+                raise HTTPException(status_code=503, detail="Services unhealthy")
             
             return {
-                "status": "healthy" if overall_healthy else "degraded",
-                "sources": source_health,
-                "available_sources": [source.value for source in feed_manager.get_available_sources()]
+                "status": "healthy",
+                "sources": {"benzinga": True},
+                "available_sources": ["benzinga"]
             }
+            
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error("Health check failed", error=str(e))
             raise HTTPException(status_code=503, detail=f"Health check failed: {str(e)}")
@@ -90,17 +94,14 @@ def create_app() -> FastAPI:
     async def get_stats():
         """Get system statistics."""
         try:
-            if not feed_manager or not article_processor:
-                raise HTTPException(status_code=503, detail="Services not initialized")
-            
-            overall_stats = feed_manager.get_overall_stats()
-            processor_stats = article_processor.get_stats()
+            container = get_service_container()
+            stats = container.get_stats()
             
             return {
-                "overall": overall_stats.dict(),
-                "processor": processor_stats,
+                "stats": stats,
                 "service_status": "running"
             }
+            
         except Exception as e:
             logger.error("Failed to get stats", error=str(e))
             raise HTTPException(status_code=500, detail=f"Failed to get stats: {str(e)}")
@@ -204,17 +205,3 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=500, detail=f"Failed to stop feeds: {str(e)}")
     
     return app
-
-
-async def start_all_feeds():
-    """Start all news feeds."""
-    global feed_manager
-    
-    if feed_manager:
-        try:
-            await feed_manager.start_all_feeds()
-                
-        except asyncio.CancelledError:
-            logger.info("Feed manager task cancelled")
-        except Exception as e:
-            logger.error("Error in feed manager task", error=str(e))

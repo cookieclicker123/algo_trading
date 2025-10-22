@@ -2,13 +2,9 @@
 Telegram bot handler for processing user trade decisions.
 Handles replies to IMMINENT news messages.
 """
-import asyncio
-import structlog
-from typing import Optional
 from datetime import datetime
-from telegram import Update, Bot
+from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-from telegram.error import TelegramError
 
 from .ibkr_trading_service import get_ibkr_trading_service, TradeRequest
 from ..utils.logging_config import get_logger
@@ -222,6 +218,15 @@ class TelegramTradeHandler:
                         error=str(e))
 
 
-def get_telegram_trade_handler(bot_token: str) -> TelegramTradeHandler:
-    """Get Telegram trade handler instance."""
-    return TelegramTradeHandler(bot_token)
+def get_telegram_trade_handler(bot_token: str, trading_service=None) -> TelegramTradeHandler:
+    """
+    Get Telegram trade handler instance.
+    
+    Args:
+        bot_token: Telegram bot token
+        trading_service: Optional IBKR trading service instance
+        
+    Returns:
+        TelegramTradeHandler instance
+    """
+    return TelegramTradeHandler(bot_token, trading_service)

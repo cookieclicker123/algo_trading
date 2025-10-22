@@ -5,11 +5,11 @@ Real-time event-driven polling system with 50ms intervals.
 import asyncio
 import time
 import httpx
-from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any, Optional
 from ..config.settings import get_api_key, API_BASE_URL, get_polling_config
-from ..models.benzinga_models import BenzingaArticle, BenzingaNewsResponse, NewsPollingState
+from ..models.benzinga_models import BenzingaArticle
 from ..utils.logging_config import get_logger
+from .polling_state_manager import PollingStateManager
 
 logger = get_logger(__name__)
 
@@ -26,38 +26,24 @@ class NewsPoller:
     - State persistence across restarts
     """
     
-    def __init__(self, article_processor):
+    def __init__(self, article_processor, state_manager: Optional[PollingStateManager] = None):
+        """
+        Initialize news poller.
+        
+        Args:
+            article_processor: Article processor for handling new articles
+            state_manager: Optional state manager (injected dependency)
+        """
         self.article_processor = article_processor
-        # Load the last seen article ID from a file, or start fresh
-        self.last_seen_article_id = self._load_last_seen_id()
+        self.state_manager = state_manager or PollingStateManager()
         self.client = None
         self.is_running = False
         self.polling_task = None
         self.config = get_polling_config()
         
-        # Error handling
-        self.consecutive_errors = 0
+        # Error handling constants
         self.max_consecutive_errors = 5
-        self.backoff_delay = 1.0
     
-    def _load_last_seen_id(self):
-        """Load the last seen article ID from file, or return 0 if no file exists."""
-        try:
-            with open("tmp/last_seen_id.txt", "r") as f:
-                return int(f.read().strip())
-        except (FileNotFoundError, ValueError):
-            return 0
-    
-    def _save_last_seen_id(self, article_id):
-        """Save the last seen article ID to file."""
-        try:
-            import os
-            os.makedirs("tmp", exist_ok=True)
-            with open("tmp/last_seen_id.txt", "w") as f:
-                f.write(str(article_id))
-        except Exception as e:
-            logger.error("Failed to save last seen ID", error=str(e))
-        
     async def __aenter__(self):
         """Async context manager entry."""
         self.client = httpx.AsyncClient(timeout=10.0)
@@ -79,6 +65,9 @@ class NewsPoller:
         if not self.client:
             raise RuntimeError("HTTP client not initialized. Use async context manager.")
         
+        # Get current state
+        state = self.state_manager.get_state()
+        
         # Simple approach: get latest articles, no time filtering
         params = {
             "apiKey": get_api_key(),
@@ -97,11 +86,11 @@ class NewsPoller:
             
             # Filter for articles we haven't seen before and convert to BenzingaArticle objects
             new_articles = []
-            highest_id_seen = self.last_seen_article_id
+            highest_id_seen = state.last_seen_article_id
             
             for article_data in all_articles:
                 article_id = article_data.get("benzinga_id", 0)
-                if article_id > self.last_seen_article_id:
+                if article_id > state.last_seen_article_id:
                     try:
                         # Convert raw data to BenzingaArticle object
                         article = BenzingaArticle.model_validate(article_data)
@@ -110,15 +99,13 @@ class NewsPoller:
                     except Exception as e:
                         logger.error("Failed to parse article", error=str(e), article_id=article_id)
             
-            # Update and save our highest seen ID if we found new articles
+            # Update state if we found new articles
             if new_articles:
-                self.last_seen_article_id = highest_id_seen
-                self._save_last_seen_id(highest_id_seen)
+                self.state_manager.update_last_seen_id(highest_id_seen)
                 logger.info(f"Found {len(new_articles)} new articles, updated last seen ID to {highest_id_seen}")
             
             # Reset error counter on success
-            self.consecutive_errors = 0
-            self.backoff_delay = 1.0
+            self.state_manager.reset_errors()
             
             return new_articles
             
@@ -129,18 +116,19 @@ class NewsPoller:
             else:
                 logger.error("HTTP error fetching news", status_code=e.response.status_code)
             
-            self.consecutive_errors += 1
+            self.state_manager.increment_errors()
             return []
             
         except Exception as e:
             logger.error("Error fetching news", error=str(e))
-            self.consecutive_errors += 1
+            self.state_manager.increment_errors()
             return []
     
     async def _handle_rate_limit(self):
         """Handle rate limiting with exponential backoff."""
-        await asyncio.sleep(self.backoff_delay)
-        self.backoff_delay = min(self.backoff_delay * 2, 60.0)  # Max 60 seconds
+        state = self.state_manager.get_state()
+        await asyncio.sleep(state.backoff_delay)
+        self.state_manager.increase_backoff()
     
     async def _polling_loop(self):
         """Main polling loop - runs every 50ms."""
@@ -151,10 +139,11 @@ class NewsPoller:
             
             try:
                 # Check if we've hit too many consecutive errors
-                if self.consecutive_errors >= self.max_consecutive_errors:
-                    logger.error("Too many consecutive errors, backing off", errors=self.consecutive_errors)
+                state = self.state_manager.get_state()
+                if state.consecutive_errors >= self.max_consecutive_errors:
+                    logger.error("Too many consecutive errors, backing off", errors=state.consecutive_errors)
                     await asyncio.sleep(30)  # 30 second backoff
-                    self.consecutive_errors = 0  # Reset after backoff
+                    self.state_manager.reset_errors()  # Reset after backoff
                     continue
                 
                 # Fetch and process new articles
@@ -165,7 +154,7 @@ class NewsPoller:
                 
             except Exception as e:
                 logger.error("Unexpected error in polling loop", error=str(e))
-                self.consecutive_errors += 1
+                self.state_manager.increment_errors()
             
             # Calculate sleep time to maintain 50ms intervals
             loop_duration = time.time() - loop_start

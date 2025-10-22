@@ -5,7 +5,6 @@ import json
 import asyncio
 from typing import Union, Optional
 from pathlib import Path
-import structlog
 from groq import AsyncGroq
 
 from ..models.base_models import StandardizedArticle
@@ -264,4 +263,27 @@ Summary: {summary}"""
             "model": self.model,
             "has_api_key": bool(self.client),
         }
+
+
+def get_news_classifier(
+    api_key: Optional[str] = None,
+    model: str = "llama-3.1-70b-versatile",
+    enabled: bool = True,
+) -> NewsClassifier:
+    """
+    Get news classifier instance with optional configuration.
+    
+    Args:
+        api_key: Optional Groq API key (if None, will be disabled)
+        model: Groq model to use
+        enabled: Whether classification is enabled
+        
+    Returns:
+        NewsClassifier instance
+    """
+    return NewsClassifier(
+        api_key=api_key,
+        model=model,
+        enabled=enabled,
+    )
 

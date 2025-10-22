@@ -3,9 +3,7 @@ Telegram notification service for news alerts.
 Supports sending to both primary and secondary Telegram bots.
 """
 import asyncio
-from typing import Optional, List, Union
-from datetime import datetime
-import structlog
+from typing import Optional, Union
 from telegram import Bot
 from telegram.error import TelegramError
 
@@ -14,8 +12,7 @@ from ..models.benzinga_models import BenzingaArticle
 from ..models.classification_models import NewsClassification, ClassificationResult
 from ..config.settings import get_telegram_config, get_telegram_config_2
 from ..utils.logging_config import get_logger
-from .yfinance_service import get_yfinance_service
-from .telegram_trade_handler import get_telegram_trade_handler
+# Removed imports to prevent circular dependencies - use dependency injection instead
 
 logger = get_logger(__name__)
 
@@ -30,12 +27,18 @@ class TelegramNotifier:
     def __init__(
         self,
         test_mode: bool = False,
+        translator=None,
+        yfinance_service=None,
+        trade_handler=None,
     ):
         """
         Initialize Telegram notifier.
         
         Args:
             test_mode: If True, write to JSON instead of sending to Telegram
+            translator: Optional translation service (injected dependency)
+            yfinance_service: Optional yfinance service (injected dependency)
+            trade_handler: Optional trade handler (injected dependency)
         """
         self.test_mode = test_mode
         
@@ -43,25 +46,14 @@ class TelegramNotifier:
         self.config_1 = get_telegram_config()
         self.config_2 = get_telegram_config_2()
         
-        # Initialize translation service (import here to avoid circular import)
-        try:
-            from .translation_service import get_translation_service
-            self.translator = get_translation_service()
-        except ImportError:
-            logger.warning("Translation service not available")
-            self.translator = None
-        
-        # Initialize yfinance service
-        self.yfinance_service = get_yfinance_service()
+        # Use injected dependencies or create defaults
+        self.translator = translator
+        self.yfinance_service = yfinance_service
+        self.trade_handler = trade_handler
         
         # Initialize bot 1
         self.bot_1: Optional[Bot] = None
         self.enabled_1 = self.config_1["enabled"]
-        
-        # Initialize trading handler for Bot 1 (Chinese bot)
-        self.trade_handler = None
-        if self.enabled_1 and self.config_1.get("bot_token"):
-            self.trade_handler = get_telegram_trade_handler(self.config_1["bot_token"])
         
         if not test_mode and self.config_1["bot_token"] and self.enabled_1:
             self.bot_1 = Bot(token=self.config_1["bot_token"])
@@ -450,3 +442,29 @@ class TelegramNotifier:
                     logger.error(f"Error sending queued message during shutdown ({bot_name})", error=str(e))
         
         logger.info("Telegram notification service stopped")
+
+
+def get_telegram_notifier(
+    test_mode: bool = False,
+    translator=None,
+    yfinance_service=None,
+    trade_handler=None,
+) -> TelegramNotifier:
+    """
+    Get Telegram notifier instance with optional dependencies.
+    
+    Args:
+        test_mode: If True, write to JSON instead of sending to Telegram
+        translator: Optional translation service (injected dependency)
+        yfinance_service: Optional yfinance service (injected dependency)
+        trade_handler: Optional trade handler (injected dependency)
+        
+    Returns:
+        TelegramNotifier instance
+    """
+    return TelegramNotifier(
+        test_mode=test_mode,
+        translator=translator,
+        yfinance_service=yfinance_service,
+        trade_handler=trade_handler,
+    )
