@@ -11,8 +11,9 @@ from groq import AsyncGroq
 from ..models.base_models import StandardizedArticle
 from ..models.benzinga_models import BenzingaArticle
 from ..models.classification_models import ClassificationResult, NewsClassification
+from ..utils.logging_config import get_logger
 
-logger = structlog.get_logger(__name__)
+logger = get_logger(__name__)
 
 
 class NewsClassifier:

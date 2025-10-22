@@ -13,11 +13,11 @@ from ..models.base_models import StandardizedArticle
 from ..models.benzinga_models import BenzingaArticle
 from ..models.classification_models import NewsClassification, ClassificationResult
 from ..config.settings import get_telegram_config, get_telegram_config_2
-from ..utils.timezone_utils import get_published_timestamp
+from ..utils.logging_config import get_logger
 from .yfinance_service import get_yfinance_service
 from .telegram_trade_handler import get_telegram_trade_handler
 
-logger = structlog.get_logger(__name__)
+logger = get_logger(__name__)
 
 
 class TelegramNotifier:
@@ -130,8 +130,8 @@ class TelegramNotifier:
         # Format tickers with "Company Symbol:" prefix
         ticker_display = f"Company Symbol: '{', '.join(tickers)}'" if tickers else "Company Symbol: 'N/A'"
         
-        # Get publication timestamp in GMT
-        published_gmt = get_published_timestamp(article)
+        # Format publication timestamp (already in UTC from API)
+        published_gmt = article.published.strftime("%Y-%m-%d %H:%M:%S UTC")
         
         # Get fundamental data for the first ticker (if available)
         fundamental_data = None

@@ -1,9 +1,9 @@
 """
-Base models for standardized news article handling across multiple sources.
+Base models for standardized news article handling from Benzinga.
 """
 from datetime import datetime
 from typing import List, Optional, Dict, Any, Union
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from enum import Enum
 
 
@@ -39,7 +39,8 @@ class StandardizedArticle(BaseModel):
     # Raw source data
     raw_data: Dict[str, Any] = Field(..., description="Original data from source API")
     
-    @validator('published', 'updated', pre=True)
+    @field_validator('published', 'updated', mode='before')
+    @classmethod
     def parse_datetime(cls, v):
         """Parse datetime strings from various formats."""
         if v is None:
@@ -55,7 +56,8 @@ class StandardizedArticle(BaseModel):
                 return datetime.fromisoformat(v)
         return v
     
-    @validator('tickers')
+    @field_validator('tickers')
+    @classmethod
     def validate_tickers(cls, v):
         """Ensure tickers are uppercase and valid format."""
         return [ticker.upper().strip() for ticker in v if ticker.strip()]

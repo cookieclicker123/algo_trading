@@ -4,9 +4,9 @@ Based on real API response structure confirmed through testing.
 """
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
-from .base_models import StandardizedArticle, NewsSource, ArticleProcessor
+from .base_models import StandardizedArticle, NewsSource
 
 
 class BenzingaArticle(BaseModel):
@@ -25,7 +25,8 @@ class BenzingaArticle(BaseModel):
     tickers: List[str] = Field(default_factory=list, description="Stock tickers mentioned in article")
     tags: List[str] = Field(default_factory=list, description="Content tags for categorization")
     
-    @validator('published', 'last_updated', pre=True)
+    @field_validator('published', 'last_updated', mode='before')
+    @classmethod
     def parse_datetime(cls, v):
         """Parse datetime strings from API."""
         if isinstance(v, str):
@@ -36,7 +37,8 @@ class BenzingaArticle(BaseModel):
                 return datetime.fromisoformat(v)
         return v
     
-    @validator('tickers')
+    @field_validator('tickers')
+    @classmethod
     def validate_tickers(cls, v):
         """Ensure tickers are uppercase and valid format."""
         return [ticker.upper().strip() for ticker in v if ticker.strip()]
@@ -89,7 +91,8 @@ class BenzingaNewsResponse(BaseModel):
     count: Optional[int] = Field(None, description="Total number of results")
     next_url: Optional[str] = Field(None, description="URL for next page of results")
     
-    @validator('results', pre=True)
+    @field_validator('results', mode='before')
+    @classmethod
     def parse_articles(cls, v):
         """Parse raw API results into BenzingaArticle objects."""
         if isinstance(v, list):
@@ -120,7 +123,8 @@ class NewsPollingState(BaseModel):
     total_articles_processed: int = Field(default=0, description="Total articles processed")
     last_error: Optional[str] = Field(None, description="Last error message if any")
     
-    @validator('last_updated_timestamp', pre=True)
+    @field_validator('last_updated_timestamp', mode='before')
+    @classmethod
     def parse_timestamp(cls, v):
         """Ensure timestamp is a float."""
         if isinstance(v, datetime):

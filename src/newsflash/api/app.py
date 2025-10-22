@@ -2,8 +2,6 @@
 FastAPI application for the multi-source news trading system.
 """
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
-from typing import Dict, Any
 import asyncio
 
 from ..services.feed_manager import FeedManager

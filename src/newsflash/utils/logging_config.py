@@ -4,7 +4,6 @@ Logging configuration for the news trading system.
 import structlog
 import logging
 import sys
-from typing import Any, Dict
 
 
 def setup_logging(log_level: str = "INFO") -> None:

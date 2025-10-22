@@ -11,8 +11,9 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 from telegram.error import TelegramError
 
 from .ibkr_trading_service import get_ibkr_trading_service, TradeRequest
+from ..utils.logging_config import get_logger
 
-logger = structlog.get_logger(__name__)
+logger = get_logger(__name__)
 
 
 class TelegramTradeHandler:

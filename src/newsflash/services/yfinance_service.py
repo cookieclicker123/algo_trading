@@ -7,7 +7,9 @@ import structlog
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 
-logger = structlog.get_logger(__name__)
+from ..utils.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class YFinanceService:

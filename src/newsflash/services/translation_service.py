@@ -7,8 +7,9 @@ from typing import Dict, Any
 from groq import Groq
 
 from ..config.settings import get_classification_config
+from ..utils.logging_config import get_logger
 
-logger = structlog.get_logger(__name__)
+logger = get_logger(__name__)
 
 
 class TranslationService:

@@ -2,11 +2,10 @@
 JSON storage utility for managing article data with rolling window and 24-hour archiving.
 """
 import json
-import os
 from datetime import datetime, timezone, timedelta
-from typing import List, Dict, Any, Set, Optional, Union
+from typing import List, Dict, Any, Set, Union
 from pathlib import Path
-import asyncio
+
 import aiofiles
 
 from ..config.settings import get_storage_config
