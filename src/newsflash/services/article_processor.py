@@ -8,6 +8,7 @@ from ..utils.json_storage import ArticleStorage
 from ..utils.logging_config import get_logger
 from ..services.telegram_service import TelegramNotifier
 from ..services.news_classifier import NewsClassifier
+from ..services.classification_audit_trail import ClassificationAuditTrail
 from ..config.settings import get_classification_config
 
 logger = get_logger(__name__)
@@ -43,6 +44,7 @@ class ArticleProcessor:
         self.storage = storage or ArticleStorage()
         self.telegram = telegram_notifier or TelegramNotifier(test_mode=False)
         self.classifier = classifier or self._create_default_classifier()
+        self.audit_trail = ClassificationAuditTrail()
         
         self.handlers: List[Callable[[Union[BenzingaArticle, StandardizedArticle]], Awaitable[None]]] = []
         
@@ -166,6 +168,10 @@ class ArticleProcessor:
                     confidence=classification.confidence,
                     reasoning=classification.reasoning
                 )
+                
+                # Log IMMINENT classifications to audit trail
+                if classification and classification.classification.value.lower() == "imminent":
+                    self.audit_trail.log_imminent_classification(article, classification)
             except Exception as e:
                 logger.error(
                     "Failed to classify article",
