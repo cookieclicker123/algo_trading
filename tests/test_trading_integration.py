@@ -10,8 +10,9 @@ import sys
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from newsflash.services.telegram_service import TelegramNotifier
-from newsflash.services.ibkr_trading_service import get_ibkr_trading_service, TradeRequest
+from newsflash.services.service_container import initialize_services
+from newsflash.services.telegram_trade_handler import clear_trade_handler_instances, stop_all_trade_handlers
+from newsflash.utils.bot_conflict_resolver import resolve_bot_conflicts
 from newsflash.models.benzinga_models import BenzingaArticle
 from newsflash.models.classification_models import NewsClassification, ClassificationResult
 from newsflash.utils.logging_config import setup_logging, get_logger
@@ -27,9 +28,35 @@ async def test_trading_integration():
     
     logger.info("Testing IBKR trading integration with Telegram")
     
-    # Initialize services
-    telegram_notifier = TelegramNotifier(test_mode=True)
-    trading_service = get_ibkr_trading_service()
+    # GUARANTEED CONFLICT RESOLUTION: Use the bot conflict resolver
+    logger.info("Performing guaranteed bot conflict resolution...")
+    
+    # Get the actual bot tokens from config
+    from newsflash.config.settings import get_telegram_config, get_telegram_config_2
+    config_1 = get_telegram_config()
+    config_2 = get_telegram_config_2()
+    bot_tokens = [
+        config_1.get("bot_token", ""),
+        config_2.get("bot_token", "")
+    ]
+    
+    # Resolve conflicts aggressively (kills conflicting processes)
+    conflict_resolved = await resolve_bot_conflicts(bot_tokens, aggressive=True)
+    
+    if not conflict_resolved:
+        logger.error("Failed to resolve bot conflicts - test may fail")
+        return
+    
+    # Clear singleton instances
+    clear_trade_handler_instances()
+    
+    # Initialize services using the service container (REAL MODE - will send to Telegram)
+    container = initialize_services()
+    telegram_notifier = container.get_telegram_notifier()
+    trading_service = container.get_service('trading')
+    
+    # Start the Telegram service (this starts the trade handlers)
+    await telegram_notifier.start()
     
     # Create sample IMMINENT article
     test_time = datetime(2025, 10, 21, 18, 30, 0)
@@ -72,46 +99,31 @@ async def test_trading_integration():
     print(full_message)
     print("="*80)
     
-    # Test trade request processing
-    logger.info("Testing trade request processing")
+    # Send the message to Telegram
+    logger.info("Sending IMMINENT news to Telegram...")
+    success = await telegram_notifier.send_notification(article, classification)
     
-    # Simulate user responses
-    test_responses = [
-        "trade",           # Trade default ticker (AAPL)
-        "trade MSFT",      # Trade specific ticker
-        "ignore",          # Ignore the news
-        "invalid",         # Invalid response
-    ]
+    if success:
+        logger.info("✅ News sent to Telegram successfully!")
+        logger.info("📱 Check your Telegram bot - you should see the IMMINENT news with trading options")
+        logger.info("💬 Reply with 'trade', 'trade AAPL', 'trade MSFT', or 'ignore' to test trading")
+    else:
+        logger.error("❌ Failed to send news to Telegram")
+        return
     
-    for response in test_responses:
-        logger.info(f"Testing user response: '{response}'")
-        
-        # Add pending trade
-        trading_service.add_pending_trade("test_article_123", article.tickers, "test_chat_id")
-        
-        # Process user response
-        trade_request = trading_service.process_user_response("test_chat_id", response)
-        
-        if trade_request:
-            logger.info(f"Trade request created: {trade_request.ticker} for ${trade_request.amount_usd}")
-            
-            # Execute trade (simulated)
-            success = await trading_service.process_trade_request(trade_request)
-            logger.info(f"Trade execution result: {success}")
-        else:
-            logger.info(f"No trade request (ignored or invalid): '{response}'")
+    # Wait for user interaction
+    logger.info("⏳ Waiting for your reply in Telegram...")
+    logger.info("💡 Reply with: 'trade' (default AAPL), 'trade AAPL', 'trade MSFT', or 'ignore'")
     
-    # Test timeout functionality
-    logger.info("Testing trade timeout")
-    trading_service.add_pending_trade("timeout_test", ["AAPL"], "test_chat_id")
+    logger.info("✅ Test setup complete! Check your Telegram and reply to test trading.")
     
-    # Simulate expired trade
-    trading_service.pending_trades["timeout_test"]["expires_at"] = datetime.now() - timedelta(minutes=1)
+    # Keep the service running for a bit to allow replies
+    logger.info("⏳ Keeping service running for 60 seconds to allow replies...")
+    await asyncio.sleep(60)
     
-    expired_trade = trading_service.process_user_response("test_chat_id", "trade")
-    logger.info(f"Expired trade result: {expired_trade is None}")
-    
-    logger.info("✅ Trading integration test completed successfully!")
+    # Cleanup
+    await telegram_notifier.stop()
+    logger.info("🛑 Telegram service stopped")
 
 
 if __name__ == "__main__":

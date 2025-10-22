@@ -3,7 +3,9 @@ FastAPI application for the news trading system.
 Uses service container for proper dependency injection.
 """
 from fastapi import FastAPI, HTTPException
-import asyncio
+
+from newsflash.models.base_models import NewsSource
+from newsflash.services import feed_manager
 
 from ..services.service_container import get_service_container, initialize_services
 from ..utils.logging_config import get_logger

@@ -3,6 +3,7 @@ Service container for dependency injection and lifecycle management.
 Centralizes service creation and eliminates global state.
 """
 from typing import Optional, Dict, Any
+from ..utils.bot_conflict_resolver import resolve_bot_conflicts
 from ..utils.logging_config import get_logger
 from .article_processor import get_article_processor
 from .feed_manager import FeedManager
@@ -52,25 +53,41 @@ class ServiceContainer:
             # Initialize dependent services
             logger.info("Initializing dependent services...")
             
-            # Telegram trade handler (depends on trading service)
-            from ..config.settings import get_telegram_config
-            telegram_config = get_telegram_config()
-            bot_token = telegram_config.get("bot_token", "dummy_token")
-            
-            self._services['trade_handler'] = get_telegram_trade_handler(
-                bot_token=bot_token,
-                trading_service=self._services['trading']
-            )
+            # Telegram trade handlers (one per bot) - depend on trading service
+            from ..config.settings import get_telegram_config, get_telegram_config_2
+            telegram_config_1 = get_telegram_config()
+            telegram_config_2 = get_telegram_config_2()
+            bot_token_1 = telegram_config_1.get("bot_token", "")
+            bot_token_2 = telegram_config_2.get("bot_token", "")
+
+            self._services['trade_handler'] = None
+            self._services['trade_handler_2'] = None
+
+            if telegram_config_1.get("enabled") and bot_token_1:
+                self._services['trade_handler'] = get_telegram_trade_handler(
+                    bot_token=bot_token_1,
+                    trading_service=self._services['trading']
+                )
+            if telegram_config_2.get("enabled") and bot_token_2:
+                self._services['trade_handler_2'] = get_telegram_trade_handler(
+                    bot_token=bot_token_2,
+                    trading_service=self._services['trading']
+                )
             
             # Telegram notifier (depends on translator, yfinance, trade_handler)
             self._services['telegram'] = get_telegram_notifier(
                 translator=self._services['translator'],
                 yfinance_service=self._services['yfinance'],
-                trade_handler=self._services['trade_handler']
+                trade_handler=self._services['trade_handler'],
+                trade_handler_2=self._services['trade_handler_2']
             )
             
             # News classifier
-            self._services['classifier'] = get_news_classifier()
+            from ..config.settings import GROQ_API_KEY, GROQ_MODEL
+            self._services['classifier'] = get_news_classifier(
+                api_key=GROQ_API_KEY,
+                model=GROQ_MODEL
+            )
             
             # Article processor (depends on telegram, classifier)
             self._services['article_processor'] = get_article_processor(
@@ -147,6 +164,20 @@ class ServiceContainer:
         logger.info("Starting all services...")
         
         try:
+            # Resolve bot conflicts before starting services
+            from ..config.settings import get_telegram_config, get_telegram_config_2
+            config_1 = get_telegram_config()
+            config_2 = get_telegram_config_2()
+            bot_tokens = [
+                config_1.get("bot_token", ""),
+                config_2.get("bot_token", "")
+            ]
+            
+            # Resolve conflicts non-aggressively for production
+            conflict_resolved = await resolve_bot_conflicts(bot_tokens, aggressive=False)
+            if not conflict_resolved:
+                logger.warning("Bot conflicts detected but not resolved - services may fail to start")
+            
             # Start feed manager (this will start all dependent services)
             await self._services['feed_manager'].start_all_feeds()
             logger.info("All services started successfully")

@@ -3,6 +3,7 @@ Interactive Brokers trading service for automated trade execution.
 Connects to real IBKR account for live trading.
 """
 import asyncio
+import pandas as pd
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 from dataclasses import dataclass
@@ -146,7 +147,21 @@ class IBKRTradingService:
                 return False
             
             # Calculate shares based on $100 amount
-            shares = int(trade_request.amount_usd / ticker_info.last)
+            # Handle NaN prices (market closed) by trading 1 share instead
+            if pd.isna(ticker_info.last) or ticker_info.last <= 0:
+                logger.warning("Price is NaN or invalid, trading 1 share instead", 
+                             ticker=trade_request.ticker,
+                             price=ticker_info.last)
+                shares = 1  # Trade 1 share when price data is unavailable
+                logger.info("Using 1 share fallback for trade", shares=shares)
+            else:
+                shares = int(trade_request.amount_usd / ticker_info.last)
+                # If calculation results in 0 shares, trade 1 share instead
+                if shares <= 0:
+                    logger.warning("Share calculation resulted in 0 shares, using 1 share", 
+                                 calculated_shares=shares,
+                                 price=ticker_info.last)
+                    shares = 1
             
             if shares <= 0:
                 logger.error("Invalid share count calculated", 
@@ -168,8 +183,27 @@ class IBKRTradingService:
             # Place the order
             trade = self.ib.placeOrder(contract, order)
             
-            # Wait for order to be filled
-            await trade
+            # Wait for order to be filled (with timeout)
+            logger.info("Waiting for order to be filled...", ticker=trade_request.ticker)
+            
+            # Wait up to 30 seconds for order to be filled
+            timeout = 30
+            start_time = datetime.now()
+            
+            while (datetime.now() - start_time).seconds < timeout:
+                if trade.isDone():
+                    break
+                
+                # Check for errors
+                if trade.orderStatus.status in ['Cancelled', 'Rejected']:
+                    logger.error("Order cancelled or rejected", 
+                               ticker=trade_request.ticker,
+                               status=trade.orderStatus.status)
+                    self.ib.disconnect()
+                    return False
+                
+                # Wait a bit before checking again
+                await asyncio.sleep(1)
             
             # Check if order was filled
             if trade.isDone() and trade.orderStatus.status == 'Filled':

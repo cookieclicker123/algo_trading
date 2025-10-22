@@ -30,6 +30,7 @@ class TelegramNotifier:
         translator=None,
         yfinance_service=None,
         trade_handler=None,
+        trade_handler_2=None,
     ):
         """
         Initialize Telegram notifier.
@@ -49,7 +50,9 @@ class TelegramNotifier:
         # Use injected dependencies or create defaults
         self.translator = translator
         self.yfinance_service = yfinance_service
+        # Trade handlers for each bot (optional)
         self.trade_handler = trade_handler
+        self.trade_handler_2 = trade_handler_2
         
         # Initialize bot 1
         self.bot_1: Optional[Bot] = None
@@ -246,8 +249,28 @@ class TelegramNotifier:
         # Extract tickers for trading options
         if isinstance(article, BenzingaArticle):
             tickers = article.tickers
+            article_id = str(article.benzinga_id)
         else:  # StandardizedArticle
             tickers = article.tickers
+            article_id = str(article.source_id)
+        
+        # Create pending trades for IMMINENT news
+        if classification and classification.classification == NewsClassification.IMMINENT:
+            if self.trade_handler and self.trade_handler.trading_service:
+                self.trade_handler.trading_service.add_pending_trade(
+                    article_id=article_id,
+                    tickers=tickers,
+                    user_chat_id=self.config_1["chat_id"]
+                )
+                logger.info("Created pending trade for bot 1", article_id=article_id, tickers=tickers)
+            
+            if self.trade_handler_2 and self.trade_handler_2.trading_service:
+                self.trade_handler_2.trading_service.add_pending_trade(
+                    article_id=article_id,
+                    tickers=tickers,
+                    user_chat_id=self.config_2["chat_id"]
+                )
+                logger.info("Created pending trade for bot 2", article_id=article_id, tickers=tickers)
         
         if self.enabled_1:
             # Bot 1 gets Chinese translation
@@ -288,6 +311,9 @@ class TelegramNotifier:
         if self.enabled_2:
             # Bot 2 gets English message
             english_message = self.format_message(message_data)
+            # Add trading options for IMMINENT news
+            if classification and classification.classification == NewsClassification.IMMINENT:
+                english_message += self._format_trading_options(tickers)
             await self.message_queue_2.put((english_message, article))
             success_count += 1
             logger.debug("English message queued for secondary Telegram bot")
@@ -380,10 +406,30 @@ class TelegramNotifier:
         self.is_running = True
         logger.info("Telegram notification service started")
         
-        # Start trade handler
+        # Start trade handlers with staggered timing to prevent conflicts
         if self.trade_handler:
             await self.trade_handler.start()
-            logger.info("Started Telegram trade handler")
+            logger.info("Started Telegram trade handler (bot 1)")
+            
+            # Wait a moment before starting the second bot to prevent conflicts
+            await asyncio.sleep(3)
+        
+        if self.trade_handler_2:
+            # Retry logic for the second bot in case of conflicts
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    await self.trade_handler_2.start()
+                    logger.info("Started Telegram trade handler (bot 2)")
+                    break
+                except Exception as e:
+                    if "Conflict" in str(e) and attempt < max_retries - 1:
+                        wait_time = (attempt + 1) * 2  # Exponential backoff: 2, 4, 6 seconds
+                        logger.warning(f"Bot 2 conflict on attempt {attempt + 1}, retrying in {wait_time}s", error=str(e))
+                        await asyncio.sleep(wait_time)
+                    else:
+                        logger.error("Failed to start bot 2 after all retries", error=str(e))
+                        raise
         
         # Start queue processors for both bots
         tasks = []
@@ -411,8 +457,9 @@ class TelegramNotifier:
             tasks.append(task_2)
         
         if tasks:
-            # Wait for all tasks to complete (they run until self.is_running = False)
-            await asyncio.gather(*tasks, return_exceptions=True)
+            # Start queue processors in background (they run until self.is_running = False)
+            self._queue_tasks = tasks
+            logger.info("Started queue processors in background")
     
     async def stop(self) -> None:
         """Stop the Telegram notification service."""
@@ -422,10 +469,19 @@ class TelegramNotifier:
         logger.info("Stopping Telegram notification service")
         self.is_running = False
         
-        # Stop trade handler
+        # Cancel background queue tasks
+        if hasattr(self, '_queue_tasks'):
+            for task in self._queue_tasks:
+                task.cancel()
+            logger.info("Cancelled queue processor tasks")
+        
+        # Stop trade handlers
         if self.trade_handler:
             await self.trade_handler.stop()
-            logger.info("Stopped Telegram trade handler")
+            logger.info("Stopped Telegram trade handler (bot 1)")
+        if self.trade_handler_2:
+            await self.trade_handler_2.stop()
+            logger.info("Stopped Telegram trade handler (bot 2)")
         
         # Process remaining messages in both queues
         for queue, bot, chat_id, bot_name in [
@@ -449,6 +505,7 @@ def get_telegram_notifier(
     translator=None,
     yfinance_service=None,
     trade_handler=None,
+    trade_handler_2=None,
 ) -> TelegramNotifier:
     """
     Get Telegram notifier instance with optional dependencies.
@@ -467,4 +524,5 @@ def get_telegram_notifier(
         translator=translator,
         yfinance_service=yfinance_service,
         trade_handler=trade_handler,
+        trade_handler_2=trade_handler_2,
     )
