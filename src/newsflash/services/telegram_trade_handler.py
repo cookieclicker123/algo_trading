@@ -168,7 +168,13 @@ class TelegramTradeHandler:
             else:
                 await update.message.reply_text(
                     f"❌ Trade execution failed.\n"
-                    f"Please check your account or try again later."
+                    f"📈 {trade_request.ticker}: ${trade_request.amount_usd} {trade_request.action}\n\n"
+                    f"🔍 Check the server logs for detailed error information.\n"
+                    f"Common issues:\n"
+                    f"• Market closed (use limit orders)\n"
+                    f"• Insufficient buying power\n"
+                    f"• Invalid ticker symbol\n"
+                    f"• IBKR Gateway connection issues"
                 )
                 
         except Exception as e:
@@ -186,13 +192,23 @@ class TelegramTradeHandler:
                 "👌 News ignored. Waiting for next IMMINENT alert..."
             )
         else:
-            await update.message.reply_text(
-                "❓ Invalid response. Please reply with:\n"
-                "• 'trade' - to trade\n"
-                "• 'trade TICKER' - to trade specific ticker\n"
-                "• 'ignore' - to ignore\n\n"
-                "Use /help for more info."
-            )
+            # Check if it's a "trade" command with no pending trade
+            if message_text == "trade":
+                await update.message.reply_text(
+                    "📈 No recent news to trade. You can trade any ticker:\n\n"
+                    "• 'trade AAPL' - Trade Apple stock\n"
+                    "• 'trade MSFT' - Trade Microsoft stock\n"
+                    "• 'trade TSLA' - Trade Tesla stock\n\n"
+                    "Or wait for the next IMMINENT news alert!"
+                )
+            else:
+                await update.message.reply_text(
+                    "❓ Invalid response. Please reply with:\n"
+                    "• 'trade' - Trade default ticker (if recent news)\n"
+                    "• 'trade TICKER' - Trade specific ticker (any time)\n"
+                    "• 'ignore' - Ignore news\n\n"
+                    "Use /help for more info."
+                )
     
     async def send_imminent_alert(self, chat_id: str, message_text: str, tickers: list):
         """

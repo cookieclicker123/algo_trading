@@ -17,6 +17,7 @@ dependencies = [
     "groq>=0.9.0", # Groq API for LLM classification
     "yfinance>=0.2.0", # Yahoo Finance API for fundamental data
     "ib-insync>=0.9.86", # Interactive Brokers API
+    "pytz>=2023.3", # Timezone handling for extended hours detection
 ]
 
 [project.optional-dependencies]
