@@ -83,6 +83,20 @@ class StandardizedArticle(BaseModel):
         return self.dict()
 
 
+class TradeRequest(BaseModel):
+    """Model for trade requests."""
+    
+    ticker: str = Field(..., description="Stock ticker symbol")
+    amount_usd: float = Field(..., description="Amount to trade in USD")
+    action: str = Field(default="BUY", description="Trade action (BUY/SELL)")
+    
+    @field_validator('ticker')
+    @classmethod
+    def validate_ticker(cls, v):
+        """Ensure ticker is uppercase."""
+        return v.upper().strip()
+
+
 class ArticleProcessor(BaseModel):
     """Base class for article processors from different sources."""
     
