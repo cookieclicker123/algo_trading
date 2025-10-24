@@ -736,6 +736,7 @@ dependencies = [
     { name = "structlog" },
     { name = "tenacity" },
     { name = "uvicorn", extra = ["standard"] },
+    { name = "websockets" },
     { name = "yfinance" },
 ]
 
@@ -769,6 +770,7 @@ requires-dist = [
     { name = "structlog", specifier = ">=23.2.0" },
     { name = "tenacity", specifier = ">=8.2.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.24.0" },
+    { name = "websockets", specifier = ">=12.0" },
     { name = "yfinance", specifier = ">=0.2.0" },
 ]
 provides-extras = ["dev"]

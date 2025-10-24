@@ -5,6 +5,7 @@ Centralizes service creation and eliminates global state.
 from typing import Optional, Dict, Any
 from ..utils.bot_conflict_resolver import resolve_bot_conflicts
 from ..utils.logging_config import get_logger
+from ..config.settings import BENZINGA_API_KEY, BENZINGA_WEBSOCKET_ENABLED
 from .article_processor import get_article_processor
 from .feed_manager import FeedManager
 from .telegram_service import get_telegram_notifier
@@ -48,7 +49,7 @@ class ServiceContainer:
             self._services['yfinance'] = get_yfinance_service()
             
             # IBKR trading service
-            self._services['trading'] = get_ibkr_trading_service()
+            self._services['trading'] = get_ibkr_trading_service(paper_trading=True)
             
             # Initialize dependent services
             logger.info("Initializing dependent services...")
@@ -99,8 +100,10 @@ class ServiceContainer:
             self._services['state_manager'] = PollingStateManager()
             
             # Feed manager (depends on article processor)
+            benzinga_token = BENZINGA_API_KEY if BENZINGA_WEBSOCKET_ENABLED else None
             self._services['feed_manager'] = FeedManager(
-                article_processor=self._services['article_processor']
+                article_processor=self._services['article_processor'],
+                benzinga_token=benzinga_token
             )
             
             self._initialized = True
@@ -178,6 +181,15 @@ class ServiceContainer:
             if not conflict_resolved:
                 logger.warning("Bot conflicts detected but not resolved - services may fail to start")
             
+            # Start Telegram trade handlers first
+            if self._services['trade_handler']:
+                await self._services['trade_handler'].start()
+                logger.info("Telegram trade handler 1 started")
+            
+            if self._services['trade_handler_2']:
+                await self._services['trade_handler_2'].start()
+                logger.info("Telegram trade handler 2 started")
+            
             # Start feed manager (this will start all dependent services)
             await self._services['feed_manager'].start_all_feeds()
             logger.info("All services started successfully")
@@ -197,6 +209,16 @@ class ServiceContainer:
         try:
             # Stop feed manager (this will stop all dependent services)
             await self._services['feed_manager'].stop_all_feeds()
+            
+            # Stop Telegram trade handlers
+            if self._services['trade_handler']:
+                await self._services['trade_handler'].stop()
+                logger.info("Telegram trade handler 1 stopped")
+            
+            if self._services['trade_handler_2']:
+                await self._services['trade_handler_2'].stop()
+                logger.info("Telegram trade handler 2 stopped")
+            
             logger.info("All services stopped successfully")
             
         except Exception as e:

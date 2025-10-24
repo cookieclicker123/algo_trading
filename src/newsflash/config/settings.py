@@ -45,6 +45,10 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_MODEL = "llama-3.3-70b-versatile"
 CLASSIFICATION_ENABLED = os.getenv("CLASSIFICATION_ENABLED", "true").lower() == "true"
 
+# Benzinga Direct WebSocket Configuration
+BENZINGA_API_KEY = os.getenv("BENZINGA_API_KEY", "")
+BENZINGA_WEBSOCKET_ENABLED = os.getenv("BENZINGA_WEBSOCKET_ENABLED", "false").lower() == "true"
+
 def get_api_key(key_name: str = "POLYGON_API_KEY") -> str:
     """Get API key from environment variables."""
     api_key = os.getenv(key_name)

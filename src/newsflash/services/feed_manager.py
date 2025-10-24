@@ -7,18 +7,20 @@ from typing import Dict, Any, List, Optional
 from ..utils.logging_config import get_logger
 from ..models.base_models import StandardizedArticle, NewsSource
 from ..services.news_poller import NewsPoller
+from ..services.benzinga_websocket_service import BenzingaWebSocketService
 from ..services.article_processor import ArticleProcessor
 
 logger = get_logger(__name__)
 
 
 class FeedManager:
-    """Manages Benzinga news feed and coordinates article processing."""
+    """Manages Benzinga news feeds (HTTP polling + WebSocket) and coordinates article processing."""
     
-    def __init__(self, article_processor: Optional[ArticleProcessor] = None):
+    def __init__(self, article_processor: Optional[ArticleProcessor] = None, benzinga_token: Optional[str] = None):
         """Initialize the feed manager."""
         self.processors: Dict[NewsSource, Any] = {}
         self.is_running = False
+        self.benzinga_token = benzinga_token
         self.stats = {
             "total_articles": 0,
             "last_article_time": None,
@@ -38,25 +40,36 @@ class FeedManager:
         logger.info(
             "FeedManager initialized with processors", 
             sources=list(self.processors.keys()),
+            websocket_enabled=self.benzinga_token is not None,
             telegram_enabled_1=getattr(self.article_processor.telegram, 'enabled_1', False),
             telegram_enabled_2=getattr(self.article_processor.telegram, 'enabled_2', False)
         )
     
     def _initialize_processors(self):
-        """Initialize processors for Benzinga news source."""
+        """Initialize processors for Benzinga news sources."""
         try:
-            # Benzinga (HTTP polling)
+            # Benzinga (HTTP polling via Polygon)
             self.processors[NewsSource.BENZINGA] = NewsPoller(
                 article_processor=self.article_processor
             )
-            logger.info("Benzinga processor initialized")
+            logger.info("Benzinga HTTP processor initialized")
+            
+            # Benzinga WebSocket (direct connection)
+            if self.benzinga_token:
+                self.processors[NewsSource.BENZINGA_WEBSOCKET] = BenzingaWebSocketService(
+                    article_processor=self.article_processor,
+                    token=self.benzinga_token
+                )
+                logger.info("Benzinga WebSocket processor initialized")
+            else:
+                logger.warning("Benzinga token not provided, WebSocket feed disabled")
             
         except Exception as e:
-            logger.error("Failed to initialize Benzinga processor", error=str(e))
+            logger.error("Failed to initialize Benzinga processors", error=str(e))
     
     async def start_all_feeds(self):
-        """Start Benzinga news feed."""
-        logger.info("Starting Benzinga news feed")
+        """Start all Benzinga news feeds (HTTP + WebSocket)."""
+        logger.info("Starting Benzinga news feeds", sources=list(self.processors.keys()))
         self.is_running = True
         
         # Start Telegram notification queue processor (if enabled)
@@ -69,12 +82,24 @@ class FeedManager:
             )
             logger.info("Telegram notification service started")
         
-        # Start Benzinga polling (independent task)
+        # Start all feed tasks
+        feed_tasks = []
+        
+        # Start HTTP polling feed
         if NewsSource.BENZINGA in self.processors:
-            benzinga_task = asyncio.create_task(
-                self._start_benzinga_feed_with_error_handling()
+            http_task = asyncio.create_task(
+                self._start_benzinga_http_feed_with_error_handling()
             )
-            logger.info("Benzinga feed task started")
+            feed_tasks.append(http_task)
+            logger.info("Benzinga HTTP feed task started")
+        
+        # Start WebSocket feed
+        if NewsSource.BENZINGA_WEBSOCKET in self.processors:
+            websocket_task = asyncio.create_task(
+                self._start_benzinga_websocket_feed_with_error_handling()
+            )
+            feed_tasks.append(websocket_task)
+            logger.info("Benzinga WebSocket feed task started")
         
         # Keep the main function running
         try:
@@ -82,21 +107,43 @@ class FeedManager:
                 await asyncio.sleep(1)
         except asyncio.CancelledError:
             logger.info("Feed manager main loop cancelled")
+        finally:
+            # Cancel all feed tasks
+            for task in feed_tasks:
+                if not task.done():
+                    task.cancel()
     
-    async def _start_benzinga_feed_with_error_handling(self):
-        """Start the Benzinga feed with independent error handling."""
+    async def _start_benzinga_http_feed_with_error_handling(self):
+        """Start the Benzinga HTTP feed with independent error handling."""
         while self.is_running:
             try:
-                logger.info("Starting Benzinga feed...")
+                logger.info("Starting Benzinga HTTP feed...")
                 benzinga_processor = self.processors[NewsSource.BENZINGA]
                 async with benzinga_processor:
                     await benzinga_processor.start()
-                logger.info("Benzinga feed stopped normally")
+                logger.info("Benzinga HTTP feed stopped normally")
                 break
             except Exception as e:
-                logger.error("Benzinga feed failed", error=str(e))
+                logger.error("Benzinga HTTP feed failed", error=str(e))
                 if self.is_running:
-                    logger.info("Restarting Benzinga feed in 30 seconds...")
+                    logger.info("Restarting Benzinga HTTP feed in 30 seconds...")
+                    await asyncio.sleep(30)
+                else:
+                    break
+    
+    async def _start_benzinga_websocket_feed_with_error_handling(self):
+        """Start the Benzinga WebSocket feed with independent error handling."""
+        while self.is_running:
+            try:
+                logger.info("Starting Benzinga WebSocket feed...")
+                websocket_processor = self.processors[NewsSource.BENZINGA_WEBSOCKET]
+                await websocket_processor.start()
+                logger.info("Benzinga WebSocket feed stopped normally")
+                break
+            except Exception as e:
+                logger.error("Benzinga WebSocket feed failed", error=str(e))
+                if self.is_running:
+                    logger.info("Restarting Benzinga WebSocket feed in 30 seconds...")
                     await asyncio.sleep(30)
                 else:
                     break
@@ -111,8 +158,8 @@ class FeedManager:
             logger.error("Benzinga feed failed", error=str(e))
     
     async def stop_all_feeds(self):
-        """Stop Benzinga news feed."""
-        logger.info("Stopping Benzinga news feed")
+        """Stop all Benzinga news feeds."""
+        logger.info("Stopping Benzinga news feeds")
         self.is_running = False
         
         # Stop Telegram notification service
@@ -123,13 +170,23 @@ class FeedManager:
             except Exception as e:
                 logger.error("Error stopping Telegram service", error=str(e))
         
-        # Stop Benzinga
+        # Stop HTTP feed
         if NewsSource.BENZINGA in self.processors:
             try:
                 benzinga_processor = self.processors[NewsSource.BENZINGA]
                 await benzinga_processor.stop_polling()
+                logger.info("Benzinga HTTP feed stopped")
             except Exception as e:
-                logger.error("Error stopping Benzinga feed", error=str(e))
+                logger.error("Error stopping Benzinga HTTP feed", error=str(e))
+        
+        # Stop WebSocket feed
+        if NewsSource.BENZINGA_WEBSOCKET in self.processors:
+            try:
+                websocket_processor = self.processors[NewsSource.BENZINGA_WEBSOCKET]
+                await websocket_processor.stop()
+                logger.info("Benzinga WebSocket feed stopped")
+            except Exception as e:
+                logger.error("Error stopping Benzinga WebSocket feed", error=str(e))
     
     def _update_stats(self, stats_update: Dict[str, Any]):
         """Update feed statistics."""
@@ -140,23 +197,27 @@ class FeedManager:
         return self.stats.copy()
     
     def is_healthy(self) -> bool:
-        """Check if Benzinga feed is healthy."""
-        if NewsSource.BENZINGA not in self.processors:
-            return False
+        """Check if all feeds are healthy."""
+        healthy_sources = 0
+        total_sources = len(self.processors)
         
-        try:
-            processor = self.processors[NewsSource.BENZINGA]
-            if hasattr(processor, 'get_stats'):
-                stats = processor.get_stats()
-                return stats.get('is_running', False)
-            return False
-        except Exception as e:
-            logger.error(f"Error checking feed health", error=str(e))
-            return False
+        for source, processor in self.processors.items():
+            try:
+                if hasattr(processor, 'get_stats'):
+                    stats = processor.get_stats()
+                    if stats.get('is_running', False):
+                        healthy_sources += 1
+                elif hasattr(processor, 'is_healthy'):
+                    if processor.is_healthy():
+                        healthy_sources += 1
+            except Exception as e:
+                logger.error(f"Error checking {source} feed health", error=str(e))
+        
+        return healthy_sources > 0  # At least one feed should be healthy
     
     def get_available_sources(self) -> List[NewsSource]:
-        """Get list of available sources (always Benzinga)."""
-        return [NewsSource.BENZINGA]
+        """Get list of available sources."""
+        return list(self.processors.keys())
     
     async def get_recent_articles(self, hours: int = 1, source: Optional[NewsSource] = None) -> List[StandardizedArticle]:
         """Get recent articles from storage."""

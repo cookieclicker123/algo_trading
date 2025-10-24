@@ -157,18 +157,20 @@ class TelegramTradeHandler:
             )
             
             # Execute the trade
-            success = await self.trading_service.process_trade_request(trade_request)
+            trade_result = await self.trading_service.process_trade_request(trade_request)
             
-            if success:
+            if trade_result.success:
                 await update.message.reply_text(
                     f"✅ Trade executed successfully!\n"
-                    f"📈 {trade_request.ticker}: ${trade_request.amount_usd} {trade_request.action}\n"
-                    f"🎯 Trade ID: {trade_request.article_id}"
+                    f"📈 {trade_request.ticker}: {trade_result.shares} share(s) at ${trade_result.fill_price:.2f}\n"
+                    f"💰 Total cost: ${trade_result.total_cost:.2f}\n"
+                    f"🎯 Fill price: ${trade_result.fill_price:.2f}"
                 )
             else:
                 await update.message.reply_text(
                     f"❌ Trade execution failed.\n"
-                    f"📈 {trade_request.ticker}: ${trade_request.amount_usd} {trade_request.action}\n\n"
+                    f"📈 {trade_request.ticker}: ${trade_request.amount_usd} {trade_request.action}\n"
+                    f"🚨 Error: {trade_result.error}\n\n"
                     f"🔍 Check the server logs for detailed error information.\n"
                     f"Common issues:\n"
                     f"• Market closed (use limit orders)\n"
