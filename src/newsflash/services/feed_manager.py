@@ -133,20 +133,14 @@ class FeedManager:
     
     async def _start_benzinga_websocket_feed_with_error_handling(self):
         """Start the Benzinga WebSocket feed with independent error handling."""
-        while self.is_running:
-            try:
-                logger.info("Starting Benzinga WebSocket feed...")
-                websocket_processor = self.processors[NewsSource.BENZINGA_WEBSOCKET]
-                await websocket_processor.start()
-                logger.info("Benzinga WebSocket feed stopped normally")
-                break
-            except Exception as e:
-                logger.error("Benzinga WebSocket feed failed", error=str(e))
-                if self.is_running:
-                    logger.info("Restarting Benzinga WebSocket feed in 30 seconds...")
-                    await asyncio.sleep(30)
-                else:
-                    break
+        try:
+            logger.info("Starting Benzinga WebSocket feed...")
+            websocket_processor = self.processors[NewsSource.BENZINGA_WEBSOCKET]
+            await websocket_processor.start()
+            logger.info("Benzinga WebSocket feed stopped normally")
+        except Exception as e:
+            logger.error("Benzinga WebSocket feed failed", error=str(e))
+            logger.warning("WebSocket feed will NOT auto-restart to prevent 429 rate limits")
     
     async def _start_benzinga_feed(self):
         """Start the Benzinga feed."""

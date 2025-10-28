@@ -19,6 +19,7 @@ dependencies = [
     "ib-insync>=0.9.86", # Interactive Brokers API
     "pytz>=2023.3", # Timezone handling for extended hours detection
     "websockets>=12.0", # WebSocket client for Benzinga direct feed
+    "websocket-client>=1.6.0", # Alternative WebSocket client for testing
 ]
 
 [project.optional-dependencies]

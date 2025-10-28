@@ -55,6 +55,7 @@ async def test_benzinga_websocket():
         await asyncio.sleep(30)
         
         # Stop the service
+        logger.info("Stopping WebSocket service...")
         websocket_service.is_running = False
         await websocket_service.stop()
         
@@ -63,6 +64,10 @@ async def test_benzinga_websocket():
             await asyncio.wait_for(service_task, timeout=5)
         except asyncio.TimeoutError:
             logger.warning("Service didn't stop gracefully")
+            service_task.cancel()
+        
+        # Ensure cleanup
+        await asyncio.sleep(1)
         
         # Report results
         stats = websocket_service.get_stats()

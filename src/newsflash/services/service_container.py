@@ -15,6 +15,7 @@ from .yfinance_service import get_yfinance_service
 from .ibkr_trading_service import get_ibkr_trading_service
 from .telegram_trade_handler import get_telegram_trade_handler
 from .polling_state_manager import PollingStateManager
+from .benzinga_websocket_service import BenzingaWebSocketService
 
 logger = get_logger(__name__)
 
@@ -106,6 +107,16 @@ class ServiceContainer:
                 benzinga_token=benzinga_token
             )
             
+            # Initialize Benzinga WebSocket service if enabled
+            if BENZINGA_WEBSOCKET_ENABLED and BENZINGA_API_KEY:
+                self._services['benzinga_websocket'] = BenzingaWebSocketService(
+                    article_processor=self._services['article_processor'],
+                    token=BENZINGA_API_KEY
+                )
+                logger.info("Benzinga WebSocket service initialized")
+            else:
+                logger.info("Benzinga WebSocket service disabled or no API key")
+            
             self._initialized = True
             logger.info("All services initialized successfully")
             
@@ -192,6 +203,12 @@ class ServiceContainer:
             
             # Start feed manager (this will start all dependent services)
             await self._services['feed_manager'].start_all_feeds()
+            
+            # Start Benzinga WebSocket service if available
+            if 'benzinga_websocket' in self._services:
+                self._services['benzinga_websocket'].start()
+                logger.info("Benzinga WebSocket service started")
+            
             logger.info("All services started successfully")
             
         except Exception as e:
@@ -207,6 +224,11 @@ class ServiceContainer:
         logger.info("Stopping all services...")
         
         try:
+            # Stop Benzinga WebSocket service if available
+            if 'benzinga_websocket' in self._services:
+                self._services['benzinga_websocket'].stop()
+                logger.info("Benzinga WebSocket service stopped")
+            
             # Stop feed manager (this will stop all dependent services)
             await self._services['feed_manager'].stop_all_feeds()
             
@@ -238,6 +260,20 @@ class ServiceContainer:
         except Exception as e:
             logger.error("Health check failed", error=str(e))
             return False
+    
+    async def process_websocket_articles(self) -> None:
+        """Process queued articles from WebSocket service."""
+        if 'benzinga_websocket' in self._services:
+            websocket_service = self._services['benzinga_websocket']
+            queued_articles = websocket_service.get_queued_articles()
+            
+            if queued_articles:
+                logger.info(f"Processing {len(queued_articles)} WebSocket articles")
+                for article in queued_articles:
+                    try:
+                        await self._services['article_processor'].process_article(article)
+                    except Exception as e:
+                        logger.error("Failed to process WebSocket article", error=str(e))
 
 
 # Global service container instance
