@@ -47,11 +47,8 @@ class BenzingaWebSocketService:
         self.websocket_url = f"wss://api.benzinga.com/api/v1/news/stream"
         self.websocket = None
         self.is_running = False
-        self.reconnect_attempts = 0
-        self.max_reconnect_attempts = 10
-        self.reconnect_delay = 1  # Start with 1 second
         self.last_request_time = 0  # For rate limiting
-        self.min_request_interval = 3.0  # 3 seconds between requests
+        self.min_request_interval = 3.0  # 3 seconds between requests (respects Benzinga's 1 req/sec limit)
         
         # Article processing queue
         self.article_queue = queue.Queue()
@@ -98,23 +95,15 @@ class BenzingaWebSocketService:
     
     def _run_websocket_loop(self):
         """Run the WebSocket connection loop in a separate thread."""
-        while self.is_running and self.reconnect_attempts < self.max_reconnect_attempts:
-            try:
-                self._connect_and_process()
-            except Exception as e:
-                logger.error("WebSocket connection failed", error=str(e))
-                self.stats["last_error"] = str(e)
-                
-                if self.is_running:
-                    self.reconnect_attempts += 1
-                    delay = min(self.reconnect_delay * (2 ** self.reconnect_attempts), 60)
-                    logger.info(f"Reconnecting in {delay} seconds (attempt {self.reconnect_attempts})")
-                    time.sleep(delay)
-                else:
-                    break
-        
-        if self.reconnect_attempts >= self.max_reconnect_attempts:
-            logger.error("Max reconnection attempts reached, stopping WebSocket service")
+        # Connect ONCE and stay connected (like the test script)
+        # No auto-retry to prevent violating "one connection at a time" rule
+        try:
+            logger.info("Attempting single WebSocket connection (no auto-retry)")
+            self._connect_and_process()
+        except Exception as e:
+            logger.error("WebSocket connection failed", error=str(e))
+            self.stats["last_error"] = str(e)
+            logger.warning("WebSocket will NOT auto-reconnect to prevent 429 rate limits")
     
     def _connect_and_process(self):
         """Connect to WebSocket and process messages."""
@@ -161,12 +150,10 @@ class BenzingaWebSocketService:
             logger.error("WebSocket error", error=error_msg)
             self.stats["last_error"] = error_msg
             
-            # Handle 429 rate limit errors with exponential backoff
+            # Log 429 errors but don't retry (to respect "one connection at a time")
             if "429" in error_msg or "Too Many Requests" in error_msg:
-                logger.warning("Rate limit hit (429), will back off before reconnecting")
-                # Increase reconnection delay exponentially
-                self.reconnect_delay = min(self.reconnect_delay * 2, 60)
-                logger.info(f"Rate limit backoff: {self.reconnect_delay} seconds")
+                logger.error("Rate limit hit (429) - connection will close and NOT retry")
+                logger.info("Check for leftover connections or previous test runs")
         
         def on_close(ws, close_status_code, close_msg):
             """Handle WebSocket close."""
@@ -175,10 +162,8 @@ class BenzingaWebSocketService:
         
         def on_open(ws):
             """Handle WebSocket open."""
-            logger.info("Connected to Benzinga WebSocket")
+            logger.info("Connected to Benzinga WebSocket - will stay connected until server stops")
             self.stats["is_connected"] = True
-            self.reconnect_attempts = 0  # Reset on successful connection
-            self.reconnect_delay = 1  # Reset delay
         
         # Create WebSocket app
         self.websocket = websocket.WebSocketApp(
@@ -369,7 +354,7 @@ class BenzingaWebSocketService:
         return (
             self.stats["is_connected"] and 
             self.stats["last_error"] is None and
-            self.reconnect_attempts < self.max_reconnect_attempts
+            self.is_running
         )
 
 

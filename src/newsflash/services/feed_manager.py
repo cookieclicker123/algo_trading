@@ -100,6 +100,13 @@ class FeedManager:
             )
             feed_tasks.append(websocket_task)
             logger.info("Benzinga WebSocket feed task started")
+            
+            # Start WebSocket queue processor
+            websocket_queue_task = asyncio.create_task(
+                self._process_websocket_queue()
+            )
+            feed_tasks.append(websocket_queue_task)
+            logger.info("WebSocket queue processor started")
         
         # Keep the main function running
         try:
@@ -136,11 +143,44 @@ class FeedManager:
         try:
             logger.info("Starting Benzinga WebSocket feed...")
             websocket_processor = self.processors[NewsSource.BENZINGA_WEBSOCKET]
-            await websocket_processor.start()
+            # Start is synchronous (runs in separate thread), just call it
+            websocket_processor.start()
+            logger.info("Benzinga WebSocket feed started in background thread")
+            
+            # Keep this task alive while the service is running
+            while self.is_running and websocket_processor.is_running:
+                await asyncio.sleep(5)
+            
             logger.info("Benzinga WebSocket feed stopped normally")
         except Exception as e:
             logger.error("Benzinga WebSocket feed failed", error=str(e))
             logger.warning("WebSocket feed will NOT auto-restart to prevent 429 rate limits")
+    
+    async def _process_websocket_queue(self):
+        """Process articles queued by the WebSocket service."""
+        logger.info("Starting WebSocket queue processor")
+        
+        while self.is_running:
+            try:
+                # Check for queued articles every second
+                websocket_processor = self.processors[NewsSource.BENZINGA_WEBSOCKET]
+                queued_articles = websocket_processor.get_queued_articles()
+                
+                if queued_articles:
+                    logger.info(f"Processing {len(queued_articles)} queued WebSocket articles")
+                    for article in queued_articles:
+                        try:
+                            await self.article_processor.process_article(article)
+                        except Exception as e:
+                            logger.error("Failed to process WebSocket article", error=str(e))
+                
+                await asyncio.sleep(1)  # Check queue every second
+                
+            except Exception as e:
+                logger.error("Error in WebSocket queue processor", error=str(e))
+                await asyncio.sleep(1)
+        
+        logger.info("WebSocket queue processor stopped")
     
     async def _start_benzinga_feed(self):
         """Start the Benzinga feed."""
