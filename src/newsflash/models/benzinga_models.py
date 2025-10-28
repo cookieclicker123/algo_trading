@@ -61,7 +61,10 @@ class BenzingaArticle(BaseModel):
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
-        return self.dict()
+        data = self.dict()
+        # Add source field for audit trail consistency
+        data['source'] = 'benzinga'
+        return data
 
 
 def convert_benzinga_to_standardized(benzinga_article: BenzingaArticle) -> StandardizedArticle:

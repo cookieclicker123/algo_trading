@@ -115,12 +115,17 @@ class TelegramNotifier:
             tickers = article.tickers
             title = article.title
             url = article.url or "No URL available"
-            source = "Benzinga"
+            source = "Benzinga (REST)"
         else:  # StandardizedArticle
             tickers = article.tickers
             title = article.title
             url = article.url or "No URL available"
-            source = article.source.value.title()
+            # Format source nicely: "benzinga_websocket" -> "Benzinga WebSocket"
+            source_map = {
+                "benzinga": "Benzinga (REST)",
+                "benzinga_websocket": "Benzinga WebSocket"
+            }
+            source = source_map.get(article.source.value, article.source.value.replace('_', ' ').title())
         
         # Format tickers with "Company Symbol:" prefix
         ticker_display = f"Company Symbol: '{', '.join(tickers)}'" if tickers else "Company Symbol: 'N/A'"
