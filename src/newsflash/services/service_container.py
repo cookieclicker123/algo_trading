@@ -2,6 +2,7 @@
 Service container for dependency injection and lifecycle management.
 Centralizes service creation and eliminates global state.
 """
+import asyncio
 from typing import Optional, Dict, Any
 from ..utils.bot_conflict_resolver import resolve_bot_conflicts
 from ..utils.logging_config import get_logger
@@ -16,6 +17,7 @@ from .ibkr_trading_service import get_ibkr_trading_service
 from .telegram_trade_handler import get_telegram_trade_handler
 from .polling_state_manager import PollingStateManager
 from .benzinga_websocket_service import BenzingaWebSocketService
+from .feed_health_monitor import FeedHealthMonitor
 
 logger = get_logger(__name__)
 
@@ -117,6 +119,13 @@ class ServiceContainer:
             else:
                 logger.info("Benzinga WebSocket service disabled or no API key")
             
+            # Initialize health monitor (depends on feed_manager and telegram)
+            self._services['health_monitor'] = FeedHealthMonitor(
+                feed_manager=self._services['feed_manager'],
+                telegram_service=self._services['telegram']
+            )
+            logger.info("Feed health monitor initialized")
+            
             self._initialized = True
             logger.info("All services initialized successfully")
             
@@ -209,6 +218,13 @@ class ServiceContainer:
                 self._services['benzinga_websocket'].start()
                 logger.info("Benzinga WebSocket service started")
             
+            # Start health monitor (runs in background)
+            health_monitor_task = asyncio.create_task(
+                self._services['health_monitor'].start()
+            )
+            self._health_monitor_task = health_monitor_task
+            logger.info("Feed health monitor started")
+            
             logger.info("All services started successfully")
             
         except Exception as e:
@@ -224,6 +240,17 @@ class ServiceContainer:
         logger.info("Stopping all services...")
         
         try:
+            # Stop health monitor
+            if 'health_monitor' in self._services:
+                await self._services['health_monitor'].stop()
+                if hasattr(self, '_health_monitor_task'):
+                    self._health_monitor_task.cancel()
+                    try:
+                        await self._health_monitor_task
+                    except asyncio.CancelledError:
+                        pass
+                logger.info("Feed health monitor stopped")
+            
             # Stop Benzinga WebSocket service if available
             if 'benzinga_websocket' in self._services:
                 self._services['benzinga_websocket'].stop()
