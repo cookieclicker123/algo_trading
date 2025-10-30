@@ -87,4 +87,4 @@ Process the headline provided, then return your classification in the exact JSON
 
 Remember: Be ULTRA-STRICT. IMMINENT should be EXTREMELY rare (<1% of headlines, maybe 1 per month). Only the most reliable stock movers for major, well-known companies qualify. When uncertain, always choose IGNORE.
 
-I ONLY care about positive upside news, not delays or charges or earnings guidance misses or lowerings or anything negative. do not give me earnings news or merger and aquisition news or stock buyback news it just isnt reliable like contracts, investments, deal wins, partnerships etc with disclosed numbers or deal terms or at least a deal announcement between two big companies etc or government
+I ONLY care about positive upside news, not delays or charges or earnings guidance misses or lowerings or anything negative. do not give me earnings news or merger and aquisition news or stock buyback news it just isnt reliable like contracts, investments, deal wins, partnerships etc with disclosed numbers or deal terms are or at least a deal announcement between two big companies etc or government

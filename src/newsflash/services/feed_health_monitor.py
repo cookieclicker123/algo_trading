@@ -8,6 +8,7 @@ from typing import Dict, Any, Optional
 from datetime import datetime, timedelta
 from ..utils.logging_config import get_logger
 from ..services.feed_manager import FeedManager
+from ..config import settings
 
 logger = get_logger(__name__)
 
@@ -283,12 +284,43 @@ class FeedHealthMonitor:
         if should_alert:
             previous_state["last_alert_time"] = datetime.now()
             await self._send_health_alert(feed_name, health_status, was_healthy, state_changed)
+
+            # Optional auto-restart for WebSocket
+            if (feed_name == "benzinga_websocket" and not is_healthy and settings.FEED_AUTORESTART_WEBSOCKET):
+                try:
+                    await self._attempt_websocket_restart(health_status)
+                except Exception as e:
+                    logger.error("Failed to auto-restart WebSocket", error=str(e))
         
         # Log health status
         if is_healthy:
             logger.debug(f"{feed_name} is healthy", reason=reason)
         else:
             logger.warning(f"{feed_name} is unhealthy", reason=reason, consecutive_failures=previous_state["consecutive_failures"])
+
+    async def _attempt_websocket_restart(self, health_status: Dict[str, Any]):
+        """Try to gracefully restart the Benzinga WebSocket service and notify Telegram."""
+        try:
+            processors = self.feed_manager.processors
+            from ..models.base_models import NewsSource
+            if NewsSource.BENZINGA_WEBSOCKET not in processors:
+                return
+            websocket_service = processors[NewsSource.BENZINGA_WEBSOCKET]
+            logger.info("Attempting WebSocket restart...")
+            # Stop current service
+            try:
+                websocket_service.stop()
+            except Exception:
+                pass
+            # Give it a moment
+            await asyncio.sleep(2)
+            # Start again
+            websocket_service.start()
+            logger.info("WebSocket restart issued")
+            if self.telegram_service and (self.telegram_service.enabled_1 or self.telegram_service.enabled_2):
+                await self.telegram_service._send_message_to_all_bots("🔁 Benzinga WebSocket auto-restart attempted after health alert.")
+        except Exception as e:
+            logger.error("Error during WebSocket auto-restart", error=str(e))
     
     async def _send_health_alert(self, feed_name: str, health_status: Dict[str, Any], 
                                  was_healthy: Optional[bool], state_changed: bool):

@@ -9,7 +9,8 @@ from ..utils.logging_config import get_logger
 from ..services.telegram_service import TelegramNotifier
 from ..services.news_classifier import NewsClassifier
 from ..services.classification_audit_trail import ClassificationAuditTrail
-from ..config.settings import get_classification_config
+from ..config.settings import get_classification_config, AUTO_TRADE_MIN_MARKET_CAP_BILLIONS
+from ..services.yfinance_service import YFinanceService
 
 logger = get_logger(__name__)
 
@@ -47,6 +48,7 @@ class ArticleProcessor:
         self.classifier = classifier or self._create_default_classifier()
         self.audit_trail = ClassificationAuditTrail()
         self.auto_trade_service = auto_trade_service  # Optional auto-trade service
+        self._yf = YFinanceService()
         
         self.handlers: List[Callable[[Union[BenzingaArticle, StandardizedArticle]], Awaitable[None]]] = []
         
@@ -175,6 +177,16 @@ class ArticleProcessor:
                 if classification and classification.classification.value.lower() == "imminent":
                     self.audit_trail.log_imminent_classification(article, classification)
                     
+                    # Market-cap gate before auto-trade
+                    is_large_cap = await self._passes_market_cap_gate(article)
+                    if not is_large_cap:
+                        logger.info(
+                            "Auto-trade blocked by market-cap gate",
+                            article_id=self._get_article_id(article),
+                            min_bil=AUTO_TRADE_MIN_MARKET_CAP_BILLIONS
+                        )
+                        classification = None  # Prevent Telegram trading options for small caps
+                    
                     # Auto-trade IMMINENT articles (if auto-trade service is available)
                     if hasattr(self, 'auto_trade_service') and self.auto_trade_service:
                         try:
@@ -187,7 +199,8 @@ class ArticleProcessor:
                                     article_id=self._get_article_id(article)
                                 )
                             
-                            await self.auto_trade_service.process_imminent_article(standardized_article, classification)
+                            if is_large_cap and classification:
+                                await self.auto_trade_service.process_imminent_article(standardized_article, classification)
                         except Exception as e:
                             logger.error(
                                 "Failed to execute auto-trade",
@@ -274,6 +287,39 @@ class ArticleProcessor:
             "handlers_count": len(self.handlers),
             "storage_stats": storage_stats,
         }
+
+    async def _passes_market_cap_gate(self, article: Union[BenzingaArticle, StandardizedArticle]) -> bool:
+        """Check if any involved company meets the market cap threshold.
+        Rule: Pass if primary ticker >= threshold OR any secondary ticker >= threshold.
+        Threshold defined by AUTO_TRADE_MIN_MARKET_CAP_BILLIONS.
+        """
+        try:
+            tickers: List[str] = article.tickers if isinstance(article, (BenzingaArticle, StandardizedArticle)) else []
+            if not tickers:
+                return False
+            threshold = AUTO_TRADE_MIN_MARKET_CAP_BILLIONS * 1_000_000_000
+            # Evaluate primary first, then others
+            primary = tickers[0]
+            caps: List[tuple[str, float]] = []
+            for t in tickers:
+                try:
+                    fundamentals = await self._yf.get_fundamental_data(t)
+                    mc = fundamentals.get('market_cap', 0.0) or fundamentals.get('valuation', {}).get('market_cap', 0.0)
+                    if mc:
+                        caps.append((t, float(mc)))
+                except Exception:
+                    continue
+            for t, mc in caps:
+                if t == primary and mc >= threshold:
+                    return True
+            # If primary failed, allow if any secondary meets threshold
+            for t, mc in caps:
+                if t != primary and mc >= threshold:
+                    return True
+            return False
+        except Exception as e:
+            logger.warning("Market-cap gate check failed; allowing trade by default", error=str(e))
+            return True
 
 
 def get_article_processor(

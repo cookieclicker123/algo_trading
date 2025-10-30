@@ -48,11 +48,13 @@ CLASSIFICATION_ENABLED = os.getenv("CLASSIFICATION_ENABLED", "true").lower() == 
 # Benzinga Direct WebSocket Configuration
 BENZINGA_API_KEY = os.getenv("BENZINGA_API_KEY", "")
 BENZINGA_WEBSOCKET_ENABLED = os.getenv("BENZINGA_WEBSOCKET_ENABLED", "false").lower() == "true"
+FEED_AUTORESTART_WEBSOCKET = os.getenv("FEED_AUTORESTART_WEBSOCKET", "true").lower() == "true"
 
 # Auto-Trading Configuration
 AUTO_TRADING_ENABLED = os.getenv("AUTO_TRADING_ENABLED", "true").lower() == "true"
 AUTO_TRADE_AMOUNT_USD = float(os.getenv("AUTO_TRADE_AMOUNT_USD", "100.0"))
 AUTO_TRADE_EXIT_DELAY_MINUTES = int(os.getenv("AUTO_TRADE_EXIT_DELAY_MINUTES", "5"))
+AUTO_TRADE_MIN_MARKET_CAP_BILLIONS = float(os.getenv("AUTO_TRADE_MIN_MARKET_CAP_BILLIONS", "20"))
 
 # IBKR Configuration
 IBKR_PAPER_TRADING_PORT = 4001
@@ -60,6 +62,15 @@ IBKR_LIVE_TRADING_PORT = 7497
 IBKR_KEEPALIVE_ENABLED = os.getenv("IBKR_KEEPALIVE_ENABLED", "true").lower() == "true"
 # Daily mandatory restart time (local time, HH:MM). Gateway/TWS auto-restarts once/day
 IBKR_DAILY_RESTART_TIME = os.getenv("IBKR_DAILY_RESTART_TIME", "23:45")
+
+# Extended-hours ladder tuning (cents and milliseconds)
+LADDER_INITIAL_CENTS = int(os.getenv("LADDER_INITIAL_CENTS", "1"))            # first step from NBBO
+LADDER_STEP_CENTS = int(os.getenv("LADDER_STEP_CENTS", "1"))                  # step for early attempts
+LADDER_STEP_CENTS_AFTER = int(os.getenv("LADDER_STEP_CENTS_AFTER", "3"))      # step after switch
+LADDER_SWITCH_ATTEMPT = int(os.getenv("LADDER_SWITCH_ATTEMPT", "6"))          # after N attempts switch to larger step
+LADDER_INTERVAL_MS = int(os.getenv("LADDER_INTERVAL_MS", "30"))               # early check interval
+LADDER_INTERVAL_MS_LATE = int(os.getenv("LADDER_INTERVAL_MS_LATE", "50"))     # later check interval
+LADDER_MAX_CENTS = int(os.getenv("LADDER_MAX_CENTS", "100"))                  # max range from start ($1)
 
 def get_api_key(key_name: str = "POLYGON_API_KEY") -> str:
     """Get API key from environment variables."""

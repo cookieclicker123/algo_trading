@@ -9,10 +9,10 @@ from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any, Tuple, Union
 from ib_insync import IB, Stock, MarketOrder, LimitOrder
 import pytz
-import yfinance as yf
 
 from ..models.base_models import TradeRequest
 from ..utils.logging_config import get_logger
+from ..config import settings
 
 logger = get_logger(__name__)
 
@@ -44,11 +44,21 @@ class IBKRTradingService:
         self.paper_trading = paper_trading
         self.pending_trades: Dict[str, Dict[str, Any]] = {}
         self.trade_timeout_minutes = 30
+        self.ib: Optional[IB] = None  # persistent warm connection
         
         if paper_trading:
             logger.info("IBKRTradingService initialized in PAPER TRADING mode.")
         else:
             logger.info("IBKRTradingService initialized in LIVE TRADING mode.")
+
+    async def _ensure_connected(self) -> IB:
+        """Ensure a warm persistent IB connection is available."""
+        if self.ib and self.ib.isConnected():
+            return self.ib
+        self.ib = IB()
+        port = 4001 if self.paper_trading else 7497
+        await self.ib.connectAsync('127.0.0.1', port, clientId=5)
+        return self.ib
 
     def get_market_session(self) -> Tuple[str, bool]:
         """Determine current market session based on Eastern Time."""
@@ -75,25 +85,41 @@ class IBKRTradingService:
             logger.info("🌙 Currently MARKET CLOSED")
             return 'closed', True
 
-    async def get_yfinance_price(self, ticker_symbol: str) -> Optional[float]:
-        """Get INSTANT price from yfinance with prepost=True."""
+    async def get_ibkr_realtime_price(self, ib: IB, contract: Stock) -> Optional[float]:
+        """Get real-time price using reqMktData (supports extended hours when venue provides it).
+
+        Prefer last; then midpoint of bid/ask; then close. Wait briefly for tick updates.
+        """
         try:
-            logger.info(f"📊 Getting INSTANT price from yfinance for {ticker_symbol}...")
-            
-            ticker = yf.Ticker(ticker_symbol)
-            data = ticker.history(period="1d", interval="1m", prepost=True)
-            
-            if not data.empty:
-                # Use the last available price
-                current_price = data['Close'].iloc[-1]
-                logger.info(f"💰 yfinance price: ${current_price}")
-                return float(current_price)
-            else:
-                logger.error(f"❌ No data available for {ticker_symbol}")
-                return None
-                
+            logger.info(f"📊 Requesting IBKR real-time quote for {contract.symbol}...")
+            # Ensure contract is qualified to avoid pacing on first use
+            [qualified] = await ib.qualifyContractsAsync(contract)
+            ticker = ib.reqMktData(qualified, "", True, False)
+            # Wait a few short intervals for data to arrive
+            for _ in range(10):  # up to ~500ms
+                await asyncio.sleep(0.05)
+                last_price = getattr(ticker, 'last', None)
+                bid = getattr(ticker, 'bid', None)
+                ask = getattr(ticker, 'ask', None)
+                close = getattr(ticker, 'close', None)
+                if last_price and last_price > 0:
+                    logger.info(f"💰 IBKR last price: ${last_price}")
+                    ib.cancelMktData(qualified)
+                    return float(last_price)
+                if bid and ask and bid > 0 and ask > 0:
+                    midpoint = (bid + ask) / 2.0
+                    logger.info(f"💰 IBKR midpoint price: ${midpoint} (bid ${bid}, ask ${ask})")
+                    ib.cancelMktData(qualified)
+                    return float(midpoint)
+                if close and close > 0:
+                    logger.info(f"💰 IBKR close price fallback: ${close}")
+                    ib.cancelMktData(qualified)
+                    return float(close)
+            ib.cancelMktData(qualified)
+            logger.error("❌ IBKR quote unavailable (no last/bbo/close)")
+            return None
         except Exception as e:
-            logger.error(f"❌ Error fetching {ticker_symbol} price from yfinance: {e}")
+            logger.error(f"❌ Error fetching IBKR quote for {contract.symbol}: {e}")
             return None
 
     async def process_trade_request(self, trade_request: TradeRequest) -> TradeResult:
@@ -177,17 +203,11 @@ class IBKRTradingService:
                     session="closed"
                 )
             
-            # Create IBKR connection
-            ib = IB()
-            
-            # Connect to IBKR Gateway
+            # Ensure persistent connection
             connect_start = time.time()
-            port = 4001 if self.paper_trading else 7497
-            mode = "Paper Trading" if self.paper_trading else "Live Trading"
-            logger.info(f"🔌 Connecting to IBKR {mode} Gateway (port {port})...")
-            await ib.connectAsync('127.0.0.1', port, clientId=5)  # Use different client ID
+            ib = await self._ensure_connected()
             connect_time = time.time() - connect_start
-            logger.info(f"✅ Connected to IBKR Gateway - {connect_time:.3f}s")
+            logger.info(f"✅ Connection ready - {connect_time:.3f}s")
             
             # Create stock contract
             contract_start = time.time()
@@ -214,9 +234,8 @@ class IBKRTradingService:
             return TradeResult(success=False, error=str(e))
         finally:
             # Disconnect
-            if 'ib' in locals() and ib.isConnected():
-                ib.disconnect()
-                logger.info("🔌 Disconnected from IBKR")
+            # Keep persistent connection open (no disconnect)
+            pass
 
     async def _execute_market_hours_trade(self, ib: IB, contract: Stock, trade_request: TradeRequest, 
                                         total_start_time: float, session_time: float, connect_time: float, contract_time: float) -> TradeResult:
@@ -315,62 +334,76 @@ class IBKRTradingService:
         # Get session info for TradeResult
         session, is_extended = self.get_market_session()
         try:
-            # Get INSTANT price from yfinance
+            # Get real-time price from IBKR (supports extended hours)
             price_start = time.time()
-            current_price = await self.get_yfinance_price(contract.symbol)
+            current_price = await self.get_ibkr_realtime_price(ib, contract)
             price_time = time.time() - price_start
             logger.info(f"💰 Price retrieval: {price_time:.3f}s")
             
             if not current_price:
-                logger.error("❌ Could not get price from yfinance - aborting trade")
+                logger.error("❌ Could not get real-time price from IBKR - aborting trade")
                 return TradeResult(
                     success=False, 
-                    error="Could not get price from yfinance",
+                    error="Could not get real-time price",
                     session=session,
                     order_type="LIMIT"
                 )
             
             logger.info(f"💰 Current {contract.symbol} price: ${current_price}")
             
-            # AGGRESSIVE CONTINUATION: Adjust based on action (BUY = above price, SELL = below price)
+            # TIGHT LADDER based on NBBO
             action = trade_request.action.upper()
+            # Pull NBBO quickly
+            [qualified] = await ib.qualifyContractsAsync(contract)
+            ticker = ib.reqMktData(qualified, "", True, False)
+            await asyncio.sleep(0.03)
+            bid = getattr(ticker, 'bid', None)
+            ask = getattr(ticker, 'ask', None)
+            ib.cancelMktData(qualified)
+
+            initial_cents = settings.LADDER_INITIAL_CENTS
+            early_step = settings.LADDER_STEP_CENTS
+            late_step = settings.LADDER_STEP_CENTS_AFTER
+            switch_after = settings.LADDER_SWITCH_ATTEMPT
+            interval_early = settings.LADDER_INTERVAL_MS / 1000.0
+            interval_late = settings.LADDER_INTERVAL_MS_LATE / 1000.0
+            max_cents_from_start = settings.LADDER_MAX_CENTS
+
             if action == "BUY":
-                logger.info("🚀 Starting AGGRESSIVE CONTINUATION: 0.25% to 10% above price with 0.0001s intervals")
-                base_percentage = 0.25   # Start at 0.25% above price
-                max_percentage = 10.0    # Go up to 10% above price
-                increment = 0.25        # Increase by 0.25% each time
-            else:  # SELL
-                logger.info("🚀 Starting AGGRESSIVE CONTINUATION: 0.25% to 10% below price with 0.0001s intervals")
-                base_percentage = 0.25   # Start at 0.25% below price
-                max_percentage = 10.0    # Go down to 10% below price
-                increment = 0.25        # Decrease by 0.25% each time
-            
-            wait_time = 0.0001      # Wait 0.0001 seconds between attempts (INSTANT)
-            current_percentage = base_percentage
+                base_price = ask if ask and ask > 0 else current_price
+                base_cents = initial_cents
+                step_cents = early_step
+                logger.info("🚀 Starting NBBO LADDER: buy at ask + small cents", ask=ask)
+            else:
+                base_price = bid if bid and bid > 0 else current_price
+                base_cents = -initial_cents
+                step_cents = -early_step
+                logger.info("🚀 Starting NBBO LADDER: sell at bid - small cents", bid=bid)
+
+            wait_time = interval_early
+            current_cents = base_cents
             attempt_number = 1
             
             # Start trading timing
             trading_start = time.time()
             
-            while current_percentage <= max_percentage:
+            while abs(current_cents) <= abs(max_cents_from_start):
                 attempt_start = time.time()
                 direction = "above" if action == "BUY" else "below"
-                logger.info(f"🚀 Attempt {attempt_number}: {current_percentage}% {direction} yfinance price")
+                logger.info(f"🚀 Attempt {attempt_number}: {abs(current_cents)} cents {direction} real-time price")
                 
-                # Calculate limit price using yfinance price
+                # Calculate limit price using real-time price
                 calc_start = time.time()
-                if action == "BUY":
-                    limit_price = round(current_price * (1 + current_percentage / 100), 2)
-                else:  # SELL
-                    limit_price = round(current_price * (1 - current_percentage / 100), 2)
+                limit_price = round(base_price + (current_cents / 100.0), 2)
                 calc_time = time.time() - calc_start
-                logger.info(f"📈 Limit price: ${limit_price:.2f} ({current_percentage}% {'above' if action == 'BUY' else 'below'}) (calc: {calc_time:.3f}s)")
+                logger.info(f"📈 Limit price: ${limit_price:.2f} ({abs(current_cents)}¢ {'above' if action == 'BUY' else 'below'}) (calc: {calc_time:.3f}s)")
                 
                 # Create limit order (action already defined above)
                 order_create_start = time.time()
                 order_id = ib.client.getReqId()
                 order = LimitOrder(action, 1, limit_price, orderId=order_id)
                 order.outsideRth = True
+                order.tif = 'IOC'  # immediate-or-cancel for marketable limit behavior
                 order_create_time = time.time() - order_create_start
                 logger.info(f"✅ Limit order created: {order} ({action}) (create: {order_create_time:.3f}s)")
                 
@@ -383,11 +416,11 @@ class IBKRTradingService:
                 
                 # Wait for INSTANT fill detection
                 fill_wait_start = time.time()
-                logger.info("⚡ Waiting for INSTANT fill...")
+                logger.info("⚡ Waiting for fast fill...")
                 filled = False
                 
-                for check_attempt in range(5):  # 5 attempts × 0.1s = 0.5 seconds
-                    await asyncio.sleep(0.1)
+                for check_attempt in range(10):
+                    await asyncio.sleep(wait_time)
                     
                     if trade.isDone():
                         fill_wait_time = time.time() - fill_wait_start
@@ -396,7 +429,7 @@ class IBKRTradingService:
                         total_time = time.time() - total_start_time
                         
                         logger.info(f"🎉 ORDER FILLED! Price: ${fill_price}")
-                        logger.info(f"✅ SUCCESS at attempt {attempt_number}: {current_percentage}% above yfinance price")
+                        logger.info(f"✅ SUCCESS at attempt {attempt_number}: {abs(current_cents)} cents {direction} real-time price")
                         logger.info(f"⏱️ Fill wait time: {fill_wait_time:.3f}s")
                         logger.info(f"⏱️ Total trading time: {total_trading_time:.3f}s")
                         logger.info(f"⏱️ TOTAL TIME: {total_time:.3f}s")
@@ -406,7 +439,7 @@ class IBKRTradingService:
                         logger.info(f"   📊 Market session detection: {session_time:.3f}s")
                         logger.info(f"   🔌 Connection: {connect_time:.3f}s")
                         logger.info(f"   📋 Contract creation: {contract_time:.3f}s")
-                        logger.info(f"   📊 yfinance price retrieval: {price_time:.3f}s")
+                        logger.info(f"   📊 IBKR quote retrieval: {price_time:.3f}s")
                         logger.info(f"   🚀 Trading (to fill): {total_trading_time:.3f}s")
                         logger.info(f"   ⚡ TOTAL: {total_time:.3f}s")
                         
@@ -427,11 +460,11 @@ class IBKRTradingService:
                                 "attempts": attempt_number
                             },
                             limit_price_used=limit_price,
-                            percentage_above_below=current_percentage
+                            percentage_above_below=None
                         )
                     
                     if trade.orderStatus and trade.orderStatus.status in ['Cancelled', 'Rejected']:
-                        logger.warning(f"⚠️ Order rejected at {current_percentage}%: {trade.orderStatus.status}")
+                        logger.warning(f"⚠️ Order rejected at {abs(current_cents)} cents {direction}: {trade.orderStatus.status}")
                         # Get rejection reason
                         if trade.log and len(trade.log) > 0:
                             last_log = trade.log[-1]
@@ -443,30 +476,31 @@ class IBKRTradingService:
                 logger.info(f"⏱️ Attempt {attempt_number} total time: {attempt_time:.3f}s")
                 
                 if not filled:
-                    logger.info(f"⚡ No fill at {current_percentage}% - INSTANTLY trying next level")
+                    logger.info(f"⚡ No fill at {abs(current_cents)} cents {direction} - trying next level")
                     # Cancel current order
                     try:
                         ib.cancelOrder(order)
-                        logger.info(f"🚫 Cancelled order at {current_percentage}%")
+                        logger.info(f"🚫 Cancelled order at {abs(current_cents)} cents {direction}")
                     except Exception as cancel_error:
                         logger.warning(f"Failed to cancel order: {cancel_error}")
                         pass
                 
-                # INSTANT continuation - 0.0001 seconds
-                logger.info(f"⚡ INSTANT continuation: {wait_time}s before next attempt...")
+                # Adjust pacing and step after threshold
+                if attempt_number == switch_after:
+                    step_cents = late_step if action == 'BUY' else -late_step
+                    wait_time = interval_late
                 await asyncio.sleep(wait_time)
                 
                 # Increase percentage for next attempt
-                current_percentage += increment
+                current_cents += step_cents
                 attempt_number += 1
             
             direction = "above" if action == "BUY" else "below"
             total_time = time.time() - total_start_time
-            logger.error(f"❌ AGGRESSIVE CONTINUATION FAILED - no fill up to 10% {direction} yfinance price")
-            logger.error("🚨 This should NEVER happen - check market conditions!")
+            logger.error(f"❌ LADDER FAILED - no fill within ${abs(max_cents_from_start)/100:.2f} {direction} real-time price")
             return TradeResult(
                 success=False, 
-                error=f"Aggressive continuation failed - no fill up to 10% {direction} price",
+                error=f"Ladder failed - no fill within ${abs(max_cents_from_start)/100:.2f} {direction}",
                 session=session,
                 order_type="LIMIT",
                 timing_info={
