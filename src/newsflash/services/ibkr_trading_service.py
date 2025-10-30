@@ -19,13 +19,20 @@ logger = get_logger(__name__)
 class TradeResult:
     """Result of a trade execution."""
     def __init__(self, success: bool, shares: int = 0, fill_price: float = 0.0, 
-                 total_cost: float = 0.0, commission: float = 0.0, error: str = ""):
+                 total_cost: float = 0.0, commission: float = 0.0, error: str = "",
+                 session: str = "", order_type: str = "", timing_info: Dict[str, float] = None,
+                 limit_price_used: Optional[float] = None, percentage_above_below: Optional[float] = None):
         self.success = success
         self.shares = shares
         self.fill_price = fill_price
         self.total_cost = total_cost
         self.commission = commission
         self.error = error
+        self.session = session  # "market_hours", "premarket", "postmarket", "closed"
+        self.order_type = order_type  # "MARKET" or "LIMIT"
+        self.timing_info = timing_info or {}  # Dict with timing breakdown
+        self.limit_price_used = limit_price_used  # For limit orders
+        self.percentage_above_below = percentage_above_below  # For extended hours limit orders
 
 class IBKRTradingService:
     """
@@ -164,7 +171,11 @@ class IBKRTradingService:
             # Check if we can trade
             if session == 'closed':
                 logger.error("❌ Market is currently closed - no trading available")
-                return TradeResult(success=False, error="Market is currently closed")
+                return TradeResult(
+                    success=False, 
+                    error="Market is currently closed",
+                    session="closed"
+                )
             
             # Create IBKR connection
             ib = IB()
@@ -211,10 +222,11 @@ class IBKRTradingService:
                                         total_start_time: float, session_time: float, connect_time: float, contract_time: float) -> TradeResult:
         """Execute market hours trade using market order."""
         try:
-            # Create market order for 1 share
+            # Create market order - use action from trade_request
+            action = trade_request.action.upper()
             order_create_start = time.time()
-            logger.info("📝 Creating market order for 1 share...")
-            order = MarketOrder('BUY', 1)
+            logger.info(f"📝 Creating market order for 1 share ({action})...")
+            order = MarketOrder(action, 1)
             order_create_time = time.time() - order_create_start
             logger.info(f"✅ Market order created: {order} (create: {order_create_time:.3f}s)")
             
@@ -251,20 +263,57 @@ class IBKRTradingService:
                     logger.info(f"   ⏳ Fill wait: {fill_wait_time:.3f}s")
                     logger.info(f"   ⚡ TOTAL: {total_time:.3f}s")
                     
-                    return TradeResult(success=True, shares=1, fill_price=fill_price, total_cost=fill_price)
+                    return TradeResult(
+                        success=True, 
+                        shares=1, 
+                        fill_price=fill_price, 
+                        total_cost=fill_price,
+                        session="market_hours",
+                        order_type="MARKET",
+                        timing_info={
+                            "session_detection": session_time,
+                            "connection": connect_time,
+                            "contract_creation": contract_time,
+                            "order_creation": order_create_time,
+                            "order_placement": place_time,
+                            "fill_wait": fill_wait_time,
+                            "total_time": total_time
+                        }
+                    )
                 
                 logger.debug(f"⏳ Attempt {attempt + 1}: Status = {trade.orderStatus.status}")
             
+            total_time = time.time() - total_start_time
             logger.warning("⚠️ ORDER TIMEOUT - Did not fill within 5 seconds")
-            return TradeResult(success=False, error="Order timeout - did not fill within 5 seconds")
+            return TradeResult(
+                success=False, 
+                error="Order timeout - did not fill within 5 seconds",
+                session="market_hours",
+                order_type="MARKET",
+                timing_info={
+                    "session_detection": session_time,
+                    "connection": connect_time,
+                    "contract_creation": contract_time,
+                    "order_creation": order_create_time,
+                    "order_placement": place_time,
+                    "total_time": total_time
+                }
+            )
             
         except Exception as e:
             logger.error(f"❌ Market hours trade failed: {e}")
-            return TradeResult(success=False, error=str(e))
+            return TradeResult(
+                success=False, 
+                error=str(e),
+                session="market_hours",
+                order_type="MARKET"
+            )
 
     async def _execute_extended_hours_trade(self, ib: IB, contract: Stock, trade_request: TradeRequest,
                                           total_start_time: float, session_time: float, connect_time: float, contract_time: float) -> TradeResult:
         """Execute extended hours trade using limit order with aggressive continuation."""
+        # Get session info for TradeResult
+        session, is_extended = self.get_market_session()
         try:
             # Get INSTANT price from yfinance
             price_start = time.time()
@@ -274,18 +323,29 @@ class IBKRTradingService:
             
             if not current_price:
                 logger.error("❌ Could not get price from yfinance - aborting trade")
-                return False
+                return TradeResult(
+                    success=False, 
+                    error="Could not get price from yfinance",
+                    session=session,
+                    order_type="LIMIT"
+                )
             
             logger.info(f"💰 Current {contract.symbol} price: ${current_price}")
             
-            # AGGRESSIVE CONTINUATION: 0.25% to 10% with 0.0001s intervals
-            logger.info("🚀 Starting AGGRESSIVE CONTINUATION: 0.25% to 10% above price with 0.0001s intervals")
+            # AGGRESSIVE CONTINUATION: Adjust based on action (BUY = above price, SELL = below price)
+            action = trade_request.action.upper()
+            if action == "BUY":
+                logger.info("🚀 Starting AGGRESSIVE CONTINUATION: 0.25% to 10% above price with 0.0001s intervals")
+                base_percentage = 0.25   # Start at 0.25% above price
+                max_percentage = 10.0    # Go up to 10% above price
+                increment = 0.25        # Increase by 0.25% each time
+            else:  # SELL
+                logger.info("🚀 Starting AGGRESSIVE CONTINUATION: 0.25% to 10% below price with 0.0001s intervals")
+                base_percentage = 0.25   # Start at 0.25% below price
+                max_percentage = 10.0    # Go down to 10% below price
+                increment = 0.25        # Decrease by 0.25% each time
             
-            base_percentage = 0.25   # Start at 0.25% above price
-            max_percentage = 10.0    # Go up to 10% above price
-            increment = 0.25        # Increase by 0.25% each time
             wait_time = 0.0001      # Wait 0.0001 seconds between attempts (INSTANT)
-            
             current_percentage = base_percentage
             attempt_number = 1
             
@@ -294,21 +354,25 @@ class IBKRTradingService:
             
             while current_percentage <= max_percentage:
                 attempt_start = time.time()
-                logger.info(f"🚀 Attempt {attempt_number}: {current_percentage}% above yfinance price")
+                direction = "above" if action == "BUY" else "below"
+                logger.info(f"🚀 Attempt {attempt_number}: {current_percentage}% {direction} yfinance price")
                 
                 # Calculate limit price using yfinance price
                 calc_start = time.time()
-                limit_price = round(current_price * (1 + current_percentage / 100), 2)
+                if action == "BUY":
+                    limit_price = round(current_price * (1 + current_percentage / 100), 2)
+                else:  # SELL
+                    limit_price = round(current_price * (1 - current_percentage / 100), 2)
                 calc_time = time.time() - calc_start
-                logger.info(f"📈 Limit price: ${limit_price:.2f} (calc: {calc_time:.3f}s)")
+                logger.info(f"📈 Limit price: ${limit_price:.2f} ({current_percentage}% {'above' if action == 'BUY' else 'below'}) (calc: {calc_time:.3f}s)")
                 
-                # Create limit order
+                # Create limit order (action already defined above)
                 order_create_start = time.time()
                 order_id = ib.client.getReqId()
-                order = LimitOrder('BUY', 1, limit_price, orderId=order_id)
+                order = LimitOrder(action, 1, limit_price, orderId=order_id)
                 order.outsideRth = True
                 order_create_time = time.time() - order_create_start
-                logger.info(f"✅ Limit order created: {order} (create: {order_create_time:.3f}s)")
+                logger.info(f"✅ Limit order created: {order} ({action}) (create: {order_create_time:.3f}s)")
                 
                 # Place order
                 place_start = time.time()
@@ -346,7 +410,25 @@ class IBKRTradingService:
                         logger.info(f"   🚀 Trading (to fill): {total_trading_time:.3f}s")
                         logger.info(f"   ⚡ TOTAL: {total_time:.3f}s")
                         
-                        return TradeResult(success=True, shares=1, fill_price=fill_price, total_cost=fill_price)
+                        return TradeResult(
+                            success=True, 
+                            shares=1, 
+                            fill_price=fill_price, 
+                            total_cost=fill_price,
+                            session=session,
+                            order_type="LIMIT",
+                            timing_info={
+                                "session_detection": session_time,
+                                "connection": connect_time,
+                                "contract_creation": contract_time,
+                                "price_retrieval": price_time,
+                                "trading_time": total_trading_time,
+                                "total_time": total_time,
+                                "attempts": attempt_number
+                            },
+                            limit_price_used=limit_price,
+                            percentage_above_below=current_percentage
+                        )
                     
                     if trade.orderStatus and trade.orderStatus.status in ['Cancelled', 'Rejected']:
                         logger.warning(f"⚠️ Order rejected at {current_percentage}%: {trade.orderStatus.status}")
@@ -366,7 +448,8 @@ class IBKRTradingService:
                     try:
                         ib.cancelOrder(order)
                         logger.info(f"🚫 Cancelled order at {current_percentage}%")
-                    except:
+                    except Exception as cancel_error:
+                        logger.warning(f"Failed to cancel order: {cancel_error}")
                         pass
                 
                 # INSTANT continuation - 0.0001 seconds
@@ -377,13 +460,33 @@ class IBKRTradingService:
                 current_percentage += increment
                 attempt_number += 1
             
-            logger.error("❌ AGGRESSIVE CONTINUATION FAILED - no fill up to 10% above yfinance price")
+            direction = "above" if action == "BUY" else "below"
+            total_time = time.time() - total_start_time
+            logger.error(f"❌ AGGRESSIVE CONTINUATION FAILED - no fill up to 10% {direction} yfinance price")
             logger.error("🚨 This should NEVER happen - check market conditions!")
-            return TradeResult(success=False, error="Aggressive continuation failed - no fill up to 10% above price")
-            
+            return TradeResult(
+                success=False, 
+                error=f"Aggressive continuation failed - no fill up to 10% {direction} price",
+                session=session,
+                order_type="LIMIT",
+                timing_info={
+                    "session_detection": session_time,
+                    "connection": connect_time,
+                    "contract_creation": contract_time,
+                    "price_retrieval": price_time,
+                    "total_time": total_time,
+                    "attempts": attempt_number
+                }
+            )
+                
         except Exception as e:
             logger.error(f"❌ Extended hours trade failed: {e}")
-            return TradeResult(success=False, error=str(e))
+            return TradeResult(
+                success=False, 
+                error=str(e),
+                session=session,
+                order_type="LIMIT"
+            )
     
     async def execute_trade(self, trade_request: TradeRequest) -> TradeResult:
         """Execute a trade request."""

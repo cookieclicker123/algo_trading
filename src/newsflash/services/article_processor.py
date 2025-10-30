@@ -1,8 +1,8 @@
 """
 Article processing service for handling new articles from Benzinga.
 """
-from typing import List, Callable, Awaitable, Optional, Union
-from ..models.benzinga_models import BenzingaArticle
+from typing import List, Callable, Awaitable, Optional, Union, Any
+from ..models.benzinga_models import BenzingaArticle, convert_benzinga_to_standardized
 from ..models.base_models import StandardizedArticle
 from ..utils.json_storage import ArticleStorage
 from ..utils.logging_config import get_logger
@@ -31,6 +31,7 @@ class ArticleProcessor:
         telegram_notifier: Optional[TelegramNotifier] = None,
         classifier: Optional[NewsClassifier] = None,
         storage: Optional[ArticleStorage] = None,
+        auto_trade_service: Optional[Any] = None,
     ):
         """
         Initialize article processor with optional dependencies.
@@ -45,6 +46,7 @@ class ArticleProcessor:
         self.telegram = telegram_notifier or TelegramNotifier(test_mode=False)
         self.classifier = classifier or self._create_default_classifier()
         self.audit_trail = ClassificationAuditTrail()
+        self.auto_trade_service = auto_trade_service  # Optional auto-trade service
         
         self.handlers: List[Callable[[Union[BenzingaArticle, StandardizedArticle]], Awaitable[None]]] = []
         
@@ -172,6 +174,27 @@ class ArticleProcessor:
                 # Log IMMINENT classifications to audit trail
                 if classification and classification.classification.value.lower() == "imminent":
                     self.audit_trail.log_imminent_classification(article, classification)
+                    
+                    # Auto-trade IMMINENT articles (if auto-trade service is available)
+                    if hasattr(self, 'auto_trade_service') and self.auto_trade_service:
+                        try:
+                            # Convert BenzingaArticle to StandardizedArticle if needed
+                            standardized_article = article
+                            if isinstance(article, BenzingaArticle):
+                                standardized_article = convert_benzinga_to_standardized(article)
+                                logger.debug(
+                                    "Converted BenzingaArticle to StandardizedArticle for auto-trade",
+                                    article_id=self._get_article_id(article)
+                                )
+                            
+                            await self.auto_trade_service.process_imminent_article(standardized_article, classification)
+                        except Exception as e:
+                            logger.error(
+                                "Failed to execute auto-trade",
+                                article_id=self._get_article_id(article),
+                                error=str(e),
+                                exc_info=True
+                            )
             except Exception as e:
                 logger.error(
                     "Failed to classify article",
@@ -257,6 +280,7 @@ def get_article_processor(
     telegram_notifier: Optional[TelegramNotifier] = None,
     classifier: Optional[NewsClassifier] = None,
     storage: Optional[ArticleStorage] = None,
+    auto_trade_service: Optional[Any] = None,
 ) -> ArticleProcessor:
     """
     Get article processor instance with optional dependencies.
@@ -273,4 +297,5 @@ def get_article_processor(
         telegram_notifier=telegram_notifier,
         classifier=classifier,
         storage=storage,
+        auto_trade_service=auto_trade_service
     )

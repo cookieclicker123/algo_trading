@@ -346,7 +346,7 @@ class TelegramNotifier:
             await bot.send_message(
                 chat_id=chat_id,
                 text=message,
-                parse_mode=None,  # Plain text for now
+                parse_mode="Markdown",  # Support Markdown formatting
                 disable_web_page_preview=False,
             )
             logger.info(f"{bot_name} message sent successfully")
@@ -503,6 +503,35 @@ class TelegramNotifier:
                     logger.error(f"Error sending queued message during shutdown ({bot_name})", error=str(e))
         
         logger.info("Telegram notification service stopped")
+    
+    async def _send_message_to_all_bots(self, message: str) -> None:
+        """
+        Send a plain text message to all enabled bots.
+        
+        Args:
+            message: Message text to send
+        """
+        if self.enabled_1 and self.bot_1 and self.config_1:
+            try:
+                await self._send_message(
+                    self.bot_1, 
+                    self.config_1["chat_id"], 
+                    message, 
+                    "Bot 1"
+                )
+            except Exception as e:
+                logger.error("Failed to send message to Bot 1", error=str(e))
+        
+        if self.enabled_2 and self.bot_2 and self.config_2:
+            try:
+                await self._send_message(
+                    self.bot_2, 
+                    self.config_2["chat_id"], 
+                    message, 
+                    "Bot 2"
+                )
+            except Exception as e:
+                logger.error("Failed to send message to Bot 2", error=str(e))
 
 
 def get_telegram_notifier(

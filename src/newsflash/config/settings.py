@@ -49,6 +49,18 @@ CLASSIFICATION_ENABLED = os.getenv("CLASSIFICATION_ENABLED", "true").lower() == 
 BENZINGA_API_KEY = os.getenv("BENZINGA_API_KEY", "")
 BENZINGA_WEBSOCKET_ENABLED = os.getenv("BENZINGA_WEBSOCKET_ENABLED", "false").lower() == "true"
 
+# Auto-Trading Configuration
+AUTO_TRADING_ENABLED = os.getenv("AUTO_TRADING_ENABLED", "true").lower() == "true"
+AUTO_TRADE_AMOUNT_USD = float(os.getenv("AUTO_TRADE_AMOUNT_USD", "100.0"))
+AUTO_TRADE_EXIT_DELAY_MINUTES = int(os.getenv("AUTO_TRADE_EXIT_DELAY_MINUTES", "5"))
+
+# IBKR Configuration
+IBKR_PAPER_TRADING_PORT = 4001
+IBKR_LIVE_TRADING_PORT = 7497
+IBKR_KEEPALIVE_ENABLED = os.getenv("IBKR_KEEPALIVE_ENABLED", "true").lower() == "true"
+# Daily mandatory restart time (local time, HH:MM). Gateway/TWS auto-restarts once/day
+IBKR_DAILY_RESTART_TIME = os.getenv("IBKR_DAILY_RESTART_TIME", "23:45")
+
 def get_api_key(key_name: str = "POLYGON_API_KEY") -> str:
     """Get API key from environment variables."""
     api_key = os.getenv(key_name)

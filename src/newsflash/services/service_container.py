@@ -18,6 +18,9 @@ from .telegram_trade_handler import get_telegram_trade_handler
 from .polling_state_manager import PollingStateManager
 from .benzinga_websocket_service import BenzingaWebSocketService
 from .feed_health_monitor import FeedHealthMonitor
+from .auto_trade_service import AutoTradeService
+from .position_tracker import PositionTracker
+from .ibkr_keepalive_service import IBKRKeepAliveService
 
 logger = get_logger(__name__)
 
@@ -53,6 +56,18 @@ class ServiceContainer:
             
             # IBKR trading service
             self._services['trading'] = get_ibkr_trading_service(paper_trading=True)
+            
+            # IBKR keep-alive service (maintains persistent connection to prevent Gateway timeout)
+            from ..config.settings import IBKR_KEEPALIVE_ENABLED
+            if IBKR_KEEPALIVE_ENABLED:
+                self._services['ibkr_keepalive'] = IBKRKeepAliveService(
+                    paper_trading=True,
+                    telegram_service=None  # will inject after telegram init below
+                )
+                logger.info("IBKR Keep-Alive service initialized")
+            else:
+                self._services['ibkr_keepalive'] = None
+                logger.info("IBKR Keep-Alive service disabled")
             
             # Initialize dependent services
             logger.info("Initializing dependent services...")
@@ -93,10 +108,27 @@ class ServiceContainer:
                 model=GROQ_MODEL
             )
             
-            # Article processor (depends on telegram, classifier)
+            # If keep-alive exists, inject telegram notifier for status alerts
+            if self._services.get('ibkr_keepalive') is not None:
+                self._services['ibkr_keepalive'].telegram_service = self._services['telegram']
+
+            # Position tracker for auto-trades
+            self._services['position_tracker'] = PositionTracker()
+            logger.info("PositionTracker initialized")
+            
+            # Auto-trade service (depends on trading service, position tracker, and telegram service)
+            self._services['auto_trade_service'] = AutoTradeService(
+                trading_service=self._services['trading'],
+                position_tracker=self._services['position_tracker'],
+                telegram_service=self._services['telegram']
+            )
+            logger.info("AutoTradeService initialized")
+            
+            # Article processor (depends on telegram, classifier, auto_trade_service)
             self._services['article_processor'] = get_article_processor(
                 telegram_notifier=self._services['telegram'],
-                classifier=self._services['classifier']
+                classifier=self._services['classifier'],
+                auto_trade_service=self._services['auto_trade_service']
             )
             
             # Polling state manager
@@ -225,6 +257,11 @@ class ServiceContainer:
             self._health_monitor_task = health_monitor_task
             logger.info("Feed health monitor started")
             
+            # Start IBKR keep-alive service (maintains persistent connection)
+            if self._services.get('ibkr_keepalive'):
+                await self._services['ibkr_keepalive'].start()
+                logger.info("IBKR Keep-Alive service started - Gateway will stay connected")
+            
             logger.info("All services started successfully")
             
         except Exception as e:
@@ -255,6 +292,11 @@ class ServiceContainer:
             if 'benzinga_websocket' in self._services:
                 self._services['benzinga_websocket'].stop()
                 logger.info("Benzinga WebSocket service stopped")
+            
+            # Stop IBKR keep-alive service
+            if self._services.get('ibkr_keepalive'):
+                await self._services['ibkr_keepalive'].stop()
+                logger.info("IBKR Keep-Alive service stopped")
             
             # Stop feed manager (this will stop all dependent services)
             await self._services['feed_manager'].stop_all_feeds()
