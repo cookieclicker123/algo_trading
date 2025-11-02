@@ -5,6 +5,7 @@ Handles Telegram bot conflicts by ensuring only one instance per bot token is ru
 This is essential because Telegram only allows one active polling connection per bot token.
 """
 import asyncio
+import os
 import subprocess
 import time
 from typing import List, Optional
@@ -65,17 +66,41 @@ class BotConflictResolver:
             lines = result.stdout.split('\n')
             
             killed_count = 0
+            current_pid = str(os.getpid())
+            
             for line in lines:
                 if 'python' in line.lower():
+                    # Skip our own process
+                    parts = line.split()
+                    if len(parts) < 2:
+                        continue
+                    pid = parts[1]
+                    if pid == current_pid:
+                        continue
+                    
+                    # Check if it's running our main script or server
+                    is_newsflash_process = (
+                        'src.main' in line or 
+                        'src/server.py' in line or
+                        'src/main.py' in line or
+                        'server.py' in line
+                    )
+                    
+                    # Check for bot tokens in the line (may appear in env or args)
+                    has_token = False
                     for token in bot_tokens:
-                        if token[:10] in line:  # Check first 10 chars
-                            pid = line.split()[1]
-                            try:
-                                subprocess.run(['kill', '-9', pid], check=True)
-                                logger.info("Killed conflicting process", pid=pid, token=token[:10] + "...")
-                                killed_count += 1
-                            except Exception as e:
-                                logger.warning("Failed to kill process", pid=pid, error=str(e))
+                        if token and token[:10] in line:
+                            has_token = True
+                            break
+                    
+                    # Kill if it's our process or contains a bot token
+                    if is_newsflash_process or has_token:
+                        try:
+                            subprocess.run(['kill', '-9', pid], check=True)
+                            logger.info("Killed conflicting process", pid=pid, reason="newsflash_process" if is_newsflash_process else "token_match")
+                            killed_count += 1
+                        except Exception as e:
+                            logger.warning("Failed to kill process", pid=pid, error=str(e))
             
             if killed_count > 0:
                 logger.info("Killed conflicting processes", count=killed_count)

@@ -412,14 +412,17 @@ class TelegramNotifier:
         logger.info("Telegram notification service started")
         
         # Start trade handlers with staggered timing to prevent conflicts
-        if self.trade_handler:
+        # Only start if the bot is enabled (defensive check)
+        if self.trade_handler and self.enabled_1:
             await self.trade_handler.start()
             logger.info("Started Telegram trade handler (bot 1)")
             
             # Wait a moment before starting the second bot to prevent conflicts
             await asyncio.sleep(3)
+        elif self.trade_handler:
+            logger.info("Skipping trade handler 1 start (bot 1 disabled)")
         
-        if self.trade_handler_2:
+        if self.trade_handler_2 and self.enabled_2:
             # Retry logic for the second bot in case of conflicts
             max_retries = 3
             for attempt in range(max_retries):

@@ -223,24 +223,40 @@ class ServiceContainer:
             from ..config.settings import get_telegram_config, get_telegram_config_2
             config_1 = get_telegram_config()
             config_2 = get_telegram_config_2()
-            bot_tokens = [
-                config_1.get("bot_token", ""),
-                config_2.get("bot_token", "")
-            ]
             
-            # Resolve conflicts non-aggressively for production
-            conflict_resolved = await resolve_bot_conflicts(bot_tokens, aggressive=False)
-            if not conflict_resolved:
-                logger.warning("Bot conflicts detected but not resolved - services may fail to start")
+            # Only include tokens for enabled bots
+            bot_tokens = []
+            if config_1.get("enabled") and config_1.get("bot_token"):
+                bot_tokens.append(config_1.get("bot_token"))
+            if config_2.get("enabled") and config_2.get("bot_token"):
+                bot_tokens.append(config_2.get("bot_token"))
             
-            # Start Telegram trade handlers first
-            if self._services['trade_handler']:
+            # Resolve conflicts - use aggressive mode to kill existing processes
+            # This is safe because we're starting our own process
+            conflict_resolved = True
+            if bot_tokens:
+                conflict_resolved = await resolve_bot_conflicts(bot_tokens, aggressive=True)
+                if not conflict_resolved:
+                    logger.warning("Bot conflicts detected but not resolved - services may fail to start")
+            else:
+                logger.info("No enabled bots found, skipping conflict resolution")
+            
+            # Start Telegram trade handlers first (only if enabled)
+            # Double-check enabled flags to be defensive
+            config_1 = get_telegram_config()
+            config_2 = get_telegram_config_2()
+            
+            if self._services['trade_handler'] and config_1.get("enabled"):
                 await self._services['trade_handler'].start()
                 logger.info("Telegram trade handler 1 started")
+            elif self._services['trade_handler']:
+                logger.info("Telegram trade handler 1 not started (bot 1 disabled)")
             
-            if self._services['trade_handler_2']:
+            if self._services['trade_handler_2'] and config_2.get("enabled"):
                 await self._services['trade_handler_2'].start()
                 logger.info("Telegram trade handler 2 started")
+            elif self._services['trade_handler_2']:
+                logger.info("Telegram trade handler 2 not started (bot 2 disabled)")
             
             # Start feed manager (this will start all dependent services)
             await self._services['feed_manager'].start_all_feeds()
