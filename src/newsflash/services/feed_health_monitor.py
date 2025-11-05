@@ -227,12 +227,61 @@ class FeedHealthMonitor:
                     "last_error": last_error
                 }
             
+            # Check ping/pong status (NEW: detect zombie connections)
+            missed_pongs = stats.get("missed_pongs", 0)
+            last_ping_sent = stats.get("last_ping_sent")
+            last_pong_received = stats.get("last_pong_received")
+            last_connection_check = stats.get("last_connection_check")
+            
+            # Check if ping/pong is working
+            ping_pong_status = {}
+            if last_ping_sent:
+                if isinstance(last_ping_sent, str):
+                    last_ping_sent = datetime.fromisoformat(last_ping_sent.replace('Z', '+00:00'))
+                ping_pong_status["last_ping"] = last_ping_sent.isoformat()
+                
+            if last_pong_received:
+                if isinstance(last_pong_received, str):
+                    last_pong_received = datetime.fromisoformat(last_pong_received.replace('Z', '+00:00'))
+                ping_pong_status["last_pong"] = last_pong_received.isoformat()
+            
+            if last_connection_check:
+                if isinstance(last_connection_check, str):
+                    last_connection_check = datetime.fromisoformat(last_connection_check.replace('Z', '+00:00'))
+            
+            # Check for zombie connection (connected but no pong responses)
+            if missed_pongs >= 2:
+                return {
+                    "healthy": False,
+                    "reason": f"Zombie connection detected: {missed_pongs} missed pongs",
+                    "stats": stats,
+                    "ping_pong_status": ping_pong_status,
+                    "is_zombie": True
+                }
+            
+            # Check if ping was sent but no pong received recently
+            if last_ping_sent and isinstance(last_ping_sent, datetime):
+                time_since_ping = (datetime.now(last_ping_sent.tzinfo) - last_ping_sent).total_seconds()
+                if time_since_ping > 35:  # More than 30 seconds (allowing 5s buffer)
+                    if not last_pong_received or (isinstance(last_pong_received, datetime) and last_pong_received < last_ping_sent):
+                        return {
+                            "healthy": False,
+                            "reason": f"Zombie connection: no pong received for {time_since_ping:.1f}s after ping",
+                            "stats": stats,
+                            "ping_pong_status": ping_pong_status,
+                            "is_zombie": True
+                        }
+            
             # Feed appears healthy
             return {
                 "healthy": True,
-                "reason": "WebSocket feed is connected and receiving messages",
+                "reason": "WebSocket feed is connected and receiving messages with active ping/pong",
                 "stats": stats,
-                "last_message_time": last_message_time.isoformat() if last_message_time else None
+                "last_message_time": last_message_time.isoformat() if last_message_time else None,
+                "ping_pong_status": ping_pong_status,
+                "ping_count": stats.get("ping_sent_count", 0),
+                "pong_count": stats.get("pong_received_count", 0),
+                "last_connection_check": last_connection_check.isoformat() if last_connection_check else None
             }
             
         except Exception as e:

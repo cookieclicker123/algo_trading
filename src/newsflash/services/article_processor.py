@@ -178,6 +178,7 @@ class ArticleProcessor:
                     self.audit_trail.log_imminent_classification(article, classification)
                     
                     # Market-cap gate before auto-trade
+                    # Note: Telegram notifications should still be sent even if auto-trade is blocked
                     is_large_cap = await self._passes_market_cap_gate(article)
                     if not is_large_cap:
                         logger.info(
@@ -185,7 +186,8 @@ class ArticleProcessor:
                             article_id=self._get_article_id(article),
                             min_bil=AUTO_TRADE_MIN_MARKET_CAP_BILLIONS
                         )
-                        classification = None  # Prevent Telegram trading options for small caps
+                        # Don't set classification = None here - Telegram should still be notified!
+                        # Only skip auto-trade for small caps
                     
                     # Auto-trade IMMINENT articles (if auto-trade service is available)
                     if hasattr(self, 'auto_trade_service') and self.auto_trade_service:
@@ -215,19 +217,19 @@ class ArticleProcessor:
                     error=str(e)
                 )
         
-        # Send Telegram notification (classification determines if it actually gets sent)
+        # Send Telegram notification - ALL IMMINENT articles go through, no gates
         telegram_enabled = (self.telegram.enabled_1 or self.telegram.enabled_2)
         if telegram_enabled:
             try:
-                await self.telegram.send_notification(article, classification)
-                
-                # Log the result
-                if classification and self.classifier.should_notify(classification):
+                # Only send if classification is IMMINENT - simple rule, no gates
+                if classification and classification.classification.value.lower() == "imminent":
+                    await self.telegram.send_notification(article, classification)
                     logger.info(
                         "Telegram notification sent for IMMINENT article",
                         article_id=self._get_article_id(article),
                         classification=classification.classification.value,
-                        confidence=classification.confidence
+                        confidence=classification.confidence,
+                        note="All IMMINENT articles are sent regardless of confidence or gates"
                     )
                 elif classification:
                     logger.info(

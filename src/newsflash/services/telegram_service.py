@@ -96,17 +96,19 @@ class TelegramNotifier:
             Message data dictionary
         """
         # Get classification emoji and label
+        # Only IMMINENT articles should reach here (filtered by article_processor)
         if classification:
             if classification.classification == NewsClassification.IMMINENT:
                 emoji = "🚨"
                 label = "IMMINENT"
                 confidence = classification.confidence
             else:
-                # IGNORE classification - should never reach here
-                logger.error("IGNORE classification sent to Telegram - this is a bug!")
-                return {}  # Return empty dict to prevent sending
+                # IGNORE classification - should never reach here, but log and allow if it does
+                logger.warning("Non-IMMINENT classification sent to Telegram", 
+                             classification=classification.classification.value)
+                return {}  # Return empty dict to prevent sending IGNORE articles
         else:
-            # No classification provided - this is an error, should not happen
+            # No classification provided - should not happen, but log it
             logger.error("Article sent to Telegram without classification - this is a bug!")
             return {}  # Return empty dict to prevent sending
         

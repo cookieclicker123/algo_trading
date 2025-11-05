@@ -60,8 +60,30 @@ class BenzingaWebSocketService:
             "connection_attempts": 0,
             "last_message_time": None,
             "last_error": None,
-            "is_connected": False
+            "is_connected": False,
+            # Ping/pong tracking
+            "last_ping_sent": None,
+            "last_pong_received": None,
+            "ping_sent_count": 0,
+            "pong_received_count": 0,
+            "missed_pongs": 0,
+            "connection_verified_at": None,
+            "last_connection_check": None,
         }
+        
+        # Ping/pong configuration
+        self.ping_interval = 30.0  # Send ping every 30 seconds
+        self.ping_timeout = 30.0  # Expect pong within 30 seconds
+        self.connection_check_interval = 30.0  # Verify connection every 30 seconds
+        
+        # Thread locks for thread safety
+        self._lock = threading.Lock()
+        self._ping_thread = None
+        self._monitor_thread = None
+        
+        # Reconnection tracking
+        self._reconnect_allowed = True
+        self._reconnect_delay = 5.0  # Wait 5 seconds before reconnecting
         
         logger.info("BenzingaWebSocketService initialized", token_prefix=token[:10] + "...")
     
@@ -69,6 +91,7 @@ class BenzingaWebSocketService:
         """Start the WebSocket connection and message processing."""
         logger.info("Starting Benzinga WebSocket service")
         self.is_running = True
+        self._reconnect_allowed = True
         
         # Clean up any existing connections first
         self._cleanup_connections()
@@ -77,6 +100,17 @@ class BenzingaWebSocketService:
         self.websocket_thread = threading.Thread(target=self._run_websocket_loop)
         self.websocket_thread.daemon = True
         self.websocket_thread.start()
+        
+        # Start ping thread (will start after connection is confirmed)
+        self._ping_thread = threading.Thread(target=self._ping_loop)
+        self._ping_thread.daemon = True
+        
+        # Start connection monitor thread
+        self._monitor_thread = threading.Thread(target=self._connection_monitor_loop)
+        self._monitor_thread.daemon = True
+        self._monitor_thread.start()
+        
+        logger.info("WebSocket service threads started (connection, ping, monitor)")
     
     def _cleanup_connections(self):
         """Force close any existing WebSocket connections."""
@@ -132,8 +166,9 @@ class BenzingaWebSocketService:
         def on_message(ws, message):
             """Handle incoming WebSocket messages."""
             try:
-                self.stats["messages_received"] += 1
-                self.stats["last_message_time"] = datetime.now()
+                with self._lock:
+                    self.stats["messages_received"] += 1
+                    self.stats["last_message_time"] = datetime.now()
                 
                 logger.info(f"Received WebSocket message ({len(message)} chars): {message[:200]}...")
                 
@@ -142,28 +177,62 @@ class BenzingaWebSocketService:
                 
             except Exception as e:
                 logger.error("Error processing WebSocket message", error=str(e))
-                self.stats["last_error"] = str(e)
+                with self._lock:
+                    self.stats["last_error"] = str(e)
         
         def on_error(ws, error):
             """Handle WebSocket errors."""
             error_msg = str(error)
             logger.error("WebSocket error", error=error_msg)
-            self.stats["last_error"] = error_msg
+            with self._lock:
+                self.stats["last_error"] = error_msg
             
             # Log 429 errors but don't retry (to respect "one connection at a time")
             if "429" in error_msg or "Too Many Requests" in error_msg:
                 logger.error("Rate limit hit (429) - connection will close and NOT retry")
                 logger.info("Check for leftover connections or previous test runs")
+                self._reconnect_allowed = False  # Disable reconnection for rate limit errors
         
         def on_close(ws, close_status_code, close_msg):
             """Handle WebSocket close."""
             logger.info(f"WebSocket closed: {close_status_code} - {close_msg}")
-            self.stats["is_connected"] = False
+            with self._lock:
+                self.stats["is_connected"] = False
+                
+            # Auto-reconnect if allowed and still running
+            if self.is_running and self._reconnect_allowed:
+                logger.info("Connection closed, will attempt reconnect in monitor loop")
         
         def on_open(ws):
             """Handle WebSocket open."""
-            logger.info("Connected to Benzinga WebSocket - will stay connected until server stops")
-            self.stats["is_connected"] = True
+            logger.info("Connected to Benzinga WebSocket - connection established and verified")
+            with self._lock:
+                self.stats["is_connected"] = True
+                self.stats["connection_verified_at"] = datetime.now()
+                self.stats["last_connection_check"] = datetime.now()
+                self.stats["last_error"] = None  # Clear previous errors
+                self.stats["missed_pongs"] = 0  # Reset missed pongs
+                
+            # Start ping thread after connection is confirmed
+            if not self._ping_thread.is_alive():
+                self._ping_thread.start()
+                logger.info("Ping/pong thread started - will send pings every 30 seconds")
+        
+        def on_pong(ws, data):
+            """Handle WebSocket pong frame."""
+            logger.info("Received WebSocket pong frame from Benzinga")
+            with self._lock:
+                self.stats["last_pong_received"] = datetime.now()
+                self.stats["pong_received_count"] += 1
+                if self.stats["missed_pongs"] > 0:
+                    self.stats["missed_pongs"] = 0  # Reset on successful pong
+            logger.info("Pong received, connection is alive", 
+                       pong_count=self.stats["pong_received_count"],
+                       ping_count=self.stats["ping_sent_count"])
+        
+        def on_ping(ws, data):
+            """Handle WebSocket ping frame from server (shouldn't happen but handle it)."""
+            logger.debug("Received ping frame from server")
         
         # Create WebSocket app
         self.websocket = websocket.WebSocketApp(
@@ -172,19 +241,28 @@ class BenzingaWebSocketService:
             on_message=on_message,
             on_error=on_error,
             on_close=on_close,
-            on_open=on_open
+            on_open=on_open,
+            on_ping=on_ping,
+            on_pong=on_pong
         )
         
-        # Run the WebSocket connection
-        self.websocket.run_forever()
+        # Run the WebSocket connection with automatic ping frames
+        # ping_interval: Send ping frame every 30 seconds
+        # ping_timeout: Wait 10 seconds for pong response before timing out
+        self.websocket.run_forever(
+            ping_interval=int(self.ping_interval),
+            ping_timeout=10
+        )
     
     def _process_message(self, message: str):
         """Process incoming WebSocket message."""
         try:
-            self.stats["messages_received"] += 1
-            self.stats["last_message_time"] = datetime.now()
+            # Update stats (already updated in on_message, but keep for safety)
+            with self._lock:
+                if not self.stats.get("last_message_time"):
+                    self.stats["last_message_time"] = datetime.now()
             
-            logger.info(f"Received WebSocket message ({len(message)} chars): {message[:200]}...")
+            logger.info(f"Processing WebSocket message ({len(message)} chars): {message[:200]}...")
             
             # Try to parse as JSON first
             try:
@@ -202,8 +280,21 @@ class BenzingaWebSocketService:
                         # Handle news articles (legacy format)
                         self._process_news_articles(data["news"])
                     elif "heartbeat" in data:
-                        # Handle heartbeat/ping messages
-                        logger.debug("Received heartbeat from Benzinga")
+                        # Handle heartbeat messages from server (if they send JSON heartbeats)
+                        logger.debug("Received heartbeat message from Benzinga")
+                        # Note: WebSocket pong frames are handled in on_pong callback, not here
+                    elif "pong" in str(data).lower() or data.get("type") == "pong":
+                        # Handle JSON pong message (if Benzinga sends JSON pongs)
+                        with self._lock:
+                            self.stats["last_pong_received"] = datetime.now()
+                            self.stats["pong_received_count"] += 1
+                            if self.stats["missed_pongs"] > 0:
+                                self.stats["missed_pongs"] = 0
+                        logger.info("Received JSON pong message from Benzinga", 
+                                   pong_count=self.stats["pong_received_count"])
+                    elif "ping" in str(data).lower() and data.get("type") != "ping":
+                        # Server-initiated ping (unlikely, but handle it)
+                        logger.debug("Server sent JSON ping message")
                     elif "error" in data:
                         # Handle error messages
                         logger.error("Benzinga WebSocket error", error=data["error"])
@@ -316,27 +407,305 @@ class BenzingaWebSocketService:
             logger.error("Failed to convert BenzingaArticle to StandardizedArticle", error=str(e), article_id=benzinga_article.benzinga_id)
             return None
     
+    def _ping_loop(self):
+        """Send ping messages every 30 seconds to keep connection alive and detect zombie connections."""
+        logger.info("Ping loop started - waiting for connection confirmation")
+        
+        # Wait for connection to be established
+        while self.is_running and not self.stats.get("is_connected"):
+            time.sleep(1)
+        
+        if not self.is_running:
+            return
+        
+        logger.info("Connection confirmed, starting ping/pong cycle")
+        
+        while self.is_running:
+            try:
+                if not self.stats.get("is_connected"):
+                    logger.debug("Connection not active, pausing ping loop")
+                    time.sleep(5)
+                    continue
+                
+                # Send ping
+                self._send_ping()
+                
+                # Wait for ping interval, then check if pong was received
+                time.sleep(self.ping_interval)
+                
+                # Check if we got a pong response
+                with self._lock:
+                    last_ping = self.stats.get("last_ping_sent")
+                    last_pong = self.stats.get("last_pong_received")
+                    
+                    if last_ping:
+                        # Check if pong was received after this ping
+                        if not last_pong or last_pong < last_ping:
+                            # No pong received for this ping
+                            self.stats["missed_pongs"] += 1
+                            logger.warning("Missed pong response", 
+                                         ping_sent=last_ping.isoformat(),
+                                         last_pong=last_pong.isoformat() if last_pong else None,
+                                         missed_count=self.stats["missed_pongs"])
+                        else:
+                            # Pong received, reset missed count
+                            if self.stats["missed_pongs"] > 0:
+                                self.stats["missed_pongs"] = 0
+                                logger.info("Pong received, resetting missed pong count")
+                
+            except Exception as e:
+                logger.error("Error in ping loop", error=str(e))
+                time.sleep(5)  # Wait a bit before retrying
+    
+    def _send_ping(self):
+        """
+        Send a ping frame to the WebSocket server.
+        
+        Note: The websocket-client library's run_forever(ping_interval=...) 
+        automatically sends ping frames. This method tracks ping timing for our monitoring.
+        """
+        try:
+            if not self.websocket or not self.stats.get("is_connected"):
+                logger.warning("Cannot track ping - websocket not connected")
+                return
+            
+            # Track that a ping frame should be sent (run_forever handles actual sending)
+            with self._lock:
+                self.stats["last_ping_sent"] = datetime.now()
+                self.stats["ping_sent_count"] += 1
+            
+            # Log ping tracking (actual ping is sent by run_forever with ping_interval)
+            logger.info("Tracking ping cycle to Benzinga WebSocket", 
+                       ping_count=self.stats["ping_sent_count"],
+                       last_pong=self.stats["last_pong_received"].isoformat() if self.stats["last_pong_received"] else None,
+                       note="WebSocket library sends ping frames automatically")
+                    
+        except Exception as e:
+            logger.error("Error tracking ping", error=str(e))
+    
+    def _connection_monitor_loop(self):
+        """Monitor connection health every 30 seconds and handle reconnection."""
+        logger.info("Connection monitor loop started")
+        
+        while self.is_running:
+            try:
+                time.sleep(self.connection_check_interval)
+                
+                if not self.is_running:
+                    break
+                
+                # Perform connection health check
+                health_check = self._check_connection_health()
+                
+                with self._lock:
+                    self.stats["last_connection_check"] = datetime.now()
+                
+                # Log connection verification
+                if health_check["status"] == "healthy":
+                    logger.info("Connection verification: HEALTHY", 
+                              details=health_check.get("details", {}))
+                elif health_check["status"] == "zombie":
+                    logger.warning("Connection verification: ZOMBIE DETECTED", 
+                                 details=health_check.get("details", {}))
+                    self._handle_zombie_connection()
+                elif health_check["status"] == "disconnected":
+                    logger.warning("Connection verification: DISCONNECTED", 
+                                 details=health_check.get("details", {}))
+                    self._handle_disconnection()
+                else:
+                    logger.warning("Connection verification: UNHEALTHY", 
+                                 details=health_check.get("details", {}))
+                    self._handle_unhealthy_connection()
+                    
+            except Exception as e:
+                logger.error("Error in connection monitor loop", error=str(e))
+                time.sleep(5)
+    
+    def _check_connection_health(self) -> Dict[str, Any]:
+        """
+        Check connection health and detect zombie connections.
+        
+        Returns:
+            Dict with status: "healthy", "disconnected", "zombie", or "unhealthy"
+        """
+        with self._lock:
+            is_connected = self.stats.get("is_connected", False)
+            last_message_time = self.stats.get("last_message_time")
+            last_ping_sent = self.stats.get("last_ping_sent")
+            last_pong_received = self.stats.get("last_pong_received")
+            missed_pongs = self.stats.get("missed_pongs", 0)
+            
+        # Check if disconnected
+        if not is_connected:
+            return {
+                "status": "disconnected",
+                "details": {
+                    "reason": "Not connected",
+                    "is_connected": False
+                }
+            }
+        
+        now = datetime.now()
+        details = {}
+        
+        # Check if connection is zombie (connected but no activity)
+        # Consider zombie if:
+        # 1. No messages for > 30 seconds AND
+        # 2. (No pong received after ping OR no ping sent recently)
+        is_zombie = False
+        zombie_reasons = []
+        
+        if last_message_time:
+            time_since_message = (now - last_message_time).total_seconds()
+            if time_since_message > 60:  # No messages for 60+ seconds
+                zombie_reasons.append(f"No messages for {time_since_message:.1f}s")
+        
+        if last_ping_sent:
+            time_since_ping = (now - last_ping_sent).total_seconds()
+            if time_since_ping > self.ping_timeout:
+                if not last_pong_received or (now - last_pong_received).total_seconds() > self.ping_timeout:
+                    zombie_reasons.append(f"No pong received for {time_since_ping:.1f}s after ping")
+                    is_zombie = True
+        
+        # Check missed pongs
+        if missed_pongs >= 2:  # 2 missed pongs = 60 seconds of silence
+            zombie_reasons.append(f"{missed_pongs} consecutive missed pongs")
+            is_zombie = True
+        
+        if is_zombie:
+            return {
+                "status": "zombie",
+                "details": {
+                    "reason": "Connected but no activity (zombie)",
+                    "reasons": zombie_reasons,
+                    "last_message": last_message_time.isoformat() if last_message_time else None,
+                    "last_ping": last_ping_sent.isoformat() if last_ping_sent else None,
+                    "last_pong": last_pong_received.isoformat() if last_pong_received else None,
+                    "missed_pongs": missed_pongs
+                }
+            }
+        
+        # Check if unhealthy (some issues but not zombie)
+        if missed_pongs > 0:
+            return {
+                "status": "unhealthy",
+                "details": {
+                    "reason": "Some connection issues detected",
+                    "missed_pongs": missed_pongs,
+                    "last_pong": last_pong_received.isoformat() if last_pong_received else None
+                }
+            }
+        
+        # Connection is healthy
+        return {
+            "status": "healthy",
+            "details": {
+                "last_message": last_message_time.isoformat() if last_message_time else None,
+                "last_ping": last_ping_sent.isoformat() if last_ping_sent else None,
+                "last_pong": last_pong_received.isoformat() if last_pong_received else None,
+                "ping_count": self.stats["ping_sent_count"],
+                "pong_count": self.stats["pong_received_count"]
+            }
+        }
+    
+    def _handle_zombie_connection(self):
+        """Handle zombie connection by reconnecting."""
+        logger.warning("ZOMBIE CONNECTION DETECTED - reconnecting WebSocket")
+        
+        with self._lock:
+            self.stats["missed_pongs"] += 1
+        
+        # Force reconnect
+        self._force_reconnect(reason="zombie_connection")
+    
+    def _handle_disconnection(self):
+        """Handle disconnection by attempting reconnect."""
+        logger.warning("WebSocket disconnected - attempting reconnect")
+        self._force_reconnect(reason="disconnected")
+    
+    def _handle_unhealthy_connection(self):
+        """Handle unhealthy connection - monitor and reconnect if needed."""
+        with self._lock:
+            missed_pongs = self.stats.get("missed_pongs", 0)
+        
+        if missed_pongs >= 2:
+            logger.warning("Connection unhealthy with multiple missed pongs - reconnecting")
+            self._force_reconnect(reason="unhealthy")
+    
+    def _force_reconnect(self, reason: str = "unknown"):
+        """Force reconnect the WebSocket connection."""
+        if not self._reconnect_allowed:
+            logger.warning("Reconnection not allowed, skipping reconnect")
+            return
+        
+        logger.info(f"Initiating forced reconnect: {reason}")
+        
+        try:
+            # Stop current connection
+            self._cleanup_connections()
+            
+            # Wait a bit before reconnecting
+            time.sleep(self._reconnect_delay)
+            
+            # Only reconnect if still running
+            if self.is_running:
+                logger.info("Attempting to reconnect WebSocket...")
+                # Reset connection state
+                with self._lock:
+                    self.stats["is_connected"] = False
+                    self.stats["connection_attempts"] += 1
+                    self.stats["missed_pongs"] = 0
+                
+                # Start new connection thread
+                self.websocket_thread = threading.Thread(target=self._run_websocket_loop)
+                self.websocket_thread.daemon = True
+                self.websocket_thread.start()
+                
+                logger.info("Reconnection thread started", reconnect_reason=reason)
+        except Exception as e:
+            logger.error("Error during forced reconnect", error=str(e), reconnect_reason=reason)
+            with self._lock:
+                self.stats["last_error"] = f"Reconnect error: {str(e)}"
+    
     def stop(self):
         """Stop the WebSocket service."""
         logger.info("Stopping Benzinga WebSocket service")
         self.is_running = False
+        self._reconnect_allowed = False
+        
+        # Stop monitor and ping threads
+        if self._monitor_thread and self._monitor_thread.is_alive():
+            logger.info("Waiting for connection monitor thread to finish...")
+            self._monitor_thread.join(timeout=5)
+        
+        if self._ping_thread and self._ping_thread.is_alive():
+            logger.info("Waiting for ping thread to finish...")
+            self._ping_thread.join(timeout=5)
         
         # Clean up connections
         self._cleanup_connections()
         
-        # Wait for thread to finish
+        # Wait for websocket thread to finish
         if hasattr(self, 'websocket_thread') and self.websocket_thread.is_alive():
             logger.info("Waiting for WebSocket thread to finish...")
-            self.websocket_thread.join(timeout=10)  # Increased timeout
+            self.websocket_thread.join(timeout=10)
         
         # Final cleanup
         self._cleanup_connections()
-        self.stats["is_connected"] = False
+        with self._lock:
+            self.stats["is_connected"] = False
         logger.info("Benzinga WebSocket service stopped completely")
     
     def get_stats(self) -> Dict[str, Any]:
         """Get WebSocket service statistics."""
-        return self.stats.copy()
+        stats_copy = {}
+        for key, value in self.stats.items():
+            # Serialize datetime objects to ISO format strings
+            if isinstance(value, datetime):
+                stats_copy[key] = value.isoformat()
+            else:
+                stats_copy[key] = value
+        return stats_copy
     
     def get_queued_articles(self) -> List[StandardizedArticle]:
         """Get all queued articles for processing."""

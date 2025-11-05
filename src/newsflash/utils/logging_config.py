@@ -14,12 +14,13 @@ except Exception:
     _HAS_STRUCTLOG = False
 
 
-def setup_logging(log_level: str = "INFO") -> None:
+def setup_logging(log_level: str = "INFO", enable_audit_log: bool = True) -> None:
     """
     Set up structured logging for the news trading system.
     
     Args:
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR)
+        enable_audit_log: Whether to enable audit file logging (default: True)
     """
     
     # Configure standard library logging
@@ -47,6 +48,15 @@ def setup_logging(log_level: str = "INFO") -> None:
             wrapper_class=structlog.stdlib.BoundLogger,
             cache_logger_on_first_use=True,
         )
+    
+    # Set up audit logging to files (captures all terminal logs)
+    if enable_audit_log:
+        try:
+            from .audit_log_handler import setup_audit_logging
+            setup_audit_logging()
+        except Exception as e:
+            # Don't fail if audit logging setup fails, just warn
+            print(f"Warning: Failed to set up audit logging: {e}", file=sys.stderr)
 
 
 def get_logger(name: str) -> Any:

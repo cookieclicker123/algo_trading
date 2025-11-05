@@ -347,3 +347,5 @@ For issues and questions:
 ---
 
 **Note**: This system is designed for educational and research purposes. Always comply with your data provider's terms of service and applicable regulations when using for trading purposes.
+
+./kill_server.sh
