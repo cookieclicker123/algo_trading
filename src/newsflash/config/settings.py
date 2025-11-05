@@ -7,20 +7,6 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# API Configuration
-API_BASE_URL = "https://api.polygon.io"
-BENZINGA_NEWS_ENDPOINT = "/benzinga/v2/news"
-
-# Polling Configuration
-POLLING_INTERVAL_SECONDS = 0.05  # 50ms = 20 requests per second
-MAX_REQUESTS_PER_SECOND = 20
-SAFETY_BUFFER_SECONDS = 5
-
-# Rate Limiting
-RATE_LIMIT_REQUESTS_PER_SECOND = 100  # Polygon.io limit
-BACKOFF_BASE_DELAY = 1.0
-BACKOFF_MAX_DELAY = 60.0
-
 # File Storage
 TMP_DIR = "tmp"
 ARTICLES_JSON_FILE = "articles.json"
@@ -71,21 +57,6 @@ LADDER_SWITCH_ATTEMPT = int(os.getenv("LADDER_SWITCH_ATTEMPT", "6"))          # 
 LADDER_INTERVAL_MS = int(os.getenv("LADDER_INTERVAL_MS", "30"))               # early check interval
 LADDER_INTERVAL_MS_LATE = int(os.getenv("LADDER_INTERVAL_MS_LATE", "50"))     # later check interval
 LADDER_MAX_CENTS = int(os.getenv("LADDER_MAX_CENTS", "100"))                  # max range from start ($1)
-
-def get_api_key(key_name: str = "POLYGON_API_KEY") -> str:
-    """Get API key from environment variables."""
-    api_key = os.getenv(key_name)
-    if not api_key:
-        raise ValueError(f"{key_name} environment variable is required")
-    return api_key
-
-def get_polling_config() -> dict:
-    """Get polling configuration."""
-    return {
-        "interval_seconds": POLLING_INTERVAL_SECONDS,
-        "max_requests_per_second": MAX_REQUESTS_PER_SECOND,
-        "safety_buffer_seconds": SAFETY_BUFFER_SECONDS,
-    }
 
 def get_server_config() -> dict:
     """Get server configuration."""

@@ -177,19 +177,8 @@ class ArticleProcessor:
                 if classification and classification.classification.value.lower() == "imminent":
                     self.audit_trail.log_imminent_classification(article, classification)
                     
-                    # Market-cap gate before auto-trade
-                    # Note: Telegram notifications should still be sent even if auto-trade is blocked
-                    is_large_cap = await self._passes_market_cap_gate(article)
-                    if not is_large_cap:
-                        logger.info(
-                            "Auto-trade blocked by market-cap gate",
-                            article_id=self._get_article_id(article),
-                            min_bil=AUTO_TRADE_MIN_MARKET_CAP_BILLIONS
-                        )
-                        # Don't set classification = None here - Telegram should still be notified!
-                        # Only skip auto-trade for small caps
-                    
                     # Auto-trade IMMINENT articles (if auto-trade service is available)
+                    # NO MARKET CAP GATE - all IMMINENT articles with tickers are traded
                     if hasattr(self, 'auto_trade_service') and self.auto_trade_service:
                         try:
                             # Convert BenzingaArticle to StandardizedArticle if needed
@@ -201,15 +190,36 @@ class ArticleProcessor:
                                     article_id=self._get_article_id(article)
                                 )
                             
-                            if is_large_cap and classification:
-                                await self.auto_trade_service.process_imminent_article(standardized_article, classification)
+                            # ALWAYS attempt auto-trade for IMMINENT articles with tickers
+                            # No gates - if it's IMMINENT and has tickers, attempt trade
+                            if classification:  # Ensure classification exists
+                                await self.auto_trade_service.process_imminent_article(
+                                    standardized_article, 
+                                    classification
+                                )
+                            else:
+                                logger.error(
+                                    "❌ AUTO-TRADE FAILED: Classification is None",
+                                    article_id=self._get_article_id(article),
+                                    tickers=standardized_article.tickers
+                                )
                         except Exception as e:
                             logger.error(
-                                "Failed to execute auto-trade",
+                                "❌ AUTO-TRADE FAILED: Exception during execution",
                                 article_id=self._get_article_id(article),
                                 error=str(e),
-                                exc_info=True
+                                exc_info=True,
+                                tickers=article.tickers if hasattr(article, 'tickers') else []
                             )
+                    else:
+                        # Auto-trade service not available - log clearly
+                        logger.warning(
+                            "❌ AUTO-TRADE FAILED: Auto-trade service not available",
+                            article_id=self._get_article_id(article),
+                            has_attr=hasattr(self, 'auto_trade_service'),
+                            service_exists=self.auto_trade_service is not None if hasattr(self, 'auto_trade_service') else False,
+                            tickers=article.tickers if hasattr(article, 'tickers') else []
+                        )
             except Exception as e:
                 logger.error(
                     "Failed to classify article",

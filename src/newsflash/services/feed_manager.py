@@ -1,12 +1,11 @@
 """
-Unified feed manager for handling Benzinga news source.
+Unified feed manager for handling Benzinga WebSocket news source.
 """
 import asyncio
 from typing import Dict, Any, List, Optional
 
 from ..utils.logging_config import get_logger
 from ..models.base_models import StandardizedArticle, NewsSource
-from ..services.news_poller import NewsPoller
 from ..services.benzinga_websocket_service import BenzingaWebSocketService
 from ..services.article_processor import ArticleProcessor
 
@@ -14,7 +13,7 @@ logger = get_logger(__name__)
 
 
 class FeedManager:
-    """Manages Benzinga news feeds (HTTP polling + WebSocket) and coordinates article processing."""
+    """Manages Benzinga WebSocket news feed and coordinates article processing."""
     
     def __init__(self, article_processor: Optional[ArticleProcessor] = None, benzinga_token: Optional[str] = None):
         """Initialize the feed manager."""
@@ -46,14 +45,8 @@ class FeedManager:
         )
     
     def _initialize_processors(self):
-        """Initialize processors for Benzinga news sources."""
+        """Initialize processor for Benzinga WebSocket feed."""
         try:
-            # Benzinga (HTTP polling via Polygon)
-            self.processors[NewsSource.BENZINGA] = NewsPoller(
-                article_processor=self.article_processor
-            )
-            logger.info("Benzinga HTTP processor initialized")
-            
             # Benzinga WebSocket (direct connection)
             if self.benzinga_token:
                 self.processors[NewsSource.BENZINGA_WEBSOCKET] = BenzingaWebSocketService(
@@ -65,11 +58,11 @@ class FeedManager:
                 logger.warning("Benzinga token not provided, WebSocket feed disabled")
             
         except Exception as e:
-            logger.error("Failed to initialize Benzinga processors", error=str(e))
+            logger.error("Failed to initialize Benzinga WebSocket processor", error=str(e))
     
     async def start_all_feeds(self):
-        """Start all Benzinga news feeds (HTTP + WebSocket)."""
-        logger.info("Starting Benzinga news feeds", sources=list(self.processors.keys()))
+        """Start Benzinga WebSocket news feed."""
+        logger.info("Starting Benzinga WebSocket feed", sources=list(self.processors.keys()))
         self.is_running = True
         
         # Start Telegram notification queue processor (if enabled)
@@ -84,14 +77,6 @@ class FeedManager:
         
         # Start all feed tasks
         feed_tasks = []
-        
-        # Start HTTP polling feed
-        if NewsSource.BENZINGA in self.processors:
-            http_task = asyncio.create_task(
-                self._start_benzinga_http_feed_with_error_handling()
-            )
-            feed_tasks.append(http_task)
-            logger.info("Benzinga HTTP feed task started")
         
         # Start WebSocket feed
         if NewsSource.BENZINGA_WEBSOCKET in self.processors:
@@ -119,24 +104,6 @@ class FeedManager:
             for task in feed_tasks:
                 if not task.done():
                     task.cancel()
-    
-    async def _start_benzinga_http_feed_with_error_handling(self):
-        """Start the Benzinga HTTP feed with independent error handling."""
-        while self.is_running:
-            try:
-                logger.info("Starting Benzinga HTTP feed...")
-                benzinga_processor = self.processors[NewsSource.BENZINGA]
-                async with benzinga_processor:
-                    await benzinga_processor.start()
-                logger.info("Benzinga HTTP feed stopped normally")
-                break
-            except Exception as e:
-                logger.error("Benzinga HTTP feed failed", error=str(e))
-                if self.is_running:
-                    logger.info("Restarting Benzinga HTTP feed in 30 seconds...")
-                    await asyncio.sleep(30)
-                else:
-                    break
     
     async def _start_benzinga_websocket_feed_with_error_handling(self):
         """Start the Benzinga WebSocket feed with independent error handling."""
@@ -182,18 +149,9 @@ class FeedManager:
         
         logger.info("WebSocket queue processor stopped")
     
-    async def _start_benzinga_feed(self):
-        """Start the Benzinga feed."""
-        try:
-            benzinga_processor = self.processors[NewsSource.BENZINGA]
-            async with benzinga_processor:
-                await benzinga_processor.start()
-        except Exception as e:
-            logger.error("Benzinga feed failed", error=str(e))
-    
     async def stop_all_feeds(self):
-        """Stop all Benzinga news feeds."""
-        logger.info("Stopping Benzinga news feeds")
+        """Stop Benzinga WebSocket feed."""
+        logger.info("Stopping Benzinga WebSocket feed")
         self.is_running = False
         
         # Stop Telegram notification service
@@ -203,15 +161,6 @@ class FeedManager:
                 logger.info("Telegram notification service stopped")
             except Exception as e:
                 logger.error("Error stopping Telegram service", error=str(e))
-        
-        # Stop HTTP feed
-        if NewsSource.BENZINGA in self.processors:
-            try:
-                benzinga_processor = self.processors[NewsSource.BENZINGA]
-                await benzinga_processor.stop_polling()
-                logger.info("Benzinga HTTP feed stopped")
-            except Exception as e:
-                logger.error("Error stopping Benzinga HTTP feed", error=str(e))
         
         # Stop WebSocket feed
         if NewsSource.BENZINGA_WEBSOCKET in self.processors:

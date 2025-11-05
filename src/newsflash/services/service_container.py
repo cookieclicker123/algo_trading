@@ -15,7 +15,6 @@ from .translation_service import get_translation_service
 from .yfinance_service import get_yfinance_service
 from .ibkr_trading_service import get_ibkr_trading_service
 from .telegram_trade_handler import get_telegram_trade_handler
-from .polling_state_manager import PollingStateManager
 from .benzinga_websocket_service import BenzingaWebSocketService
 from .feed_health_monitor import FeedHealthMonitor
 from .auto_trade_service import AutoTradeService
@@ -130,9 +129,6 @@ class ServiceContainer:
                 classifier=self._services['classifier'],
                 auto_trade_service=self._services['auto_trade_service']
             )
-            
-            # Polling state manager
-            self._services['state_manager'] = PollingStateManager()
             
             # Feed manager (depends on article processor)
             benzinga_token = BENZINGA_API_KEY if BENZINGA_WEBSOCKET_ENABLED else None

@@ -39,11 +39,6 @@ class FeedHealthMonitor:
         
         # Track previous state for each feed
         self.previous_state: Dict[str, Dict[str, Any]] = {
-            "benzinga_rest": {
-                "healthy": None,
-                "last_alert_time": None,
-                "consecutive_failures": 0
-            },
             "benzinga_websocket": {
                 "healthy": None,
                 "last_alert_time": None,
@@ -86,73 +81,9 @@ class FeedHealthMonitor:
     
     async def _check_all_feeds(self):
         """Check health of all feeds."""
-        # Check HTTP feed (Polygon REST)
-        http_status = await self._check_http_feed()
-        await self._process_health_check("benzinga_rest", http_status)
-        
         # Check WebSocket feed
         websocket_status = await self._check_websocket_feed()
         await self._process_health_check("benzinga_websocket", websocket_status)
-    
-    async def _check_http_feed(self) -> Dict[str, Any]:
-        """Check health of HTTP polling feed (Polygon REST API)."""
-        try:
-            processors = self.feed_manager.processors
-            
-            if "benzinga" not in [s.value for s in processors.keys()]:
-                return {
-                    "healthy": False,
-                    "reason": "HTTP feed not configured"
-                }
-            
-            # Get the HTTP poller
-            from ..models.base_models import NewsSource
-            if NewsSource.BENZINGA not in processors:
-                return {
-                    "healthy": False,
-                    "reason": "HTTP feed processor not found"
-                }
-            
-            poller = processors[NewsSource.BENZINGA]
-            
-            # Check if poller is running
-            stats = poller.get_stats()
-            is_running = stats.get("is_running", False)
-            
-            if not is_running:
-                return {
-                    "healthy": False,
-                    "reason": "HTTP feed poller is not running",
-                    "stats": stats
-                }
-            
-            # Check for consecutive errors (get from state_manager if available)
-            consecutive_errors = stats.get("consecutive_errors", 0)
-            if consecutive_errors == 0 and hasattr(poller, 'state_manager'):
-                state = poller.state_manager.get_state()
-                consecutive_errors = state.consecutive_errors
-            
-            if consecutive_errors >= 5:
-                return {
-                    "healthy": False,
-                    "reason": f"HTTP feed has {consecutive_errors} consecutive errors",
-                    "stats": stats
-                }
-            
-            # Feed appears healthy
-            return {
-                "healthy": True,
-                "reason": "HTTP feed is running normally",
-                "stats": stats
-            }
-            
-        except Exception as e:
-            logger.error("Error checking HTTP feed health", error=str(e))
-            return {
-                "healthy": False,
-                "reason": f"Health check failed: {str(e)}",
-                "error": str(e)
-            }
     
     async def _check_websocket_feed(self) -> Dict[str, Any]:
         """Check health of WebSocket feed."""

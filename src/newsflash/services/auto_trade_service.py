@@ -45,8 +45,12 @@ class AutoTradeService:
         logger.info(
             "AutoTradeService initialized",
             enabled=self.is_enabled,
-            exit_delay_minutes=AUTO_TRADE_EXIT_DELAY_MINUTES
+            exit_delay_minutes=AUTO_TRADE_EXIT_DELAY_MINUTES,
+            telegram_service_available=self.telegram_service is not None
         )
+        
+        if not self.telegram_service:
+            logger.warning("⚠️ Telegram service not provided - auto-trade notifications will NOT be sent!")
     
     def select_ticker(self, article: StandardizedArticle) -> Optional[str]:
         """
@@ -84,36 +88,52 @@ class AutoTradeService:
         """
         Process IMMINENT article and execute automatic trade if applicable.
         
+        NO MARKET CAP GATE - all IMMINENT articles with tickers are traded.
+        
         Args:
             article: The IMMINENT article
             classification_result: Classification result confirming IMMINENT
         """
+        # Log all decision points for debugging
+        logger.info("🤖 AUTO-TRADE: Processing IMMINENT article",
+                   article_id=article.source_id,
+                   title=article.title[:100],
+                   tickers=article.tickers)
+        
         if not self.is_enabled:
-            logger.debug("Auto-trading disabled - skipping", article_id=article.source_id)
+            reason = "Auto-trading disabled (AUTO_TRADING_ENABLED=false)"
+            logger.info(f"⏭️ AUTO-TRADE SKIPPED: {reason}", article_id=article.source_id)
+            await self._send_skip_notification(article, reason)
             return
         
         # Verify classification
         if classification_result.classification.value.lower() != "imminent":
-            logger.warning("Article not IMMINENT - skipping auto-trade", 
+            reason = f"Classification is {classification_result.classification.value}, not IMMINENT"
+            logger.warning(f"⏭️ AUTO-TRADE SKIPPED: {reason}", 
                           classification=classification_result.classification.value,
                           article_id=article.source_id)
+            await self._send_skip_notification(article, reason)
             return
         
-        # Select ticker
+        # Select ticker - FIRST ticker if multiple exist
         ticker = self.select_ticker(article)
         if not ticker:
-            logger.info("No valid ticker for auto-trade", article_id=article.source_id)
+            reason = "Article has no tickers"
+            logger.info(f"⏭️ AUTO-TRADE SKIPPED: {reason}", article_id=article.source_id)
+            await self._send_skip_notification(article, reason)
             return
         
         # Check if we already have an open position for this ticker
         if self.position_tracker.has_open_position(ticker):
-            logger.info("Open position already exists - skipping auto-trade", 
+            reason = f"Open position already exists for {ticker}"
+            logger.info(f"⏭️ AUTO-TRADE SKIPPED: {reason}", 
                        ticker=ticker,
                        article_id=article.source_id)
+            await self._send_skip_notification(article, reason)
             return
         
-        # Execute trade
-        logger.info("🤖 AUTO-TRADING: Executing automatic trade on IMMINENT news",
+        # Execute trade - NO MARKET CAP GATE
+        logger.info("🚀 AUTO-TRADING: Executing automatic trade on IMMINENT news",
                    ticker=ticker,
                    article_id=article.source_id,
                    title=article.title[:100])
@@ -129,7 +149,7 @@ class AutoTradeService:
             # Execute trade using existing trading service
             result = await self.trading_service.process_trade_request(trade_request)
             
-            # Send Telegram notification for trade attempt (success or failure)
+            # Always send notification (success or failure)
             await self._send_entry_notification(ticker, article, result)
             
             if result.success:
@@ -157,16 +177,26 @@ class AutoTradeService:
                            ticker=ticker,
                            exit_time=(entry_time + timedelta(minutes=AUTO_TRADE_EXIT_DELAY_MINUTES)).isoformat())
             else:
+                # Trade execution failed - log detailed reason
+                failure_reason = f"Trade execution failed: {result.error or 'Unknown error'}"
                 logger.error("❌ AUTO-TRADE FAILED",
                             ticker=ticker,
                             error=result.error,
-                            article_id=article.source_id)
+                            article_id=article.source_id,
+                            failure_reason=failure_reason)
+                # Notification already sent above
                 
         except Exception as e:
-            logger.error("❌ Error in auto-trade execution",
+            # Exception during trade execution - log detailed error
+            error_msg = f"Exception during trade execution: {str(e)}"
+            logger.error("❌ AUTO-TRADE FAILED",
                         ticker=ticker,
                         error=str(e),
-                        article_id=article.source_id)
+                        article_id=article.source_id,
+                        error_type=type(e).__name__,
+                        exc_info=True)
+            # Try to send error notification
+            await self._send_error_notification(ticker, article, error_msg)
     
     async def _schedule_exit(
         self, 
@@ -241,12 +271,6 @@ class AutoTradeService:
         """
         Execute exit trade for exact number of shares.
         
-        This is a simplified version - the actual exit uses the same
-        market/extended hours logic but in reverse (SELL instead of BUY).
-        
-        For now, we'll use the existing trading service which handles
-        both market and extended hours automatically.
-        
         Args:
             ticker: Stock ticker
             shares: Exact number of shares to sell
@@ -254,25 +278,27 @@ class AutoTradeService:
         Returns:
             TradeResult from the exit trade
         """
-        # Create trade request - the trading service will handle market vs extended hours
-        # For SELL orders, we'll need to ensure it uses the right logic
-        # The existing service handles BUY, but SELL should work similarly
-        
-        # For now, use amount_usd as a proxy - but we need shares
-        # Let's check if IBKRTradingService supports shares directly
+        # Get current price to estimate value for TradeRequest
+        # The trading service will handle the actual share count
+        # For now, use a reasonable estimate - trading service should handle share-based orders
+        # Estimate: assume price around $100-200 per share (adjust based on typical stocks)
+        estimated_price = 150.0  # Conservative estimate
         trade_request = TradeRequest(
             ticker=ticker,
-            amount_usd=shares * 100.0,  # Rough estimate - actual price will be used
+            amount_usd=shares * estimated_price,  # Estimate - actual will use shares
             action="SELL"
         )
         
-        # The trading service needs to be enhanced to handle SELL orders
-        # For now, return the result - we'll enhance the trading service if needed
+        logger.info(f"Executing exit trade for {shares} shares of {ticker}",
+                   estimated_amount_usd=shares * estimated_price)
+        
         result = await self.trading_service.process_trade_request(trade_request)
         
-        # Note: The trading service currently focuses on BUY orders
-        # We may need to enhance it to properly handle SELL orders
-        # But for initial testing, this should work
+        # Log actual shares traded vs requested
+        if result.success:
+            if result.shares != shares:
+                logger.warning(f"Exit trade shares mismatch: requested {shares}, got {result.shares}",
+                            ticker=ticker)
         
         return result
     
@@ -291,6 +317,8 @@ class AutoTradeService:
             result: TradeResult from entry trade
         """
         if not self.telegram_service:
+            logger.warning("⚠️ Cannot send entry notification - telegram_service is None",
+                         ticker=ticker)
             return
         
         try:
@@ -368,9 +396,13 @@ class AutoTradeService:
             
             # Send to both bots
             await self.telegram_service._send_message_to_all_bots(message)
+            logger.info("✅ Entry notification sent to Telegram", ticker=ticker, success=result.success)
             
         except Exception as e:
-            logger.error("Failed to send entry notification", error=str(e))
+            logger.error("❌ Failed to send entry notification",
+                        ticker=ticker,
+                        error=str(e),
+                        exc_info=True)
     
     async def _send_exit_notification(
         self, 
@@ -389,6 +421,8 @@ class AutoTradeService:
             result: TradeResult from exit trade
         """
         if not self.telegram_service:
+            logger.warning("⚠️ Cannot send exit notification - telegram_service is None",
+                         ticker=ticker)
             return
         
         try:
@@ -475,7 +509,63 @@ class AutoTradeService:
             
             # Send to both bots
             await self.telegram_service._send_message_to_all_bots(message)
+            logger.info("✅ Exit notification sent to Telegram", ticker=ticker, success=result.success)
             
         except Exception as e:
-            logger.error("Failed to send exit notification", error=str(e))
+            logger.error("❌ Failed to send exit notification",
+                        ticker=ticker,
+                        error=str(e),
+                        exc_info=True)
+    
+    async def _send_skip_notification(self, article: StandardizedArticle, reason: str) -> None:
+        """
+        Send Telegram notification when auto-trade is skipped.
+        
+        Args:
+            article: Article that triggered the auto-trade attempt
+            reason: Reason why trade was skipped
+        """
+        if not self.telegram_service:
+            return
+        
+        try:
+            ticker = article.tickers[0] if article.tickers else "N/A"
+            message = (
+                f"⏭️ *AUTO-TRADE SKIPPED*\n\n"
+                f"Ticker: `{ticker}`\n"
+                f"Reason: {reason}\n\n"
+                f"📰 _Article:_ {article.title[:100]}"
+            )
+            
+            await self.telegram_service._send_message_to_all_bots(message)
+            logger.debug("Skip notification sent", reason=reason, article_id=article.source_id)
+            
+        except Exception as e:
+            logger.error("Failed to send skip notification", error=str(e), exc_info=True)
+    
+    async def _send_error_notification(self, ticker: str, article: StandardizedArticle, error: str) -> None:
+        """
+        Send Telegram notification when auto-trade encounters an error.
+        
+        Args:
+            ticker: Stock ticker
+            article: Article that triggered the trade
+            error: Error message
+        """
+        if not self.telegram_service:
+            return
+        
+        try:
+            message = (
+                f"❌ *AUTO-TRADE ERROR*\n\n"
+                f"Ticker: `{ticker}`\n"
+                f"Error: {error}\n\n"
+                f"📰 _Article:_ {article.title[:100]}"
+            )
+            
+            await self.telegram_service._send_message_to_all_bots(message)
+            logger.info("Error notification sent", ticker=ticker, error=error)
+            
+        except Exception as e:
+            logger.error("Failed to send error notification", error=str(e), exc_info=True)
 

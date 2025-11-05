@@ -9,7 +9,6 @@ from enum import Enum
 
 class NewsSource(str, Enum):
     """Enumeration of supported news sources."""
-    BENZINGA = "benzinga"
     BENZINGA_WEBSOCKET = "benzinga_websocket"
 
 

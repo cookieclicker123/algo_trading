@@ -1,6 +1,6 @@
 """
-Pydantic models for Benzinga news articles from Polygon.io API.
-Based on real API response structure confirmed through testing.
+Pydantic models for Benzinga news articles from WebSocket feed.
+Based on real WebSocket message structure confirmed through testing.
 """
 from datetime import datetime
 from typing import List, Optional, Dict, Any
@@ -70,7 +70,7 @@ class BenzingaArticle(BaseModel):
 def convert_benzinga_to_standardized(benzinga_article: BenzingaArticle) -> StandardizedArticle:
     """Convert BenzingaArticle to StandardizedArticle format."""
     return StandardizedArticle(
-        source=NewsSource.BENZINGA,
+        source=NewsSource.BENZINGA_WEBSOCKET,
         source_id=str(benzinga_article.benzinga_id),
         title=benzinga_article.title,
         content=benzinga_article.body,
@@ -116,35 +116,3 @@ class BenzingaNewsResponse(BaseModel):
     def get_articles_by_channel(self, channel: str) -> List[BenzingaArticle]:
         """Get articles from a specific channel."""
         return [article for article in self.results if channel in article.channels]
-
-
-class NewsPollingState(BaseModel):
-    """Model for tracking polling state and timestamps."""
-    
-    last_updated_timestamp: float = Field(..., description="Unix timestamp of last processed article")
-    last_poll_time: datetime = Field(default_factory=lambda: datetime.now(), description="Time of last API poll")
-    total_articles_processed: int = Field(default=0, description="Total articles processed")
-    last_error: Optional[str] = Field(None, description="Last error message if any")
-    
-    @field_validator('last_updated_timestamp', mode='before')
-    @classmethod
-    def parse_timestamp(cls, v):
-        """Ensure timestamp is a float."""
-        if isinstance(v, datetime):
-            return v.timestamp()
-        return float(v)
-    
-    def update_with_articles(self, articles: List[BenzingaArticle]) -> 'NewsPollingState':
-        """Update state after processing new articles."""
-        if not articles:
-            return self
-        
-        # Find the latest timestamp
-        latest_timestamp = max(article.updated_timestamp for article in articles)
-        
-        return NewsPollingState(
-            last_updated_timestamp=latest_timestamp,
-            last_poll_time=datetime.now(),
-            total_articles_processed=self.total_articles_processed + len(articles),
-            last_error=None
-        )
