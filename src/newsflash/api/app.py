@@ -5,7 +5,6 @@ Uses service container for proper dependency injection.
 from fastapi import FastAPI, HTTPException
 
 from newsflash.models.base_models import NewsSource
-from newsflash.services import feed_manager
 
 from ..services.service_container import get_service_container, initialize_services
 from ..utils.logging_config import get_logger
@@ -64,7 +63,7 @@ def create_app() -> FastAPI:
                 "service": "NewsFlash Trading System",
                 "status": "running",
                 "version": "2.0.0",
-                "sources": ["benzinga"],  # Single source now
+                "sources": ["benzinga_websocket"],
                 "healthy": container.is_healthy()
             }
         except Exception as e:
@@ -82,8 +81,8 @@ def create_app() -> FastAPI:
             
             return {
                 "status": "healthy",
-                "sources": {"benzinga": True},
-                "available_sources": ["benzinga"]
+                "sources": {"benzinga_websocket": True},
+                "available_sources": ["benzinga_websocket"]
             }
             
         except HTTPException:
@@ -112,8 +111,8 @@ def create_app() -> FastAPI:
     async def get_recent_articles(hours: int = 1, source: str = None):
         """Get recent articles from storage."""
         try:
-            if not feed_manager:
-                raise HTTPException(status_code=503, detail="Feed manager not initialized")
+            container = get_service_container()
+            feed_manager = container.get_feed_manager()
             
             # Filter by source if specified
             source_filter = None
@@ -139,8 +138,8 @@ def create_app() -> FastAPI:
     async def get_archived_articles(date: str, source: str = None):
         """Get archived articles for a specific date (YYYY-MM-DD format)."""
         try:
-            if not feed_manager:
-                raise HTTPException(status_code=503, detail="Feed manager not initialized")
+            container = get_service_container()
+            feed_manager = container.get_feed_manager()
             
             # Filter by source if specified
             source_filter = None
@@ -166,8 +165,8 @@ def create_app() -> FastAPI:
     async def get_archive_stats():
         """Get statistics about archived articles."""
         try:
-            if not feed_manager:
-                raise HTTPException(status_code=503, detail="Feed manager not initialized")
+            container = get_service_container()
+            feed_manager = container.get_feed_manager()
             
             stats = await feed_manager.get_archive_stats()
             return stats
@@ -179,8 +178,8 @@ def create_app() -> FastAPI:
     async def start_feeds_endpoint():
         """Manually start all feeds (if not already running)."""
         try:
-            if not feed_manager:
-                raise HTTPException(status_code=503, detail="Feed manager not initialized")
+            container = get_service_container()
+            feed_manager = container.get_feed_manager()
             
             if feed_manager.is_running:
                 return {"message": "Feeds already running", "status": "running"}
@@ -196,8 +195,8 @@ def create_app() -> FastAPI:
     async def stop_feeds_endpoint():
         """Manually stop all feeds."""
         try:
-            if not feed_manager:
-                raise HTTPException(status_code=503, detail="Feed manager not initialized")
+            container = get_service_container()
+            feed_manager = container.get_feed_manager()
             
             await feed_manager.stop_all_feeds()
             return {"message": "Feeds stopped", "status": "stopped"}
