@@ -1,7 +1,9 @@
 """
 Article processing service for handling new articles from Benzinga.
 """
+import asyncio
 from typing import List, Callable, Awaitable, Optional, Union, Any
+from datetime import datetime
 from ..models.benzinga_models import BenzingaArticle, convert_benzinga_to_standardized
 from ..models.base_models import StandardizedArticle
 from ..utils.json_storage import ArticleStorage
@@ -139,6 +141,9 @@ class ArticleProcessor:
     
     async def _process_single_article(self, article: Union[BenzingaArticle, StandardizedArticle]):
         """Process a single article through all handlers."""
+        # Capture news reception timestamp
+        news_received_at = datetime.now()
+        
         # Log article details based on type
         if isinstance(article, StandardizedArticle):
             logger.info(
@@ -162,20 +167,41 @@ class ArticleProcessor:
         
         # Run AI classification
         classification = None
+        classified_at = None
         if self.classifier.enabled:
             try:
                 classification = await self.classifier.classify_article(article)
+                classified_at = datetime.now()
+                
                 logger.info(
                     "Article classified",
                     article_id=self._get_article_id(article),
                     classification=classification.classification.value,
                     confidence=classification.confidence,
-                    reasoning=classification.reasoning
+                    reasoning=classification.reasoning,
+                    classification_time_ms=(classified_at - news_received_at).total_seconds() * 1000
                 )
                 
-                # Log IMMINENT classifications to audit trail
+                # Log IMMINENT classifications to audit trail with enhanced data
                 if classification and classification.classification.value.lower() == "imminent":
-                    self.audit_trail.log_imminent_classification(article, classification)
+                    # Start metadata gathering in background (non-blocking)
+                    # Log immediately, then update with metadata when available
+                    article_id = self.audit_trail.log_imminent_classification(
+                        article=article,
+                        classification=classification,
+                        news_received_at=news_received_at,
+                        classified_at=classified_at,
+                        metadata={}  # Will be updated asynchronously
+                    )
+                    
+                    # Store article_id for later updates
+                    if hasattr(article, 'source_id'):
+                        article._audit_article_id = article_id
+                    
+                    # Gather metadata asynchronously (non-blocking background task)
+                    asyncio.create_task(
+                        self._update_metadata_in_audit_trail(article, article_id)
+                    )
                     
                     # Auto-trade IMMINENT articles (if auto-trade service is available)
                     # NO MARKET CAP GATE - all IMMINENT articles with tickers are traded
@@ -273,6 +299,66 @@ class ArticleProcessor:
                     error=str(e),
                     handler_name=handler.__name__ if hasattr(handler, '__name__') else str(handler)
                 )
+    
+    async def _update_metadata_in_audit_trail(self, article: Union[BenzingaArticle, StandardizedArticle], article_id: str):
+        """
+        Update audit trail entry with metadata asynchronously (non-blocking).
+        
+        Args:
+            article: Article to gather metadata for
+            article_id: Article ID in audit trail
+        """
+        try:
+            metadata = await self._gather_metadata(article)
+            
+            # Update audit trail entry with metadata
+            self.audit_trail.update_metadata(article_id, metadata)
+            
+        except Exception as e:
+            logger.error("Failed to update metadata in audit trail", article_id=article_id, error=str(e))
+    
+    async def _gather_metadata(self, article: Union[BenzingaArticle, StandardizedArticle]) -> dict:
+        """
+        Gather metadata (market cap, sector, industry) for audit trail.
+        Runs asynchronously to avoid blocking main processing.
+        
+        Args:
+            article: Article to gather metadata for
+            
+        Returns:
+            Dictionary with metadata
+        """
+        metadata = {}
+        
+        # Get ticker if available
+        ticker = None
+        if hasattr(article, 'tickers') and article.tickers:
+            ticker = article.tickers[0]
+        
+        if ticker:
+            try:
+                # Get fundamental data from yfinance (async, cached)
+                fundamental_data = await self._yf.get_fundamental_data(ticker)
+                
+                metadata = {
+                    "market_cap": fundamental_data.get("market_cap", "N/A"),
+                    "sector": fundamental_data.get("sector", "N/A"),
+                    "industry": fundamental_data.get("industry", "N/A"),
+                    "company_name": fundamental_data.get("company_name", ticker)
+                }
+                
+                logger.debug("Gathered metadata", ticker=ticker, metadata=metadata)
+                
+            except Exception as e:
+                logger.warning("Failed to gather metadata", ticker=ticker, error=str(e))
+                metadata = {
+                    "market_cap": "N/A",
+                    "sector": "N/A",
+                    "industry": "N/A",
+                    "error": str(e)
+                }
+        
+        return metadata
     
     def _get_article_id(self, article: Union[BenzingaArticle, StandardizedArticle]) -> str:
         """Get article ID for logging."""

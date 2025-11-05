@@ -20,6 +20,8 @@ from .feed_health_monitor import FeedHealthMonitor
 from .auto_trade_service import AutoTradeService
 from .position_tracker import PositionTracker
 from .ibkr_keepalive_service import IBKRKeepAliveService
+from .price_tracking_service import PriceTrackingService
+from .classification_audit_trail import ClassificationAuditTrail
 
 logger = get_logger(__name__)
 
@@ -115,20 +117,38 @@ class ServiceContainer:
             self._services['position_tracker'] = PositionTracker()
             logger.info("PositionTracker initialized")
             
-            # Auto-trade service (depends on trading service, position tracker, and telegram service)
+            # Classification audit trail (for enhanced logging with timing and price tracking)
+            self._services['audit_trail'] = ClassificationAuditTrail()
+            logger.info("ClassificationAuditTrail initialized")
+            
+            # Price tracking service (for 20-minute price tracking)
+            self._services['price_tracking'] = PriceTrackingService(
+                ibkr_service=self._services['trading'],
+                audit_trail=self._services['audit_trail']
+            )
+            logger.info("PriceTrackingService initialized")
+            
+            # Auto-trade service (depends on trading service, position tracker, telegram service, audit_trail, price_tracking)
             self._services['auto_trade_service'] = AutoTradeService(
                 trading_service=self._services['trading'],
                 position_tracker=self._services['position_tracker'],
-                telegram_service=self._services['telegram']
+                telegram_service=self._services['telegram'],
+                audit_trail=self._services['audit_trail'],
+                price_tracking_service=self._services['price_tracking']
             )
             logger.info("AutoTradeService initialized")
             
             # Article processor (depends on telegram, classifier, auto_trade_service)
-            self._services['article_processor'] = get_article_processor(
+            # Note: Article processor creates its own audit_trail instance, but we pass it the shared one
+            # Actually, let's inject the shared audit_trail into article processor
+            article_processor = get_article_processor(
                 telegram_notifier=self._services['telegram'],
                 classifier=self._services['classifier'],
                 auto_trade_service=self._services['auto_trade_service']
             )
+            # Replace article processor's audit trail with shared one
+            article_processor.audit_trail = self._services['audit_trail']
+            self._services['article_processor'] = article_processor
             
             # Feed manager (depends on article processor)
             benzinga_token = BENZINGA_API_KEY if BENZINGA_WEBSOCKET_ENABLED else None

@@ -28,7 +28,7 @@ class AutoTradeService:
     - Preserves manual trading capabilities
     """
     
-    def __init__(self, trading_service, position_tracker, telegram_service=None):
+    def __init__(self, trading_service, position_tracker, telegram_service=None, audit_trail=None, price_tracking_service=None):
         """
         Initialize auto-trade service.
         
@@ -36,17 +36,23 @@ class AutoTradeService:
             trading_service: IBKRTradingService instance
             position_tracker: PositionTracker instance
             telegram_service: TelegramService instance for notifications
+            audit_trail: ClassificationAuditTrail instance for logging
+            price_tracking_service: PriceTrackingService instance for price tracking
         """
         self.trading_service = trading_service
         self.position_tracker = position_tracker
         self.telegram_service = telegram_service
+        self.audit_trail = audit_trail
+        self.price_tracking_service = price_tracking_service
         self.is_enabled = AUTO_TRADING_ENABLED
         
         logger.info(
             "AutoTradeService initialized",
             enabled=self.is_enabled,
             exit_delay_minutes=AUTO_TRADE_EXIT_DELAY_MINUTES,
-            telegram_service_available=self.telegram_service is not None
+            telegram_service_available=self.telegram_service is not None,
+            audit_trail_available=self.audit_trail is not None,
+            price_tracking_available=self.price_tracking_service is not None
         )
         
         if not self.telegram_service:
@@ -133,6 +139,7 @@ class AutoTradeService:
             return
         
         # Execute trade - NO MARKET CAP GATE
+        trade_placed_at = datetime.now()
         logger.info("🚀 AUTO-TRADING: Executing automatic trade on IMMINENT news",
                    ticker=ticker,
                    article_id=article.source_id,
@@ -149,6 +156,22 @@ class AutoTradeService:
             # Execute trade using existing trading service
             result = await self.trading_service.process_trade_request(trade_request)
             
+            # Update audit trail with auto-trade placement
+            if self.audit_trail:
+                article_id = getattr(article, '_audit_article_id', article.source_id)
+                session = result.session or "unknown"
+                order_type = result.order_type or "unknown"
+                
+                self.audit_trail.update_auto_trade_placed(
+                    article_id=article_id,
+                    trade_placed_at=trade_placed_at,
+                    ticker=ticker,
+                    entry_price=result.fill_price if result.success else None,
+                    shares=result.shares if result.success else None,
+                    session=session,
+                    order_type=order_type
+                )
+            
             # Always send notification (success or failure)
             await self._send_entry_notification(ticker, article, result)
             
@@ -158,6 +181,18 @@ class AutoTradeService:
                            shares=result.shares,
                            fill_price=result.fill_price,
                            article_id=article.source_id)
+                
+                # Start price tracking (background task, non-blocking)
+                if self.price_tracking_service:
+                    article_id = getattr(article, '_audit_article_id', article.source_id)
+                    asyncio.create_task(
+                        self.price_tracking_service.start_tracking(
+                            article_id=article_id,
+                            ticker=ticker,
+                            trade_placed_at=trade_placed_at
+                        )
+                    )
+                    logger.info("Started background price tracking for 20 minutes", ticker=ticker)
                 
                 # Add position to tracker and schedule exit
                 entry_time = datetime.now()
@@ -171,7 +206,7 @@ class AutoTradeService:
                 
                 # Schedule exit after 5 minutes
                 asyncio.create_task(
-                    self._schedule_exit(ticker, result.shares, entry_time, result.fill_price)
+                    self._schedule_exit(ticker, result.shares, entry_time, result.fill_price, article)
                 )
                 logger.info("🕐 Exit scheduled for 5 minutes from now", 
                            ticker=ticker,
@@ -203,7 +238,8 @@ class AutoTradeService:
         ticker: str, 
         shares: int, 
         entry_time: datetime,
-        entry_price: float
+        entry_price: float,
+        article: Optional[StandardizedArticle] = None
     ) -> None:
         """
         Schedule a position exit after configured delay (default 5 minutes).
@@ -212,6 +248,8 @@ class AutoTradeService:
             ticker: Stock ticker to exit
             shares: Number of shares to sell
             entry_time: When the position was entered
+            entry_price: Entry price
+            article: Original article (for audit trail updates)
         """
         try:
             # Wait for the exit delay
@@ -239,9 +277,28 @@ class AutoTradeService:
             # Modify trade request to specify shares instead of amount
             # Actually, let's use a helper method that trades shares directly
             result = await self._execute_exit_trade(ticker, shares)
+            exit_time = datetime.now()
             
             # Get actual entry price from position tracker
             actual_entry_price = self.position_tracker.get_entry_price(ticker) or entry_price
+            
+            # Update audit trail with exit info
+            if self.audit_trail and article:
+                article_id = getattr(article, '_audit_article_id', article.source_id)
+                pnl = (result.fill_price - actual_entry_price) * shares if result.success else None
+                pnl_percent = ((result.fill_price - actual_entry_price) / actual_entry_price * 100) if result.success and actual_entry_price > 0 else None
+                session = result.session or "unknown"
+                order_type = result.order_type or "unknown"
+                
+                self.audit_trail.update_trade_exit(
+                    article_id=article_id,
+                    exit_price=result.fill_price if result.success else None,
+                    exit_time=exit_time,
+                    pnl=pnl,
+                    pnl_percent=pnl_percent,
+                    session=session,
+                    order_type=order_type
+                )
             
             # Send Telegram notification for exit (success or failure)
             await self._send_exit_notification(ticker, shares, actual_entry_price, result)
