@@ -19,7 +19,6 @@ from .benzinga_websocket_service import BenzingaWebSocketService
 from .feed_health_monitor import FeedHealthMonitor
 from .auto_trade_service import AutoTradeService
 from .position_tracker import PositionTracker
-from .ibkr_keepalive_service import IBKRKeepAliveService
 from .price_tracking_service import PriceTrackingService
 from .classification_audit_trail import ClassificationAuditTrail
 
@@ -58,18 +57,6 @@ class ServiceContainer:
             # IBKR trading service
             self._services['trading'] = get_ibkr_trading_service(paper_trading=True)
             
-            # IBKR keep-alive service (maintains persistent connection to prevent Gateway timeout)
-            from ..config.settings import IBKR_KEEPALIVE_ENABLED
-            if IBKR_KEEPALIVE_ENABLED:
-                self._services['ibkr_keepalive'] = IBKRKeepAliveService(
-                    paper_trading=True,
-                    telegram_service=None  # will inject after telegram init below
-                )
-                logger.info("IBKR Keep-Alive service initialized")
-            else:
-                self._services['ibkr_keepalive'] = None
-                logger.info("IBKR Keep-Alive service disabled")
-            
             # Initialize dependent services
             logger.info("Initializing dependent services...")
             
@@ -102,6 +89,9 @@ class ServiceContainer:
                 trade_handler_2=self._services['trade_handler_2']
             )
             
+            # Inject telegram notifier into trading service for connection alerts
+            self._services['trading'].telegram_service = self._services['telegram']
+            
             # News classifier
             from ..config.settings import GROQ_API_KEY, GROQ_MODEL
             self._services['classifier'] = get_news_classifier(
@@ -109,10 +99,6 @@ class ServiceContainer:
                 model=GROQ_MODEL
             )
             
-            # If keep-alive exists, inject telegram notifier for status alerts
-            if self._services.get('ibkr_keepalive') is not None:
-                self._services['ibkr_keepalive'].telegram_service = self._services['telegram']
-
             # Position tracker for auto-trades
             self._services['position_tracker'] = PositionTracker()
             logger.info("PositionTracker initialized")
@@ -274,6 +260,11 @@ class ServiceContainer:
             elif self._services['trade_handler_2']:
                 logger.info("Telegram trade handler 2 not started (bot 2 disabled)")
             
+            # Start IBKR trading service before feeds begin processing
+            logger.info("About to start IBKR Trading Service...")
+            await self._services['trading'].start()
+            logger.info("IBKR Trading Service started and connected")
+            
             # Start feed manager (this will start all dependent services)
             await self._services['feed_manager'].start_all_feeds()
             
@@ -288,11 +279,6 @@ class ServiceContainer:
             )
             self._health_monitor_task = health_monitor_task
             logger.info("Feed health monitor started")
-            
-            # Start IBKR keep-alive service (maintains persistent connection)
-            if self._services.get('ibkr_keepalive'):
-                await self._services['ibkr_keepalive'].start()
-                logger.info("IBKR Keep-Alive service started - Gateway will stay connected")
             
             logger.info("All services started successfully")
             
@@ -325,10 +311,10 @@ class ServiceContainer:
                 self._services['benzinga_websocket'].stop()
                 logger.info("Benzinga WebSocket service stopped")
             
-            # Stop IBKR keep-alive service
-            if self._services.get('ibkr_keepalive'):
-                await self._services['ibkr_keepalive'].stop()
-                logger.info("IBKR Keep-Alive service stopped")
+            # Stop IBKR trading service
+            if self._services.get('trading'):
+                await self._services['trading'].stop()
+                logger.info("IBKR Trading Service stopped")
             
             # Stop feed manager (this will stop all dependent services)
             await self._services['feed_manager'].stop_all_feeds()
