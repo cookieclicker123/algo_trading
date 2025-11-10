@@ -128,6 +128,8 @@ class YFinanceService:
                 'market_cap': info.get('marketCap', 'N/A'),
                 'sector': info.get('sector', 'N/A'),
                 'industry': info.get('industry', 'N/A'),
+                'primary_exchange': info.get('exchange', 'N/A'),
+                'market': info.get('market', 'N/A'),
                 'earnings': earnings_data,
                 'revenue': revenue_data,
                 'margins': margin_data,

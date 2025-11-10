@@ -135,11 +135,18 @@ class IBKRTradingService:
     # ------------------------------------------------------------------
     # Connection management
     # ------------------------------------------------------------------
-    async def _ensure_connected(self) -> IB:
+    async def _ensure_connected(self, timeout_seconds: Optional[float] = None) -> IB:
         """Ensure a warm persistent IB connection is available."""
 
         if self._connection_lock is None:
             self._connection_lock = asyncio.Lock()
+
+        deadline = None if timeout_seconds is None else time.monotonic() + timeout_seconds
+
+        def remaining_time() -> Optional[float]:
+            if deadline is None:
+                return None
+            return deadline - time.monotonic()
 
         async with self._connection_lock:
             if self.ib and self.gateway_api_client_connected:
@@ -152,9 +159,13 @@ class IBKRTradingService:
                     logger.warning("⚠️ Existing IB connection became unresponsive – reconnecting")
                     self.gateway_api_client_connected = False
 
-            return await self._connect_with_confirmation()
+            remaining = remaining_time()
+            if remaining is not None and remaining <= 0:
+                raise TimeoutError("Connection timeout reached before attempting IB reconnect")
 
-    async def _connect_with_confirmation(self) -> IB:
+            return await self._connect_with_confirmation(remaining)
+
+    async def _connect_with_confirmation(self, timeout_seconds: Optional[float] = None) -> IB:
         """Connect to IB Gateway and confirm the API client is responsive."""
 
         if self.ib:
@@ -163,6 +174,13 @@ class IBKRTradingService:
             except Exception:
                 pass
             self.ib = None
+
+        deadline = None if timeout_seconds is None else time.monotonic() + timeout_seconds
+
+        def remaining_time() -> Optional[float]:
+            if deadline is None:
+                return None
+            return deadline - time.monotonic()
 
         try:
             loop = asyncio.get_running_loop()
@@ -177,9 +195,24 @@ class IBKRTradingService:
 
         port = 4001 if self.paper_trading else 7497
         logger.info(f"🔌 Connecting to IB Gateway (port {port}, clientId 5)...")
-        await self.ib.connectAsync("127.0.0.1", port, clientId=5)
+
+        remaining = remaining_time()
+        if remaining is not None and remaining <= 0:
+            raise TimeoutError("Connection timeout reached before contacting IB Gateway")
+
+        connect_future = self.ib.connectAsync("127.0.0.1", port, clientId=5)
+        try:
+            if remaining is None:
+                await connect_future
+            else:
+                await asyncio.wait_for(connect_future, timeout=max(remaining, 0))
+        except asyncio.TimeoutError:
+            raise TimeoutError("IB Gateway connection attempt timed out") from None
 
         try:
+            remaining = remaining_time()
+            if remaining is not None and remaining <= 0:
+                raise TimeoutError("Connection timeout reached before verification")
             accounts = self.ib.accountValues()
             logger.info(
                 f"✅ Gateway API client verified via accountValues() ({len(accounts) if accounts else 0} accounts)"
@@ -323,7 +356,11 @@ class IBKRTradingService:
     # ------------------------------------------------------------------
     # Trade processing
     # ------------------------------------------------------------------
-    async def process_trade_request(self, trade_request: TradeRequest) -> TradeResult:
+    async def process_trade_request(
+        self,
+        trade_request: TradeRequest,
+        timeout_seconds: Optional[float] = None,
+    ) -> TradeResult:
         """Process a trade request - public interface for Telegram handler."""
 
         logger.info(
@@ -332,9 +369,13 @@ class IBKRTradingService:
             amount=trade_request.amount_usd,
             action=trade_request.action,
         )
-        return await self._execute_trade(trade_request)
+        return await self._execute_trade(trade_request, timeout_seconds)
 
-    async def _execute_trade(self, trade_request: TradeRequest) -> TradeResult:
+    async def _execute_trade(
+        self,
+        trade_request: TradeRequest,
+        timeout_seconds: Optional[float] = None,
+    ) -> TradeResult:
         """Execute a trade using IBKR API with market session detection."""
 
         logger.info(
@@ -345,27 +386,45 @@ class IBKRTradingService:
 
         try:
             loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(None, self._run_trade_in_thread, trade_request)
+            result = await loop.run_in_executor(
+                None, self._run_trade_in_thread, trade_request, timeout_seconds
+            )
             return result
         except Exception as exc:
             logger.error("❌ Trade execution failed", error=str(exc))
             return TradeResult(success=False, error=str(exc))
 
-    def _run_trade_in_thread(self, trade_request: TradeRequest) -> TradeResult:
+    def _run_trade_in_thread(
+        self,
+        trade_request: TradeRequest,
+        timeout_seconds: Optional[float] = None,
+    ) -> TradeResult:
         import asyncio as _asyncio
 
         loop = _asyncio.new_event_loop()
         _asyncio.set_event_loop(loop)
         try:
-            return loop.run_until_complete(self._execute_trade_sync(trade_request))
+            return loop.run_until_complete(
+                self._execute_trade_sync(trade_request, timeout_seconds)
+            )
         finally:
             loop.close()
 
-    async def _execute_trade_sync(self, trade_request: TradeRequest) -> TradeResult:
+    async def _execute_trade_sync(
+        self,
+        trade_request: TradeRequest,
+        timeout_seconds: Optional[float] = None,
+    ) -> TradeResult:
         """Execute a trade using IBKR API with market session detection."""
 
         try:
             total_start_time = time.time()
+            deadline = None if timeout_seconds is None else time.monotonic() + timeout_seconds
+
+            def remaining_time() -> Optional[float]:
+                if deadline is None:
+                    return None
+                return deadline - time.monotonic()
 
             session_start = time.time()
             session, _ = self.get_market_session()
@@ -376,10 +435,18 @@ class IBKRTradingService:
                 logger.error("❌ Market is currently closed - no trading available")
                 return TradeResult(success=False, error="Market is currently closed", session="closed")
 
+            remaining = remaining_time()
+            if remaining is not None and remaining <= 0:
+                raise TimeoutError("Trade timeout reached before connecting to IB Gateway")
+
             connect_start = time.time()
-            ib = await self._ensure_connected()
+            ib = await self._ensure_connected(remaining)
             connect_time = time.time() - connect_start
             logger.info(f"✅ Connection ready - {connect_time:.3f}s")
+
+            remaining = remaining_time()
+            if remaining is not None and remaining <= 0:
+                raise TimeoutError("Trade timeout reached before order preparation")
 
             contract_start = time.time()
             contract = Stock(trade_request.ticker, "SMART", "USD")
@@ -396,6 +463,7 @@ class IBKRTradingService:
                     session_time,
                     connect_time,
                     contract_time,
+                    deadline,
                 )
 
             logger.info(f"🌅 EXTENDED HOURS ({session}): Using limit order strategy")
@@ -407,8 +475,15 @@ class IBKRTradingService:
                 session_time,
                 connect_time,
                 contract_time,
+                deadline,
             )
 
+        except TimeoutError as exc:
+            logger.error("❌ Trade execution timed out", error=str(exc))
+            return TradeResult(success=False, error=str(exc))
+        except asyncio.TimeoutError as exc:
+            logger.error("❌ Trade execution timed out", error=str(exc))
+            return TradeResult(success=False, error="Trade attempt timed out")
         except Exception as exc:
             logger.error("❌ Trade execution failed", error=str(exc))
             logger.error(f"📝 Exception type: {type(exc).__name__}")
@@ -442,15 +517,44 @@ class IBKRTradingService:
         logger.info("🌙 Currently MARKET CLOSED")
         return "closed", True
 
-    async def get_ibkr_realtime_price(self, ib: IB, contract: Stock) -> Optional[float]:
+    async def get_ibkr_realtime_price(
+        self,
+        ib: IB,
+        contract: Stock,
+        timeout_deadline: Optional[float] = None,
+    ) -> Optional[float]:
         """Get real-time price using reqMktData."""
 
         try:
+            def time_left() -> Optional[float]:
+                if timeout_deadline is None:
+                    return None
+                return timeout_deadline - time.monotonic()
+
+            remaining = time_left()
+            if remaining is not None and remaining <= 0:
+                raise TimeoutError("Trade timed out before qualifying contract")
+
             logger.info(f"📊 Requesting IBKR real-time quote for {contract.symbol}...")
-            [qualified] = await ib.qualifyContractsAsync(contract)
+            qualify_coro = ib.qualifyContractsAsync(contract)
+            if remaining is None:
+                qualified_list = await qualify_coro
+            else:
+                qualified_list = await asyncio.wait_for(qualify_coro, timeout=max(remaining, 0))
+
+            if not qualified_list:
+                logger.error("❌ IBKR returned empty qualification list")
+                return None
+
+            [qualified] = qualified_list
             ticker = ib.reqMktData(qualified, "", True, False)
             for _ in range(10):
-                await asyncio.sleep(0.05)
+                remaining = time_left()
+                if remaining is not None and remaining <= 0:
+                    break
+                sleep_interval = 0.05 if remaining is None else min(0.05, max(remaining, 0))
+                if sleep_interval > 0:
+                    await asyncio.sleep(sleep_interval)
                 last_price = getattr(ticker, "last", None)
                 bid = getattr(ticker, "bid", None)
                 ask = getattr(ticker, "ask", None)
@@ -465,8 +569,13 @@ class IBKRTradingService:
                     ib.cancelMktData(qualified)
                     return float(close)
             ib.cancelMktData(qualified)
+            remaining = time_left()
+            if remaining is not None and remaining <= 0:
+                raise TimeoutError("Trade timed out before market data returned")
             logger.error("❌ IBKR quote unavailable (no last/bbo/close)")
             return None
+        except TimeoutError:
+            raise
         except Exception as exc:
             logger.error(f"❌ Error fetching IBKR quote for {contract.symbol}: {exc}")
             return None
@@ -482,8 +591,18 @@ class IBKRTradingService:
         session_time: float,
         connect_time: float,
         contract_time: float,
+        timeout_deadline: Optional[float] = None,
     ) -> TradeResult:
         try:
+            def time_left() -> Optional[float]:
+                if timeout_deadline is None:
+                    return None
+                return timeout_deadline - time.monotonic()
+
+            remaining = time_left()
+            if remaining is not None and remaining <= 0:
+                raise TimeoutError("Trade timed out before order creation")
+
             action = trade_request.action.upper()
             order_create_start = time.time()
             order = MarketOrder(action, 1)
@@ -497,7 +616,17 @@ class IBKRTradingService:
 
             fill_wait_start = time.time()
             for attempt in range(10):
-                await asyncio.sleep(0.5)
+                remaining = time_left()
+                if remaining is not None and remaining <= 0:
+                    try:
+                        ib.cancelOrder(order)
+                    except Exception:
+                        pass
+                    raise TimeoutError("Trade timed out before order fill")
+
+                sleep_interval = 0.5 if remaining is None else min(0.5, max(remaining, 0))
+                if sleep_interval > 0:
+                    await asyncio.sleep(sleep_interval)
                 if trade.isDone():
                     fill_price = trade.orderStatus.avgFillPrice
                     fill_wait_time = time.time() - fill_wait_start
@@ -536,6 +665,8 @@ class IBKRTradingService:
                     "total_time": total_time,
                 },
             )
+        except TimeoutError:
+            raise
         except Exception as exc:
             logger.error(f"❌ Market hours trade failed: {exc}")
             return TradeResult(success=False, error=str(exc), session="market_hours", order_type="MARKET")
@@ -549,11 +680,21 @@ class IBKRTradingService:
         session_time: float,
         connect_time: float,
         contract_time: float,
+        timeout_deadline: Optional[float] = None,
     ) -> TradeResult:
         session, _ = self.get_market_session()
         try:
+            def time_left() -> Optional[float]:
+                if timeout_deadline is None:
+                    return None
+                return timeout_deadline - time.monotonic()
+
+            remaining = time_left()
+            if remaining is not None and remaining <= 0:
+                raise TimeoutError("Trade timed out before price retrieval")
+
             price_start = time.time()
-            current_price = await self.get_ibkr_realtime_price(ib, contract)
+            current_price = await self.get_ibkr_realtime_price(ib, contract, timeout_deadline)
             price_time = time.time() - price_start
             logger.info(f"💰 Price retrieval: {price_time:.3f}s")
 
@@ -562,9 +703,29 @@ class IBKRTradingService:
                 return TradeResult(success=False, error="Could not get real-time price", session=session, order_type="LIMIT")
 
             action = trade_request.action.upper()
-            [qualified] = await ib.qualifyContractsAsync(contract)
+            remaining = time_left()
+            if remaining is not None and remaining <= 0:
+                raise TimeoutError("Trade timed out before preparing ladder" )
+
+            qualify_coro = ib.qualifyContractsAsync(contract)
+            if remaining is None:
+                qualified_list = await qualify_coro
+            else:
+                qualified_list = await asyncio.wait_for(qualify_coro, timeout=max(remaining, 0))
+
+            if not qualified_list:
+                logger.error("❌ IBKR returned empty qualification list for ladder")
+                return TradeResult(success=False, error="Could not qualify contract", session=session, order_type="LIMIT")
+
+            [qualified] = qualified_list
             ticker = ib.reqMktData(qualified, "", True, False)
-            await asyncio.sleep(0.03)
+            remaining = time_left()
+            if remaining is not None and remaining <= 0:
+                ib.cancelMktData(qualified)
+                raise TimeoutError("Trade timed out before receiving ladder snapshot")
+            sleep_interval = 0.03 if remaining is None else min(0.03, max(remaining, 0))
+            if sleep_interval > 0:
+                await asyncio.sleep(sleep_interval)
             bid = getattr(ticker, "bid", None)
             ask = getattr(ticker, "ask", None)
             ib.cancelMktData(qualified)
@@ -592,6 +753,10 @@ class IBKRTradingService:
             trading_start = time.time()
 
             while abs(current_cents) <= abs(max_cents_from_start):
+                remaining = time_left()
+                if remaining is not None and remaining <= 0:
+                    raise TimeoutError("Trade timed out before ladder could fill")
+
                 limit_price = round(base_price + (current_cents / 100.0), 2)
                 order = LimitOrder(action, 1, limit_price)
                 order.outsideRth = True
@@ -601,7 +766,12 @@ class IBKRTradingService:
                 fill_wait_start = time.time()
 
                 for _ in range(10):
-                    await asyncio.sleep(wait_time)
+                    remaining = time_left()
+                    if remaining is not None and remaining <= 0:
+                        break
+                    sleep_interval = wait_time if remaining is None else min(wait_time, max(remaining, 0))
+                    if sleep_interval > 0:
+                        await asyncio.sleep(sleep_interval)
                     if trade.isDone():
                         fill_wait_time = time.time() - fill_wait_start
                         fill_price = trade.orderStatus.avgFillPrice
@@ -641,7 +811,12 @@ class IBKRTradingService:
 
                 current_cents += step_cents
                 attempt_number += 1
-                await asyncio.sleep(wait_time)
+                remaining = time_left()
+                if remaining is not None and remaining <= 0:
+                    raise TimeoutError("Trade timed out during ladder progression")
+                sleep_interval = wait_time if remaining is None else min(wait_time, max(remaining, 0))
+                if sleep_interval > 0:
+                    await asyncio.sleep(sleep_interval)
 
             total_time = time.time() - total_start_time
             logger.error(
@@ -661,12 +836,16 @@ class IBKRTradingService:
                     "attempts": attempt_number,
                 },
             )
+        except TimeoutError:
+            raise
         except Exception as exc:
             logger.error(f"❌ Extended hours trade failed: {exc}")
             return TradeResult(success=False, error=str(exc), session=session, order_type="LIMIT")
 
-    async def execute_trade(self, trade_request: TradeRequest) -> TradeResult:
-        return await self._execute_trade(trade_request)
+    async def execute_trade(
+        self, trade_request: TradeRequest, timeout_seconds: Optional[float] = None
+    ) -> TradeResult:
+        return await self._execute_trade(trade_request, timeout_seconds)
 
     # ------------------------------------------------------------------
     # User response helpers (unchanged from original implementation)

@@ -45,11 +45,13 @@ class AutoTradeService:
         self.audit_trail = audit_trail
         self.price_tracking_service = price_tracking_service
         self.is_enabled = AUTO_TRADING_ENABLED
+        self.trade_timeout_seconds = 10.0
         
         logger.info(
             "AutoTradeService initialized",
             enabled=self.is_enabled,
             exit_delay_minutes=AUTO_TRADE_EXIT_DELAY_MINUTES,
+            trade_timeout_seconds=self.trade_timeout_seconds,
             telegram_service_available=self.telegram_service is not None,
             audit_trail_available=self.audit_trail is not None,
             price_tracking_available=self.price_tracking_service is not None
@@ -154,7 +156,9 @@ class AutoTradeService:
             )
             
             # Execute trade using existing trading service
-            result = await self.trading_service.process_trade_request(trade_request)
+            result = await self.trading_service.process_trade_request(
+                trade_request, timeout_seconds=self.trade_timeout_seconds
+            )
             
             # Update audit trail with auto-trade placement
             if self.audit_trail:
@@ -349,7 +353,9 @@ class AutoTradeService:
         logger.info(f"Executing exit trade for {shares} shares of {ticker}",
                    estimated_amount_usd=shares * estimated_price)
         
-        result = await self.trading_service.process_trade_request(trade_request)
+        result = await self.trading_service.process_trade_request(
+            trade_request, timeout_seconds=self.trade_timeout_seconds
+        )
         
         # Log actual shares traded vs requested
         if result.success:

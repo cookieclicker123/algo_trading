@@ -51,6 +51,17 @@ class ArticleProcessor:
         self.audit_trail = ClassificationAuditTrail()
         self.auto_trade_service = auto_trade_service  # Optional auto-trade service
         self._yf = YFinanceService()
+        self._allowed_ticker_prefixes = {
+            "NYSE",
+            "NASDAQ",
+            "NASDAQGS",
+            "NASDAQGM",
+            "NASDAQCM",
+            "AMEX",
+            "NYSEAMERICAN",
+            "NYSEMKT",
+            "NYSEARCA",
+        }
         
         self.handlers: List[Callable[[Union[BenzingaArticle, StandardizedArticle]], Awaitable[None]]] = []
         
@@ -164,7 +175,28 @@ class ArticleProcessor:
                 channels=article.channels,
                 published=article.published.isoformat()
             )
-        
+
+        primary_ticker = self._extract_primary_ticker(article)
+
+        if not primary_ticker:
+            logger.info(
+                "Skipping article without ticker",
+                article_id=self._get_article_id(article),
+                title=getattr(article, "title", "")
+            )
+            return
+
+        is_tradeable = await self._is_tradeable_ticker(primary_ticker)
+
+        if not is_tradeable:
+            logger.info(
+                "Skipping article - primary ticker not supported",
+                article_id=self._get_article_id(article),
+                primary_ticker=primary_ticker,
+                tickers=getattr(article, "tickers", [])
+            )
+            return
+
         # Run AI classification
         classification = None
         classified_at = None
@@ -418,6 +450,80 @@ class ArticleProcessor:
         except Exception as e:
             logger.warning("Market-cap gate check failed; allowing trade by default", error=str(e))
             return True
+
+    def _extract_primary_ticker(self, article: Union[BenzingaArticle, StandardizedArticle, Any]) -> Optional[str]:
+        tickers: List[Any] = []
+
+        if isinstance(article, BenzingaArticle):
+            tickers = article.tickers or []
+        elif isinstance(article, StandardizedArticle):
+            tickers = article.tickers or []
+        else:
+            tickers = getattr(article, "tickers", []) or []
+
+        if not tickers:
+            return None
+
+        primary = tickers[0]
+        if isinstance(primary, str):
+            return primary.strip()
+
+        return str(primary).strip()
+
+    async def _is_tradeable_ticker(self, ticker: str) -> bool:
+        ticker_upper = ticker.upper().strip()
+
+        if not ticker_upper:
+            return False
+
+        if ":" in ticker_upper:
+            prefix, _, symbol = ticker_upper.partition(":")
+            if prefix not in self._allowed_ticker_prefixes:
+                return False
+            return bool(symbol)
+
+        # Bare tickers (no prefix) are assumed to be U.S.-listed
+        allowed_us_exchanges = {
+            "NYSE",
+            "NYS",
+            "NYQ",
+            "NASDAQ",
+            "NAS",
+            "NMS",
+            "NCM",
+            "NGM",
+            "NSQ",
+            "AMEX",
+            "ASE",
+            "NYSEAMERICAN",
+            "NYSEMKT",
+            "NYSE ARCA",
+            "NYSEARCA",
+            "ARCA",
+            "BATS",
+            "IEX"
+        }
+
+        try:
+            fundamentals = await self._yf.get_fundamental_data(ticker_upper)
+            exchange = (fundamentals.get("primary_exchange") or "").upper()
+
+            if not exchange:
+                logger.info("Ticker skipped due to missing exchange metadata", ticker=ticker_upper)
+                return False
+
+            if exchange in allowed_us_exchanges or exchange.startswith("NAS") or exchange.startswith("NY"):
+                return True
+
+            logger.info(
+                "Ticker skipped due to unsupported exchange",
+                ticker=ticker_upper,
+                primary_exchange=exchange
+            )
+            return False
+        except Exception as exc:
+            logger.warning("Failed to verify ticker exchange", ticker=ticker_upper, error=str(exc))
+            return False
 
 
 def get_article_processor(
