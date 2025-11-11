@@ -109,6 +109,16 @@ To receive news alerts on Telegram:
 pytest tests/ -v
 ```
 
+### Daily Trade Summary
+
+To review daily performance and liquidity stats from the classification audit trail:
+
+```bash
+uv run python scripts/daily_trade_summary.py --date YYYY-MM-DD
+```
+
+The command prints aggregate PnL, sector totals, market-cap buckets, and volume medians for the selected day. Use it at the end of each trading session to track progress and spot patterns quickly.
+
 ## Usage
 
 ### Standalone Multi-Source System

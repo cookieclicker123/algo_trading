@@ -121,15 +121,40 @@ class YFinanceService:
             # Process price/volume data
             price_volume_data = self._process_price_volume_data(recent_data)
             
+            def _safe_int(value):
+                try:
+                    if value is None or value == "N/A":
+                        return None
+                    return int(float(value))
+                except (TypeError, ValueError):
+                    return None
+
+            market_cap_value = _safe_int(info.get("marketCap"))
+            average_volume_30d = (
+                _safe_int(info.get("averageVolume"))
+                or _safe_int(info.get("averageVolume90Day"))
+                or _safe_int(info.get("averageDailyVolume3Month"))
+            )
+            average_volume_10d = (
+                _safe_int(info.get("averageDailyVolume10Day"))
+                or _safe_int(info.get("averageVolume10days"))
+            )
+            regular_market_volume = _safe_int(info.get("regularMarketVolume"))
+            regular_market_price = info.get("regularMarketPrice")
+
             # Combine all data
             fundamental_data = {
                 'ticker': clean_ticker,
                 'company_name': info.get('longName', clean_ticker),
-                'market_cap': info.get('marketCap', 'N/A'),
+                'market_cap': market_cap_value,
                 'sector': info.get('sector', 'N/A'),
                 'industry': info.get('industry', 'N/A'),
                 'primary_exchange': info.get('exchange', 'N/A'),
                 'market': info.get('market', 'N/A'),
+                'average_volume_30d': average_volume_30d,
+                'average_volume_10d': average_volume_10d,
+                'regular_market_volume': regular_market_volume,
+                'regular_market_price': regular_market_price,
                 'earnings': earnings_data,
                 'revenue': revenue_data,
                 'margins': margin_data,
@@ -268,9 +293,15 @@ class YFinanceService:
         return {
             'ticker': self._clean_ticker(ticker),
             'company_name': ticker,
-            'market_cap': 'N/A',
+            'market_cap': None,
             'sector': 'N/A',
             'industry': 'N/A',
+            'primary_exchange': 'N/A',
+            'market': 'N/A',
+            'average_volume_30d': None,
+            'average_volume_10d': None,
+            'regular_market_volume': None,
+            'regular_market_price': None,
             'earnings': {'current_earnings': 'N/A', 'earnings_growth': 'N/A'},
             'revenue': {'current_revenue': 'N/A', 'revenue_growth': 'N/A'},
             'margins': {'gross_margin': 'N/A', 'net_margin': 'N/A'},

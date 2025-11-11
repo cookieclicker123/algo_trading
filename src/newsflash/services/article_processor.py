@@ -62,6 +62,10 @@ class ArticleProcessor:
             "NYSEMKT",
             "NYSEARCA",
         }
+
+        self._min_market_cap = 1_000_000_000  # USD
+        self._min_average_volume = 200_000
+        self._banned_sectors = {"INDUSTRIALS", "HEALTHCARE", "CONSUMER CYCLICAL"}
         
         self.handlers: List[Callable[[Union[BenzingaArticle, StandardizedArticle]], Awaitable[None]]] = []
         
@@ -376,7 +380,11 @@ class ArticleProcessor:
                     "market_cap": fundamental_data.get("market_cap", "N/A"),
                     "sector": fundamental_data.get("sector", "N/A"),
                     "industry": fundamental_data.get("industry", "N/A"),
-                    "company_name": fundamental_data.get("company_name", ticker)
+                    "company_name": fundamental_data.get("company_name", ticker),
+                    "average_volume_30d": fundamental_data.get("average_volume_30d"),
+                    "average_volume_10d": fundamental_data.get("average_volume_10d"),
+                    "regular_market_volume": fundamental_data.get("regular_market_volume"),
+                    "regular_market_price": fundamental_data.get("regular_market_price"),
                 }
                 
                 logger.debug("Gathered metadata", ticker=ticker, metadata=metadata)
@@ -387,6 +395,11 @@ class ArticleProcessor:
                     "market_cap": "N/A",
                     "sector": "N/A",
                     "industry": "N/A",
+                    "company_name": ticker,
+                    "average_volume_30d": None,
+                    "average_volume_10d": None,
+                    "regular_market_volume": None,
+                    "regular_market_price": None,
                     "error": str(e)
                 }
         
@@ -506,24 +519,62 @@ class ArticleProcessor:
 
         try:
             fundamentals = await self._yf.get_fundamental_data(ticker_upper)
-            exchange = (fundamentals.get("primary_exchange") or "").upper()
+        except Exception as exc:
+            logger.warning("Failed to fetch fundamentals for ticker", ticker=ticker_upper, error=str(exc))
+            return False
 
-            if not exchange:
-                logger.info("Ticker skipped due to missing exchange metadata", ticker=ticker_upper)
-                return False
+        exchange = (fundamentals.get("primary_exchange") or "").upper().strip()
 
-            if exchange in allowed_us_exchanges or exchange.startswith("NAS") or exchange.startswith("NY"):
-                return True
+        if not exchange:
+            logger.info("Ticker skipped due to missing exchange metadata", ticker=ticker_upper)
+            return False
 
+        if not (exchange in allowed_us_exchanges or exchange.startswith("NAS") or exchange.startswith("NY")):
             logger.info(
                 "Ticker skipped due to unsupported exchange",
                 ticker=ticker_upper,
                 primary_exchange=exchange
             )
             return False
-        except Exception as exc:
-            logger.warning("Failed to verify ticker exchange", ticker=ticker_upper, error=str(exc))
+
+        sector = (fundamentals.get("sector") or "").upper().strip()
+        if sector and sector in self._banned_sectors:
+            logger.info("Ticker skipped due to banned sector", ticker=ticker_upper, sector=sector)
             return False
+
+        def _as_number(value):
+            if value in (None, "N/A"):
+                return None
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return None
+
+        market_cap = _as_number(fundamentals.get("market_cap"))
+        if market_cap is None or market_cap < self._min_market_cap:
+            logger.info(
+                "Ticker skipped due to insufficient market cap",
+                ticker=ticker_upper,
+                market_cap=market_cap,
+                minimum=self._min_market_cap
+            )
+            return False
+
+        avg_volume = (
+            _as_number(fundamentals.get("average_volume_30d"))
+            or _as_number(fundamentals.get("average_volume_10d"))
+            or _as_number(fundamentals.get("regular_market_volume"))
+        )
+        if avg_volume is None or avg_volume < self._min_average_volume:
+            logger.info(
+                "Ticker skipped due to insufficient average volume",
+                ticker=ticker_upper,
+                average_volume=avg_volume,
+                minimum=self._min_average_volume
+            )
+            return False
+
+        return True
 
 
 def get_article_processor(

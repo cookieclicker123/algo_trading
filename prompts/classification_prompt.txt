@@ -20,6 +20,10 @@ Classify as IGNORE when the headline:
 - Describes routine updates (marketing campaigns, minor product launches, awards without business impact).
 - Mentions regulatory, legal, or personnel changes without direct financial terms.
 - Rehashes old information or provides no actionable catalyst.
+- Announces dilutive capital raises or financing structures (registered direct offerings, PIPEs, shelf registrations, at-the-market programs) without a committed counterparty.
+- Focuses on tokens, crypto treasury moves, or digital asset partnerships without an operating business transaction for the listed company.
+- Mentions pricing increases, customer loyalty programs, marketing bundle rollouts, or similar campaigns that lack hard financial commitments.
+- Mentions earnings releases or conference calls without explicit beat/miss metrics, guidance changes, or financial deltas in the headline.
 - other news which doesn't directly pertain to the criteria for imminent news with immeidate financial impact on the ticker(s).
 
 ## Output format

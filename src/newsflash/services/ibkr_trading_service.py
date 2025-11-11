@@ -102,7 +102,7 @@ class IBKRTradingService:
 
         self._start_connection_verification()
         self._start_keepalive()
-        self._start_daily_restart_watchdog()
+        # Daily restart watchdog retired; rely on gateway's configured restart.
 
     async def stop(self) -> None:
         """Stop background tasks and disconnect from IB Gateway."""
@@ -322,33 +322,8 @@ class IBKRTradingService:
             logger.info("Keepalive task cancelled")
 
     def _start_daily_restart_watchdog(self) -> None:
-        if self._main_event_loop is None:
-            return
-        if self._daily_restart_watchdog_task and not self._daily_restart_watchdog_task.done():
-            return
-        self._daily_restart_watchdog_task = self._main_event_loop.create_task(
-            self._daily_restart_watchdog_loop()
-        )
-
-    async def _daily_restart_watchdog_loop(self) -> None:
-        """Watch for the Gateway's daily restart window and reconnect quickly."""
-
-        try:
-            while True:
-                await asyncio.sleep(60 * 30)  # check every 30 minutes
-                if not self.ib:
-                    continue
-
-                try:
-                    est = pytz.timezone("US/Eastern")
-                    now_et = datetime.now(est)
-                    if now_et.hour == 2:  # typical IBKR paper restart window
-                        logger.info("🔁 Performing proactive reconnect during daily restart window")
-                        await self._connect_with_confirmation()
-                except Exception as exc:
-                    logger.warning(f"⚠️ Daily restart watchdog encountered an error: {exc}")
-        except asyncio.CancelledError:
-            logger.info("Daily restart watchdog task cancelled")
+        """Legacy no-op; daily watchdog removed in favor of single scheduled restart."""
+        return
 
     def _notify_telegram(self, message: str) -> None:
         if not self.telegram_service:
