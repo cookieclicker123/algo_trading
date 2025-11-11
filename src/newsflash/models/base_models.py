@@ -85,16 +85,19 @@ class StandardizedArticle(BaseModel):
 
 class TradeRequest(BaseModel):
     """Model for trade requests."""
-    
+
     ticker: str = Field(..., description="Stock ticker symbol")
-    amount_usd: float = Field(..., description="Amount to trade in USD")
+    amount_usd: float = Field(..., description="Approximate notional value for logging")
     action: str = Field(default="BUY", description="Trade action (BUY/SELL)")
-    
-    @field_validator('ticker')
-    @classmethod
-    def validate_ticker(cls, v):
-        """Ensure ticker is uppercase."""
-        return v.upper().strip()
+    shares: Optional[int] = Field(default=None, description="Explicit share count to trade")
+    close_all_positions: bool = Field(
+        default=False,
+        description="When true, remove all tracked positions for the ticker after a successful SELL",
+    )
+    position_article_id: Optional[str] = Field(
+        default=None,
+        description="Specific position/article identifier to update on completion",
+    )
 
 
 class ArticleProcessor(BaseModel):

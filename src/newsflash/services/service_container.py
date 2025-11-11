@@ -102,6 +102,9 @@ class ServiceContainer:
             # Position tracker for auto-trades
             self._services['position_tracker'] = PositionTracker()
             logger.info("PositionTracker initialized")
+
+            # Share the tracker with the trading service for manual exits
+            self._services['trading'].position_tracker = self._services['position_tracker']
             
             # Classification audit trail (for enhanced logging with timing and price tracking)
             self._services['audit_trail'] = ClassificationAuditTrail()

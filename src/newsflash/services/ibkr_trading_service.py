@@ -5,7 +5,7 @@ IBKR Trading Service - unified trade execution with persistent connection manage
 import asyncio
 import time
 from datetime import datetime, timedelta
-from typing import List, Optional, Dict, Any, Tuple, Union
+from typing import List, Optional, Dict, Any, Tuple, Union, TYPE_CHECKING
 
 import pytz
 from ib_insync import IB, Stock, MarketOrder, LimitOrder
@@ -13,6 +13,9 @@ from ib_insync import IB, Stock, MarketOrder, LimitOrder
 from ..models.base_models import TradeRequest
 from ..utils.logging_config import get_logger
 from ..config import settings
+
+if TYPE_CHECKING:
+    from .position_tracker import PositionTracker
 
 
 logger = get_logger(__name__)
@@ -50,7 +53,7 @@ class TradeResult:
 
 class IBKRTradingService:
     """Unified IBKR trading service with resilient connection management."""
-
+    
     def __init__(self, paper_trading: bool = False):
         self.paper_trading = paper_trading
         self.pending_trades: Dict[str, Dict[str, Any]] = {}
@@ -73,7 +76,8 @@ class IBKRTradingService:
 
         # Optional Telegram notifier injected by the service container
         self.telegram_service = None
-
+        self.position_tracker: Optional["PositionTracker"] = None
+        
         if paper_trading:
             logger.info("IBKRTradingService initialized in PAPER TRADING mode.")
         else:
@@ -192,6 +196,7 @@ class IBKRTradingService:
 
         self.ib = IB()
         self.ib.disconnectedEvent += self._on_disconnect
+        self.ib.errorEvent += self._on_ib_error
 
         port = 4001 if self.paper_trading else 7497
         logger.info(f"🔌 Connecting to IB Gateway (port {port}, clientId 5)...")
@@ -218,6 +223,12 @@ class IBKRTradingService:
                 f"✅ Gateway API client verified via accountValues() ({len(accounts) if accounts else 0} accounts)"
             )
             self.gateway_api_client_connected = True
+            try:
+                # Ensure we are subscribed to live (not frozen/delayed) data
+                self.ib.reqMarketDataType(1)
+            except Exception as exc:
+                logger.warning("⚠️ Failed to request real-time market data type", error=str(exc))
+
             self._notify_telegram("✅ IB Gateway connected and verified")
         except Exception as exc:
             logger.error(f"❌ Connection verification failed: {exc}")
@@ -251,8 +262,6 @@ class IBKRTradingService:
             except Exception as exc:
                 logger.error(f"❌ Reconnect attempt failed: {exc}", attempts=attempts)
                 await asyncio.sleep(self._reconnect_backoff_seconds)
-            else:
-                break
 
     def _start_connection_verification(self) -> None:
         if self._main_event_loop is None:
@@ -353,6 +362,25 @@ class IBKRTradingService:
             lambda: asyncio.create_task(send_method(message))
         )
 
+    def _on_ib_error(self, req_id: int, error_code: int, error_message: str, misc: str):
+        # High-frequency error 2104/2106 spam is already handled by IB; only log non-informational codes
+        if error_code in {2104, 2106, 2107, 2157, 2158}:
+            logger.debug(
+                "IBKR informational message",
+                req_id=req_id,
+                error_code=error_code,
+                message=error_message,
+                misc=misc,
+            )
+            return
+        logger.warning(
+            "IBKR error event",
+            req_id=req_id,
+            error_code=error_code,
+            message=error_message,
+            misc=misc,
+        )
+
     # ------------------------------------------------------------------
     # Trade processing
     # ------------------------------------------------------------------
@@ -365,11 +393,22 @@ class IBKRTradingService:
 
         logger.info(
             "🚀 Processing trade request",
-            ticker=trade_request.ticker,
-            amount=trade_request.amount_usd,
+                   ticker=trade_request.ticker,
+                   amount=trade_request.amount_usd,
             action=trade_request.action,
+            shares=trade_request.shares,
         )
-        return await self._execute_trade(trade_request, timeout_seconds)
+        result = await self._execute_trade(trade_request, timeout_seconds)
+
+        if result.success and trade_request.action.upper() == "SELL" and self.position_tracker:
+            if trade_request.close_all_positions:
+                self.position_tracker.remove_position(trade_request.ticker)
+            elif trade_request.position_article_id:
+                self.position_tracker.remove_position(
+                    trade_request.ticker, trade_request.position_article_id
+                )
+
+        return result
 
     async def _execute_trade(
         self,
@@ -378,62 +417,29 @@ class IBKRTradingService:
     ) -> TradeResult:
         """Execute a trade using IBKR API with market session detection."""
 
-        logger.info(
-            "🚀 Starting UNIFIED trade execution",
-            ticker=trade_request.ticker,
-            amount=trade_request.amount_usd,
-        )
+        total_start_time = time.time()
+        deadline = None if timeout_seconds is None else time.monotonic() + timeout_seconds
+
+        def remaining_time() -> Optional[float]:
+            if deadline is None:
+                return None
+            return deadline - time.monotonic()
+
+        session = "unknown"
+        order_type_hint = "LIMIT"
 
         try:
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(
-                None, self._run_trade_in_thread, trade_request, timeout_seconds
-            )
-            return result
-        except Exception as exc:
-            logger.error("❌ Trade execution failed", error=str(exc))
-            return TradeResult(success=False, error=str(exc))
-
-    def _run_trade_in_thread(
-        self,
-        trade_request: TradeRequest,
-        timeout_seconds: Optional[float] = None,
-    ) -> TradeResult:
-        import asyncio as _asyncio
-
-        loop = _asyncio.new_event_loop()
-        _asyncio.set_event_loop(loop)
-        try:
-            return loop.run_until_complete(
-                self._execute_trade_sync(trade_request, timeout_seconds)
-            )
-        finally:
-            loop.close()
-
-    async def _execute_trade_sync(
-        self,
-        trade_request: TradeRequest,
-        timeout_seconds: Optional[float] = None,
-    ) -> TradeResult:
-        """Execute a trade using IBKR API with market session detection."""
-
-        try:
-            total_start_time = time.time()
-            deadline = None if timeout_seconds is None else time.monotonic() + timeout_seconds
-
-            def remaining_time() -> Optional[float]:
-                if deadline is None:
-                    return None
-                return deadline - time.monotonic()
-
             session_start = time.time()
             session, _ = self.get_market_session()
             session_time = time.time() - session_start
             logger.info(f"⏱️ Market session detection: {session_time:.3f}s")
-
+            
             if session == "closed":
                 logger.error("❌ Market is currently closed - no trading available")
                 return TradeResult(success=False, error="Market is currently closed", session="closed")
+
+            if session == "market_hours":
+                order_type_hint = "MARKET"
 
             remaining = remaining_time()
             if remaining is not None and remaining <= 0:
@@ -443,7 +449,7 @@ class IBKRTradingService:
             ib = await self._ensure_connected(remaining)
             connect_time = time.time() - connect_start
             logger.info(f"✅ Connection ready - {connect_time:.3f}s")
-
+            
             remaining = remaining_time()
             if remaining is not None and remaining <= 0:
                 raise TimeoutError("Trade timeout reached before order preparation")
@@ -452,7 +458,7 @@ class IBKRTradingService:
             contract = Stock(trade_request.ticker, "SMART", "USD")
             contract_time = time.time() - contract_start
             logger.info(f"✅ Contract created: {contract} - {contract_time:.3f}s")
-
+            
             if session == "market_hours":
                 logger.info("📈 MARKET HOURS: Using market order strategy")
                 return await self._execute_market_hours_trade(
@@ -466,7 +472,7 @@ class IBKRTradingService:
                     deadline,
                 )
 
-            logger.info(f"🌅 EXTENDED HOURS ({session}): Using limit order strategy")
+            logger.info("🌙 EXTENDED HOURS: Using ladder limit order strategy")
             return await self._execute_extended_hours_trade(
                 ib,
                 contract,
@@ -477,10 +483,14 @@ class IBKRTradingService:
                 contract_time,
                 deadline,
             )
-
         except TimeoutError as exc:
-            logger.error("❌ Trade execution timed out", error=str(exc))
-            return TradeResult(success=False, error=str(exc))
+            logger.error(
+                "❌ Trade execution timed out",
+                error=str(exc),
+                session=session,
+                ticker=trade_request.ticker,
+            )
+            return TradeResult(success=False, error=str(exc), session=session, order_type=order_type_hint)
         except asyncio.TimeoutError as exc:
             logger.error("❌ Trade execution timed out", error=str(exc))
             return TradeResult(success=False, error="Trade attempt timed out")
@@ -536,6 +546,11 @@ class IBKRTradingService:
                 raise TimeoutError("Trade timed out before qualifying contract")
 
             logger.info(f"📊 Requesting IBKR real-time quote for {contract.symbol}...")
+            try:
+                ib.reqMarketDataType(1)
+                logger.debug("Requested market data type", market_data_type=ib.marketDataType())
+            except Exception as exc:
+                logger.warning("⚠️ Unable to request real-time market data type while fetching quote", error=str(exc))
             qualify_coro = ib.qualifyContractsAsync(contract)
             if remaining is None:
                 qualified_list = await qualify_coro
@@ -547,8 +562,15 @@ class IBKRTradingService:
                 return None
 
             [qualified] = qualified_list
+            logger.debug("Qualified contract", contract=qualified)
             ticker = ib.reqMktData(qualified, "", True, False)
-            for _ in range(10):
+            last_snapshot: Dict[str, Optional[float]] = {
+                "last": None,
+                "bid": None,
+                "ask": None,
+                "close": None,
+            }
+            for iteration in range(10):
                 remaining = time_left()
                 if remaining is not None and remaining <= 0:
                     break
@@ -559,6 +581,13 @@ class IBKRTradingService:
                 bid = getattr(ticker, "bid", None)
                 ask = getattr(ticker, "ask", None)
                 close = getattr(ticker, "close", None)
+                last_snapshot = {
+                    "last": last_price,
+                    "bid": bid,
+                    "ask": ask,
+                    "close": close,
+                    "iteration": iteration,
+                }
                 if last_price and last_price > 0:
                     ib.cancelMktData(qualified)
                     return float(last_price)
@@ -571,8 +600,21 @@ class IBKRTradingService:
             ib.cancelMktData(qualified)
             remaining = time_left()
             if remaining is not None and remaining <= 0:
-                raise TimeoutError("Trade timed out before market data returned")
-            logger.error("❌ IBKR quote unavailable (no last/bbo/close)")
+                logger.error(
+                    "⏱️ Timeout waiting for IBKR quote",
+                    ticker=contract.symbol,
+                    snapshot=last_snapshot,
+                    market_data_type=ib.marketDataType() if hasattr(ib, "marketDataType") else None,
+                )
+                raise TimeoutError(
+                    "Timeout waiting for IBKR quote (no last/bid/ask received); check real-time market data subscription"
+                )
+            logger.error(
+                "❌ IBKR quote unavailable (no last/bbo/close)",
+                ticker=contract.symbol,
+                snapshot=last_snapshot,
+                market_data_type=ib.marketDataType() if hasattr(ib, "marketDataType") else None,
+            )
             return None
         except TimeoutError:
             raise
@@ -604,16 +646,17 @@ class IBKRTradingService:
                 raise TimeoutError("Trade timed out before order creation")
 
             action = trade_request.action.upper()
+            quantity = trade_request.shares or 1
             order_create_start = time.time()
-            order = MarketOrder(action, 1)
+            order = MarketOrder(action, quantity)
             order_create_time = time.time() - order_create_start
             logger.info(f"✅ Market order created: {order} (create: {order_create_time:.3f}s)")
-
+            
             place_start = time.time()
             trade = ib.placeOrder(contract, order)
             place_time = time.time() - place_start
             logger.info(f"✅ Order placed: {trade} (place: {place_time:.3f}s)")
-
+            
             fill_wait_start = time.time()
             for attempt in range(10):
                 remaining = time_left()
@@ -628,15 +671,18 @@ class IBKRTradingService:
                 if sleep_interval > 0:
                     await asyncio.sleep(sleep_interval)
                 if trade.isDone():
-                    fill_price = trade.orderStatus.avgFillPrice
+                    fill_price = trade.orderStatus.avgFillPrice or 0.0
+                    filled_shares = int(trade.orderStatus.filled or quantity)
                     fill_wait_time = time.time() - fill_wait_start
                     total_time = time.time() - total_start_time
-                    logger.info(f"🎉 ORDER FILLED! Price: ${fill_price}")
+                    logger.info(
+                        f"🎉 ORDER FILLED! Price: ${fill_price} for {filled_shares} share(s)"
+                    )
                     return TradeResult(
-                        success=True,
-                        shares=1,
-                        fill_price=fill_price,
-                        total_cost=fill_price,
+                        success=True, 
+                        shares=filled_shares,
+                        fill_price=fill_price, 
+                        total_cost=fill_price * filled_shares,
                         session="market_hours",
                         order_type="MARKET",
                         timing_info={
@@ -652,7 +698,7 @@ class IBKRTradingService:
             total_time = time.time() - total_start_time
             logger.warning("⚠️ ORDER TIMEOUT - Did not fill within 5 seconds")
             return TradeResult(
-                success=False,
+                success=False, 
                 error="Order timeout - did not fill within 5 seconds",
                 session="market_hours",
                 order_type="MARKET",
@@ -693,16 +739,31 @@ class IBKRTradingService:
             if remaining is not None and remaining <= 0:
                 raise TimeoutError("Trade timed out before price retrieval")
 
+            try:
+                ib.reqMarketDataType(1)
+            except Exception as exc:
+                logger.warning("⚠️ Unable to set market data type to real-time before quote retrieval", error=str(exc))
+
             price_start = time.time()
             current_price = await self.get_ibkr_realtime_price(ib, contract, timeout_deadline)
             price_time = time.time() - price_start
             logger.info(f"💰 Price retrieval: {price_time:.3f}s")
-
+            
             if not current_price:
-                logger.error("❌ Could not get real-time price from IBKR - aborting trade")
-                return TradeResult(success=False, error="Could not get real-time price", session=session, order_type="LIMIT")
-
+                logger.error(
+                    "❌ Could not get real-time price from IBKR - aborting trade",
+                    ticker=contract.symbol,
+                    session=session,
+                )
+                return TradeResult(
+                    success=False, 
+                    error="Could not get real-time price",
+                    session=session,
+                    order_type="LIMIT",
+                )
+            
             action = trade_request.action.upper()
+            quantity = trade_request.shares or 1
             remaining = time_left()
             if remaining is not None and remaining <= 0:
                 raise TimeoutError("Trade timed out before preparing ladder" )
@@ -751,17 +812,17 @@ class IBKRTradingService:
             current_cents = base_cents
             attempt_number = 1
             trading_start = time.time()
-
+            
             while abs(current_cents) <= abs(max_cents_from_start):
                 remaining = time_left()
                 if remaining is not None and remaining <= 0:
                     raise TimeoutError("Trade timed out before ladder could fill")
 
                 limit_price = round(base_price + (current_cents / 100.0), 2)
-                order = LimitOrder(action, 1, limit_price)
+                order = LimitOrder(action, quantity, limit_price)
                 order.outsideRth = True
                 order.tif = "IOC"
-
+                
                 trade = ib.placeOrder(contract, order)
                 fill_wait_start = time.time()
 
@@ -774,15 +835,18 @@ class IBKRTradingService:
                         await asyncio.sleep(sleep_interval)
                     if trade.isDone():
                         fill_wait_time = time.time() - fill_wait_start
-                        fill_price = trade.orderStatus.avgFillPrice
+                        fill_price = trade.orderStatus.avgFillPrice or limit_price
+                        filled_shares = int(trade.orderStatus.filled or quantity)
                         total_trading_time = time.time() - trading_start
                         total_time = time.time() - total_start_time
-                        logger.info(f"🎉 ORDER FILLED! Price: ${fill_price}")
+                        logger.info(
+                            f"🎉 ORDER FILLED after {attempt_number} attempt(s)! Price: ${fill_price}"
+                        )
                         return TradeResult(
-                            success=True,
-                            shares=1,
-                            fill_price=fill_price,
-                            total_cost=fill_price,
+                            success=True, 
+                            shares=filled_shares,
+                            fill_price=fill_price, 
+                            total_cost=fill_price * filled_shares,
                             session=session,
                             order_type="LIMIT",
                             timing_info={
@@ -799,16 +863,16 @@ class IBKRTradingService:
 
                     if trade.orderStatus and trade.orderStatus.status in ["Cancelled", "Rejected"]:
                         break
-
-                try:
-                    ib.cancelOrder(order)
-                except Exception:
-                    pass
-
+                
+                    try:
+                        ib.cancelOrder(order)
+                    except Exception:
+                        pass
+                
                 if attempt_number == switch_after:
                     step_cents = late_step if action == "BUY" else -late_step
                     wait_time = interval_late
-
+                
                 current_cents += step_cents
                 attempt_number += 1
                 remaining = time_left()
@@ -823,7 +887,7 @@ class IBKRTradingService:
                 f"❌ LADDER FAILED - no fill within ${abs(max_cents_from_start) / 100:.2f} {'above' if action == 'BUY' else 'below'}"
             )
             return TradeResult(
-                success=False,
+                success=False, 
                 error="Ladder failed - no fill within configured range",
                 session=session,
                 order_type="LIMIT",
@@ -847,6 +911,78 @@ class IBKRTradingService:
     ) -> TradeResult:
         return await self._execute_trade(trade_request, timeout_seconds)
 
+    async def probe_market_data(
+        self,
+        tickers: List[str],
+        timeout_seconds: float = 5.0,
+    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Attempt to fetch live market data for the provided tickers.
+
+        Returns a mapping of ticker -> diagnostic info containing whether
+        qualifying succeeded, if any price fields were received, and the
+        elapsed times for qualification and first quote.
+        """
+
+        diagnostics: Dict[str, Dict[str, Any]] = {}
+        ib = await self._ensure_connected(timeout_seconds)
+        try:
+            ib.reqMarketDataType(1)
+        except Exception as exc:
+            logger.warning("⚠️ Unable to request real-time market data type during probe", error=str(exc))
+
+        for ticker in tickers:
+            diag: Dict[str, Any] = {
+                "qualified": False,
+                "qualification_time_ms": None,
+                "quote_time_ms": None,
+                "had_price": False,
+                "last": None,
+                "bid": None,
+                "ask": None,
+                "close": None,
+            }
+            start = time.time()
+            try:
+                qualified = await ib.qualifyContractsAsync(Stock(ticker, "SMART", "USD"))
+                qualification_elapsed = (time.time() - start) * 1000
+                diag["qualification_time_ms"] = round(qualification_elapsed, 2)
+                if not qualified:
+                    diagnostics[ticker] = diag
+                    continue
+                diag["qualified"] = True
+                contract = qualified[0]
+                ticker_obj = ib.reqMktData(contract, "", True, False)
+                try:
+                    # Poll for up to timeout_seconds seconds for any price field
+                    poll_start = time.time()
+                    while time.time() - poll_start < timeout_seconds:
+                        await asyncio.sleep(0.1)
+                        last = getattr(ticker_obj, "last", None)
+                        bid = getattr(ticker_obj, "bid", None)
+                        ask = getattr(ticker_obj, "ask", None)
+                        close = getattr(ticker_obj, "close", None)
+                        if any(value and value > 0 for value in (last, bid, ask, close)):
+                            diag["had_price"] = True
+                            diag["quote_time_ms"] = round((time.time() - poll_start) * 1000, 2)
+                            diag["last"] = last
+                            diag["bid"] = bid
+                            diag["ask"] = ask
+                            diag["close"] = close
+                            break
+                    else:
+                        diag["quote_time_ms"] = round(timeout_seconds * 1000, 2)
+                finally:
+                    try:
+                        ib.cancelMktData(contract)
+                    except Exception:
+                        pass
+            except Exception as exc:
+                diag["error"] = str(exc)
+            diagnostics[ticker] = diag
+
+        return diagnostics
+
     # ------------------------------------------------------------------
     # User response helpers (unchanged from original implementation)
     # ------------------------------------------------------------------
@@ -859,13 +995,35 @@ class IBKRTradingService:
         }
         logger.info(
             "Added pending trade decision",
-            article_id=article_id,
-            tickers=tickers,
+                   article_id=article_id,
+                   tickers=tickers,
             expires_in_minutes=self.trade_timeout_minutes,
         )
 
     def process_user_response(self, user_chat_id: str, message_text: str) -> Optional[TradeRequest]:
         message_text = message_text.strip().lower()
+        
+        if message_text.startswith("close"):
+            parts = message_text.split()
+            if len(parts) != 2:
+                logger.warning("Invalid close command format", message=message_text, chat_id=user_chat_id)
+                return None
+
+            ticker = parts[1].upper()
+            total_shares = None
+            if self.position_tracker:
+                total_shares = self.position_tracker.get_total_shares(ticker)
+                if total_shares == 0:
+                    logger.warning("Requested close for ticker with no tracked position", ticker=ticker, chat_id=user_chat_id)
+            shares = total_shares or 1
+            logger.info("User requested manual close", ticker=ticker, shares=shares, chat_id=user_chat_id)
+            return TradeRequest(
+                ticker=ticker,
+                amount_usd=shares * 100.0,
+                action="SELL",
+                shares=shares,
+                close_all_positions=True,
+            )
 
         if message_text.startswith("trade"):
             parts = message_text.split()
@@ -875,15 +1033,15 @@ class IBKRTradingService:
                 ticker = parts[1].upper()
                 logger.info("User requested trade for specific ticker", ticker=ticker, chat_id=user_chat_id)
                 return self._create_general_trade_request(ticker)
-            logger.warning("Invalid trade command format", message=message_text, chat_id=user_chat_id)
-            return None
+                logger.warning("Invalid trade command format", message=message_text, chat_id=user_chat_id)
+                return None
 
         if message_text == "ignore":
             logger.info("User chose to ignore trade", chat_id=user_chat_id)
             return None
 
-        logger.info("Unrecognized user response", message=message_text, chat_id=user_chat_id)
-        return None
+            logger.info("Unrecognized user response", message=message_text, chat_id=user_chat_id)
+            return None
 
     def _handle_default_trade(self, user_chat_id: str) -> Optional[TradeRequest]:
         user_trades = [
@@ -891,28 +1049,34 @@ class IBKRTradingService:
             for aid, data in self.pending_trades.items()
             if data["user_chat_id"] == user_chat_id
         ]
-
+        
         if user_trades:
             article_id, trade_data = max(user_trades, key=lambda x: x[1]["timestamp"])
             if datetime.now() <= trade_data["expires_at"]:
                 logger.info("Using pending trade for default", article_id=article_id)
                 return self._create_trade_from_pending(article_id, trade_data)
-
+        
         logger.info("No pending trade available for default trade", chat_id=user_chat_id)
         return None
-
+        
     def _create_general_trade_request(self, ticker: str) -> TradeRequest:
         logger.info("Creating general trade request", ticker=ticker)
-        return TradeRequest(ticker=ticker, amount_usd=100.0, action="BUY")
+        return TradeRequest(ticker=ticker, amount_usd=100.0, action="BUY", shares=1)
 
     def _create_trade_from_pending(self, article_id: str, trade_data: Dict[str, Any]) -> Optional[TradeRequest]:
         tickers = trade_data["tickers"]
         if tickers:
             ticker = tickers[0]
             logger.info("Creating trade from pending", article_id=article_id, ticker=ticker)
-            return TradeRequest(ticker=ticker, amount_usd=100.0, action="BUY")
-        logger.warning("No tickers in pending trade data", article_id=article_id)
-        return None
+            return TradeRequest(
+                ticker=ticker,
+                amount_usd=100.0,
+                action="BUY",
+                shares=1,
+                position_article_id=article_id,
+            )
+            logger.warning("No tickers in pending trade data", article_id=article_id)
+            return None
 
 
 # Factory function for dependency injection
@@ -922,14 +1086,14 @@ _paper_trading_service_instance: Optional[IBKRTradingService] = None
 
 def get_ibkr_trading_service(paper_trading: bool = False) -> IBKRTradingService:
     global _ibkr_trading_service_instance, _paper_trading_service_instance
-
+    
     if paper_trading:
         if _paper_trading_service_instance is None:
             _paper_trading_service_instance = IBKRTradingService(paper_trading=True)
             logger.info("Created new IBKR paper trading service instance")
         return _paper_trading_service_instance
 
-    if _ibkr_trading_service_instance is None:
-        _ibkr_trading_service_instance = IBKRTradingService(paper_trading=False)
-        logger.info("Created new IBKR live trading service instance")
-    return _ibkr_trading_service_instance
+        if _ibkr_trading_service_instance is None:
+            _ibkr_trading_service_instance = IBKRTradingService(paper_trading=False)
+            logger.info("Created new IBKR live trading service instance")
+        return _ibkr_trading_service_instance

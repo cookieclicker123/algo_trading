@@ -131,15 +131,6 @@ class AutoTradeService:
             await self._send_skip_notification(article, reason)
             return
         
-        # Check if we already have an open position for this ticker
-        if self.position_tracker.has_open_position(ticker):
-            reason = f"Open position already exists for {ticker}"
-            logger.info(f"⏭️ AUTO-TRADE SKIPPED: {reason}", 
-                       ticker=ticker,
-                       article_id=article.source_id)
-            await self._send_skip_notification(article, reason)
-            return
-        
         # Execute trade - NO MARKET CAP GATE
         trade_placed_at = datetime.now()
         logger.info("🚀 AUTO-TRADING: Executing automatic trade on IMMINENT news",
@@ -152,7 +143,9 @@ class AutoTradeService:
             trade_request = TradeRequest(
                 ticker=ticker,
                 amount_usd=AUTO_TRADE_AMOUNT_USD,  # Will be converted to 1 share by trading service
-                action="BUY"
+                action="BUY",
+                shares=1,
+                position_article_id=article.source_id,
             )
             
             # Execute trade using existing trading service
@@ -210,7 +203,14 @@ class AutoTradeService:
                 
                 # Schedule exit after 5 minutes
                 asyncio.create_task(
-                    self._schedule_exit(ticker, result.shares, entry_time, result.fill_price, article)
+                    self._schedule_exit(
+                        ticker=ticker,
+                        shares=result.shares,
+                        entry_time=entry_time,
+                        entry_price=result.fill_price,
+                        article_id=article.source_id,
+                        article=article
+                    )
                 )
                 logger.info("🕐 Exit scheduled for 5 minutes from now", 
                            ticker=ticker,
@@ -238,11 +238,12 @@ class AutoTradeService:
             await self._send_error_notification(ticker, article, error_msg)
     
     async def _schedule_exit(
-        self, 
-        ticker: str, 
-        shares: int, 
+        self,
+        ticker: str,
+        shares: int,
         entry_time: datetime,
         entry_price: float,
+        article_id: str,
         article: Optional[StandardizedArticle] = None
     ) -> None:
         """
@@ -260,7 +261,7 @@ class AutoTradeService:
             await asyncio.sleep(AUTO_TRADE_EXIT_DELAY_MINUTES * 60)
             
             # Verify position still exists (might have been closed manually)
-            if not self.position_tracker.has_open_position(ticker):
+            if not self.position_tracker.has_open_position(ticker, article_id):
                 logger.warning("Position no longer exists - skipping exit",
                              ticker=ticker)
                 return
@@ -271,31 +272,25 @@ class AutoTradeService:
                        shares=shares,
                        entry_time=entry_time.isoformat())
             
-            exit_request = TradeRequest(
-                ticker=ticker,
-                amount_usd=shares * 1000.0,  # Approximate - actual will use shares
-                action="SELL"
-            )
-            
-            # For exit, we need to trade exact shares
-            # Modify trade request to specify shares instead of amount
-            # Actually, let's use a helper method that trades shares directly
-            result = await self._execute_exit_trade(ticker, shares)
+            result = await self._execute_exit_trade(ticker, shares, article_id)
             exit_time = datetime.now()
             
             # Get actual entry price from position tracker
-            actual_entry_price = self.position_tracker.get_entry_price(ticker) or entry_price
+            actual_entry_price = (
+                self.position_tracker.get_entry_price(ticker, article_id)
+                or entry_price
+            )
             
             # Update audit trail with exit info
             if self.audit_trail and article:
-                article_id = getattr(article, '_audit_article_id', article.source_id)
+                audit_article_id = getattr(article, '_audit_article_id', article.source_id)
                 pnl = (result.fill_price - actual_entry_price) * shares if result.success else None
                 pnl_percent = ((result.fill_price - actual_entry_price) / actual_entry_price * 100) if result.success and actual_entry_price > 0 else None
                 session = result.session or "unknown"
                 order_type = result.order_type or "unknown"
-                
+
                 self.audit_trail.update_trade_exit(
-                    article_id=article_id,
+                    article_id=audit_article_id,
                     exit_price=result.fill_price if result.success else None,
                     exit_time=exit_time,
                     pnl=pnl,
@@ -313,9 +308,6 @@ class AutoTradeService:
                            shares=result.shares,
                            exit_price=result.fill_price,
                            entry_price=actual_entry_price)
-                
-                # Remove position from tracker
-                self.position_tracker.remove_position(ticker)
             else:
                 logger.error("❌ AUTO-EXIT FAILED",
                             ticker=ticker,
@@ -328,7 +320,7 @@ class AutoTradeService:
                         ticker=ticker,
                         error=str(e))
     
-    async def _execute_exit_trade(self, ticker: str, shares: int):
+    async def _execute_exit_trade(self, ticker: str, shares: int, article_id: str):
         """
         Execute exit trade for exact number of shares.
         
@@ -347,7 +339,9 @@ class AutoTradeService:
         trade_request = TradeRequest(
             ticker=ticker,
             amount_usd=shares * estimated_price,  # Estimate - actual will use shares
-            action="SELL"
+            action="SELL",
+            shares=shares,
+            position_article_id=article_id
         )
         
         logger.info(f"Executing exit trade for {shares} shares of {ticker}",
