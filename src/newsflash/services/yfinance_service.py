@@ -129,6 +129,14 @@ class YFinanceService:
                 except (TypeError, ValueError):
                     return None
 
+            def _safe_str(value):
+                if value is None:
+                    return None
+                try:
+                    return str(value)
+                except Exception:
+                    return None
+
             market_cap_value = _safe_int(info.get("marketCap"))
             average_volume_30d = (
                 _safe_int(info.get("averageVolume"))
@@ -151,6 +159,10 @@ class YFinanceService:
                 'industry': info.get('industry', 'N/A'),
                 'primary_exchange': info.get('exchange', 'N/A'),
                 'market': info.get('market', 'N/A'),
+                'quote_type': info.get('quoteType'),
+                'sic_code': _safe_str(info.get('sicCode')),
+                'industry_key': info.get('industryKey'),
+                'long_business_summary': info.get('longBusinessSummary'),
                 'average_volume_30d': average_volume_30d,
                 'average_volume_10d': average_volume_10d,
                 'regular_market_volume': regular_market_volume,

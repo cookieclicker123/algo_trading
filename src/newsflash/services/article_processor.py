@@ -2,6 +2,7 @@
 Article processing service for handling new articles from Benzinga.
 """
 import asyncio
+import re
 from typing import List, Callable, Awaitable, Optional, Union, Any
 from datetime import datetime
 from ..models.benzinga_models import BenzingaArticle, convert_benzinga_to_standardized
@@ -63,9 +64,21 @@ class ArticleProcessor:
             "NYSEARCA",
         }
 
-        self._min_market_cap = 1_000_000_000  # USD
-        self._min_average_volume = 200_000
-        self._banned_sectors = {"INDUSTRIALS", "HEALTHCARE", "CONSUMER CYCLICAL"}
+        self._min_market_cap = 5_000_000_000  # USD
+        self._min_average_volume = 1_000_000
+        self._banned_sectors = {
+            "INDUSTRIALS",
+            "HEALTHCARE",
+            "CONSUMER CYCLICAL",
+            "FINANCIAL SERVICES",
+        }
+        self._holding_company_pattern = re.compile(r"\bholding(s)?\b", re.IGNORECASE)
+        self._holding_company_whitelist = {
+            "GOOG",
+            "GOOGL",
+            "META",
+            "BKNG",
+        }
         
         self.handlers: List[Callable[[Union[BenzingaArticle, StandardizedArticle]], Awaitable[None]]] = []
         
@@ -523,6 +536,15 @@ class ArticleProcessor:
             logger.warning("Failed to fetch fundamentals for ticker", ticker=ticker_upper, error=str(exc))
             return False
 
+        holding_company_reason = self._is_holding_company(ticker_upper, fundamentals)
+        if holding_company_reason:
+            logger.info(
+                "Ticker skipped due to holding-company classification",
+                ticker=ticker_upper,
+                detail=holding_company_reason,
+            )
+            return False
+
         exchange = (fundamentals.get("primary_exchange") or "").upper().strip()
 
         if not exchange:
@@ -575,6 +597,38 @@ class ArticleProcessor:
             return False
 
         return True
+
+    def _is_holding_company(self, ticker: str, fundamentals: dict) -> Optional[str]:
+        """
+        Determine whether a ticker represents a holding company that should be excluded.
+        Returns reason string if excluded, otherwise None.
+        """
+        ticker_upper = ticker.upper()
+        if ticker_upper in self._holding_company_whitelist:
+            return None
+
+        if not fundamentals:
+            return None
+
+        def _matches_holding(text: Optional[str]) -> bool:
+            if not text:
+                return False
+            return bool(self._holding_company_pattern.search(text))
+
+        company_name = (
+            fundamentals.get("company_name")
+            or fundamentals.get("long_name")
+            or fundamentals.get("longName")
+            or fundamentals.get("shortName")
+        )
+        if _matches_holding(company_name):
+            return "company_name"
+
+        industry = fundamentals.get("industry")
+        if _matches_holding(industry):
+            return "industry_label"
+
+        return None
 
 
 def get_article_processor(

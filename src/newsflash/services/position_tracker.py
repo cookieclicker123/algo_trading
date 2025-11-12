@@ -4,7 +4,7 @@ Tracks open positions and manages scheduled exits.
 """
 import json
 import os
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Any
 from datetime import datetime
 from dataclasses import dataclass, asdict
 from ..utils.logging_config import get_logger
@@ -21,6 +21,9 @@ class Position:
     entry_price: float
     article_id: str
     exit_scheduled: bool = False
+    instrument: str = "stock"
+    instrument_details: Optional[Dict[str, Any]] = None
+    leverage: Optional[float] = None
     
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
@@ -112,7 +115,10 @@ class PositionTracker:
         shares: int,
         entry_time: datetime,
         entry_price: float,
-        article_id: str
+        article_id: str,
+        instrument: Optional[str] = "stock",
+        instrument_details: Optional[Dict[str, Any]] = None,
+        leverage: Optional[float] = None,
     ) -> None:
         """
         Add a new position to tracking.
@@ -130,7 +136,10 @@ class PositionTracker:
             entry_time=entry_time.isoformat(),
             entry_price=entry_price,
             article_id=article_id,
-            exit_scheduled=True  # Mark as scheduled when added
+            exit_scheduled=True,  # Mark as scheduled when added
+            instrument=instrument or "stock",
+            instrument_details=instrument_details,
+            leverage=leverage,
         )
 
         ticker_positions = self.positions.setdefault(ticker, {})
@@ -142,7 +151,8 @@ class PositionTracker:
             ticker=ticker,
             shares=shares,
             entry_price=entry_price,
-            article_id=article_id
+            article_id=article_id,
+            instrument=position.instrument,
         )
     
     def remove_position(self, ticker: str, article_id: Optional[str] = None) -> None:

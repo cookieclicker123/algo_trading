@@ -177,7 +177,9 @@ class ClassificationAuditTrail:
         entry_price: Optional[float] = None,
         shares: Optional[int] = None,
         session: Optional[str] = None,
-        order_type: Optional[str] = None
+        order_type: Optional[str] = None,
+        instrument: Optional[str] = None,
+        instrument_details: Optional[Dict[str, Any]] = None,
     ) -> bool:
         """
         Update audit entry with auto-trade placement information.
@@ -222,6 +224,10 @@ class ClassificationAuditTrail:
                         entry["trade_details"]["session"] = session
                     if order_type:
                         entry["trade_details"]["order_type"] = order_type
+                    if instrument:
+                        entry["trade_details"]["instrument"] = instrument
+                    if instrument_details:
+                        entry["trade_details"]["instrument_details"] = instrument_details
                         
                 self._save_daily_classifications(file_path, classifications)
                 logger.info("Updated audit entry with auto-trade info", article_id=article_id)

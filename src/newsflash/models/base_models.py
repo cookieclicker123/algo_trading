@@ -83,13 +83,38 @@ class StandardizedArticle(BaseModel):
         return self.dict()
 
 
+class TradeInstrument(str, Enum):
+    STOCK = "stock"
+    OPTION = "option"
+
+
+class OptionContractParams(BaseModel):
+    symbol: str
+    last_trade_date_or_contract_month: str
+    strike: float
+    right: str = "C"
+    exchange: str = "SMART"
+    currency: str = "USD"
+    multiplier: str = "100"
+    trading_class: Optional[str] = None
+    con_id: Optional[int] = None
+
+
 class TradeRequest(BaseModel):
     """Model for trade requests."""
 
     ticker: str = Field(..., description="Stock ticker symbol")
     amount_usd: float = Field(..., description="Approximate notional value for logging")
     action: str = Field(default="BUY", description="Trade action (BUY/SELL)")
-    shares: Optional[int] = Field(default=None, description="Explicit share count to trade")
+    shares: Optional[int] = Field(default=None, description="Units to trade (shares for stock, contracts for options)")
+    instrument: TradeInstrument = Field(default=TradeInstrument.STOCK, description="Instrument type for the trade")
+    option_contract: Optional[OptionContractParams] = Field(
+        default=None,
+        description="Explicit option contract parameters (if None and instrument=OPTION, service will select ATM).",
+    )
+    leverage: Optional[float] = Field(
+        default=None, description="Leverage multiplier applied to the trade (e.g., 2.0 for 2x margin)."
+    )
     close_all_positions: bool = Field(
         default=False,
         description="When true, remove all tracked positions for the ticker after a successful SELL",
