@@ -326,6 +326,3 @@ class YFinanceService:
         }
 
 
-def get_yfinance_service() -> YFinanceService:
-    """Get yfinance service instance."""
-    return YFinanceService()

@@ -373,19 +373,6 @@ class ClassificationAuditTrail:
     
     def _get_article_id(self, article: StandardizedArticle) -> str:
         """Extract article ID from various article types."""
-        if hasattr(article, 'benzinga_id'):
-            return str(getattr(article, 'benzinga_id'))
-        if hasattr(article, 'id'):
-            return str(getattr(article, 'id'))
-        if hasattr(article, 'source_id'):
-            return str(getattr(article, 'source_id'))
-        # Fallback for dict-like objects
-        if isinstance(article, dict):
-            for key in ('benzinga_id', 'id', 'source_id'):
-                if key in article:
-                    return str(article[key])
-        return "unknown"
+        from ..utils.article_utils import get_article_id
+        return get_article_id(article)
 
-def get_classification_audit_trail() -> ClassificationAuditTrail:
-    """Get classification audit trail instance."""
-    return ClassificationAuditTrail()

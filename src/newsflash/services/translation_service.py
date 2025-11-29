@@ -94,10 +94,3 @@ class TranslationService:
             return message_data
 
 
-def get_translation_service() -> TranslationService:
-    """Get translation service instance with configuration."""
-    config = get_classification_config()
-    return TranslationService(
-        api_key=config["api_key"],
-        enabled=True  # Always enabled since we only call it for confirmed good news
-    )

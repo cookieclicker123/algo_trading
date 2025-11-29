@@ -13,8 +13,8 @@ from .article_processor import get_article_processor
 from .feed_manager import FeedManager
 from .telegram_service import get_telegram_notifier
 from .news_classifier import get_news_classifier
-from .translation_service import get_translation_service
-from .yfinance_service import get_yfinance_service
+from .translation_service import TranslationService
+from .yfinance_service import YFinanceService
 from .ibkr_trading_service import get_ibkr_trading_service
 from .telegram_trade_handler import get_telegram_trade_handler
 from .benzinga_websocket_service import BenzingaWebSocketService
@@ -23,6 +23,7 @@ from .auto_trade_service import AutoTradeService
 from .position_tracker import PositionTracker
 from .price_tracking_service import PriceTrackingService
 from .classification_audit_trail import ClassificationAuditTrail
+from ..config.settings import get_classification_config
 
 logger = get_logger(__name__)
 
@@ -58,8 +59,15 @@ def initialize_services() -> Services:
         # Initialize external services first (no dependencies)
         logger.info("Initializing external services...")
         
-        services.translator = get_translation_service()
-        services.yfinance = get_yfinance_service()
+        # Translation service (inline instead of factory)
+        translation_config = get_classification_config()
+        services.translator = TranslationService(
+            api_key=translation_config["api_key"],
+            enabled=True
+        )
+        
+        # YFinance service (inline instead of factory)
+        services.yfinance = YFinanceService()
         services.trading = get_ibkr_trading_service(paper_trading=True)
         
         # Initialize dependent services

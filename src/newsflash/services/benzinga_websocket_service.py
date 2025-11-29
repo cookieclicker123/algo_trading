@@ -698,14 +698,8 @@ class BenzingaWebSocketService:
     
     def get_stats(self) -> Dict[str, Any]:
         """Get WebSocket service statistics."""
-        stats_copy = {}
-        for key, value in self.stats.items():
-            # Serialize datetime objects to ISO format strings
-            if isinstance(value, datetime):
-                stats_copy[key] = value.isoformat()
-            else:
-                stats_copy[key] = value
-        return stats_copy
+        from ..utils.service_utils import serialize_stats
+        return serialize_stats(self.stats)
     
     def get_queued_articles(self) -> List[StandardizedArticle]:
         """Get all queued articles for processing."""

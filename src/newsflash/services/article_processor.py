@@ -8,6 +8,7 @@ from ..models.benzinga_models import BenzingaArticle, convert_benzinga_to_standa
 from ..models.base_models import StandardizedArticle
 from ..utils.json_storage import ArticleStorage
 from ..utils.logging_config import get_logger
+from ..utils.article_utils import get_article_id
 from ..services.telegram_service import TelegramNotifier
 from ..services.news_classifier import NewsClassifier
 from ..services.classification_audit_trail import ClassificationAuditTrail
@@ -382,9 +383,7 @@ class ArticleProcessor:
     
     def _get_article_id(self, article: Union[BenzingaArticle, StandardizedArticle]) -> str:
         """Get article ID for logging."""
-        if isinstance(article, BenzingaArticle):
-            return str(article.benzinga_id)
-        return article.source_id
+        return get_article_id(article)
     
     async def get_recent_articles(self, hours: int = 1) -> List[dict]:
         """Get recent articles from storage."""
