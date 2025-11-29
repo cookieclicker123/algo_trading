@@ -83,7 +83,6 @@ class IBKRTradingService:
         # Background tasks
         self._connection_verification_task: Optional[asyncio.Task] = None
         self._keepalive_task: Optional[asyncio.Task] = None
-        self._daily_restart_watchdog_task: Optional[asyncio.Task] = None
 
         self.keep_alive_interval = 60
         self._reconnect_backoff_seconds = 5
@@ -371,7 +370,6 @@ class IBKRTradingService:
         tasks = [
             self._connection_verification_task,
             self._keepalive_task,
-            self._daily_restart_watchdog_task,
         ]
 
         for task in tasks:
@@ -384,7 +382,6 @@ class IBKRTradingService:
 
         self._connection_verification_task = None
         self._keepalive_task = None
-        self._daily_restart_watchdog_task = None
 
         if self.ib:
             try:
@@ -580,9 +577,6 @@ class IBKRTradingService:
         except asyncio.CancelledError:
             logger.info("Keepalive task cancelled")
 
-    def _start_daily_restart_watchdog(self) -> None:
-        """Legacy no-op; daily watchdog removed in favor of single scheduled restart."""
-        return
 
     def _notify_telegram(self, message: str) -> None:
         if not self.telegram_service:
@@ -1987,7 +1981,7 @@ def get_ibkr_trading_service(paper_trading: bool = False) -> IBKRTradingService:
             _paper_trading_service_instance = IBKRTradingService(paper_trading=True)
             logger.info("Created new IBKR paper trading service instance")
         return _paper_trading_service_instance
-
+    else:
         if _ibkr_trading_service_instance is None:
             _ibkr_trading_service_instance = IBKRTradingService(paper_trading=False)
             logger.info("Created new IBKR live trading service instance")

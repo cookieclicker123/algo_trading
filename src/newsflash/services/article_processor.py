@@ -2,7 +2,6 @@
 Article processing service for handling new articles from Benzinga.
 """
 import asyncio
-import re
 from typing import List, Callable, Awaitable, Optional, Union, Any
 from datetime import datetime
 from ..models.benzinga_models import BenzingaArticle, convert_benzinga_to_standardized
@@ -12,7 +11,7 @@ from ..utils.logging_config import get_logger
 from ..services.telegram_service import TelegramNotifier
 from ..services.news_classifier import NewsClassifier
 from ..services.classification_audit_trail import ClassificationAuditTrail
-from ..config.settings import get_classification_config, AUTO_TRADE_MIN_MARKET_CAP_BILLIONS
+from ..config.settings import get_classification_config
 from ..services.yfinance_service import YFinanceService
 
 logger = get_logger(__name__)
@@ -51,34 +50,7 @@ class ArticleProcessor:
         self.classifier = classifier or self._create_default_classifier()
         self.audit_trail = ClassificationAuditTrail()
         self.auto_trade_service = auto_trade_service  # Optional auto-trade service
-        self._yf = YFinanceService()
-        self._allowed_ticker_prefixes = {
-            "NYSE",
-            "NASDAQ",
-            "NASDAQGS",
-            "NASDAQGM",
-            "NASDAQCM",
-            "AMEX",
-            "NYSEAMERICAN",
-            "NYSEMKT",
-            "NYSEARCA",
-        }
-
-        self._min_market_cap = 5_000_000_000  # USD
-        self._min_average_volume = 1_000_000
-        self._banned_sectors = {
-            "INDUSTRIALS",
-            "HEALTHCARE",
-            "CONSUMER CYCLICAL",
-            "FINANCIAL SERVICES",
-        }
-        self._holding_company_pattern = re.compile(r"\bholding(s)?\b", re.IGNORECASE)
-        self._holding_company_whitelist = {
-            "GOOG",
-            "GOOGL",
-            "META",
-            "BKNG",
-        }
+        self._yf = YFinanceService()  # Used for metadata gathering, not filtering
         
         self.handlers: List[Callable[[Union[BenzingaArticle, StandardizedArticle]], Awaitable[None]]] = []
         
@@ -203,17 +175,7 @@ class ArticleProcessor:
             )
             return
 
-        is_tradeable = await self._is_tradeable_ticker(primary_ticker)
-
-        if not is_tradeable:
-            logger.info(
-                "Skipping article - primary ticker not supported",
-                article_id=self._get_article_id(article),
-                primary_ticker=primary_ticker,
-                tickers=getattr(article, "tickers", [])
-            )
-            return
-
+        # All filtering removed - articles with tickers proceed directly to AI classification
         # Run AI classification
         classification = None
         classified_at = None
@@ -444,39 +406,6 @@ class ArticleProcessor:
             "storage_stats": storage_stats,
         }
 
-    async def _passes_market_cap_gate(self, article: Union[BenzingaArticle, StandardizedArticle]) -> bool:
-        """Check if any involved company meets the market cap threshold.
-        Rule: Pass if primary ticker >= threshold OR any secondary ticker >= threshold.
-        Threshold defined by AUTO_TRADE_MIN_MARKET_CAP_BILLIONS.
-        """
-        try:
-            tickers: List[str] = article.tickers if isinstance(article, (BenzingaArticle, StandardizedArticle)) else []
-            if not tickers:
-                return False
-            threshold = AUTO_TRADE_MIN_MARKET_CAP_BILLIONS * 1_000_000_000
-            # Evaluate primary first, then others
-            primary = tickers[0]
-            caps: List[tuple[str, float]] = []
-            for t in tickers:
-                try:
-                    fundamentals = await self._yf.get_fundamental_data(t)
-                    mc = fundamentals.get('market_cap', 0.0) or fundamentals.get('valuation', {}).get('market_cap', 0.0)
-                    if mc:
-                        caps.append((t, float(mc)))
-                except Exception:
-                    continue
-            for t, mc in caps:
-                if t == primary and mc >= threshold:
-                    return True
-            # If primary failed, allow if any secondary meets threshold
-            for t, mc in caps:
-                if t != primary and mc >= threshold:
-                    return True
-            return False
-        except Exception as e:
-            logger.warning("Market-cap gate check failed; allowing trade by default", error=str(e))
-            return True
-
     def _extract_primary_ticker(self, article: Union[BenzingaArticle, StandardizedArticle, Any]) -> Optional[str]:
         tickers: List[Any] = []
 
@@ -495,140 +424,6 @@ class ArticleProcessor:
             return primary.strip()
 
         return str(primary).strip()
-
-    async def _is_tradeable_ticker(self, ticker: str) -> bool:
-        ticker_upper = ticker.upper().strip()
-
-        if not ticker_upper:
-            return False
-
-        if ":" in ticker_upper:
-            prefix, _, symbol = ticker_upper.partition(":")
-            if prefix not in self._allowed_ticker_prefixes:
-                return False
-            return bool(symbol)
-
-        # Bare tickers (no prefix) are assumed to be U.S.-listed
-        allowed_us_exchanges = {
-            "NYSE",
-            "NYS",
-            "NYQ",
-            "NASDAQ",
-            "NAS",
-            "NMS",
-            "NCM",
-            "NGM",
-            "NSQ",
-            "AMEX",
-            "ASE",
-            "NYSEAMERICAN",
-            "NYSEMKT",
-            "NYSE ARCA",
-            "NYSEARCA",
-            "ARCA",
-            "BATS",
-            "IEX"
-        }
-
-        try:
-            fundamentals = await self._yf.get_fundamental_data(ticker_upper)
-        except Exception as exc:
-            logger.warning("Failed to fetch fundamentals for ticker", ticker=ticker_upper, error=str(exc))
-            return False
-
-        holding_company_reason = self._is_holding_company(ticker_upper, fundamentals)
-        if holding_company_reason:
-            logger.info(
-                "Ticker skipped due to holding-company classification",
-                ticker=ticker_upper,
-                detail=holding_company_reason,
-            )
-            return False
-
-        exchange = (fundamentals.get("primary_exchange") or "").upper().strip()
-
-        if not exchange:
-            logger.info("Ticker skipped due to missing exchange metadata", ticker=ticker_upper)
-            return False
-
-        if not (exchange in allowed_us_exchanges or exchange.startswith("NAS") or exchange.startswith("NY")):
-            logger.info(
-                "Ticker skipped due to unsupported exchange",
-                ticker=ticker_upper,
-                primary_exchange=exchange
-            )
-            return False
-
-        sector = (fundamentals.get("sector") or "").upper().strip()
-        if sector and sector in self._banned_sectors:
-            logger.info("Ticker skipped due to banned sector", ticker=ticker_upper, sector=sector)
-            return False
-
-        def _as_number(value):
-            if value in (None, "N/A"):
-                return None
-            try:
-                return float(value)
-            except (TypeError, ValueError):
-                return None
-
-        market_cap = _as_number(fundamentals.get("market_cap"))
-        if market_cap is None or market_cap < self._min_market_cap:
-            logger.info(
-                "Ticker skipped due to insufficient market cap",
-                ticker=ticker_upper,
-                market_cap=market_cap,
-                minimum=self._min_market_cap
-            )
-            return False
-
-        avg_volume = (
-            _as_number(fundamentals.get("average_volume_30d"))
-            or _as_number(fundamentals.get("average_volume_10d"))
-            or _as_number(fundamentals.get("regular_market_volume"))
-        )
-        if avg_volume is None or avg_volume < self._min_average_volume:
-            logger.info(
-                "Ticker skipped due to insufficient average volume",
-                ticker=ticker_upper,
-                average_volume=avg_volume,
-                minimum=self._min_average_volume
-            )
-            return False
-
-        return True
-
-    def _is_holding_company(self, ticker: str, fundamentals: dict) -> Optional[str]:
-        """
-        Determine whether a ticker represents a holding company that should be excluded.
-        Returns reason string if excluded, otherwise None.
-        """
-        ticker_upper = ticker.upper()
-        if ticker_upper in self._holding_company_whitelist:
-            return None
-
-        if not fundamentals:
-            return None
-
-        def _matches_holding(text: Optional[str]) -> bool:
-            if not text:
-                return False
-            return bool(self._holding_company_pattern.search(text))
-
-        company_name = (
-            fundamentals.get("company_name")
-            or fundamentals.get("long_name")
-            or fundamentals.get("longName")
-            or fundamentals.get("shortName")
-        )
-        if _matches_holding(company_name):
-            return "company_name"
-
-        industry = fundamentals.get("industry")
-        if _matches_holding(industry):
-            return "industry_label"
-
-        return None
 
 
 def get_article_processor(

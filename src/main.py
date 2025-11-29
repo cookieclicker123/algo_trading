@@ -10,7 +10,7 @@ from pathlib import Path
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
-from newsflash.services.service_container import initialize_services
+from newsflash.services.service_initialization import initialize_services, start_services, stop_services
 from newsflash.utils.logging_config import setup_logging, get_logger
 
 # Setup logging
@@ -22,7 +22,7 @@ class NewsFlashStandalone:
     """Standalone news polling application."""
     
     def __init__(self):
-        self.container = None
+        self.services = None
         self.shutdown_event = asyncio.Event()
     
     async def start(self):
@@ -30,11 +30,11 @@ class NewsFlashStandalone:
         logger.info("Starting NewsFlash standalone polling system")
         
         try:
-            # Initialize service container
-            self.container = initialize_services()
+            # Initialize services
+            self.services = initialize_services()
             
             # Start all services
-            await self.container.start_all_services()
+            await start_services(self.services)
             
             # Wait for shutdown signal
             await self.shutdown_event.wait()
@@ -43,8 +43,8 @@ class NewsFlashStandalone:
             logger.error("Error in standalone system", error=str(e))
             raise
         finally:
-            if self.container:
-                await self.container.stop_all_services()
+            if self.services:
+                await stop_services(self.services)
             logger.info("NewsFlash standalone system stopped")
     
     def stop(self):

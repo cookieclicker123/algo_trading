@@ -10,7 +10,7 @@ import sys
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from newsflash.services.service_container import initialize_services
+from newsflash.services.service_initialization import initialize_services
 from newsflash.services.telegram_trade_handler import clear_trade_handler_instances, stop_all_trade_handlers
 from newsflash.utils.bot_conflict_resolver import resolve_bot_conflicts
 from newsflash.models.benzinga_models import BenzingaArticle
@@ -50,10 +50,10 @@ async def test_trading_integration():
     # Clear singleton instances
     clear_trade_handler_instances()
     
-    # Initialize services using the service container (REAL MODE - will send to Telegram)
-    container = initialize_services()
-    telegram_notifier = container.get_telegram_notifier()
-    trading_service = container.get_service('trading')
+    # Initialize services (REAL MODE - will send to Telegram)
+    services = initialize_services()
+    telegram_notifier = services.telegram
+    trading_service = services.trading
     
     # Start the Telegram service (this starts the trade handlers)
     await telegram_notifier.start()

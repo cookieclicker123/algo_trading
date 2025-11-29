@@ -2,10 +2,10 @@
 Unified feed manager for handling Benzinga WebSocket news source.
 """
 import asyncio
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 
 from ..utils.logging_config import get_logger
-from ..models.base_models import StandardizedArticle, NewsSource
+from ..models.base_models import NewsSource
 from ..services.benzinga_websocket_service import BenzingaWebSocketService
 from ..services.article_processor import ArticleProcessor
 
@@ -20,11 +20,6 @@ class FeedManager:
         self.processors: Dict[NewsSource, Any] = {}
         self.is_running = False
         self.benzinga_token = benzinga_token
-        self.stats = {
-            "total_articles": 0,
-            "last_article_time": None,
-            "last_error": None
-        }
         
         # Use provided article processor or create new one
         if article_processor:
@@ -38,7 +33,7 @@ class FeedManager:
         
         logger.info(
             "FeedManager initialized with processors", 
-            sources=list(self.processors.keys()),
+            sources=list[NewsSource](self.processors.keys()),
             websocket_enabled=self.benzinga_token is not None,
             telegram_enabled_1=getattr(self.article_processor.telegram, 'enabled_1', False),
             telegram_enabled_2=getattr(self.article_processor.telegram, 'enabled_2', False)
@@ -66,11 +61,10 @@ class FeedManager:
         self.is_running = True
         
         # Start Telegram notification queue processor (if enabled)
-        telegram_task = None
         telegram_enabled = (getattr(self.article_processor.telegram, 'enabled_1', False) or 
                            getattr(self.article_processor.telegram, 'enabled_2', False))
         if telegram_enabled and not self.article_processor.telegram.test_mode:
-            telegram_task = asyncio.create_task(
+            asyncio.create_task(
                 self.article_processor.telegram.start()
             )
             logger.info("Telegram notification service started")
@@ -171,13 +165,9 @@ class FeedManager:
             except Exception as e:
                 logger.error("Error stopping Benzinga WebSocket feed", error=str(e))
     
-    def _update_stats(self, stats_update: Dict[str, Any]):
-        """Update feed statistics."""
-        self.stats.update(stats_update)
-    
     def get_stats(self) -> Dict[str, Any]:
         """Get current feed statistics."""
-        return self.stats.copy()
+        return {}  # Stats tracking removed - will be redesigned
     
     def is_healthy(self) -> bool:
         """Check if all feeds are healthy."""
@@ -198,18 +188,3 @@ class FeedManager:
         
         return healthy_sources > 0  # At least one feed should be healthy
     
-    def get_available_sources(self) -> List[NewsSource]:
-        """Get list of available sources."""
-        return list(self.processors.keys())
-    
-    async def get_recent_articles(self, hours: int = 1, source: Optional[NewsSource] = None) -> List[StandardizedArticle]:
-        """Get recent articles from storage."""
-        return await self.article_processor.get_recent_articles(hours)
-    
-    async def get_archived_articles(self, date: str, source: Optional[NewsSource] = None) -> List[Dict[str, Any]]:
-        """Get archived articles for a specific date."""
-        return await self.article_processor.get_archived_articles(date)
-    
-    async def get_archive_stats(self) -> Dict[str, Any]:
-        """Get archive statistics."""
-        return await self.article_processor.get_archive_stats()

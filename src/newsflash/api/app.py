@@ -1,15 +1,14 @@
 """
 FastAPI application for the news trading system.
-Uses service container for proper dependency injection.
 """
 from fastapi import FastAPI, HTTPException
-
-from newsflash.models.base_models import NewsSource
-
-from ..services.service_container import get_service_container, initialize_services
+from ..services.service_initialization import initialize_services, start_services, stop_services, get_stats, is_healthy
 from ..utils.logging_config import get_logger
 
 logger = get_logger(__name__)
+
+# Global services instance
+_services = None
 
 
 def create_app() -> FastAPI:
@@ -23,14 +22,15 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     async def startup_event():
         """Initialize services on startup."""
+        global _services
         logger.info("Starting NewsFlash API server")
         
         try:
-            # Initialize service container
-            container = initialize_services()
+            # Initialize services
+            _services = initialize_services()
             
             # Start all services
-            await container.start_all_services()
+            await start_services(_services)
             
             logger.info("API server startup completed successfully")
             
@@ -41,11 +41,12 @@ def create_app() -> FastAPI:
     @app.on_event("shutdown")
     async def shutdown_event():
         """Cleanup on shutdown."""
+        global _services
         logger.info("Shutting down NewsFlash API server")
         
         try:
-            container = get_service_container()
-            await container.stop_all_services()
+            if _services:
+                await stop_services(_services)
             
             logger.info("API server shutdown completed")
             
@@ -55,17 +56,20 @@ def create_app() -> FastAPI:
     @app.get("/")
     async def root():
         """Root endpoint."""
+        global _services
         try:
-            container = get_service_container()
-            feed_manager = container.get_feed_manager()
+            if not _services:
+                raise HTTPException(status_code=503, detail="Services not initialized")
             
             return {
                 "service": "NewsFlash Trading System",
                 "status": "running",
                 "version": "2.0.0",
                 "sources": ["benzinga_websocket"],
-                "healthy": container.is_healthy()
+                "healthy": is_healthy(_services)
             }
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error("Root endpoint error", error=str(e))
             raise HTTPException(status_code=503, detail="Service not available")
@@ -73,10 +77,12 @@ def create_app() -> FastAPI:
     @app.get("/health")
     async def health_check():
         """Health check endpoint."""
+        global _services
         try:
-            container = get_service_container()
+            if not _services:
+                raise HTTPException(status_code=503, detail="Services not initialized")
             
-            if not container.is_healthy():
+            if not is_healthy(_services):
                 raise HTTPException(status_code=503, detail="Services unhealthy")
             
             return {
@@ -92,11 +98,14 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=503, detail=f"Health check failed: {str(e)}")
     
     @app.get("/stats")
-    async def get_stats():
+    async def get_stats_endpoint():
         """Get system statistics."""
+        global _services
         try:
-            container = get_service_container()
-            stats = container.get_stats()
+            if not _services:
+                raise HTTPException(status_code=503, detail="Services not initialized")
+            
+            stats = get_stats(_services)
             
             return {
                 "stats": stats,
@@ -108,55 +117,43 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=500, detail=f"Failed to get stats: {str(e)}")
     
     @app.get("/recent-articles")
-    async def get_recent_articles(hours: int = 1, source: str = None):
+    async def get_recent_articles(hours: int = 1):
         """Get recent articles from storage."""
+        global _services
         try:
-            container = get_service_container()
-            feed_manager = container.get_feed_manager()
+            if not _services or not _services.article_processor:
+                raise HTTPException(status_code=503, detail="Services not initialized")
             
-            # Filter by source if specified
-            source_filter = None
-            if source:
-                try:
-                    source_filter = NewsSource(source)
-                except ValueError:
-                    raise HTTPException(status_code=400, detail=f"Invalid source: {source}")
-            
-            articles = await feed_manager.get_recent_articles(hours, source_filter)
+            articles = await _services.article_processor.get_recent_articles(hours)
             
             return {
                 "articles": articles,
                 "count": len(articles),
                 "hours": hours,
-                "source_filter": source
             }
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error("Failed to get recent articles", error=str(e))
             raise HTTPException(status_code=500, detail=f"Failed to get recent articles: {str(e)}")
     
     @app.get("/archived-articles/{date}")
-    async def get_archived_articles(date: str, source: str = None):
+    async def get_archived_articles(date: str):
         """Get archived articles for a specific date (YYYY-MM-DD format)."""
+        global _services
         try:
-            container = get_service_container()
-            feed_manager = container.get_feed_manager()
+            if not _services or not _services.article_processor:
+                raise HTTPException(status_code=503, detail="Services not initialized")
             
-            # Filter by source if specified
-            source_filter = None
-            if source:
-                try:
-                    source_filter = NewsSource(source)
-                except ValueError:
-                    raise HTTPException(status_code=400, detail=f"Invalid source: {source}")
-            
-            articles = await feed_manager.get_archived_articles(date, source_filter)
+            articles = await _services.article_processor.get_archived_articles(date)
             
             return {
                 "articles": articles,
                 "count": len(articles),
                 "date": date,
-                "source_filter": source
             }
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error("Failed to get archived articles", error=str(e), date=date)
             raise HTTPException(status_code=500, detail=f"Failed to get archived articles: {str(e)}")
@@ -164,12 +161,15 @@ def create_app() -> FastAPI:
     @app.get("/archive-stats")
     async def get_archive_stats():
         """Get statistics about archived articles."""
+        global _services
         try:
-            container = get_service_container()
-            feed_manager = container.get_feed_manager()
+            if not _services or not _services.article_processor:
+                raise HTTPException(status_code=503, detail="Services not initialized")
             
-            stats = await feed_manager.get_archive_stats()
+            stats = await _services.article_processor.get_archive_stats()
             return stats
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error("Failed to get archive stats", error=str(e))
             raise HTTPException(status_code=500, detail=f"Failed to get archive stats: {str(e)}")
@@ -177,16 +177,19 @@ def create_app() -> FastAPI:
     @app.post("/start-feeds")
     async def start_feeds_endpoint():
         """Manually start all feeds (if not already running)."""
+        global _services
         try:
-            container = get_service_container()
-            feed_manager = container.get_feed_manager()
+            if not _services or not _services.feed_manager:
+                raise HTTPException(status_code=503, detail="Services not initialized")
             
-            if feed_manager.is_running:
+            if _services.feed_manager.is_running:
                 return {"message": "Feeds already running", "status": "running"}
             
-            await feed_manager.start_all_feeds()
+            await _services.feed_manager.start_all_feeds()
             return {"message": "Feeds started", "status": "started"}
             
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error("Failed to start feeds", error=str(e))
             raise HTTPException(status_code=500, detail=f"Failed to start feeds: {str(e)}")
@@ -194,13 +197,16 @@ def create_app() -> FastAPI:
     @app.post("/stop-feeds")
     async def stop_feeds_endpoint():
         """Manually stop all feeds."""
+        global _services
         try:
-            container = get_service_container()
-            feed_manager = container.get_feed_manager()
+            if not _services or not _services.feed_manager:
+                raise HTTPException(status_code=503, detail="Services not initialized")
             
-            await feed_manager.stop_all_feeds()
+            await _services.feed_manager.stop_all_feeds()
             return {"message": "Feeds stopped", "status": "stopped"}
             
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error("Failed to stop feeds", error=str(e))
             raise HTTPException(status_code=500, detail=f"Failed to stop feeds: {str(e)}")
