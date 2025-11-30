@@ -27,7 +27,6 @@ class TelegramNotifier:
     def __init__(
         self,
         test_mode: bool = False,
-        translator=None,
         yfinance_service=None,
         trade_handler=None,
         trade_handler_2=None,
@@ -37,7 +36,6 @@ class TelegramNotifier:
         
         Args:
             test_mode: If True, write to JSON instead of sending to Telegram
-            translator: Optional translation service (injected dependency)
             yfinance_service: Optional yfinance service (injected dependency)
             trade_handler: Optional trade handler (injected dependency)
         """
@@ -48,7 +46,6 @@ class TelegramNotifier:
         self.config_2 = get_telegram_config_2()
         
         # Use injected dependencies or create defaults
-        self.translator = translator
         self.yfinance_service = yfinance_service
         # Trade handlers for each bot (optional)
         self.trade_handler = trade_handler
@@ -135,14 +132,8 @@ class TelegramNotifier:
         # Format publication timestamp (already in UTC from API)
         published_gmt = article.published.strftime("%Y-%m-%d %H:%M:%S UTC")
         
-        # Get fundamental data for the first ticker (if available)
+        # YFinance removed - no fundamental data fetching
         fundamental_data = None
-        if tickers and len(tickers) > 0:
-            try:
-                fundamental_data = await self.yfinance_service.get_fundamental_data(tickers[0])
-                logger.info("Fundamental data fetched", ticker=tickers[0])
-            except Exception as e:
-                logger.error("Failed to fetch fundamental data", ticker=tickers[0], error=str(e))
         
         # Build message data
         message_data = {
@@ -262,58 +253,20 @@ class TelegramNotifier:
             article_id = str(article.source_id)
         
         # Create pending trades for IMMINENT news
-        if classification and classification.classification == NewsClassification.IMMINENT:
-            if self.trade_handler and self.trade_handler.trading_service:
-                self.trade_handler.trading_service.add_pending_trade(
-                    article_id=article_id,
-                    tickers=tickers,
-                    user_chat_id=self.config_1["chat_id"]
-                )
-                logger.info("Created pending trade for bot 1", article_id=article_id, tickers=tickers)
-            
-            if self.trade_handler_2 and self.trade_handler_2.trading_service:
-                self.trade_handler_2.trading_service.add_pending_trade(
-                    article_id=article_id,
-                    tickers=tickers,
-                    user_chat_id=self.config_2["chat_id"]
-                )
-                logger.info("Created pending trade for bot 2", article_id=article_id, tickers=tickers)
+        # Note: Pending trade tracking removed - new brokerage service doesn't track pending trades
+        # Trades are executed immediately via auto-trade use case or queued if market is closed
         
         if self.enabled_1:
-            # Bot 1 gets Chinese translation
-            if self.translator:
-                try:
-                    chinese_message_data = await self.translator.translate_to_chinese(message_data)
-                    chinese_message = self.format_message(chinese_message_data)
-                    
-                    # Add trading options for IMMINENT news
-                    if classification and classification.classification == NewsClassification.IMMINENT:
-                        chinese_message += self._format_trading_options(tickers)
-                    
-                    await self.message_queue_1.put((chinese_message, article))
-                    success_count += 1
-                    logger.debug("Chinese message queued for primary Telegram bot")
-                except Exception as e:
-                    logger.error("Failed to translate message for bot 1", error=str(e))
-                    # Fallback to English
-                    english_message = self.format_message(message_data)
-                    
-                    # Add trading options for IMMINENT news
-                    if classification and classification.classification == NewsClassification.IMMINENT:
-                        english_message += self._format_trading_options(tickers)
-                    
-                    await self.message_queue_1.put((english_message, article))
-                    success_count += 1
-            else:
-                # No translator available, send English
-                english_message = self.format_message(message_data)
-                
-                # Add trading options for IMMINENT news
-                if classification and classification.classification == NewsClassification.IMMINENT:
-                    english_message += self._format_trading_options(tickers)
-                
-                await self.message_queue_1.put((english_message, article))
-                success_count += 1
+            # Bot 1 gets English message (translation service removed)
+            english_message = self.format_message(message_data)
+            
+            # Add trading options for IMMINENT news
+            if classification and classification.classification == NewsClassification.IMMINENT:
+                english_message += self._format_trading_options(tickers)
+            
+            await self.message_queue_1.put((english_message, article))
+            success_count += 1
+            logger.debug("English message queued for primary Telegram bot")
         
         if self.enabled_2:
             # Bot 2 gets English message
@@ -541,7 +494,6 @@ class TelegramNotifier:
 
 def get_telegram_notifier(
     test_mode: bool = False,
-    translator=None,
     yfinance_service=None,
     trade_handler=None,
     trade_handler_2=None,
@@ -551,7 +503,6 @@ def get_telegram_notifier(
     
     Args:
         test_mode: If True, write to JSON instead of sending to Telegram
-        translator: Optional translation service (injected dependency)
         yfinance_service: Optional yfinance service (injected dependency)
         trade_handler: Optional trade handler (injected dependency)
         
@@ -560,7 +511,6 @@ def get_telegram_notifier(
     """
     return TelegramNotifier(
         test_mode=test_mode,
-        translator=translator,
         yfinance_service=yfinance_service,
         trade_handler=trade_handler,
         trade_handler_2=trade_handler_2,

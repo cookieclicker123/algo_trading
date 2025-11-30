@@ -2,7 +2,7 @@
 Base models for standardized news article handling from Benzinga.
 """
 from datetime import datetime
-from typing import List, Optional, Dict, Any, Union
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field, field_validator
 from enum import Enum
 

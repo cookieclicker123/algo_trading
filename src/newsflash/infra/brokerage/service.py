@@ -1,0 +1,358 @@
+"""
+IBKR Brokerage Service - main orchestrator for brokerage infrastructure.
+Pure infrastructure - coordinates connection, quotes, executors, and queue.
+"""
+import time
+from typing import Optional, Dict, Any
+from datetime import datetime
+
+from ib_insync import Stock
+
+from ...utils.logging_config import get_logger
+from ...models.base_models import TradeRequest
+from .infrastructure_models import InfrastructureTradeExecutionRequestEvent
+from ...shared.event_bus import get_event_bus
+from .connection_manager import IBKRConnectionManager
+from .quote_fetcher import IBKRQuoteFetcher
+from .trade_executor_market_hours import MarketHoursTradeExecutor
+from .trade_executor_extended_hours import ExtendedHoursTradeExecutor
+from .queue_manager import TradeQueueManager
+from .events import BrokerageHealthStatusEvent
+from ...utils.brokerage.session_detector import get_market_session
+from ...utils.service_utils import serialize_stats
+
+logger = get_logger(__name__)
+
+
+class IBKRBrokerageService:
+    """
+    Main IBKR brokerage service orchestrator.
+    
+    Responsibilities:
+    - Manage connection lifecycle
+    - Route trades to appropriate executors
+    - Queue closed-market trades
+    - Coordinate quote fetching
+    - Publish health status events
+    
+    Does NOT:
+    - Know about business logic
+    - Send Telegram notifications
+    - Know about AI classification
+    """
+    
+    def __init__(self, paper_trading: bool = False, client_id: int = 5):
+        """
+        Initialize brokerage service.
+        
+        Args:
+            paper_trading: Whether to use paper trading port
+            client_id: IBKR client ID
+        """
+        self.paper_trading = paper_trading
+        self.client_id = client_id
+        
+        # Core components
+        self.connection_manager = IBKRConnectionManager(paper_trading=paper_trading, client_id=client_id)
+        self.quote_fetcher = IBKRQuoteFetcher()
+        self.market_hours_executor = MarketHoursTradeExecutor(self.quote_fetcher)
+        self.extended_hours_executor = ExtendedHoursTradeExecutor(self.quote_fetcher)
+        self.queue_manager = TradeQueueManager()
+        
+        # Event bus
+        self.event_bus = get_event_bus()
+        
+        # State
+        self.is_running = False
+        
+        logger.info("IBKRBrokerageService initialized", paper_trading=paper_trading, client_id=client_id)
+    
+    async def start(self) -> None:
+        """Start the brokerage service."""
+        if self.is_running:
+            logger.warning("Brokerage service already running")
+            return
+        
+        logger.info("🚀 Starting IBKR Brokerage Service")
+        self.is_running = True
+        
+        # Subscribe to trade execution requests from domain listener
+        self.event_bus.subscribe("TradeExecutionRequested", self._handle_trade_execution_request)
+        logger.info("Subscribed to TradeExecutionRequested events")
+        
+        # Start connection manager (will connect automatically)
+        await self.connection_manager.start()
+        
+        logger.info("✅ IBKR Brokerage Service started")
+    
+    async def _handle_trade_execution_request(self, event_type: str, event_data: Dict[str, Any]) -> None:
+        """
+        Handle trade execution request from domain listener.
+        
+        Receives typed InfrastructureTradeExecutionRequestEvent and executes trade.
+        """
+        try:
+            # Reconstruct typed infrastructure event
+            infra_event = InfrastructureTradeExecutionRequestEvent(**event_data)
+            
+            # Convert InfrastructureTradeRequestData to TradeRequest (shared model for now)
+            from ...models.base_models import TradeInstrument
+            trade_request = TradeRequest(
+                ticker=infra_event.trade_request.ticker,
+                amount_usd=infra_event.trade_request.amount_usd,
+                action=infra_event.trade_request.action,
+                shares=infra_event.trade_request.shares,
+                leverage=infra_event.trade_request.leverage,
+                instrument=TradeInstrument.STOCK,  # Stocks only
+            )
+            
+            logger.info(
+                "Received trade execution request from domain",
+                ticker=trade_request.ticker,
+                amount_usd=trade_request.amount_usd
+            )
+            
+            # Execute trade
+            result = await self.execute_trade(trade_request, timeout_seconds=30.0)
+            
+            logger.info(
+                "Trade execution completed",
+                ticker=trade_request.ticker,
+                success=result.get("success")
+            )
+            
+        except Exception as e:
+            logger.error(
+                "Error handling trade execution request",
+                error=str(e),
+                event_data=event_data,
+                exc_info=True
+            )
+    
+    async def stop(self) -> None:
+        """Stop the brokerage service."""
+        logger.info("🛑 Stopping IBKR Brokerage Service")
+        self.is_running = False
+        
+        # Stop connection manager
+        await self.connection_manager.stop()
+        
+        logger.info("✅ IBKR Brokerage Service stopped")
+    
+    def is_connected(self) -> bool:
+        """Check if brokerage is connected."""
+        return self.connection_manager.is_connected
+    
+    async def execute_trade(
+        self,
+        trade_request: TradeRequest,
+        timeout_seconds: Optional[float] = None,
+    ) -> Dict[str, Any]:
+        """
+        Execute a trade request.
+        
+        Args:
+            trade_request: Trade request to execute
+            timeout_seconds: Optional timeout in seconds
+            
+        Returns:
+            Trade result dictionary
+        """
+        total_start_time = time.time()
+        deadline = None if timeout_seconds is None else time.monotonic() + timeout_seconds
+        
+        def remaining_time() -> Optional[float]:
+            if deadline is None:
+                return None
+            return deadline - time.monotonic()
+        
+        try:
+            # Detect market session
+            session_start = time.time()
+            session, is_extended = get_market_session()
+            session_time = time.time() - session_start
+            logger.info(f"⏱️ Market session detection: {session_time:.3f}s", session=session)
+            
+            # Handle closed market - queue the trade
+            if session == "closed":
+                logger.info("🔒 Market is closed - queuing trade for next premarket")
+                try:
+                    self.queue_manager.queue_trade(trade_request)
+                    return {
+                        "success": False,
+                        "error": "Market is currently closed - trade queued for next premarket",
+                        "session": "closed",
+                        "order_type": None,
+                        "instrument": "stock",
+                        "queued": True,
+                    }
+                except Exception as exc:
+                    logger.error(f"Failed to queue trade: {exc}")
+                    return {
+                        "success": False,
+                        "error": f"Market is closed and queueing failed: {str(exc)}",
+                        "session": "closed",
+                        "order_type": None,
+                        "instrument": "stock",
+                        "queued": False,
+                    }
+            
+            # Ensure connection
+            remaining = remaining_time()
+            if remaining is not None and remaining <= 0:
+                raise TimeoutError("Trade timeout reached before connecting to IB Gateway")
+            
+            connect_start = time.time()
+            ib = await self.connection_manager.ensure_connected(remaining)
+            connect_time = time.time() - connect_start
+            logger.info(f"✅ Connection ready - {connect_time:.3f}s")
+            
+            # Create stock contract (stocks only, no options)
+            remaining = remaining_time()
+            if remaining is not None and remaining <= 0:
+                raise TimeoutError("Trade timeout reached before contract creation")
+            
+            contract_start = time.time()
+            contract = Stock(trade_request.ticker, "SMART", "USD")
+            contract_time = time.time() - contract_start
+            logger.info(f"✅ Contract created: {contract.symbol} - {contract_time:.3f}s")
+            
+            # Prepare timing info
+            timing_info = {
+                "session_detection": session_time,
+                "connection": connect_time,
+                "contract_creation": contract_time,
+            }
+            
+            # Route to appropriate executor
+            if session == "market_hours":
+                logger.info("📈 MARKET HOURS: Using market order strategy")
+                return await self.market_hours_executor.execute(
+                    ib,
+                    contract,
+                    trade_request,
+                    timing_info,
+                    deadline,
+                )
+            
+            # Extended hours (premarket or postmarket)
+            logger.info("🌙 EXTENDED HOURS: Using ladder limit order strategy", session=session)
+            return await self.extended_hours_executor.execute(
+                ib,
+                contract,
+                trade_request,
+                session,
+                timing_info,
+                deadline,
+            )
+        
+        except TimeoutError as exc:
+            logger.error(f"⏱️ Trade execution timed out: {exc}")
+            return {
+                "success": False,
+                "error": f"Trade execution timed out: {str(exc)}",
+                "session": session if 'session' in locals() else "unknown",
+                "order_type": None,
+                "instrument": "stock",
+            }
+        
+        except Exception as exc:
+            logger.error(f"❌ Trade execution failed: {exc}", exc_info=True)
+            return {
+                "success": False,
+                "error": str(exc),
+                "session": session if 'session' in locals() else "unknown",
+                "order_type": None,
+                "instrument": "stock",
+            }
+    
+    async def get_realtime_price(
+        self,
+        ticker: str,
+        timeout_seconds: Optional[float] = None,
+    ) -> Optional[float]:
+        """
+        Get real-time price for a ticker.
+        
+        Args:
+            ticker: Stock ticker symbol
+            timeout_seconds: Optional timeout in seconds
+            
+        Returns:
+            Real-time price or None if unavailable
+        """
+        try:
+            # Ensure connection
+            ib = await self.connection_manager.ensure_connected(timeout_seconds)
+            
+            # Create contract
+            contract = Stock(ticker, "SMART", "USD")
+            
+            # Get price
+            timeout_deadline = None if timeout_seconds is None else time.monotonic() + timeout_seconds
+            return await self.quote_fetcher.get_realtime_price(ib, contract, timeout_deadline)
+        
+        except Exception as exc:
+            logger.error(f"Failed to get real-time price for {ticker}", error=str(exc))
+            return None
+    
+    def get_market_session(self) -> tuple[str, bool]:
+        """
+        Get current market session.
+        
+        Returns:
+            Tuple of (session_name, is_extended_hours)
+        """
+        return get_market_session()
+    
+    def get_last_quote_snapshot(self, ticker: str) -> Optional[Dict[str, Any]]:
+        """
+        Get the most recent quote snapshot for a ticker.
+        
+        Args:
+            ticker: Stock ticker symbol
+            
+        Returns:
+            Quote snapshot dictionary or None
+        """
+        return self.quote_fetcher.get_last_quote_snapshot(ticker)
+    
+    def get_queued_trades(self) -> list[Dict[str, Any]]:
+        """Get all queued trades."""
+        return self.queue_manager.get_queued_trades()
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """Get brokerage service statistics."""
+        stats = {
+            "is_running": self.is_running,
+            "is_connected": self.is_connected(),
+            "paper_trading": self.paper_trading,
+            "client_id": self.client_id,
+            "connection": self.connection_manager.get_stats(),
+            "queued_trades_count": len(self.queue_manager.get_queued_trades()),
+        }
+        return serialize_stats(stats)
+    
+    def is_healthy(self) -> bool:
+        """Check if brokerage service is healthy."""
+        if not self.is_running:
+            return False
+        return self.connection_manager.is_healthy()
+    
+    async def publish_health_status(self) -> None:
+        """Publish health status event."""
+        is_healthy = self.is_healthy()
+        stats = self.get_stats()
+        
+        event = BrokerageHealthStatusEvent(
+            is_healthy=is_healthy,
+            reason="Service is healthy" if is_healthy else "Service is unhealthy",
+            is_connected=self.is_connected(),
+            occurred_at=datetime.now(),
+            stats=stats,
+            is_critical=not is_healthy and not self.is_connected(),
+        )
+        
+        await self.event_bus.publish("BrokerageHealthStatus", event.model_dump())
+        logger.debug("Published BrokerageHealthStatus event", is_healthy=is_healthy)
+

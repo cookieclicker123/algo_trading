@@ -2,11 +2,10 @@
 Telegram bot handler for processing user trade decisions.
 Handles replies to IMMINENT news messages.
 """
-from datetime import datetime
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
-from .ibkr_trading_service import get_ibkr_trading_service, TradeRequest
+from ..models.base_models import TradeRequest
 from ..utils.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -49,7 +48,10 @@ class TelegramTradeHandler:
             return
             
         self.bot_token = bot_token
-        self.trading_service = trading_service or get_ibkr_trading_service()
+        # New brokerage service (or compatible interface)
+        self.trading_service = trading_service
+        if not self.trading_service:
+            logger.warning("No trading service provided to TelegramTradeHandler - trades will fail")
         self.application = None
         self.is_running = False
         
@@ -157,23 +159,39 @@ class TelegramTradeHandler:
             )
             
             # Execute the trade
-            trade_result = await self.trading_service.process_trade_request(trade_request)
+            # New service uses execute_trade, old service uses process_trade_request
+            if hasattr(self.trading_service, 'execute_trade'):
+                trade_result = await self.trading_service.execute_trade(trade_request)
+                # New service returns dict
+                success = trade_result.get("success", False)
+                shares = trade_result.get("shares", 0)
+                fill_price = trade_result.get("fill_price", 0.0)
+                total_cost = trade_result.get("total_cost", 0.0)
+                error = trade_result.get("error", "")
+            else:
+                # Old service returns TradeResult object
+                trade_result = await self.trading_service.process_trade_request(trade_request)
+                success = trade_result.success
+                shares = trade_result.shares
+                fill_price = trade_result.fill_price
+                total_cost = trade_result.total_cost
+                error = trade_result.error
             
-            if trade_result.success:
+            if success:
                 await update.message.reply_text(
                     f"✅ Trade executed successfully!\n"
-                    f"📈 {trade_request.ticker}: {trade_result.shares} share(s) at ${trade_result.fill_price:.2f}\n"
-                    f"💰 Total cost: ${trade_result.total_cost:.2f}\n"
-                    f"🎯 Fill price: ${trade_result.fill_price:.2f}"
+                    f"📈 {trade_request.ticker}: {shares} share(s) at ${fill_price:.2f}\n"
+                    f"💰 Total cost: ${total_cost:.2f}\n"
+                    f"🎯 Fill price: ${fill_price:.2f}"
                 )
             else:
                 await update.message.reply_text(
                     f"❌ Trade execution failed.\n"
                     f"📈 {trade_request.ticker}: ${trade_request.amount_usd} {trade_request.action}\n"
-                    f"🚨 Error: {trade_result.error}\n\n"
+                    f"🚨 Error: {error}\n\n"
                     f"🔍 Check the server logs for detailed error information.\n"
                     f"Common issues:\n"
-                    f"• Market closed (use limit orders)\n"
+                    f"• Market closed (trade will be queued)\n"
                     f"• Insufficient buying power\n"
                     f"• Invalid ticker symbol\n"
                     f"• IBKR Gateway connection issues"
@@ -248,9 +266,8 @@ class TelegramTradeHandler:
                 text=trading_message
             )
             
-            # Add to pending trades
-            article_id = f"imminent_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            self.trading_service.add_pending_trade(article_id, tickers, chat_id)
+            # Note: Pending trade tracking removed - new brokerage service doesn't track pending trades
+            # Trades are executed immediately or queued if market is closed
             
             logger.info("Sent IMMINENT alert with trading options",
                        chat_id=chat_id,

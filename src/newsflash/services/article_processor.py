@@ -1,5 +1,7 @@
 """
 Article processing service for handling new articles from Benzinga.
+
+Service subscribes to Domain.ArticleReceived events and processes articles.
 """
 import asyncio
 from typing import List, Callable, Awaitable, Optional, Union, Any
@@ -13,7 +15,9 @@ from ..services.telegram_service import TelegramNotifier
 from ..services.news_classifier import NewsClassifier
 from ..services.classification_audit_trail import ClassificationAuditTrail
 from ..config.settings import get_classification_config
-from ..services.yfinance_service import YFinanceService
+from ..shared.event_bus import get_event_bus
+from ..domain.websocket.events import ArticleReceivedDomainEvent
+# YFinance removed - no longer used
 
 logger = get_logger(__name__)
 
@@ -44,6 +48,7 @@ class ArticleProcessor:
             telegram_notifier: Optional Telegram notifier (injected dependency)
             classifier: Optional news classifier (injected dependency)
             storage: Optional article storage (injected dependency)
+            auto_trade_service: Optional auto-trade service (injected dependency)
         """
         # Use injected dependencies or create defaults
         self.storage = storage or ArticleStorage()
@@ -51,12 +56,15 @@ class ArticleProcessor:
         self.classifier = classifier or self._create_default_classifier()
         self.audit_trail = ClassificationAuditTrail()
         self.auto_trade_service = auto_trade_service  # Optional auto-trade service
-        self._yf = YFinanceService()  # Used for metadata gathering, not filtering
+        # YFinance removed - no longer used for metadata
         
         self.handlers: List[Callable[[Union[BenzingaArticle, StandardizedArticle]], Awaitable[None]]] = []
         
+        # Services don't subscribe to domain events - use cases orchestrate by calling service methods
+        # This service provides focused operations, not orchestration
+        
         logger.info(
-            "ArticleProcessor initialized",
+            "ArticleProcessor initialized - provides focused operations for use cases to call",
             telegram_enabled_1=self.telegram.enabled_1,
             telegram_enabled_2=self.telegram.enabled_2,
             telegram_test_mode=self.telegram.test_mode,
@@ -215,49 +223,8 @@ class ArticleProcessor:
                         self._update_metadata_in_audit_trail(article, article_id)
                     )
                     
-                    # Auto-trade IMMINENT articles (if auto-trade service is available)
-                    # NO MARKET CAP GATE - all IMMINENT articles with tickers are traded
-                    if hasattr(self, 'auto_trade_service') and self.auto_trade_service:
-                        try:
-                            # Convert BenzingaArticle to StandardizedArticle if needed
-                            standardized_article = article
-                            if isinstance(article, BenzingaArticle):
-                                standardized_article = convert_benzinga_to_standardized(article)
-                                logger.debug(
-                                    "Converted BenzingaArticle to StandardizedArticle for auto-trade",
-                                    article_id=self._get_article_id(article)
-                                )
-                            
-                            # ALWAYS attempt auto-trade for IMMINENT articles with tickers
-                            # No gates - if it's IMMINENT and has tickers, attempt trade
-                            if classification:  # Ensure classification exists
-                                await self.auto_trade_service.process_imminent_article(
-                                    standardized_article, 
-                                    classification
-                                )
-                            else:
-                                logger.error(
-                                    "❌ AUTO-TRADE FAILED: Classification is None",
-                                    article_id=self._get_article_id(article),
-                                    tickers=standardized_article.tickers
-                                )
-                        except Exception as e:
-                            logger.error(
-                                "❌ AUTO-TRADE FAILED: Exception during execution",
-                                article_id=self._get_article_id(article),
-                                error=str(e),
-                                exc_info=True,
-                                tickers=article.tickers if hasattr(article, 'tickers') else []
-                            )
-                    else:
-                        # Auto-trade service not available - log clearly
-                        logger.warning(
-                            "❌ AUTO-TRADE FAILED: Auto-trade service not available",
-                            article_id=self._get_article_id(article),
-                            has_attr=hasattr(self, 'auto_trade_service'),
-                            service_exists=self.auto_trade_service is not None if hasattr(self, 'auto_trade_service') else False,
-                            tickers=article.tickers if hasattr(article, 'tickers') else []
-                        )
+                    # Services don't orchestrate - trading is handled separately
+                    # Auto-trade service subscribes to domain events or is called by use case
             except Exception as e:
                 logger.error(
                     "Failed to classify article",
@@ -347,37 +314,11 @@ class ArticleProcessor:
         if hasattr(article, 'tickers') and article.tickers:
             ticker = article.tickers[0]
         
-        if ticker:
-            try:
-                # Get fundamental data from yfinance (async, cached)
-                fundamental_data = await self._yf.get_fundamental_data(ticker)
-                
-                metadata = {
-                    "market_cap": fundamental_data.get("market_cap", "N/A"),
-                    "sector": fundamental_data.get("sector", "N/A"),
-                    "industry": fundamental_data.get("industry", "N/A"),
-                    "company_name": fundamental_data.get("company_name", ticker),
-                    "average_volume_30d": fundamental_data.get("average_volume_30d"),
-                    "average_volume_10d": fundamental_data.get("average_volume_10d"),
-                    "regular_market_volume": fundamental_data.get("regular_market_volume"),
-                    "regular_market_price": fundamental_data.get("regular_market_price"),
-                }
-                
-                logger.debug("Gathered metadata", ticker=ticker, metadata=metadata)
-                
-            except Exception as e:
-                logger.warning("Failed to gather metadata", ticker=ticker, error=str(e))
-                metadata = {
-                    "market_cap": "N/A",
-                    "sector": "N/A",
-                    "industry": "N/A",
-                    "company_name": ticker,
-                    "average_volume_30d": None,
-                    "average_volume_10d": None,
-                    "regular_market_volume": None,
-                    "regular_market_price": None,
-                    "error": str(e)
-                }
+        # YFinance removed - no metadata gathering
+        metadata = {
+            "company_name": ticker if ticker else "Unknown",
+        }
+        logger.debug("Metadata (YFinance removed)", ticker=ticker)
         
         return metadata
     
@@ -423,6 +364,47 @@ class ArticleProcessor:
             return primary.strip()
 
         return str(primary).strip()
+    
+    # Removed _handle_domain_article_received - services don't subscribe to domain events
+    # Use cases orchestrate by calling service methods
+    
+    def _convert_domain_article_to_standardized(self, domain_article) -> Optional[StandardizedArticle]:
+        """Convert domain Article to StandardizedArticle for processing."""
+        try:
+            from ..domain.websocket.models import Article
+            from ..models.base_models import NewsSource
+            
+            if not isinstance(domain_article, Article):
+                logger.error("ArticleProcessor: domain_article is not a domain Article model")
+                return None
+            
+            # Map domain source to StandardizedArticle source
+            # Domain uses "benzinga", StandardizedArticle uses "benzinga_websocket"
+            source = NewsSource.BENZINGA_WEBSOCKET  # Always benzinga_websocket for now
+            
+            return StandardizedArticle(
+                source=source,
+                source_id=str(domain_article.source_id),
+                title=domain_article.title,
+                content=domain_article.content,
+                summary=domain_article.summary,
+                author=domain_article.author,
+                published=domain_article.published_at,  # Map published_at -> published
+                updated=domain_article.updated_at,  # Map updated_at -> updated
+                url=domain_article.url,
+                tickers=list(domain_article.tickers) if domain_article.tickers else [],
+                tags=list(domain_article.tags) if domain_article.tags else [],
+                categories=list(domain_article.categories) if domain_article.categories else [],
+                images=list(domain_article.images) if hasattr(domain_article, 'images') and domain_article.images else [],
+                raw_data={}  # Required field - empty dict for now (original raw data not preserved in domain model)
+            )
+        except Exception as e:
+            logger.error(
+                "ArticleProcessor: Error converting domain Article to StandardizedArticle",
+                error=str(e),
+                exc_info=True
+            )
+            return None
 
 
 def get_article_processor(

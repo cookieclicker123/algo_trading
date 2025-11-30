@@ -1,0 +1,285 @@
+"""
+Domain listener for WebSocket - subscribes to infrastructure events, publishes domain events.
+
+This is the bridge between infrastructure and domain layers.
+Implements protocols for type-safe event handling.
+"""
+from typing import Dict, Any
+from datetime import datetime
+
+from ...shared.event_bus import get_event_bus
+from ...infra.websocket.infrastructure_models import ArticleReceivedInfrastructureEvent
+from ...infra.websocket.event_protocols import InfrastructureArticleEventSubscriber
+from ...utils.logging_config import get_logger
+from .validators import ArticleValidator
+from .factories import ArticleFactory
+from .events import (
+    ArticleReceivedDomainEvent,
+    ArticleValidationFailedDomainEvent,
+    WebSocketHealthStatusDomainEvent,
+    WebSocketConnectedDomainEvent,
+    WebSocketDisconnectedDomainEvent,
+    WebSocketErrorDomainEvent,
+    WebSocketRateLimitDomainEvent
+)
+from .models import Article
+from .event_protocols import DomainArticleEventPublisher
+
+logger = get_logger(__name__)
+
+
+class WebSocketDomainListener(InfrastructureArticleEventSubscriber, DomainArticleEventPublisher):
+    """
+    Listens to WebSocket infrastructure events and publishes domain events.
+    
+    Responsibilities:
+    - Subscribe to infrastructure ArticleReceivedEvent
+    - Validate and transform to domain models
+    - Publish domain events for services to consume
+    
+    Standard Domain Layer Pattern:
+    - Validators: Validate domain models (protocol contracts)
+    - Factories: Create domain models from infrastructure (use mappers internally + business rules)
+    - Note: No mappers needed here - only one-way flow (infra → domain), no reverse mapping required
+    """
+    
+    def __init__(self):
+        self.event_bus = get_event_bus()
+        # Validators: Validate domain models
+        self.validator = ArticleValidator()
+        # Factories: Create domain models (infra → domain, uses mappers internally)
+        self.factory = ArticleFactory()
+        self.is_running = False
+    
+    async def start(self) -> None:
+        """Start listening to infrastructure events."""
+        if self.is_running:
+            logger.warning("WebSocketDomainListener already running")
+            return
+        
+        self.is_running = True
+        # Subscribe to infrastructure article events
+        self.event_bus.subscribe("ArticleReceived", self._handle_article_received_from_bus)
+        # Subscribe to infrastructure health events
+        self.event_bus.subscribe("WebSocketHealthStatus", self._handle_websocket_health_status_from_bus)
+        self.event_bus.subscribe("WebSocketConnected", self._handle_websocket_connected_from_bus)
+        self.event_bus.subscribe("WebSocketDisconnected", self._handle_websocket_disconnected_from_bus)
+        self.event_bus.subscribe("WebSocketError", self._handle_websocket_error_from_bus)
+        self.event_bus.subscribe("WebSocketRateLimit", self._handle_websocket_rate_limit_from_bus)
+        logger.info("WebSocketDomainListener started - listening to infrastructure events")
+    
+    async def stop(self) -> None:
+        """Stop listening to infrastructure events."""
+        if not self.is_running:
+            return
+        
+        self.is_running = False
+        # Note: Event bus doesn't have unsubscribe yet, but we can ignore events
+        logger.info("WebSocketDomainListener stopped")
+    
+    async def handle_article_received(self, event: ArticleReceivedInfrastructureEvent) -> None:
+        """
+        Handle ArticleReceived infrastructure event (implements InfrastructureArticleEventSubscriber).
+        
+        Args:
+            event: Typed infrastructure event model (validated)
+        """
+        # Legacy wrapper for event bus compatibility (event_bus passes event_type, event_data)
+        await self._handle_article_received_from_bus("ArticleReceived", event.model_dump())
+    
+    async def _handle_article_received_from_bus(self, event_type: str, event_data: Dict[str, Any]) -> None:
+        """
+        Handle ArticleReceived infrastructure event.
+        
+        Flow: Validate → Factory (Map + Business Rules) → Publish
+        
+        Process:
+        1. Validate infrastructure event/data (reconstruct typed event - Pydantic validates)
+        2. Factory creates domain model (uses mapper internally to transform, then applies business rules)
+        3. Publish domain event
+        """
+        try:
+            logger.debug(
+                "WebSocketDomainListener: Received infrastructure article event",
+                event_type=event_type
+            )
+            
+            # Step 1: VALIDATE infrastructure event
+            # Reconstruct typed infrastructure event from dict (Pydantic validates structure)
+            infra_event = ArticleReceivedInfrastructureEvent(**event_data)
+            
+            # Validate infrastructure model structure
+            if not infra_event.article_data:
+                logger.warning("WebSocketDomainListener: No article_data in infrastructure event", event_type=event_type)
+                return
+            
+            # Pydantic already validated the infrastructure model structure
+            # No need to validate infrastructure format - we'll validate domain model after mapping
+            
+            # Step 2: FACTORY creates domain model (uses mapper internally + business rules)
+            # Factory uses mapper to transform infrastructure → domain, then validates domain model
+            domain_article = self.factory.create_from_infrastructure_model(
+                infra_event.article_data,
+                received_at=infra_event.received_at  # Pass received_at as fallback for published timestamp
+            )
+            
+            if not domain_article:
+                source_id = infra_event.article_data.source_id or str(infra_event.article_data.benzinga_id) if infra_event.article_data.benzinga_id else "unknown"
+                logger.warning(
+                    "WebSocketDomainListener: Failed to create domain article from infrastructure model",
+                    event_type=event_type,
+                    source_id=source_id,
+                    has_title=bool(infra_event.article_data.title),
+                    has_published=bool(infra_event.article_data.published),
+                    has_created_at=bool(infra_event.article_data.created_at)
+                )
+                await self._publish_validation_failed(
+                    infra_event.article_data.model_dump(),
+                    ["Failed to create domain article from infrastructure model - likely missing required fields"]
+                )
+                return
+            
+            # Step 3: PUBLISH typed domain event (factory already validated)
+            await self.publish_article_received(domain_article, infra_event.received_at)
+            
+        except Exception as e:
+            logger.error(
+                "WebSocketDomainListener: Error handling article event",
+                error=str(e),
+                event_type=event_type,
+                exc_info=True
+            )
+    
+    async def publish_article_received(self, article: Article, received_at: datetime) -> None:
+        """
+        Publish ArticleReceived domain event (implements DomainArticleEventPublisher).
+        
+        Args:
+            article: Typed domain Article model (validated, immutable)
+            received_at: When article was received
+        """
+        try:
+            domain_event = ArticleReceivedDomainEvent(
+                article=article,  # ✅ Typed domain model
+                received_at=received_at
+            )
+            await self.event_bus.publish("Domain.ArticleReceived", domain_event.model_dump())
+            
+            logger.info(
+                "WebSocketDomainListener: Published domain article event",
+                article_id=article.id,
+                tickers=list(article.tickers)
+            )
+        except Exception as e:
+            logger.error(
+                "WebSocketDomainListener: Error publishing domain article event",
+                error=str(e)
+            )
+    
+    async def _publish_validation_failed(
+        self,
+        article_data: Dict[str, Any],
+        errors: list[str]
+    ) -> None:
+        """Publish validation failed domain event."""
+        try:
+            event = ArticleValidationFailedDomainEvent(
+                article_data=article_data,
+                validation_errors=errors,
+                failed_at=datetime.now()
+            )
+            await self.event_bus.publish("Domain.ArticleValidationFailed", event.model_dump())
+            
+        except Exception as e:
+            logger.error(
+                "WebSocketDomainListener: Error publishing validation failed event",
+                error=str(e)
+            )
+    
+    async def _handle_websocket_health_status_from_bus(self, event_type: str, event_data: Dict[str, Any]) -> None:
+        """Handle WebSocketHealthStatus infrastructure event and publish domain event."""
+        try:
+            from ...infra.websocket.events import WebSocketHealthStatusEvent
+            infra_event = WebSocketHealthStatusEvent(**event_data)
+            
+            domain_event = WebSocketHealthStatusDomainEvent(
+                is_healthy=infra_event.healthy,
+                status=infra_event.status,
+                reason=infra_event.reason,
+                occurred_at=infra_event.occurred_at,
+                details=infra_event.details
+            )
+            await self.event_bus.publish("Domain.WebSocketHealthStatus", domain_event.model_dump())
+            
+            logger.debug(
+                "WebSocketDomainListener: Published domain health status event",
+                is_healthy=infra_event.healthy,
+                status=infra_event.status
+            )
+        except Exception as e:
+            logger.error("WebSocketDomainListener: Error handling health status event", error=str(e), exc_info=True)
+    
+    async def _handle_websocket_connected_from_bus(self, event_type: str, event_data: Dict[str, Any]) -> None:
+        """Handle WebSocketConnected infrastructure event and publish domain event."""
+        try:
+            from ...infra.websocket.events import WebSocketConnectedEvent
+            infra_event = WebSocketConnectedEvent(**event_data)
+            
+            domain_event = WebSocketConnectedDomainEvent(
+                connected_at=infra_event.connected_at
+            )
+            await self.event_bus.publish("Domain.WebSocketConnected", domain_event.model_dump())
+            
+            logger.debug("WebSocketDomainListener: Published domain connected event")
+        except Exception as e:
+            logger.error("WebSocketDomainListener: Error handling connected event", error=str(e), exc_info=True)
+    
+    async def _handle_websocket_disconnected_from_bus(self, event_type: str, event_data: Dict[str, Any]) -> None:
+        """Handle WebSocketDisconnected infrastructure event and publish domain event."""
+        try:
+            from ...infra.websocket.events import WebSocketDisconnectedEvent
+            infra_event = WebSocketDisconnectedEvent(**event_data)
+            
+            domain_event = WebSocketDisconnectedDomainEvent(
+                disconnected_at=infra_event.disconnected_at,
+                reason=infra_event.reason
+            )
+            await self.event_bus.publish("Domain.WebSocketDisconnected", domain_event.model_dump())
+            
+            logger.debug("WebSocketDomainListener: Published domain disconnected event")
+        except Exception as e:
+            logger.error("WebSocketDomainListener: Error handling disconnected event", error=str(e), exc_info=True)
+    
+    async def _handle_websocket_error_from_bus(self, event_type: str, event_data: Dict[str, Any]) -> None:
+        """Handle WebSocketError infrastructure event and publish domain event."""
+        try:
+            from ...infra.websocket.events import WebSocketErrorEvent
+            infra_event = WebSocketErrorEvent(**event_data)
+            
+            domain_event = WebSocketErrorDomainEvent(
+                error=infra_event.error,
+                occurred_at=infra_event.occurred_at,
+                is_rate_limit=infra_event.is_rate_limit
+            )
+            await self.event_bus.publish("Domain.WebSocketError", domain_event.model_dump())
+            
+            logger.debug("WebSocketDomainListener: Published domain error event")
+        except Exception as e:
+            logger.error("WebSocketDomainListener: Error handling error event", error=str(e), exc_info=True)
+    
+    async def _handle_websocket_rate_limit_from_bus(self, event_type: str, event_data: Dict[str, Any]) -> None:
+        """Handle WebSocketRateLimit infrastructure event and publish domain event."""
+        try:
+            from ...infra.websocket.events import WebSocketRateLimitEvent
+            infra_event = WebSocketRateLimitEvent(**event_data)
+            
+            domain_event = WebSocketRateLimitDomainEvent(
+                occurred_at=infra_event.occurred_at,
+                message=infra_event.message
+            )
+            await self.event_bus.publish("Domain.WebSocketRateLimit", domain_event.model_dump())
+            
+            logger.debug("WebSocketDomainListener: Published domain rate limit event")
+        except Exception as e:
+            logger.error("WebSocketDomainListener: Error handling rate limit event", error=str(e), exc_info=True)
+

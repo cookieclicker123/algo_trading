@@ -1,8 +1,7 @@
 """
 Service utility functions for common service patterns.
 """
-from typing import Dict, Any, Optional
-from datetime import datetime
+from typing import Dict, Any
 
 from .datetime_utils import serialize_datetime_for_json
 

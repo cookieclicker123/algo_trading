@@ -1,7 +1,7 @@
 """
 DateTime utility functions for consistent datetime handling across services.
 """
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from typing import Optional
 
 

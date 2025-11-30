@@ -10,20 +10,19 @@ from ..utils.logging_config import get_logger
 from ..config.settings import BENZINGA_API_KEY, BENZINGA_WEBSOCKET_ENABLED, get_telegram_config, get_telegram_config_2, GROQ_API_KEY, GROQ_MODEL
 
 from .article_processor import get_article_processor
-from .feed_manager import FeedManager
+from .websocket.feed_manager import FeedManager
 from .telegram_service import get_telegram_notifier
 from .news_classifier import get_news_classifier
-from .translation_service import TranslationService
-from .yfinance_service import YFinanceService
-from .ibkr_trading_service import get_ibkr_trading_service
+# YFinance removed - no longer used
 from .telegram_trade_handler import get_telegram_trade_handler
-from .benzinga_websocket_service import BenzingaWebSocketService
-from .feed_health_monitor import FeedHealthMonitor
-from .auto_trade_service import AutoTradeService
-from .position_tracker import PositionTracker
-from .price_tracking_service import PriceTrackingService
+from .websocket.feed_health_monitor import FeedHealthMonitor
 from .classification_audit_trail import ClassificationAuditTrail
 from ..config.settings import get_classification_config
+
+# New brokerage infrastructure and use cases
+from ..infra.brokerage import IBKRBrokerageService
+from ..use_cases import AutoTradeUseCase
+from ..services.brokerage import TradeRequestBuilder
 
 logger = get_logger(__name__)
 
@@ -32,22 +31,25 @@ class Services:
     """Simple container to hold all services."""
     
     def __init__(self):
-        self.translator = None
         self.yfinance = None
-        self.trading = None
+        self.brokerage = None  # New brokerage service
         self.trade_handler = None
         self.trade_handler_2 = None
         self.telegram = None
         self.classifier = None
-        self.position_tracker = None
         self.audit_trail = None
-        self.price_tracking = None
-        self.auto_trade_service = None
+        self.auto_trade_use_case = None  # New use case
+        self.process_article_use_case = None  # WebSocket use case
         self.article_processor = None
         self.feed_manager = None
         self.benzinga_websocket = None
         self.health_monitor = None
         self._health_monitor_task: Optional[asyncio.Task] = None
+        self.websocket_domain_listener = None
+        self.brokerage_domain_listener = None
+        
+        # Legacy compatibility (will be removed)
+        self.trading = None  # Deprecated - use self.brokerage instead
 
 
 def initialize_services() -> Services:
@@ -59,21 +61,17 @@ def initialize_services() -> Services:
         # Initialize external services first (no dependencies)
         logger.info("Initializing external services...")
         
-        # Translation service (inline instead of factory)
-        translation_config = get_classification_config()
-        services.translator = TranslationService(
-            api_key=translation_config["api_key"],
-            enabled=True
-        )
+        # New brokerage service (infrastructure layer)
+        services.brokerage = IBKRBrokerageService(paper_trading=True, client_id=5)
+        logger.info("IBKR Brokerage Service initialized")
         
-        # YFinance service (inline instead of factory)
-        services.yfinance = YFinanceService()
-        services.trading = get_ibkr_trading_service(paper_trading=True)
+        # Legacy compatibility (for telegram handlers during migration)
+        services.trading = services.brokerage
         
         # Initialize dependent services
         logger.info("Initializing dependent services...")
         
-        # Telegram trade handlers
+        # Telegram trade handlers (still using brokerage service)
         telegram_config_1 = get_telegram_config()
         telegram_config_2 = get_telegram_config_2()
         bot_token_1 = telegram_config_1.get("bot_token", "")
@@ -82,25 +80,21 @@ def initialize_services() -> Services:
         if telegram_config_1.get("enabled") and bot_token_1:
             services.trade_handler = get_telegram_trade_handler(
                 bot_token=bot_token_1,
-                trading_service=services.trading
+                trading_service=services.brokerage
             )
         
         if telegram_config_2.get("enabled") and bot_token_2:
             services.trade_handler_2 = get_telegram_trade_handler(
                 bot_token=bot_token_2,
-                trading_service=services.trading
+                trading_service=services.brokerage
             )
         
         # Telegram notifier
         services.telegram = get_telegram_notifier(
-            translator=services.translator,
-            yfinance_service=services.yfinance,
+            yfinance_service=None,  # YFinance removed
             trade_handler=services.trade_handler,
             trade_handler_2=services.trade_handler_2
         )
-        
-        # Inject telegram notifier into trading service
-        services.trading.telegram_service = services.telegram
         
         # News classifier
         services.classifier = get_news_classifier(
@@ -108,67 +102,64 @@ def initialize_services() -> Services:
             model=GROQ_MODEL
         )
         
-        # Position tracker
-        services.position_tracker = PositionTracker()
-        logger.info("PositionTracker initialized")
-        
-        # Share tracker with trading service
-        services.trading.position_tracker = services.position_tracker
-        
         # Classification audit trail
         services.audit_trail = ClassificationAuditTrail()
         logger.info("ClassificationAuditTrail initialized")
         
-        # Price tracking service
-        services.price_tracking = PriceTrackingService(
-            ibkr_service=services.trading,
-            audit_trail=services.audit_trail
-        )
-        logger.info("PriceTrackingService initialized")
-        
-        # Auto-trade service
-        services.auto_trade_service = AutoTradeService(
-            trading_service=services.trading,
-            position_tracker=services.position_tracker,
-            telegram_service=services.telegram,
-            audit_trail=services.audit_trail,
-            price_tracking_service=services.price_tracking
-        )
+        # Auto-trade service (handles trading logic, subscribes to domain events)
+        from ..services.brokerage.auto_trade_service import AutoTradeService
+        services.auto_trade_service = AutoTradeService()
         logger.info("AutoTradeService initialized")
         
-        # Article processor
+        # Auto-trade use case (orchestrates trading service)
+        services.auto_trade_use_case = AutoTradeUseCase(trading_service=services.auto_trade_service)
+        logger.info("AutoTradeUseCase initialized - orchestrates trading service")
+        
+        # Article processor (uses auto-trade service)
         article_processor = get_article_processor(
             telegram_notifier=services.telegram,
             classifier=services.classifier,
-            auto_trade_service=services.auto_trade_service
+            auto_trade_service=services.auto_trade_service  # Use trading service
         )
         # Inject shared audit trail
         article_processor.audit_trail = services.audit_trail
         services.article_processor = article_processor
         
-        # Feed manager
-        benzinga_token = BENZINGA_API_KEY if BENZINGA_WEBSOCKET_ENABLED else None
-        services.feed_manager = FeedManager(
-            article_processor=services.article_processor,
-            benzinga_token=benzinga_token
+        # Feed manager (no WebSocket management - just event subscription, no article_processor coupling)
+        services.feed_manager = FeedManager()
+        
+        # Process article use case (orchestrates services and use cases)
+        from ..use_cases.process_article_use_case import ProcessArticleUseCase
+        services.process_article_use_case = ProcessArticleUseCase(
+            storage_service=services.article_processor,  # Temporary - will split into focused services
+            classification_service=services.article_processor,
+            auto_trade_use_case=services.auto_trade_use_case,  # Orchestrate trading via use case
+            notification_service=services.telegram
         )
+        logger.info("ProcessArticleUseCase initialized - ready to orchestrate services and use cases")
         
-        # Benzinga WebSocket service
+        # Benzinga WebSocket microservice (infrastructure layer - managed separately)
         if BENZINGA_WEBSOCKET_ENABLED and BENZINGA_API_KEY:
-            services.benzinga_websocket = BenzingaWebSocketService(
-                article_processor=services.article_processor,
-                token=BENZINGA_API_KEY
-            )
-            logger.info("Benzinga WebSocket service initialized")
+            from ..infra.websocket.service import BenzingaWebSocketMicroservice
+            services.benzinga_websocket = BenzingaWebSocketMicroservice(token=BENZINGA_API_KEY)
+            logger.info("Benzinga WebSocket microservice initialized")
         else:
-            logger.info("Benzinga WebSocket service disabled or no API key")
+            services.benzinga_websocket = None
+            logger.info("Benzinga WebSocket microservice disabled")
         
-        # Health monitor
+        # Health monitor (no feed_manager dependency - just event subscription)
         services.health_monitor = FeedHealthMonitor(
-            feed_manager=services.feed_manager,
             telegram_service=services.telegram
         )
         logger.info("Feed health monitor initialized")
+        
+        # Domain listeners - bridge between infrastructure and domain
+        from ..domain.websocket.listener import WebSocketDomainListener
+        from ..domain.brokerage.listener import BrokerageDomainListener
+        
+        services.websocket_domain_listener = WebSocketDomainListener()
+        services.brokerage_domain_listener = BrokerageDomainListener()
+        logger.info("Domain listeners initialized")
         
         logger.info("All services initialized successfully")
         
@@ -217,20 +208,32 @@ async def start_services(services: Services) -> None:
         elif services.trade_handler_2:
             logger.info("Telegram trade handler 2 not started (bot 2 disabled)")
         
-        # Start IBKR trading service
-        logger.info("About to start IBKR Trading Service...")
-        await services.trading.start()
-        logger.info("IBKR Trading Service started and connected")
-        
-        # Start feed manager
-        await services.feed_manager.start_all_feeds()
-        
-        # Start Benzinga WebSocket service
+        # Start WebSocket microservice FIRST (infrastructure layer)
         if services.benzinga_websocket:
             services.benzinga_websocket.start()
-            logger.info("Benzinga WebSocket service started")
+            logger.info("Benzinga WebSocket microservice started")
         
-        # Start health monitor
+        # Start brokerage service (will connect automatically on startup)
+        logger.info("About to start IBKR Brokerage Service...")
+        await services.brokerage.start()
+        logger.info("IBKR Brokerage Service started")
+        
+        # Start domain listeners (bridge infrastructure → domain)
+        await services.websocket_domain_listener.start()
+        logger.info("WebSocket domain listener started")
+        
+        await services.brokerage_domain_listener.start()
+        logger.info("Brokerage domain listener started")
+        
+        # Start feed manager (non-blocking, event subscription only)
+        asyncio.create_task(services.feed_manager.start_all_feeds())
+        logger.info("Feed manager started")
+        
+        # Start process article use case (subscribes to Domain.ArticleReceived)
+        await services.process_article_use_case.start()
+        logger.info("Process article use case started")
+        
+        # Start health monitor as background task
         services._health_monitor_task = asyncio.create_task(
             services.health_monitor.start()
         )
@@ -248,6 +251,15 @@ async def stop_services(services: Services) -> None:
     logger.info("Stopping all services...")
     
     try:
+        # Stop domain listeners
+        if services.websocket_domain_listener:
+            await services.websocket_domain_listener.stop()
+            logger.info("WebSocket domain listener stopped")
+        
+        if services.brokerage_domain_listener:
+            await services.brokerage_domain_listener.stop()
+            logger.info("Brokerage domain listener stopped")
+        
         # Stop health monitor
         if services.health_monitor:
             await services.health_monitor.stop()
@@ -264,14 +276,20 @@ async def stop_services(services: Services) -> None:
             services.benzinga_websocket.stop()
             logger.info("Benzinga WebSocket service stopped")
         
-        # Stop IBKR trading service
-        if services.trading:
-            await services.trading.stop()
-            logger.info("IBKR Trading Service stopped")
+        # Stop brokerage service
+        if services.brokerage:
+            await services.brokerage.stop()
+            logger.info("IBKR Brokerage Service stopped")
         
         # Stop feed manager
         if services.feed_manager:
             await services.feed_manager.stop_all_feeds()
+            logger.info("Feed manager stopped")
+        
+        # Stop process article use case
+        if services.process_article_use_case:
+            await services.process_article_use_case.stop()
+            logger.info("Process article use case stopped")
         
         # Stop Telegram trade handlers
         if services.trade_handler:
@@ -301,9 +319,7 @@ def get_stats(services: Services) -> Dict[str, Any]:
                 "test_mode": services.telegram.test_mode if services.telegram else False,
             },
             "classifier": services.classifier.get_stats() if services.classifier else {},
-            "trading": {
-                "enabled": services.trading.enabled if services.trading else False,
-            }
+            "brokerage": services.brokerage.get_stats() if services.brokerage else {},
         }
         return stats
     except Exception as e:

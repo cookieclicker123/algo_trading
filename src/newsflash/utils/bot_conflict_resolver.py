@@ -7,8 +7,7 @@ This is essential because Telegram only allows one active polling connection per
 import asyncio
 import os
 import subprocess
-import time
-from typing import List, Optional
+from typing import List
 from telegram import Bot
 from ..utils.logging_config import get_logger
 
