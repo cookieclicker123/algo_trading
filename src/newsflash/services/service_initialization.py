@@ -7,7 +7,7 @@ from typing import Dict, Any, Optional
 
 from ..utils.bot_conflict_resolver import resolve_bot_conflicts
 from ..utils.logging_config import get_logger
-from ..config.settings import BENZINGA_API_KEY, BENZINGA_WEBSOCKET_ENABLED, get_telegram_config, get_telegram_config_2, GROQ_API_KEY, GROQ_MODEL, CLASSIFICATION_ENABLED
+from ..config.settings import BENZINGA_API_KEY, BENZINGA_WEBSOCKET_ENABLED, get_telegram_config, get_telegram_config_2, GROQ_API_KEY, GROQ_MODEL, CLASSIFICATION_ENABLED, TELEGRAM_ENABLED, TELEGRAM_ENABLED_2
 
 from .article_processor import get_article_processor
 from .websocket.feed_manager import FeedManager
@@ -32,6 +32,11 @@ from ..domain.storage.listener import StorageDomainListener
 from ..services.storage import StorageQueryService
 from ..use_cases.store_article_use_case import StoreArticleUseCase
 from ..use_cases.store_audit_log_use_case import StoreAuditLogUseCase
+
+# Notification microservice
+from ..infra.notification import NotificationInfrastructureService
+from ..domain.notification.listener import NotificationDomainListener
+from ..use_cases.notify_imminent_article_use_case import NotifyImminentArticleUseCase
 
 logger = get_logger(__name__)
 
@@ -66,6 +71,11 @@ class Services:
         self.storage_query_service = None
         self.store_article_use_case = None
         self.store_audit_log_use_case = None
+        
+        # Notification microservice
+        self.notification_infra = None
+        self.notification_domain_listener = None
+        self.notify_imminent_article_use_case = None
         
         # Legacy compatibility (will be removed)
         self.trading = None  # Deprecated - use self.brokerage instead
@@ -154,6 +164,23 @@ def initialize_services() -> Services:
         )
         logger.info("StoreAuditLogUseCase initialized - uses StorageQueryService")
         
+        # Notification microservice - Infrastructure layer
+        notification_enabled = TELEGRAM_ENABLED or TELEGRAM_ENABLED_2
+        services.notification_infra = NotificationInfrastructureService(
+            enabled=notification_enabled
+        )
+        logger.info("NotificationInfrastructureService initialized", enabled=notification_enabled)
+        
+        # Notification microservice - Domain layer
+        services.notification_domain_listener = NotificationDomainListener()
+        logger.info("NotificationDomainListener initialized")
+        
+        # Notification microservice - Use cases layer
+        services.notify_imminent_article_use_case = NotifyImminentArticleUseCase(
+            storage_query_service=services.storage_query_service
+        )
+        logger.info("NotifyImminentArticleUseCase initialized - uses StorageQueryService")
+        
         # Auto-trade service (handles trading logic, subscribes to domain events)
         from ..services.brokerage.auto_trade_service import AutoTradeService
         services.auto_trade_service = AutoTradeService(
@@ -161,21 +188,20 @@ def initialize_services() -> Services:
         )
         logger.info("AutoTradeService initialized - uses storage query service")
         
-        # Article processor (classification removed - handled by classification microservice)
-        article_processor = get_article_processor(
-            telegram_notifier=services.telegram,
-            auto_trade_service=services.auto_trade_service  # Use trading service
-        )
+        # Article processor (DEPRECATED - kept for legacy compatibility only)
+        # All processing is now event-driven via dedicated use cases
+        article_processor = get_article_processor()
         services.article_processor = article_processor
+        logger.info("ArticleProcessor initialized (DEPRECATED - all processing is event-driven)")
         
         # Feed manager (no WebSocket management - just event subscription, no article_processor coupling)
         services.feed_manager = FeedManager()
         
-        # Process article use case (orchestrates services and use cases)
+        # Process article use case (minimal - just logs, all processing is event-driven)
         from ..use_cases.process_article_use_case import ProcessArticleUseCase
-        services.process_article_use_case = ProcessArticleUseCase(notification_service=services.telegram)
+        services.process_article_use_case = ProcessArticleUseCase()
         logger.info("ProcessArticleUseCase initialized - subscribes to Domain.ArticleClassified (event-driven)")
-        logger.info("Note: Storage is handled by StoreArticleUseCase (event-driven)")
+        logger.info("Note: All processing handled by dedicated use cases (event-driven)")
         
         # Benzinga WebSocket microservice (infrastructure layer - managed separately)
         if BENZINGA_WEBSOCKET_ENABLED and BENZINGA_API_KEY:
@@ -270,6 +296,10 @@ async def start_services(services: Services) -> None:
         await services.storage_infra.start()
         logger.info("StorageInfrastructureService started")
         
+        # Start notification infrastructure service FIRST (infrastructure layer)
+        await services.notification_infra.start()
+        logger.info("NotificationInfrastructureService started")
+        
         # Start domain listeners (bridge infrastructure → domain)
         await services.websocket_domain_listener.start()
         logger.info("WebSocket domain listener started")
@@ -282,6 +312,9 @@ async def start_services(services: Services) -> None:
         
         await services.storage_domain_listener.start()
         logger.info("Storage domain listener started")
+        
+        await services.notification_domain_listener.start()
+        logger.info("Notification domain listener started")
         
         # Start classification use cases
         await services.classify_article_use_case.start()
@@ -297,6 +330,10 @@ async def start_services(services: Services) -> None:
         
         await services.store_audit_log_use_case.start()
         logger.info("StoreAuditLogUseCase started")
+        
+        # Start notification use cases
+        await services.notify_imminent_article_use_case.start()
+        logger.info("NotifyImminentArticleUseCase started")
         
         # Start feed manager (non-blocking, event subscription only)
         asyncio.create_task(services.feed_manager.start_all_feeds())
@@ -324,6 +361,11 @@ async def stop_services(services: Services) -> None:
     logger.info("Stopping all services...")
     
     try:
+        # Stop notification use cases
+        if services.notify_imminent_article_use_case:
+            await services.notify_imminent_article_use_case.stop()
+            logger.info("NotifyImminentArticleUseCase stopped")
+        
         # Stop storage use cases
         if services.store_audit_log_use_case:
             await services.store_audit_log_use_case.stop()
@@ -359,6 +401,15 @@ async def stop_services(services: Services) -> None:
         if services.classification_domain_listener:
             await services.classification_domain_listener.stop()
             logger.info("Classification domain listener stopped")
+        
+        if services.notification_domain_listener:
+            await services.notification_domain_listener.stop()
+            logger.info("Notification domain listener stopped")
+        
+        # Stop infrastructure services
+        if services.notification_infra:
+            await services.notification_infra.stop()
+            logger.info("NotificationInfrastructureService stopped")
         
         # Stop classification infrastructure service
         if services.storage_infra:
@@ -429,6 +480,7 @@ def get_stats(services: Services) -> Dict[str, Any]:
             },
             "classification_infra": services.classification_infra.get_stats() if services.classification_infra else {},
             "storage_infra": services.storage_infra.get_stats() if services.storage_infra else {},
+            "notification_infra": services.notification_infra.get_stats() if services.notification_infra else {},
             "brokerage": services.brokerage.get_stats() if services.brokerage else {},
         }
         return stats

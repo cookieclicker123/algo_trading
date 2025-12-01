@@ -10,7 +10,7 @@ from ..models.base_models import StandardizedArticle
 from ..utils.json_storage import ArticleStorage
 from ..utils.logging_config import get_logger
 from ..utils.article_utils import get_article_id
-from ..services.telegram_service import TelegramNotifier
+# TelegramNotifier removed - notifications handled by NotifyImminentArticleUseCase (event-driven)
 # Classification removed - now handled by classification microservice (event-driven)
 # YFinance removed - no longer used
 
@@ -30,24 +30,28 @@ class ArticleProcessor:
     """
     
     def __init__(
-        self, 
-        telegram_notifier: Optional[TelegramNotifier] = None,
+        self,
         storage: Optional[ArticleStorage] = None,
-        auto_trade_service: Optional[Any] = None,
     ):
         """
         Initialize article processor with optional dependencies.
         
         Args:
-            telegram_notifier: Optional Telegram notifier (injected dependency)
             storage: Optional article storage (injected dependency)
-            auto_trade_service: Optional auto-trade service (injected dependency)
+                    NOTE: Storage is now handled by StoreArticleUseCase (event-driven).
+                    This is only kept for legacy compatibility.
+        
+        DEPRECATED: This service is legacy code. All processing is now event-driven:
+        - Storage: StoreArticleUseCase
+        - Notifications: NotifyImminentArticleUseCase
+        - Trading: AutoTradeService
+        - Classification: ClassifyArticleUseCase
         """
-        # Use injected dependencies or create defaults
+        # Use injected storage or create default (for legacy compatibility only)
         self.storage = storage or ArticleStorage()
-        self.telegram = telegram_notifier or TelegramNotifier(test_mode=False)
-        self.auto_trade_service = auto_trade_service  # Optional auto-trade service
-        # Classification removed - now handled by classification microservice (event-driven)
+        # Telegram removed - notifications handled by NotifyImminentArticleUseCase (event-driven)
+        # Auto-trade removed - trading handled by AutoTradeService (event-driven)
+        # Classification removed - handled by classification microservice (event-driven)
         # YFinance removed - no longer used for metadata
         
         self.handlers: List[Callable[[Union[BenzingaArticle, StandardizedArticle]], Awaitable[None]]] = []
@@ -57,9 +61,7 @@ class ArticleProcessor:
         
         logger.info(
             "ArticleProcessor initialized - provides focused operations for use cases to call",
-            telegram_enabled_1=self.telegram.enabled_1,
-            telegram_enabled_2=self.telegram.enabled_2,
-            telegram_test_mode=self.telegram.test_mode
+            note="DEPRECATED: All processing is now event-driven via dedicated use cases"
         )
     
     def add_handler(self, handler: Callable[[Union[BenzingaArticle, StandardizedArticle]], Awaitable[None]]):
@@ -272,23 +274,21 @@ class ArticleProcessor:
 
 
 def get_article_processor(
-    telegram_notifier: Optional[TelegramNotifier] = None,
     storage: Optional[ArticleStorage] = None,
-    auto_trade_service: Optional[Any] = None,
 ) -> ArticleProcessor:
     """
     Get article processor instance with optional dependencies.
     
+    DEPRECATED: This service is legacy code. All processing is now event-driven.
+    
     Args:
-        telegram_notifier: Optional Telegram notifier (injected dependency)
         storage: Optional article storage (injected dependency)
-        auto_trade_service: Optional auto-trade service (injected dependency)
+                NOTE: Storage is now handled by StoreArticleUseCase (event-driven).
+                This is only kept for legacy compatibility.
         
     Returns:
         ArticleProcessor instance
     """
     return ArticleProcessor(
-        telegram_notifier=telegram_notifier,
-        storage=storage,
-        auto_trade_service=auto_trade_service
+        storage=storage
     )
