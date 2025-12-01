@@ -7,22 +7,26 @@ from typing import Dict, Any, Optional
 
 from ..utils.bot_conflict_resolver import resolve_bot_conflicts
 from ..utils.logging_config import get_logger
-from ..config.settings import BENZINGA_API_KEY, BENZINGA_WEBSOCKET_ENABLED, get_telegram_config, get_telegram_config_2, GROQ_API_KEY, GROQ_MODEL
+from ..config.settings import BENZINGA_API_KEY, BENZINGA_WEBSOCKET_ENABLED, get_telegram_config, get_telegram_config_2, GROQ_API_KEY, GROQ_MODEL, CLASSIFICATION_ENABLED
 
 from .article_processor import get_article_processor
 from .websocket.feed_manager import FeedManager
 from .telegram_service import get_telegram_notifier
-from .news_classifier import get_news_classifier
+# NewsClassifier removed - now handled by classification microservice
 # YFinance removed - no longer used
 from .telegram_trade_handler import get_telegram_trade_handler
 from .websocket.feed_health_monitor import FeedHealthMonitor
 from .classification_audit_trail import ClassificationAuditTrail
-from ..config.settings import get_classification_config
 
 # New brokerage infrastructure and use cases
 from ..infra.brokerage import IBKRBrokerageService
 from ..use_cases import AutoTradeUseCase
-from ..services.brokerage import TradeRequestBuilder
+
+# Classification microservice
+from ..infra.classification import ClassificationInfrastructureService
+from ..domain.classification.listener import ClassificationDomainListener
+from ..services.classification import ClassificationAuditService
+from ..use_cases.classify_article_use_case import ClassifyArticleUseCase
 
 logger = get_logger(__name__)
 
@@ -36,7 +40,6 @@ class Services:
         self.trade_handler = None
         self.trade_handler_2 = None
         self.telegram = None
-        self.classifier = None
         self.audit_trail = None
         self.auto_trade_use_case = None  # New use case
         self.process_article_use_case = None  # WebSocket use case
@@ -47,6 +50,12 @@ class Services:
         self._health_monitor_task: Optional[asyncio.Task] = None
         self.websocket_domain_listener = None
         self.brokerage_domain_listener = None
+        
+        # Classification microservice
+        self.classification_infra = None
+        self.classification_domain_listener = None
+        self.classification_audit_service = None
+        self.classify_article_use_case = None
         
         # Legacy compatibility (will be removed)
         self.trading = None  # Deprecated - use self.brokerage instead
@@ -96,15 +105,31 @@ def initialize_services() -> Services:
             trade_handler_2=services.trade_handler_2
         )
         
-        # News classifier
-        services.classifier = get_news_classifier(
+        # Classification microservice - Infrastructure layer
+        services.classification_infra = ClassificationInfrastructureService(
             api_key=GROQ_API_KEY,
-            model=GROQ_MODEL
+            model=GROQ_MODEL,
+            enabled=CLASSIFICATION_ENABLED
         )
+        logger.info("ClassificationInfrastructureService initialized")
         
-        # Classification audit trail
+        # Classification audit trail (utility - used by audit service)
         services.audit_trail = ClassificationAuditTrail()
         logger.info("ClassificationAuditTrail initialized")
+        
+        # Classification microservice - Domain layer
+        services.classification_domain_listener = ClassificationDomainListener()
+        logger.info("ClassificationDomainListener initialized")
+        
+        # Classification microservice - Services layer
+        services.classification_audit_service = ClassificationAuditService(
+            audit_trail=services.audit_trail
+        )
+        logger.info("ClassificationAuditService initialized")
+        
+        # Classification microservice - Use cases layer
+        services.classify_article_use_case = ClassifyArticleUseCase()
+        logger.info("ClassifyArticleUseCase initialized")
         
         # Auto-trade service (handles trading logic, subscribes to domain events)
         from ..services.brokerage.auto_trade_service import AutoTradeService
@@ -115,14 +140,11 @@ def initialize_services() -> Services:
         services.auto_trade_use_case = AutoTradeUseCase(trading_service=services.auto_trade_service)
         logger.info("AutoTradeUseCase initialized - orchestrates trading service")
         
-        # Article processor (uses auto-trade service)
+        # Article processor (classification removed - handled by classification microservice)
         article_processor = get_article_processor(
             telegram_notifier=services.telegram,
-            classifier=services.classifier,
             auto_trade_service=services.auto_trade_service  # Use trading service
         )
-        # Inject shared audit trail
-        article_processor.audit_trail = services.audit_trail
         services.article_processor = article_processor
         
         # Feed manager (no WebSocket management - just event subscription, no article_processor coupling)
@@ -132,11 +154,10 @@ def initialize_services() -> Services:
         from ..use_cases.process_article_use_case import ProcessArticleUseCase
         services.process_article_use_case = ProcessArticleUseCase(
             storage_service=services.article_processor,  # Temporary - will split into focused services
-            classification_service=services.article_processor,
             auto_trade_use_case=services.auto_trade_use_case,  # Orchestrate trading via use case
             notification_service=services.telegram
         )
-        logger.info("ProcessArticleUseCase initialized - ready to orchestrate services and use cases")
+        logger.info("ProcessArticleUseCase initialized - subscribes to Domain.ArticleClassified (event-driven)")
         
         # Benzinga WebSocket microservice (infrastructure layer - managed separately)
         if BENZINGA_WEBSOCKET_ENABLED and BENZINGA_API_KEY:
@@ -158,8 +179,13 @@ def initialize_services() -> Services:
         from ..domain.brokerage.listener import BrokerageDomainListener
         
         services.websocket_domain_listener = WebSocketDomainListener()
+        logger.info("WebSocket domain listener initialized")
+        
         services.brokerage_domain_listener = BrokerageDomainListener()
-        logger.info("Domain listeners initialized")
+        logger.info("Brokerage domain listener initialized")
+        
+        # Classification domain listener already initialized above
+        logger.info("All domain listeners initialized")
         
         logger.info("All services initialized successfully")
         
@@ -218,12 +244,26 @@ async def start_services(services: Services) -> None:
         await services.brokerage.start()
         logger.info("IBKR Brokerage Service started")
         
+        # Start classification infrastructure service FIRST (infrastructure layer)
+        await services.classification_infra.start()
+        logger.info("ClassificationInfrastructureService started")
+        
         # Start domain listeners (bridge infrastructure → domain)
         await services.websocket_domain_listener.start()
         logger.info("WebSocket domain listener started")
         
         await services.brokerage_domain_listener.start()
         logger.info("Brokerage domain listener started")
+        
+        await services.classification_domain_listener.start()
+        logger.info("Classification domain listener started")
+        
+        # Start classification services and use cases
+        await services.classification_audit_service.start()
+        logger.info("ClassificationAuditService started")
+        
+        await services.classify_article_use_case.start()
+        logger.info("ClassifyArticleUseCase started")
         
         # Start feed manager (non-blocking, event subscription only)
         asyncio.create_task(services.feed_manager.start_all_feeds())
@@ -251,6 +291,15 @@ async def stop_services(services: Services) -> None:
     logger.info("Stopping all services...")
     
     try:
+        # Stop classification services and use cases
+        if services.classify_article_use_case:
+            await services.classify_article_use_case.stop()
+            logger.info("ClassifyArticleUseCase stopped")
+        
+        if services.classification_audit_service:
+            await services.classification_audit_service.stop()
+            logger.info("ClassificationAuditService stopped")
+        
         # Stop domain listeners
         if services.websocket_domain_listener:
             await services.websocket_domain_listener.stop()
@@ -259,6 +308,15 @@ async def stop_services(services: Services) -> None:
         if services.brokerage_domain_listener:
             await services.brokerage_domain_listener.stop()
             logger.info("Brokerage domain listener stopped")
+        
+        if services.classification_domain_listener:
+            await services.classification_domain_listener.stop()
+            logger.info("Classification domain listener stopped")
+        
+        # Stop classification infrastructure service
+        if services.classification_infra:
+            await services.classification_infra.stop()
+            logger.info("ClassificationInfrastructureService stopped")
         
         # Stop health monitor
         if services.health_monitor:
@@ -318,7 +376,7 @@ def get_stats(services: Services) -> Dict[str, Any]:
                 "enabled_2": services.telegram.enabled_2 if services.telegram else False,
                 "test_mode": services.telegram.test_mode if services.telegram else False,
             },
-            "classifier": services.classifier.get_stats() if services.classifier else {},
+            "classification_infra": services.classification_infra.get_stats() if services.classification_infra else {},
             "brokerage": services.brokerage.get_stats() if services.brokerage else {},
         }
         return stats

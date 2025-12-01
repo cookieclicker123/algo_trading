@@ -3,20 +3,15 @@ Article processing service for handling new articles from Benzinga.
 
 Service subscribes to Domain.ArticleReceived events and processes articles.
 """
-import asyncio
 from typing import List, Callable, Awaitable, Optional, Union, Any
 from datetime import datetime
-from ..models.benzinga_models import BenzingaArticle, convert_benzinga_to_standardized
+from ..models.benzinga_models import BenzingaArticle
 from ..models.base_models import StandardizedArticle
 from ..utils.json_storage import ArticleStorage
 from ..utils.logging_config import get_logger
 from ..utils.article_utils import get_article_id
 from ..services.telegram_service import TelegramNotifier
-from ..services.news_classifier import NewsClassifier
-from ..services.classification_audit_trail import ClassificationAuditTrail
-from ..config.settings import get_classification_config
-from ..shared.event_bus import get_event_bus
-from ..domain.websocket.events import ArticleReceivedDomainEvent
+# Classification removed - now handled by classification microservice (event-driven)
 # YFinance removed - no longer used
 
 logger = get_logger(__name__)
@@ -37,7 +32,6 @@ class ArticleProcessor:
     def __init__(
         self, 
         telegram_notifier: Optional[TelegramNotifier] = None,
-        classifier: Optional[NewsClassifier] = None,
         storage: Optional[ArticleStorage] = None,
         auto_trade_service: Optional[Any] = None,
     ):
@@ -46,16 +40,14 @@ class ArticleProcessor:
         
         Args:
             telegram_notifier: Optional Telegram notifier (injected dependency)
-            classifier: Optional news classifier (injected dependency)
             storage: Optional article storage (injected dependency)
             auto_trade_service: Optional auto-trade service (injected dependency)
         """
         # Use injected dependencies or create defaults
         self.storage = storage or ArticleStorage()
         self.telegram = telegram_notifier or TelegramNotifier(test_mode=False)
-        self.classifier = classifier or self._create_default_classifier()
-        self.audit_trail = ClassificationAuditTrail()
         self.auto_trade_service = auto_trade_service  # Optional auto-trade service
+        # Classification removed - now handled by classification microservice (event-driven)
         # YFinance removed - no longer used for metadata
         
         self.handlers: List[Callable[[Union[BenzingaArticle, StandardizedArticle]], Awaitable[None]]] = []
@@ -67,17 +59,7 @@ class ArticleProcessor:
             "ArticleProcessor initialized - provides focused operations for use cases to call",
             telegram_enabled_1=self.telegram.enabled_1,
             telegram_enabled_2=self.telegram.enabled_2,
-            telegram_test_mode=self.telegram.test_mode,
-            classification_enabled=self.classifier.enabled
-        )
-    
-    def _create_default_classifier(self) -> NewsClassifier:
-        """Create default classifier from config."""
-        classification_config = get_classification_config()
-        return NewsClassifier(
-            api_key=classification_config["api_key"],
-            model=classification_config["model"],
-            enabled=classification_config["enabled"]
+            telegram_test_mode=self.telegram.test_mode
         )
     
     def add_handler(self, handler: Callable[[Union[BenzingaArticle, StandardizedArticle]], Awaitable[None]]):
@@ -184,87 +166,10 @@ class ArticleProcessor:
             )
             return
 
-        # All filtering removed - articles with tickers proceed directly to AI classification
-        # Run AI classification
-        classification = None
-        classified_at = None
-        if self.classifier.enabled:
-            try:
-                classification = await self.classifier.classify_article(article)
-                classified_at = datetime.now()
-                
-                logger.info(
-                    "Article classified",
-                    article_id=self._get_article_id(article),
-                    classification=classification.classification.value,
-                    confidence=classification.confidence,
-                    reasoning=classification.reasoning,
-                    classification_time_ms=(classified_at - news_received_at).total_seconds() * 1000
-                )
-                
-                # Log IMMINENT classifications to audit trail with enhanced data
-                if classification and classification.classification.value.lower() == "imminent":
-                    # Start metadata gathering in background (non-blocking)
-                    # Log immediately, then update with metadata when available
-                    article_id = self.audit_trail.log_imminent_classification(
-                        article=article,
-                        classification=classification,
-                        news_received_at=news_received_at,
-                        classified_at=classified_at,
-                        metadata={}  # Will be updated asynchronously
-                    )
-                    
-                    # Store article_id for later updates
-                    if hasattr(article, 'source_id'):
-                        article._audit_article_id = article_id
-                    
-                    # Gather metadata asynchronously (non-blocking background task)
-                    asyncio.create_task(
-                        self._update_metadata_in_audit_trail(article, article_id)
-                    )
-                    
-                    # Services don't orchestrate - trading is handled separately
-                    # Auto-trade service subscribes to domain events or is called by use case
-            except Exception as e:
-                logger.error(
-                    "Failed to classify article",
-                    article_id=self._get_article_id(article),
-                    error=str(e)
-                )
-        
-        # Send Telegram notification - ALL IMMINENT articles go through, no gates
-        telegram_enabled = (self.telegram.enabled_1 or self.telegram.enabled_2)
-        if telegram_enabled:
-            try:
-                # Only send if classification is IMMINENT - simple rule, no gates
-                if classification and classification.classification.value.lower() == "imminent":
-                    await self.telegram.send_notification(article, classification)
-                    logger.info(
-                        "Telegram notification sent for IMMINENT article",
-                        article_id=self._get_article_id(article),
-                        classification=classification.classification.value,
-                        confidence=classification.confidence,
-                        note="All IMMINENT articles are sent regardless of confidence or gates"
-                    )
-                elif classification:
-                    logger.info(
-                        "Article filtered out - not IMMINENT",
-                        article_id=self._get_article_id(article),
-                        classification=classification.classification.value,
-                        confidence=classification.confidence
-                    )
-                else:
-                    logger.warning(
-                        "No classification available for article",
-                        article_id=self._get_article_id(article)
-                    )
-                    
-            except Exception as e:
-                logger.error(
-                    "Failed to send Telegram notification",
-                    article_id=self._get_article_id(article),
-                    error=str(e)
-                )
+        # Classification removed - now handled by classification microservice (event-driven)
+        # ClassificationAuditService subscribes to Domain.ArticleClassified events
+        # AutoTradeService subscribes to Domain.ArticleClassified events
+        # Telegram notifications handled by ProcessArticleUseCase orchestrating notification service
         
         # Process through custom handlers
         for handler in self.handlers:
@@ -279,48 +184,7 @@ class ArticleProcessor:
                     handler_name=handler.__name__ if hasattr(handler, '__name__') else str(handler)
                 )
     
-    async def _update_metadata_in_audit_trail(self, article: Union[BenzingaArticle, StandardizedArticle], article_id: str):
-        """
-        Update audit trail entry with metadata asynchronously (non-blocking).
-        
-        Args:
-            article: Article to gather metadata for
-            article_id: Article ID in audit trail
-        """
-        try:
-            metadata = await self._gather_metadata(article)
-            
-            # Update audit trail entry with metadata
-            self.audit_trail.update_metadata(article_id, metadata)
-            
-        except Exception as e:
-            logger.error("Failed to update metadata in audit trail", article_id=article_id, error=str(e))
-    
-    async def _gather_metadata(self, article: Union[BenzingaArticle, StandardizedArticle]) -> dict:
-        """
-        Gather metadata (market cap, sector, industry) for audit trail.
-        Runs asynchronously to avoid blocking main processing.
-        
-        Args:
-            article: Article to gather metadata for
-            
-        Returns:
-            Dictionary with metadata
-        """
-        metadata = {}
-        
-        # Get ticker if available
-        ticker = None
-        if hasattr(article, 'tickers') and article.tickers:
-            ticker = article.tickers[0]
-        
-        # YFinance removed - no metadata gathering
-        metadata = {
-            "company_name": ticker if ticker else "Unknown",
-        }
-        logger.debug("Metadata (YFinance removed)", ticker=ticker)
-        
-        return metadata
+    # Metadata gathering removed - now handled by storage microservice (when built)
     
     def _get_article_id(self, article: Union[BenzingaArticle, StandardizedArticle]) -> str:
         """Get article ID for logging."""
@@ -409,7 +273,6 @@ class ArticleProcessor:
 
 def get_article_processor(
     telegram_notifier: Optional[TelegramNotifier] = None,
-    classifier: Optional[NewsClassifier] = None,
     storage: Optional[ArticleStorage] = None,
     auto_trade_service: Optional[Any] = None,
 ) -> ArticleProcessor:
@@ -418,15 +281,14 @@ def get_article_processor(
     
     Args:
         telegram_notifier: Optional Telegram notifier (injected dependency)
-        classifier: Optional news classifier (injected dependency)
         storage: Optional article storage (injected dependency)
+        auto_trade_service: Optional auto-trade service (injected dependency)
         
     Returns:
         ArticleProcessor instance
     """
     return ArticleProcessor(
         telegram_notifier=telegram_notifier,
-        classifier=classifier,
         storage=storage,
         auto_trade_service=auto_trade_service
     )
