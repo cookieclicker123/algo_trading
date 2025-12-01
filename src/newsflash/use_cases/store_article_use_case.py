@@ -1,5 +1,5 @@
 """
-Classify article use case - orchestrates classification workflow.
+Store article use case - orchestrates article storage workflow.
 
 USE CASES ORCHESTRATE SERVICES:
 - Use cases subscribe to domain events
@@ -12,29 +12,29 @@ from ..utils.logging_config import get_logger
 from ..shared.event_bus import get_event_bus
 from ..shared.typed_event_bus import subscribe_typed
 from ..domain.websocket.events import ArticleReceivedDomainEvent
-from ..domain.classification.events import ClassificationRequestedDomainEvent
-from ..domain.classification.factories import ClassificationRequestFactory
+from ..domain.storage.events import ArticleStorageRequestedDomainEvent
+from ..domain.storage.factories import StoredArticleFactory
 
 logger = get_logger(__name__)
 
 
-class ClassifyArticleUseCase:
+class StoreArticleUseCase:
     """
-    Use case for orchestrating article classification workflow.
+    Use case for orchestrating article storage workflow.
     
     Responsibilities:
     - Subscribe to Domain.ArticleReceived events
-    - Create ClassificationRequest from domain Article
-    - Publish Domain.ClassificationRequested event
-    - (Domain listener → Infrastructure → Groq API → Domain.ArticleClassified)
+    - Create storage request from domain Article
+    - Publish Domain.ArticleStorageRequested event
+    - (Domain listener → Infrastructure → Repository → Domain.ArticleStored)
     
     Services provide focused operations - use case orchestrates them.
     """
     
     def __init__(self):
-        """Initialize classify article use case."""
+        """Initialize store article use case."""
         self.event_bus = get_event_bus()
-        self.classification_request_factory = ClassificationRequestFactory()
+        self.stored_article_factory = StoredArticleFactory()
         
         # Subscribe to typed Domain.ArticleReceived events
         subscribe_typed(
@@ -43,23 +43,23 @@ class ClassifyArticleUseCase:
             self._handle_article_received,
         )
         
-        logger.info("ClassifyArticleUseCase initialized - subscribes to Domain.ArticleReceived events")
+        logger.info("StoreArticleUseCase initialized - subscribes to Domain.ArticleReceived events")
     
     async def start(self) -> None:
         """Start the use case (already subscribed in __init__)."""
-        logger.info("ClassifyArticleUseCase started")
+        logger.info("StoreArticleUseCase started")
     
     async def stop(self) -> None:
         """Stop the use case."""
         self.event_bus.unsubscribe("Domain.ArticleReceived", self._handle_article_received)
-        logger.info("ClassifyArticleUseCase stopped")
+        logger.info("StoreArticleUseCase stopped")
     
     async def _handle_article_received(
         self,
         domain_event: ArticleReceivedDomainEvent,
     ) -> None:
         """
-        Handle Domain.ArticleReceived event and request classification.
+        Handle Domain.ArticleReceived event and request storage.
         
         Use cases work with domain models - they orchestrate domain workflows.
         """
@@ -67,37 +67,37 @@ class ClassifyArticleUseCase:
             domain_article = domain_event.article
             
             logger.info(
-                "🎯 CLASSIFY USE CASE: Orchestrating classification request",
+                "🎯 STORE USE CASE: Orchestrating article storage request",
                 article_id=domain_article.id,
                 title=domain_article.title[:100] if domain_article.title else ""
             )
             
-            # Create classification request from domain Article using factory
-            classification_request = self.classification_request_factory.create_from_article(domain_article)
+            # Create StoredArticle domain model from domain Article using factory
+            stored_article = self.stored_article_factory.create_from_domain_article(domain_article)
             
-            if not classification_request:
+            if not stored_article:
                 logger.warning(
-                    "ClassifyArticleUseCase: Failed to create classification request",
+                    "StoreArticleUseCase: Failed to create StoredArticle",
                     article_id=domain_article.id
                 )
                 return
             
             # Publish typed domain event (domain listener will forward to infrastructure)
-            domain_classification_event = ClassificationRequestedDomainEvent(
-                request=classification_request,
+            domain_storage_event = ArticleStorageRequestedDomainEvent(
+                article=stored_article,
                 requested_at=datetime.now()
             )
             
-            await self.event_bus.publish("Domain.ClassificationRequested", domain_classification_event.model_dump())
+            await self.event_bus.publish("Domain.ArticleStorageRequested", domain_storage_event.model_dump())
             
             logger.info(
-                "✅ CLASSIFY USE CASE: Published classification request",
+                "✅ STORE USE CASE: Published article storage request",
                 article_id=domain_article.id
             )
             
         except Exception as e:
             logger.error(
-                "❌ CLASSIFY USE CASE: Error orchestrating classification",
+                "❌ STORE USE CASE: Error orchestrating article storage",
                 error=str(e),
                 exc_info=True
             )

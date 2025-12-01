@@ -16,17 +16,22 @@ from .telegram_service import get_telegram_notifier
 # YFinance removed - no longer used
 from .telegram_trade_handler import get_telegram_trade_handler
 from .websocket.feed_health_monitor import FeedHealthMonitor
-from .classification_audit_trail import ClassificationAuditTrail
+# ClassificationAuditTrail removed - all audit logging now goes through storage microservice
 
 # New brokerage infrastructure and use cases
 from ..infra.brokerage import IBKRBrokerageService
-from ..use_cases import AutoTradeUseCase
 
 # Classification microservice
 from ..infra.classification import ClassificationInfrastructureService
 from ..domain.classification.listener import ClassificationDomainListener
-from ..services.classification import ClassificationAuditService
 from ..use_cases.classify_article_use_case import ClassifyArticleUseCase
+
+# Storage microservice
+from ..infra.storage import StorageInfrastructureService
+from ..domain.storage.listener import StorageDomainListener
+from ..services.storage import StorageQueryService
+from ..use_cases.store_article_use_case import StoreArticleUseCase
+from ..use_cases.store_audit_log_use_case import StoreAuditLogUseCase
 
 logger = get_logger(__name__)
 
@@ -41,7 +46,6 @@ class Services:
         self.trade_handler_2 = None
         self.telegram = None
         self.audit_trail = None
-        self.auto_trade_use_case = None  # New use case
         self.process_article_use_case = None  # WebSocket use case
         self.article_processor = None
         self.feed_manager = None
@@ -54,8 +58,14 @@ class Services:
         # Classification microservice
         self.classification_infra = None
         self.classification_domain_listener = None
-        self.classification_audit_service = None
         self.classify_article_use_case = None
+        
+        # Storage microservice
+        self.storage_infra = None
+        self.storage_domain_listener = None
+        self.storage_query_service = None
+        self.store_article_use_case = None
+        self.store_audit_log_use_case = None
         
         # Legacy compatibility (will be removed)
         self.trading = None  # Deprecated - use self.brokerage instead
@@ -113,32 +123,43 @@ def initialize_services() -> Services:
         )
         logger.info("ClassificationInfrastructureService initialized")
         
-        # Classification audit trail (utility - used by audit service)
-        services.audit_trail = ClassificationAuditTrail()
-        logger.info("ClassificationAuditTrail initialized")
-        
         # Classification microservice - Domain layer
         services.classification_domain_listener = ClassificationDomainListener()
         logger.info("ClassificationDomainListener initialized")
-        
-        # Classification microservice - Services layer
-        services.classification_audit_service = ClassificationAuditService(
-            audit_trail=services.audit_trail
-        )
-        logger.info("ClassificationAuditService initialized")
         
         # Classification microservice - Use cases layer
         services.classify_article_use_case = ClassifyArticleUseCase()
         logger.info("ClassifyArticleUseCase initialized")
         
+        # Note: Audit logging is now handled by StoreAuditLogUseCase (storage microservice)
+        
+        # Storage microservice - Infrastructure layer
+        services.storage_infra = StorageInfrastructureService()
+        logger.info("StorageInfrastructureService initialized")
+        
+        # Storage microservice - Domain layer
+        services.storage_domain_listener = StorageDomainListener()
+        logger.info("StorageDomainListener initialized")
+        
+        # Storage microservice - Services layer
+        services.storage_query_service = StorageQueryService()
+        logger.info("StorageQueryService initialized")
+        
+        # Storage microservice - Use cases layer
+        services.store_article_use_case = StoreArticleUseCase()
+        logger.info("StoreArticleUseCase initialized")
+        
+        services.store_audit_log_use_case = StoreAuditLogUseCase(
+            storage_query_service=services.storage_query_service
+        )
+        logger.info("StoreAuditLogUseCase initialized - uses StorageQueryService")
+        
         # Auto-trade service (handles trading logic, subscribes to domain events)
         from ..services.brokerage.auto_trade_service import AutoTradeService
-        services.auto_trade_service = AutoTradeService()
-        logger.info("AutoTradeService initialized")
-        
-        # Auto-trade use case (orchestrates trading service)
-        services.auto_trade_use_case = AutoTradeUseCase(trading_service=services.auto_trade_service)
-        logger.info("AutoTradeUseCase initialized - orchestrates trading service")
+        services.auto_trade_service = AutoTradeService(
+            storage_query_service=services.storage_query_service
+        )
+        logger.info("AutoTradeService initialized - uses storage query service")
         
         # Article processor (classification removed - handled by classification microservice)
         article_processor = get_article_processor(
@@ -152,12 +173,9 @@ def initialize_services() -> Services:
         
         # Process article use case (orchestrates services and use cases)
         from ..use_cases.process_article_use_case import ProcessArticleUseCase
-        services.process_article_use_case = ProcessArticleUseCase(
-            storage_service=services.article_processor,  # Temporary - will split into focused services
-            auto_trade_use_case=services.auto_trade_use_case,  # Orchestrate trading via use case
-            notification_service=services.telegram
-        )
+        services.process_article_use_case = ProcessArticleUseCase(notification_service=services.telegram)
         logger.info("ProcessArticleUseCase initialized - subscribes to Domain.ArticleClassified (event-driven)")
+        logger.info("Note: Storage is handled by StoreArticleUseCase (event-driven)")
         
         # Benzinga WebSocket microservice (infrastructure layer - managed separately)
         if BENZINGA_WEBSOCKET_ENABLED and BENZINGA_API_KEY:
@@ -248,6 +266,10 @@ async def start_services(services: Services) -> None:
         await services.classification_infra.start()
         logger.info("ClassificationInfrastructureService started")
         
+        # Start storage infrastructure service FIRST (infrastructure layer)
+        await services.storage_infra.start()
+        logger.info("StorageInfrastructureService started")
+        
         # Start domain listeners (bridge infrastructure → domain)
         await services.websocket_domain_listener.start()
         logger.info("WebSocket domain listener started")
@@ -258,12 +280,23 @@ async def start_services(services: Services) -> None:
         await services.classification_domain_listener.start()
         logger.info("Classification domain listener started")
         
-        # Start classification services and use cases
-        await services.classification_audit_service.start()
-        logger.info("ClassificationAuditService started")
+        await services.storage_domain_listener.start()
+        logger.info("Storage domain listener started")
         
+        # Start classification use cases
         await services.classify_article_use_case.start()
         logger.info("ClassifyArticleUseCase started")
+        
+        # Start storage services
+        await services.storage_query_service.start()
+        logger.info("StorageQueryService started")
+        
+        # Start storage use cases
+        await services.store_article_use_case.start()
+        logger.info("StoreArticleUseCase started")
+        
+        await services.store_audit_log_use_case.start()
+        logger.info("StoreAuditLogUseCase started")
         
         # Start feed manager (non-blocking, event subscription only)
         asyncio.create_task(services.feed_manager.start_all_feeds())
@@ -291,16 +324,30 @@ async def stop_services(services: Services) -> None:
     logger.info("Stopping all services...")
     
     try:
-        # Stop classification services and use cases
+        # Stop storage use cases
+        if services.store_audit_log_use_case:
+            await services.store_audit_log_use_case.stop()
+            logger.info("StoreAuditLogUseCase stopped")
+        
+        if services.store_article_use_case:
+            await services.store_article_use_case.stop()
+            logger.info("StoreArticleUseCase stopped")
+        
+        # Stop storage services
+        if services.storage_query_service:
+            await services.storage_query_service.stop()
+            logger.info("StorageQueryService stopped")
+        
+        # Stop classification use cases
         if services.classify_article_use_case:
             await services.classify_article_use_case.stop()
             logger.info("ClassifyArticleUseCase stopped")
         
-        if services.classification_audit_service:
-            await services.classification_audit_service.stop()
-            logger.info("ClassificationAuditService stopped")
-        
         # Stop domain listeners
+        if services.storage_domain_listener:
+            await services.storage_domain_listener.stop()
+            logger.info("Storage domain listener stopped")
+        
         if services.websocket_domain_listener:
             await services.websocket_domain_listener.stop()
             logger.info("WebSocket domain listener stopped")
@@ -314,6 +361,10 @@ async def stop_services(services: Services) -> None:
             logger.info("Classification domain listener stopped")
         
         # Stop classification infrastructure service
+        if services.storage_infra:
+            await services.storage_infra.stop()
+            logger.info("StorageInfrastructureService stopped")
+        
         if services.classification_infra:
             await services.classification_infra.stop()
             logger.info("ClassificationInfrastructureService stopped")
@@ -377,6 +428,7 @@ def get_stats(services: Services) -> Dict[str, Any]:
                 "test_mode": services.telegram.test_mode if services.telegram else False,
             },
             "classification_infra": services.classification_infra.get_stats() if services.classification_infra else {},
+            "storage_infra": services.storage_infra.get_stats() if services.storage_infra else {},
             "brokerage": services.brokerage.get_stats() if services.brokerage else {},
         }
         return stats

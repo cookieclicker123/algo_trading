@@ -5,17 +5,16 @@ Service subscribes to domain events for IMMINENT articles and publishes trade re
 """
 from decimal import Decimal
 from datetime import datetime
-from typing import Dict, Any, Optional
 
 from ...utils.logging_config import get_logger
 from ...shared.event_bus import get_event_bus
+from ...shared.typed_event_bus import subscribe_typed
 from ...domain.brokerage.factories import TradeRequestFactory
 from ...domain.brokerage.events import TradeRequestDomainEvent
 from ...domain.classification.events import ArticleClassifiedDomainEvent
 from ...domain.classification.models import ClassificationCategory
-from ...domain.websocket.models import Article
-from ...domain.websocket.events import ArticleReceivedDomainEvent
 from ...config.settings import AUTO_TRADING_ENABLED, AUTO_TRADE_AMOUNT_USD
+from ...services.storage import StorageQueryService
 
 logger = get_logger(__name__)
 
@@ -34,60 +33,43 @@ class AutoTradeService:
     - Know about infrastructure details
     """
     
-    def __init__(self):
-        """Initialize auto-trade service."""
+    def __init__(self, storage_query_service: StorageQueryService):
+        """
+        Initialize auto-trade service.
+        
+        Args:
+            storage_query_service: Optional storage query service for fetching articles
+        """
         self.is_enabled = AUTO_TRADING_ENABLED
         self.event_bus = get_event_bus()
         self.trade_request_factory = TradeRequestFactory()
+        self.storage_query_service = storage_query_service
         
-        # Cache articles by article_id (for building trade requests)
-        # TODO: Will be replaced by storage microservice
-        self._article_cache: Dict[str, Article] = {}
-        
-        # Subscribe to domain events
-        self.event_bus.subscribe("Domain.ArticleReceived", self._handle_article_received)
-        self.event_bus.subscribe("Domain.ArticleClassified", self._handle_article_classified)
+        # Subscribe to typed Domain.ArticleClassified events
+        subscribe_typed(
+            "Domain.ArticleClassified",
+            ArticleClassifiedDomainEvent,
+            self._handle_article_classified,
+        )
         
         logger.info(
             "AutoTradeService initialized - subscribes to Domain.ArticleClassified events",
-            enabled=self.is_enabled
+            enabled=self.is_enabled,
+            has_storage_query=self.storage_query_service is not None
         )
     
-    async def _handle_article_received(self, event_type: str, event_data: Dict[str, Any]) -> None:
-        """
-        Handle Domain.ArticleReceived event - cache article for trading.
-        
-        We cache articles so we can use them when building trade requests from classification events.
-        """
-        try:
-            # Reconstruct typed domain event
-            domain_event = ArticleReceivedDomainEvent(**event_data)
-            domain_article = domain_event.article
-            
-            # Cache article by ID for trade request building
-            self._article_cache[domain_article.id] = domain_article
-            logger.debug(
-                "AutoTradeService: Cached article for trading",
-                article_id=domain_article.id
-            )
-            
-        except Exception as e:
-            logger.error(
-                "AutoTradeService: Error handling Domain.ArticleReceived event",
-                error=str(e),
-                event_type=event_type,
-                exc_info=True
-            )
+    # Article caching removed - now using storage query service to fetch articles on demand
     
-    async def _handle_article_classified(self, event_type: str, event_data: Dict[str, Any]) -> None:
+    async def _handle_article_classified(
+        self,
+        domain_event: ArticleClassifiedDomainEvent,
+    ) -> None:
         """
         Handle Domain.ArticleClassified event - auto-trade if IMMINENT.
         
         This is called when classification is complete (event-driven from classification microservice).
         """
         try:
-            # Reconstruct typed domain event
-            domain_event = ArticleClassifiedDomainEvent(**event_data)
             classification_result = domain_event.result
             
             # Only process IMMINENT classifications
@@ -105,15 +87,21 @@ class AutoTradeService:
                 logger.info(f"⏭️ AUTO-TRADE SKIPPED: {reason}", article_id=classification_result.article_id)
                 return
             
-            # Get article from cache
-            domain_article = self._article_cache.get(classification_result.article_id)
+            # Fetch article from storage
+            if not self.storage_query_service:
+                logger.warning(
+                    "AutoTradeService: Storage query service not available",
+                    article_id=classification_result.article_id
+                )
+                return
+            
+            domain_article = await self.storage_query_service.fetch_article(classification_result.article_id)
             
             if not domain_article:
                 logger.warning(
-                    "AutoTradeService: Article not found in cache for trading",
+                    "AutoTradeService: Article not found in storage",
                     article_id=classification_result.article_id
                 )
-                # TODO: Fetch from storage microservice when available
                 return
             
             # Process domain article
@@ -164,21 +152,4 @@ class AutoTradeService:
                 article_id=classification_result.article_id if 'classification_result' in locals() else 'unknown',
                 exc_info=True
             )
-    
-    async def process_imminent_article(
-        self,
-        article: "StandardizedArticle",  # type: ignore
-        classification_result: "ClassificationResult",  # type: ignore
-    ) -> None:
-        """
-        Legacy method - kept for backward compatibility.
-        
-        This method is called by old code paths that haven't been migrated yet.
-        New code should use event-driven approach via Domain.ArticleClassified events.
-        """
-        logger.warning(
-            "AutoTradeService: process_imminent_article called directly (legacy method)",
-            article_id=getattr(article, 'source_id', 'unknown')
-        )
-        # Legacy method - can be removed once all code is event-driven
 
