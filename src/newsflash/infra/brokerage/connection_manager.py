@@ -13,7 +13,7 @@ from ib_insync import IB
 
 from ...utils.logging_config import get_logger
 from ...config import settings
-from ...shared.event_bus import get_event_bus
+from ...shared.event_bus import AsyncEventBus
 from .events import ConnectionStatusChangedEvent
 
 logger = get_logger(__name__)
@@ -36,11 +36,12 @@ class IBKRConnectionManager:
     - Send Telegram notifications (publishes events instead)
     """
     
-    def __init__(self, paper_trading: bool = False, client_id: int = 5):
+    def __init__(self, event_bus: AsyncEventBus, paper_trading: bool = False, client_id: int = 5):
         """
         Initialize connection manager.
         
         Args:
+            event_bus: Event bus instance for publishing/subscribing to events
             paper_trading: Whether to use paper trading port
             client_id: IBKR client ID (default 5 for trading service)
         """
@@ -51,7 +52,7 @@ class IBKRConnectionManager:
         self.is_running = False
         
         # Event bus for publishing events
-        self.event_bus = get_event_bus()
+        self.event_bus = event_bus
         
         # Connection state
         self._connection_lock: Optional[asyncio.Lock] = None

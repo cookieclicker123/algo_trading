@@ -6,7 +6,8 @@ This bridges infrastructure ↔ domain for notification operations.
 from datetime import datetime
 from typing import Dict, Any
 
-from ...shared.event_bus import get_event_bus
+from ...shared.event_bus import AsyncEventBus
+from ...shared.event_types import DomainEventType, InfrastructureEventType
 from ...infra.notification.infrastructure_models import (
     NotificationSentInfrastructureEvent,
     NotificationFailedInfrastructureEvent,
@@ -44,8 +45,14 @@ class NotificationDomainListener(
     - Mappers: Transform domain ↔ infrastructure (bidirectional flow)
     """
     
-    def __init__(self):
-        self.event_bus = get_event_bus()
+    def __init__(self, event_bus: AsyncEventBus):
+        """
+        Initialize notification domain listener.
+        
+        Args:
+            event_bus: Event bus instance for publishing/subscribing to events
+        """
+        self.event_bus = event_bus
         # Validators: Validate domain models
         self.message_validator = NotificationMessageValidator()
         # Mappers: Bidirectional mapping (domain ↔ infra)
@@ -61,11 +68,10 @@ class NotificationDomainListener(
         self.is_running = True
         
         # Subscribe to domain notification requests (use cases → infrastructure)
-        self.event_bus.subscribe("Domain.NotificationRequested", self._handle_domain_notification_request)
+        self.event_bus.subscribe(DomainEventType.NOTIFICATION_REQUESTED, self._handle_domain_notification_request)
         
-        # Subscribe to infrastructure notification results (infrastructure → services)
-        self.event_bus.subscribe("NotificationSent", self._handle_infra_notification_sent_from_bus)
-        self.event_bus.subscribe("NotificationFailed", self._handle_infra_notification_failed_from_bus)
+        self.event_bus.subscribe(InfrastructureEventType.NOTIFICATION_SENT, self._handle_infra_notification_sent_from_bus)
+        self.event_bus.subscribe(InfrastructureEventType.NOTIFICATION_FAILED, self._handle_infra_notification_failed_from_bus)
         
         logger.info("NotificationDomainListener started - listening to domain and infrastructure events")
     
@@ -77,9 +83,9 @@ class NotificationDomainListener(
         self.is_running = False
         
         # Unsubscribe from events
-        self.event_bus.unsubscribe("Domain.NotificationRequested", self._handle_domain_notification_request)
-        self.event_bus.unsubscribe("NotificationSent", self._handle_infra_notification_sent_from_bus)
-        self.event_bus.unsubscribe("NotificationFailed", self._handle_infra_notification_failed_from_bus)
+        self.event_bus.unsubscribe(DomainEventType.NOTIFICATION_REQUESTED, self._handle_domain_notification_request)
+        self.event_bus.unsubscribe(InfrastructureEventType.NOTIFICATION_SENT, self._handle_infra_notification_sent_from_bus)
+        self.event_bus.unsubscribe(InfrastructureEventType.NOTIFICATION_FAILED, self._handle_infra_notification_failed_from_bus)
         
         logger.info("NotificationDomainListener stopped")
     
@@ -121,7 +127,7 @@ class NotificationDomainListener(
                 )
                 
                 # Publish typed infrastructure event
-                await self.event_bus.publish("NotificationSendRequested", infra_request_data.model_dump())
+                await self.event_bus.publish(InfrastructureEventType.NOTIFICATION_SEND_REQUESTED, infra_request_data.model_dump())
                 
                 logger.info(
                     "NotificationDomainListener: Published infrastructure notification request",
@@ -230,7 +236,7 @@ class NotificationDomainListener(
             message=message,
             requested_at=requested_at
         )
-        await self.event_bus.publish("Domain.NotificationRequested", event.model_dump())
+        await self.event_bus.publish(DomainEventType.NOTIFICATION_REQUESTED, event.model_dump())
     
     async def publish_notification_sent(
         self,
@@ -244,7 +250,7 @@ class NotificationDomainListener(
             channel=channel,
             sent_at=sent_at
         )
-        await self.event_bus.publish("Domain.NotificationSent", event.model_dump())
+        await self.event_bus.publish(DomainEventType.NOTIFICATION_SENT, event.model_dump())
     
     async def publish_notification_failed(
         self,
@@ -276,5 +282,5 @@ class NotificationDomainListener(
             error=error,
             failed_at=failed_at
         )
-        await self.event_bus.publish("Domain.NotificationFailed", event.model_dump())
+        await self.event_bus.publish(DomainEventType.NOTIFICATION_FAILED, event.model_dump())
 

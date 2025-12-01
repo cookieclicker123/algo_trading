@@ -7,16 +7,15 @@ from typing import Dict, Any, Optional
 
 from ..utils.bot_conflict_resolver import resolve_bot_conflicts
 from ..utils.logging_config import get_logger
-from ..config.settings import BENZINGA_API_KEY, BENZINGA_WEBSOCKET_ENABLED, get_telegram_config, get_telegram_config_2, GROQ_API_KEY, GROQ_MODEL, CLASSIFICATION_ENABLED, TELEGRAM_ENABLED, TELEGRAM_ENABLED_2
+from ..config.settings import BENZINGA_API_KEY, BENZINGA_WEBSOCKET_ENABLED, get_telegram_config, get_telegram_config_2, get_storage_config, GROQ_API_KEY, GROQ_MODEL, CLASSIFICATION_ENABLED, TELEGRAM_ENABLED, TELEGRAM_ENABLED_2
 
-from .article_processor import get_article_processor
 from .websocket.feed_manager import FeedManager
-from .telegram_service import get_telegram_notifier
-# NewsClassifier removed - now handled by classification microservice
-# YFinance removed - no longer used
+from .telegram_service import TelegramNotifier
 from .telegram_trade_handler import get_telegram_trade_handler
 from .websocket.feed_health_monitor import FeedHealthMonitor
-# ClassificationAuditTrail removed - all audit logging now goes through storage microservice
+
+# Event bus - now created here and injected everywhere
+from ..shared.event_bus import AsyncEventBus
 
 # New brokerage infrastructure and use cases
 from ..infra.brokerage import IBKRBrokerageService
@@ -45,14 +44,12 @@ class Services:
     """Simple container to hold all services."""
     
     def __init__(self):
-        self.yfinance = None
         self.brokerage = None  # New brokerage service
         self.trade_handler = None
         self.trade_handler_2 = None
         self.telegram = None
         self.audit_trail = None
         self.process_article_use_case = None  # WebSocket use case
-        self.article_processor = None
         self.feed_manager = None
         self.benzinga_websocket = None
         self.health_monitor = None
@@ -87,11 +84,15 @@ def initialize_services() -> Services:
     services = Services()
     
     try:
+        # Create event bus first - it's a dependency for everything
+        event_bus = AsyncEventBus()
+        logger.info("Event bus created")
+        
         # Initialize external services first (no dependencies)
         logger.info("Initializing external services...")
         
         # New brokerage service (infrastructure layer)
-        services.brokerage = IBKRBrokerageService(paper_trading=True, client_id=5)
+        services.brokerage = IBKRBrokerageService(event_bus=event_bus, paper_trading=True, client_id=5)
         logger.info("IBKR Brokerage Service initialized")
         
         # Legacy compatibility (for telegram handlers during migration)
@@ -100,9 +101,12 @@ def initialize_services() -> Services:
         # Initialize dependent services
         logger.info("Initializing dependent services...")
         
-        # Telegram trade handlers (still using brokerage service)
+        # Load configs once
         telegram_config_1 = get_telegram_config()
         telegram_config_2 = get_telegram_config_2()
+        storage_config = get_storage_config()
+        
+        # Telegram trade handlers (still using brokerage service)
         bot_token_1 = telegram_config_1.get("bot_token", "")
         bot_token_2 = telegram_config_2.get("bot_token", "")
         
@@ -118,15 +122,17 @@ def initialize_services() -> Services:
                 trading_service=services.brokerage
             )
         
-        # Telegram notifier
-        services.telegram = get_telegram_notifier(
-            yfinance_service=None,  # YFinance removed
+        # Telegram notifier - use config already loaded above
+        services.telegram = TelegramNotifier(
+            telegram_config_1=telegram_config_1,
+            telegram_config_2=telegram_config_2,
             trade_handler=services.trade_handler,
             trade_handler_2=services.trade_handler_2
         )
         
         # Classification microservice - Infrastructure layer
         services.classification_infra = ClassificationInfrastructureService(
+            event_bus=event_bus,
             api_key=GROQ_API_KEY,
             model=GROQ_MODEL,
             enabled=CLASSIFICATION_ENABLED
@@ -134,49 +140,62 @@ def initialize_services() -> Services:
         logger.info("ClassificationInfrastructureService initialized")
         
         # Classification microservice - Domain layer
-        services.classification_domain_listener = ClassificationDomainListener()
+        services.classification_domain_listener = ClassificationDomainListener(event_bus=event_bus)
         logger.info("ClassificationDomainListener initialized")
         
         # Classification microservice - Use cases layer
-        services.classify_article_use_case = ClassifyArticleUseCase()
+        services.classify_article_use_case = ClassifyArticleUseCase(event_bus=event_bus)
         logger.info("ClassifyArticleUseCase initialized")
         
         # Note: Audit logging is now handled by StoreAuditLogUseCase (storage microservice)
         
         # Storage microservice - Infrastructure layer
-        services.storage_infra = StorageInfrastructureService()
+        services.storage_infra = StorageInfrastructureService(
+            event_bus=event_bus,
+            storage_config=storage_config
+        )
         logger.info("StorageInfrastructureService initialized")
         
         # Storage microservice - Domain layer
-        services.storage_domain_listener = StorageDomainListener()
+        services.storage_domain_listener = StorageDomainListener(event_bus=event_bus)
         logger.info("StorageDomainListener initialized")
         
         # Storage microservice - Services layer
-        services.storage_query_service = StorageQueryService()
+        # Inject article repository for direct queries (needed for query methods)
+        services.storage_query_service = StorageQueryService(
+            event_bus=event_bus,
+            article_repository=services.storage_infra.article_repository
+        )
         logger.info("StorageQueryService initialized")
         
         # Storage microservice - Use cases layer
-        services.store_article_use_case = StoreArticleUseCase()
+        services.store_article_use_case = StoreArticleUseCase(event_bus=event_bus)
         logger.info("StoreArticleUseCase initialized")
         
         services.store_audit_log_use_case = StoreAuditLogUseCase(
+            event_bus=event_bus,
             storage_query_service=services.storage_query_service
         )
         logger.info("StoreAuditLogUseCase initialized - uses StorageQueryService")
         
         # Notification microservice - Infrastructure layer
+        # Use telegram config already loaded above
         notification_enabled = TELEGRAM_ENABLED or TELEGRAM_ENABLED_2
         services.notification_infra = NotificationInfrastructureService(
+            event_bus=event_bus,
+            telegram_config_1=telegram_config_1,
+            telegram_config_2=telegram_config_2,
             enabled=notification_enabled
         )
         logger.info("NotificationInfrastructureService initialized", enabled=notification_enabled)
         
         # Notification microservice - Domain layer
-        services.notification_domain_listener = NotificationDomainListener()
+        services.notification_domain_listener = NotificationDomainListener(event_bus=event_bus)
         logger.info("NotificationDomainListener initialized")
         
         # Notification microservice - Use cases layer
         services.notify_imminent_article_use_case = NotifyImminentArticleUseCase(
+            event_bus=event_bus,
             storage_query_service=services.storage_query_service
         )
         logger.info("NotifyImminentArticleUseCase initialized - uses StorageQueryService")
@@ -184,29 +203,25 @@ def initialize_services() -> Services:
         # Auto-trade service (handles trading logic, subscribes to domain events)
         from ..services.brokerage.auto_trade_service import AutoTradeService
         services.auto_trade_service = AutoTradeService(
+            event_bus=event_bus,
             storage_query_service=services.storage_query_service
         )
         logger.info("AutoTradeService initialized - uses storage query service")
         
-        # Article processor (DEPRECATED - kept for legacy compatibility only)
-        # All processing is now event-driven via dedicated use cases
-        article_processor = get_article_processor()
-        services.article_processor = article_processor
-        logger.info("ArticleProcessor initialized (DEPRECATED - all processing is event-driven)")
         
         # Feed manager (no WebSocket management - just event subscription, no article_processor coupling)
-        services.feed_manager = FeedManager()
+        services.feed_manager = FeedManager(event_bus=event_bus)
         
         # Process article use case (minimal - just logs, all processing is event-driven)
         from ..use_cases.process_article_use_case import ProcessArticleUseCase
-        services.process_article_use_case = ProcessArticleUseCase()
+        services.process_article_use_case = ProcessArticleUseCase(event_bus=event_bus)
         logger.info("ProcessArticleUseCase initialized - subscribes to Domain.ArticleClassified (event-driven)")
         logger.info("Note: All processing handled by dedicated use cases (event-driven)")
         
         # Benzinga WebSocket microservice (infrastructure layer - managed separately)
         if BENZINGA_WEBSOCKET_ENABLED and BENZINGA_API_KEY:
             from ..infra.websocket.service import BenzingaWebSocketMicroservice
-            services.benzinga_websocket = BenzingaWebSocketMicroservice(token=BENZINGA_API_KEY)
+            services.benzinga_websocket = BenzingaWebSocketMicroservice(event_bus=event_bus, token=BENZINGA_API_KEY)
             logger.info("Benzinga WebSocket microservice initialized")
         else:
             services.benzinga_websocket = None
@@ -214,6 +229,7 @@ def initialize_services() -> Services:
         
         # Health monitor (no feed_manager dependency - just event subscription)
         services.health_monitor = FeedHealthMonitor(
+            event_bus=event_bus,
             telegram_service=services.telegram
         )
         logger.info("Feed health monitor initialized")
@@ -222,10 +238,10 @@ def initialize_services() -> Services:
         from ..domain.websocket.listener import WebSocketDomainListener
         from ..domain.brokerage.listener import BrokerageDomainListener
         
-        services.websocket_domain_listener = WebSocketDomainListener()
+        services.websocket_domain_listener = WebSocketDomainListener(event_bus=event_bus)
         logger.info("WebSocket domain listener initialized")
         
-        services.brokerage_domain_listener = BrokerageDomainListener()
+        services.brokerage_domain_listener = BrokerageDomainListener(event_bus=event_bus)
         logger.info("Brokerage domain listener initialized")
         
         # Classification domain listener already initialized above
@@ -467,19 +483,19 @@ async def stop_services(services: Services) -> None:
         raise
 
 
-def get_stats(services: Services) -> Dict[str, Any]:
+async def get_stats(services: Services) -> Dict[str, Any]:
     """Get statistics from all services."""
     try:
         stats = {
             "feed_manager": services.feed_manager.get_stats() if services.feed_manager else {},
-            "article_processor": services.article_processor.get_stats() if services.article_processor else {},
+            "storage_query_service": "Available" if services.storage_query_service else "Not available",
             "telegram": {
                 "enabled_1": services.telegram.enabled_1 if services.telegram else False,
                 "enabled_2": services.telegram.enabled_2 if services.telegram else False,
                 "test_mode": services.telegram.test_mode if services.telegram else False,
             },
             "classification_infra": services.classification_infra.get_stats() if services.classification_infra else {},
-            "storage_infra": services.storage_infra.get_stats() if services.storage_infra else {},
+            "storage_infra": await services.storage_infra.get_stats() if services.storage_infra else {},
             "notification_infra": services.notification_infra.get_stats() if services.notification_infra else {},
             "brokerage": services.brokerage.get_stats() if services.brokerage else {},
         }

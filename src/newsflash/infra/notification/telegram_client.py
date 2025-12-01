@@ -8,7 +8,7 @@ from telegram import Bot
 from telegram.error import TelegramError
 
 from ...utils.logging_config import get_logger
-from ...config.settings import get_telegram_config, get_telegram_config_2
+# Config now injected via constructor - no direct import needed
 
 logger = get_logger(__name__)
 
@@ -20,18 +20,20 @@ class TelegramNotificationClient:
     Pure infrastructure - handles Telegram API operations.
     """
     
-    def __init__(self, enabled: bool = True):
+    def __init__(self, telegram_config_1: dict, telegram_config_2: dict, enabled: bool = True):
         """
         Initialize Telegram notification client.
         
         Args:
+            telegram_config_1: Configuration dict for primary Telegram bot
+            telegram_config_2: Configuration dict for secondary Telegram bot
             enabled: Whether Telegram notifications are enabled
         """
         self.enabled = enabled
         
-        # Get configuration for both bots
-        self.config_1 = get_telegram_config()
-        self.config_2 = get_telegram_config_2()
+        # Use injected configuration
+        self.config_1 = telegram_config_1
+        self.config_2 = telegram_config_2
         
         # Initialize bot 1
         self.bot_1: Optional[Bot] = None

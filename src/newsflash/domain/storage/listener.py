@@ -8,7 +8,8 @@ from typing import Dict, Any
 
 from newsflash.domain.storage.models import AuditEntry, StoredArticle
 
-from ...shared.event_bus import get_event_bus
+from ...shared.event_bus import AsyncEventBus
+from ...shared.event_types import DomainEventType, InfrastructureEventType
 from ...infra.storage.infrastructure_models import (
     ArticleStoredInfrastructureEvent,
     ArticleStorageFailedInfrastructureEvent,
@@ -55,8 +56,14 @@ class StorageDomainListener(
     - Mappers: Transform domain ↔ infrastructure (bidirectional flow)
     """
     
-    def __init__(self):
-        self.event_bus = get_event_bus()
+    def __init__(self, event_bus: AsyncEventBus):
+        """
+        Initialize storage domain listener.
+        
+        Args:
+            event_bus: Event bus instance for publishing/subscribing to events
+        """
+        self.event_bus = event_bus
         # Validators: Validate domain models
         self.article_validator = StoredArticleValidator()
         self.audit_validator = AuditEntryValidator()
@@ -74,16 +81,15 @@ class StorageDomainListener(
         self.is_running = True
         
         # Subscribe to domain storage requests (use cases → infrastructure)
-        self.event_bus.subscribe("Domain.ArticleStorageRequested", self._handle_domain_article_storage_request)
-        self.event_bus.subscribe("Domain.AuditLogRequested", self._handle_domain_audit_log_request)
-        self.event_bus.subscribe("Domain.ArticleFetchRequested", self._handle_domain_article_fetch_request)
+        self.event_bus.subscribe(DomainEventType.ARTICLE_STORAGE_REQUESTED, self._handle_domain_article_storage_request)
+        self.event_bus.subscribe(DomainEventType.AUDIT_LOG_STORAGE_REQUESTED, self._handle_domain_audit_log_request)
+        self.event_bus.subscribe(DomainEventType.ARTICLE_FETCH_REQUESTED, self._handle_domain_article_fetch_request)
         
-        # Subscribe to infrastructure storage results (infrastructure → services)
-        self.event_bus.subscribe("ArticleStored", self._handle_infra_article_stored_from_bus)
-        self.event_bus.subscribe("ArticleStorageFailed", self._handle_infra_article_storage_failed_from_bus)
-        self.event_bus.subscribe("AuditLogged", self._handle_infra_audit_logged_from_bus)
-        self.event_bus.subscribe("AuditLogStorageFailed", self._handle_infra_audit_log_storage_failed_from_bus)
-        self.event_bus.subscribe("ArticleFetched", self._handle_infra_article_fetched_from_bus)
+        self.event_bus.subscribe(InfrastructureEventType.ARTICLE_STORED, self._handle_infra_article_stored_from_bus)
+        self.event_bus.subscribe(InfrastructureEventType.ARTICLE_STORAGE_FAILED, self._handle_infra_article_storage_failed_from_bus)
+        self.event_bus.subscribe(InfrastructureEventType.AUDIT_LOG_STORED, self._handle_infra_audit_logged_from_bus)
+        self.event_bus.subscribe(InfrastructureEventType.AUDIT_LOG_STORAGE_FAILED, self._handle_infra_audit_log_storage_failed_from_bus)
+        self.event_bus.subscribe(InfrastructureEventType.ARTICLE_FETCHED, self._handle_infra_article_fetched_from_bus)
         
         logger.info("StorageDomainListener started - listening to domain and infrastructure events")
     
@@ -132,7 +138,7 @@ class StorageDomainListener(
             )
             
             # Step 3: PUBLISH typed infrastructure event
-            await self.event_bus.publish("ArticleStorageRequested", infra_request_data.model_dump())
+            await self.event_bus.publish(InfrastructureEventType.ARTICLE_STORAGE_REQUESTED, infra_request_data.model_dump())
             
             logger.info(
                 "StorageDomainListener: Published infrastructure article storage request",
@@ -181,7 +187,7 @@ class StorageDomainListener(
             )
             
             # Step 3: PUBLISH typed infrastructure event
-            await self.event_bus.publish("AuditLogStorageRequested", infra_request_data.model_dump())
+            await self.event_bus.publish(InfrastructureEventType.AUDIT_LOG_STORAGE_REQUESTED, infra_request_data.model_dump())
             
             logger.info(
                 "StorageDomainListener: Published infrastructure audit log request",
@@ -226,7 +232,7 @@ class StorageDomainListener(
                 requested_at=domain_event.requested_at
             )
             
-            await self.event_bus.publish("ArticleFetchRequested", infra_request.model_dump())
+            await self.event_bus.publish(InfrastructureEventType.ARTICLE_FETCH_REQUESTED, infra_request.model_dump())
             
             logger.info(
                 "StorageDomainListener: Published infrastructure article fetch request",
@@ -361,7 +367,7 @@ class StorageDomainListener(
                 article=stored_article,
                 fetched_at=infra_event.fetched_at
             )
-            await self.event_bus.publish("Domain.ArticleFetched", domain_event.model_dump())
+            await self.event_bus.publish(DomainEventType.ARTICLE_FETCHED, domain_event.model_dump())
             
             logger.debug(
                 "StorageDomainListener: Published domain article fetched event",
@@ -391,7 +397,7 @@ class StorageDomainListener(
             article=article,
             requested_at=requested_at
         )
-        await self.event_bus.publish("Domain.ArticleStorageRequested", event.model_dump())
+        await self.event_bus.publish(DomainEventType.ARTICLE_STORAGE_REQUESTED, event.model_dump())
     
     async def publish_article_stored(self, article_id: str, stored_at: datetime, file_path: str, is_archived: bool = False) -> None:
         """Publish ArticleStored domain event (implements DomainStorageEventPublisher)."""
@@ -401,7 +407,7 @@ class StorageDomainListener(
             file_path=file_path,
             is_archived=is_archived
         )
-        await self.event_bus.publish("Domain.ArticleStored", event.model_dump())
+        await self.event_bus.publish(DomainEventType.ARTICLE_STORED, event.model_dump())
     
     async def publish_article_storage_failed(self, article_id: str, error: str, failed_at: datetime) -> None:
         """Publish ArticleStorageFailed domain event (implements DomainStorageEventPublisher)."""
@@ -410,7 +416,7 @@ class StorageDomainListener(
             error=error,
             failed_at=failed_at
         )
-        await self.event_bus.publish("Domain.ArticleStorageFailed", event.model_dump())
+        await self.event_bus.publish(DomainEventType.ARTICLE_STORAGE_FAILED, event.model_dump())
     
     async def publish_audit_log_requested(self, entry: AuditEntry, requested_at: datetime) -> None:
         """Publish AuditLogRequested domain event (implements DomainStorageEventPublisher)."""
@@ -418,7 +424,7 @@ class StorageDomainListener(
             entry=entry,
             requested_at=requested_at
         )
-        await self.event_bus.publish("Domain.AuditLogRequested", event.model_dump())
+        await self.event_bus.publish(DomainEventType.AUDIT_LOG_STORAGE_REQUESTED, event.model_dump())
     
     async def publish_audit_logged(self, article_id: str, logged_at: datetime, file_path: str) -> None:
         """Publish AuditLogged domain event (implements DomainStorageEventPublisher)."""
@@ -427,7 +433,7 @@ class StorageDomainListener(
             logged_at=logged_at,
             file_path=file_path
         )
-        await self.event_bus.publish("Domain.AuditLogged", event.model_dump())
+        await self.event_bus.publish(DomainEventType.AUDIT_LOG_STORED, event.model_dump())
     
     async def publish_audit_log_storage_failed(self, article_id: str, error: str, failed_at: datetime) -> None:
         """Publish AuditLogStorageFailed domain event (implements DomainStorageEventPublisher)."""
@@ -436,5 +442,5 @@ class StorageDomainListener(
             error=error,
             failed_at=failed_at
         )
-        await self.event_bus.publish("Domain.AuditLogStorageFailed", event.model_dump())
+        await self.event_bus.publish(DomainEventType.AUDIT_LOG_STORAGE_FAILED, event.model_dump())
 

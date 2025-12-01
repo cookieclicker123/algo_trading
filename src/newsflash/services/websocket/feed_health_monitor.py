@@ -6,7 +6,8 @@ import asyncio
 from typing import Dict, Any, Optional
 from datetime import datetime
 from ...utils.logging_config import get_logger
-from ...shared.event_bus import get_event_bus
+from ...shared.event_bus import AsyncEventBus
+from ...shared.event_types import DomainEventType
 
 logger = get_logger(__name__)
 
@@ -27,18 +28,19 @@ class FeedHealthMonitor:
     - Know about WebSocket implementation details
     """
     
-    def __init__(self, telegram_service):
+    def __init__(self, event_bus: AsyncEventBus, telegram_service):
         """
         Initialize health monitor.
         
         Args:
+            event_bus: Event bus instance for publishing/subscribing to events
             telegram_service: Telegram service for sending alerts
         """
         self.telegram_service = telegram_service
         self.is_running = False
         
         # Event bus for subscribing to events
-        self.event_bus = get_event_bus()
+        self.event_bus = event_bus
         
         # Track previous state for each feed
         self.previous_state: Dict[str, Dict[str, Any]] = {
@@ -60,26 +62,18 @@ class FeedHealthMonitor:
     def _subscribe_to_websocket_events(self):
         """Subscribe to domain WebSocket events for real-time health monitoring."""
         # Subscribe to domain health status events (not infrastructure events)
-        self.event_bus.subscribe("Domain.WebSocketHealthStatus", self._handle_websocket_health_status)
-        
-        # Subscribe to domain error events
-        self.event_bus.subscribe("Domain.WebSocketError", self._handle_websocket_error)
-        
-        # Subscribe to domain rate limit events (critical)
-        self.event_bus.subscribe("Domain.WebSocketRateLimit", self._handle_websocket_rate_limit)
-        
-        # Subscribe to domain disconnect events
-        self.event_bus.subscribe("Domain.WebSocketDisconnected", self._handle_websocket_disconnected)
-        
-        # Subscribe to domain connect events
-        self.event_bus.subscribe("Domain.WebSocketConnected", self._handle_websocket_connected)
+        self.event_bus.subscribe(DomainEventType.WEBSOCKET_HEALTH_STATUS, self._handle_websocket_health_status)
+        self.event_bus.subscribe(DomainEventType.WEBSOCKET_ERROR, self._handle_websocket_error)
+        self.event_bus.subscribe(DomainEventType.WEBSOCKET_RATE_LIMIT, self._handle_websocket_rate_limit)
+        self.event_bus.subscribe(DomainEventType.WEBSOCKET_DISCONNECTED, self._handle_websocket_disconnected)
+        self.event_bus.subscribe(DomainEventType.WEBSOCKET_CONNECTED, self._handle_websocket_connected)
         
         logger.info("Subscribed to domain WebSocket events for health monitoring")
     
     def _subscribe_to_brokerage_events(self):
         """Subscribe to domain brokerage connection events for Telegram notifications."""
-        self.event_bus.subscribe("Domain.BrokerageConnectionStatus", self._handle_brokerage_connection_status)
-        self.event_bus.subscribe("Domain.BrokerageHealthStatus", self._handle_brokerage_health_status)
+        self.event_bus.subscribe(DomainEventType.BROKERAGE_CONNECTION_STATUS, self._handle_brokerage_connection_status)
+        self.event_bus.subscribe(DomainEventType.BROKERAGE_HEALTH_STATUS, self._handle_brokerage_health_status)
         logger.info("Subscribed to domain brokerage connection and health events")
     
     async def _handle_brokerage_connection_status(self, event_type: str, event_data: dict) -> None:
@@ -276,13 +270,13 @@ class FeedHealthMonitor:
         self.is_running = False
         
         # Unsubscribe from domain events
-        self.event_bus.unsubscribe("Domain.WebSocketHealthStatus", self._handle_websocket_health_status)
-        self.event_bus.unsubscribe("Domain.WebSocketError", self._handle_websocket_error)
-        self.event_bus.unsubscribe("Domain.WebSocketRateLimit", self._handle_websocket_rate_limit)
-        self.event_bus.unsubscribe("Domain.WebSocketDisconnected", self._handle_websocket_disconnected)
-        self.event_bus.unsubscribe("Domain.WebSocketConnected", self._handle_websocket_connected)
-        self.event_bus.unsubscribe("Domain.BrokerageConnectionStatus", self._handle_brokerage_connection_status)
-        self.event_bus.unsubscribe("Domain.BrokerageHealthStatus", self._handle_brokerage_health_status)
+        self.event_bus.unsubscribe(DomainEventType.WEBSOCKET_HEALTH_STATUS, self._handle_websocket_health_status)
+        self.event_bus.unsubscribe(DomainEventType.WEBSOCKET_ERROR, self._handle_websocket_error)
+        self.event_bus.unsubscribe(DomainEventType.WEBSOCKET_RATE_LIMIT, self._handle_websocket_rate_limit)
+        self.event_bus.unsubscribe(DomainEventType.WEBSOCKET_DISCONNECTED, self._handle_websocket_disconnected)
+        self.event_bus.unsubscribe(DomainEventType.WEBSOCKET_CONNECTED, self._handle_websocket_connected)
+        self.event_bus.unsubscribe(DomainEventType.BROKERAGE_CONNECTION_STATUS, self._handle_brokerage_connection_status)
+        self.event_bus.unsubscribe(DomainEventType.BROKERAGE_HEALTH_STATUS, self._handle_brokerage_health_status)
         
         logger.info("Stopping feed health monitor")
     
@@ -347,7 +341,6 @@ class FeedHealthMonitor:
             previous_state["last_alert_time"] = datetime.now()
             await self._send_health_alert(feed_name, health_status, was_healthy, state_changed)
 
-            # Note: Auto-restart removed - infrastructure manages lifecycle
             # If needed, publish a restart event that infrastructure can subscribe to
         
         # Log health status

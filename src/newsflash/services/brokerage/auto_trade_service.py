@@ -7,8 +7,9 @@ from decimal import Decimal
 from datetime import datetime
 
 from ...utils.logging_config import get_logger
-from ...shared.event_bus import get_event_bus
+from ...shared.event_bus import AsyncEventBus
 from ...shared.typed_event_bus import subscribe_typed
+from ...shared.event_types import DomainEventType
 from ...domain.brokerage.factories import TradeRequestFactory
 from ...domain.brokerage.events import TradeRequestDomainEvent
 from ...domain.classification.events import ArticleClassifiedDomainEvent
@@ -33,21 +34,24 @@ class AutoTradeService:
     - Know about infrastructure details
     """
     
-    def __init__(self, storage_query_service: StorageQueryService):
+    def __init__(self, event_bus: AsyncEventBus, storage_query_service: StorageQueryService):
         """
         Initialize auto-trade service.
         
         Args:
+            event_bus: Event bus instance for publishing/subscribing to events
             storage_query_service: Optional storage query service for fetching articles
         """
         self.is_enabled = AUTO_TRADING_ENABLED
-        self.event_bus = get_event_bus()
+        self.event_bus = event_bus
         self.trade_request_factory = TradeRequestFactory()
         self.storage_query_service = storage_query_service
         
         # Subscribe to typed Domain.ArticleClassified events
-        subscribe_typed(
-            "Domain.ArticleClassified",
+        # Store wrapper for unsubscribe
+        self._article_classified_wrapper = subscribe_typed(
+            self.event_bus,
+            DomainEventType.ARTICLE_CLASSIFIED,
             ArticleClassifiedDomainEvent,
             self._handle_article_classified,
         )
@@ -58,7 +62,6 @@ class AutoTradeService:
             has_storage_query=self.storage_query_service is not None
         )
     
-    # Article caching removed - now using storage query service to fetch articles on demand
     
     async def _handle_article_classified(
         self,

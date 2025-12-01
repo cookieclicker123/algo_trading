@@ -7,7 +7,8 @@ Implements protocols for type-safe event handling.
 from typing import Dict, Any
 from datetime import datetime
 
-from ...shared.event_bus import get_event_bus
+from ...shared.event_bus import AsyncEventBus
+from ...shared.event_types import DomainEventType, InfrastructureEventType
 from ...infra.websocket.infrastructure_models import ArticleReceivedInfrastructureEvent
 from ...infra.websocket.event_protocols import InfrastructureArticleEventSubscriber
 from ...utils.logging_config import get_logger
@@ -43,8 +44,14 @@ class WebSocketDomainListener(InfrastructureArticleEventSubscriber, DomainArticl
     - Note: No mappers needed here - only one-way flow (infra → domain), no reverse mapping required
     """
     
-    def __init__(self):
-        self.event_bus = get_event_bus()
+    def __init__(self, event_bus: AsyncEventBus):
+        """
+        Initialize WebSocket domain listener.
+        
+        Args:
+            event_bus: Event bus instance for publishing/subscribing to events
+        """
+        self.event_bus = event_bus
         # Validators: Validate domain models
         self.validator = ArticleValidator()
         # Factories: Create domain models (infra → domain, uses mappers internally)
@@ -59,13 +66,12 @@ class WebSocketDomainListener(InfrastructureArticleEventSubscriber, DomainArticl
         
         self.is_running = True
         # Subscribe to infrastructure article events
-        self.event_bus.subscribe("ArticleReceived", self._handle_article_received_from_bus)
-        # Subscribe to infrastructure health events
-        self.event_bus.subscribe("WebSocketHealthStatus", self._handle_websocket_health_status_from_bus)
-        self.event_bus.subscribe("WebSocketConnected", self._handle_websocket_connected_from_bus)
-        self.event_bus.subscribe("WebSocketDisconnected", self._handle_websocket_disconnected_from_bus)
-        self.event_bus.subscribe("WebSocketError", self._handle_websocket_error_from_bus)
-        self.event_bus.subscribe("WebSocketRateLimit", self._handle_websocket_rate_limit_from_bus)
+        self.event_bus.subscribe(InfrastructureEventType.ARTICLE_RECEIVED, self._handle_article_received_from_bus)
+        self.event_bus.subscribe(InfrastructureEventType.WEBSOCKET_HEALTH_STATUS, self._handle_websocket_health_status_from_bus)
+        self.event_bus.subscribe(InfrastructureEventType.WEBSOCKET_CONNECTED, self._handle_websocket_connected_from_bus)
+        self.event_bus.subscribe(InfrastructureEventType.WEBSOCKET_DISCONNECTED, self._handle_websocket_disconnected_from_bus)
+        self.event_bus.subscribe(InfrastructureEventType.WEBSOCKET_ERROR, self._handle_websocket_error_from_bus)
+        self.event_bus.subscribe(InfrastructureEventType.WEBSOCKET_RATE_LIMIT, self._handle_websocket_rate_limit_from_bus)
         logger.info("WebSocketDomainListener started - listening to infrastructure events")
     
     async def stop(self) -> None:
@@ -84,7 +90,6 @@ class WebSocketDomainListener(InfrastructureArticleEventSubscriber, DomainArticl
         Args:
             event: Typed infrastructure event model (validated)
         """
-        # Legacy wrapper for event bus compatibility (event_bus passes event_type, event_data)
         await self._handle_article_received_from_bus("ArticleReceived", event.model_dump())
     
     async def _handle_article_received_from_bus(self, event_type: str, event_data: Dict[str, Any]) -> None:
@@ -163,7 +168,7 @@ class WebSocketDomainListener(InfrastructureArticleEventSubscriber, DomainArticl
                 article=article,  # ✅ Typed domain model
                 received_at=received_at
             )
-            await self.event_bus.publish("Domain.ArticleReceived", domain_event.model_dump())
+            await self.event_bus.publish(DomainEventType.ARTICLE_RECEIVED, domain_event.model_dump())
             
             logger.info(
                 "WebSocketDomainListener: Published domain article event",
@@ -188,7 +193,7 @@ class WebSocketDomainListener(InfrastructureArticleEventSubscriber, DomainArticl
                 validation_errors=errors,
                 failed_at=datetime.now()
             )
-            await self.event_bus.publish("Domain.ArticleValidationFailed", event.model_dump())
+            await self.event_bus.publish(DomainEventType.ARTICLE_VALIDATION_FAILED, event.model_dump())
             
         except Exception as e:
             logger.error(
@@ -209,7 +214,7 @@ class WebSocketDomainListener(InfrastructureArticleEventSubscriber, DomainArticl
                 occurred_at=infra_event.occurred_at,
                 details=infra_event.details
             )
-            await self.event_bus.publish("Domain.WebSocketHealthStatus", domain_event.model_dump())
+            await self.event_bus.publish(DomainEventType.WEBSOCKET_HEALTH_STATUS, domain_event.model_dump())
             
             logger.debug(
                 "WebSocketDomainListener: Published domain health status event",
@@ -228,7 +233,7 @@ class WebSocketDomainListener(InfrastructureArticleEventSubscriber, DomainArticl
             domain_event = WebSocketConnectedDomainEvent(
                 connected_at=infra_event.connected_at
             )
-            await self.event_bus.publish("Domain.WebSocketConnected", domain_event.model_dump())
+            await self.event_bus.publish(DomainEventType.WEBSOCKET_CONNECTED, domain_event.model_dump())
             
             logger.debug("WebSocketDomainListener: Published domain connected event")
         except Exception as e:
@@ -244,7 +249,7 @@ class WebSocketDomainListener(InfrastructureArticleEventSubscriber, DomainArticl
                 disconnected_at=infra_event.disconnected_at,
                 reason=infra_event.reason
             )
-            await self.event_bus.publish("Domain.WebSocketDisconnected", domain_event.model_dump())
+            await self.event_bus.publish(DomainEventType.WEBSOCKET_DISCONNECTED, domain_event.model_dump())
             
             logger.debug("WebSocketDomainListener: Published domain disconnected event")
         except Exception as e:
@@ -261,7 +266,7 @@ class WebSocketDomainListener(InfrastructureArticleEventSubscriber, DomainArticl
                 occurred_at=infra_event.occurred_at,
                 is_rate_limit=infra_event.is_rate_limit
             )
-            await self.event_bus.publish("Domain.WebSocketError", domain_event.model_dump())
+            await self.event_bus.publish(DomainEventType.WEBSOCKET_ERROR, domain_event.model_dump())
             
             logger.debug("WebSocketDomainListener: Published domain error event")
         except Exception as e:
@@ -277,7 +282,7 @@ class WebSocketDomainListener(InfrastructureArticleEventSubscriber, DomainArticl
                 occurred_at=infra_event.occurred_at,
                 message=infra_event.message
             )
-            await self.event_bus.publish("Domain.WebSocketRateLimit", domain_event.model_dump())
+            await self.event_bus.publish(DomainEventType.WEBSOCKET_RATE_LIMIT, domain_event.model_dump())
             
             logger.debug("WebSocketDomainListener: Published domain rate limit event")
         except Exception as e:

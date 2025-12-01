@@ -6,7 +6,8 @@ No direct coupling to classification/article processing.
 """
 
 from ...utils.logging_config import get_logger
-from ...shared.event_bus import get_event_bus
+from ...shared.event_bus import AsyncEventBus
+from ...shared.event_types import DomainEventType
 
 logger = get_logger(__name__)
 
@@ -26,17 +27,22 @@ class FeedManager:
     - Create/manage WebSocket connections (infrastructure does that)
     - Access WebSocket state
     - Know about infrastructure details
-    - Know about article_processor or classification logic
+    - Know about classification logic
     """
     
-    def __init__(self):
-        """Initialize the feed manager."""
+    def __init__(self, event_bus: AsyncEventBus):
+        """
+        Initialize the feed manager.
+        
+        Args:
+            event_bus: Event bus instance for publishing/subscribing to events
+        """
         self.is_running = False
         self.articles_received_count = 0
-        self.event_bus = get_event_bus()
+        self.event_bus = event_bus
         
         # Subscribe to domain ArticleReceived events only
-        self.event_bus.subscribe("Domain.ArticleReceived", self._handle_domain_article_received)
+        self.event_bus.subscribe(DomainEventType.ARTICLE_RECEIVED, self._handle_domain_article_received)
         logger.info("FeedManager subscribed to Domain.ArticleReceived events")
     
     async def start_all_feeds(self) -> None:
@@ -83,7 +89,7 @@ class FeedManager:
         self.is_running = False
         
         # Unsubscribe from events
-        self.event_bus.unsubscribe("Domain.ArticleReceived", self._handle_domain_article_received)
+        self.event_bus.unsubscribe(DomainEventType.ARTICLE_RECEIVED, self._handle_domain_article_received)
         logger.info("FeedManager stopped")
     
     def get_stats(self) -> dict:

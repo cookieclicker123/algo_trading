@@ -105,7 +105,7 @@ def create_app() -> FastAPI:
             if not _services:
                 raise HTTPException(status_code=503, detail="Services not initialized")
             
-            stats = get_stats(_services)
+            stats = await get_stats(_services)
             
             return {
                 "stats": stats,
@@ -121,10 +121,10 @@ def create_app() -> FastAPI:
         """Get recent articles from storage."""
         global _services
         try:
-            if not _services or not _services.article_processor:
+            if not _services or not _services.storage_query_service:
                 raise HTTPException(status_code=503, detail="Services not initialized")
             
-            articles = await _services.article_processor.get_recent_articles(hours)
+            articles = await _services.storage_query_service.get_recent_articles(hours)
             
             return {
                 "articles": articles,
@@ -142,10 +142,10 @@ def create_app() -> FastAPI:
         """Get archived articles for a specific date (YYYY-MM-DD format)."""
         global _services
         try:
-            if not _services or not _services.article_processor:
+            if not _services or not _services.storage_query_service:
                 raise HTTPException(status_code=503, detail="Services not initialized")
             
-            articles = await _services.article_processor.get_archived_articles(date)
+            articles = await _services.storage_query_service.get_archived_articles(date)
             
             return {
                 "articles": articles,
@@ -163,10 +163,10 @@ def create_app() -> FastAPI:
         """Get statistics about archived articles."""
         global _services
         try:
-            if not _services or not _services.article_processor:
+            if not _services or not _services.storage_query_service:
                 raise HTTPException(status_code=503, detail="Services not initialized")
             
-            stats = await _services.article_processor.get_archive_stats()
+            stats = await _services.storage_query_service.get_archive_stats()
             return stats
         except HTTPException:
             raise

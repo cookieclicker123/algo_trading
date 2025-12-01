@@ -10,8 +10,9 @@ from datetime import datetime
 from typing import Final
 
 from ..utils.logging_config import get_logger
-from ..shared.event_bus import get_event_bus
+from ..shared.event_bus import AsyncEventBus
 from ..shared.typed_event_bus import subscribe_typed
+from ..shared.event_types import DomainEventType
 from ..domain.classification.events import ArticleClassifiedDomainEvent
 from ..domain.classification.models import ClassificationCategory
 from ..domain.notification.events import NotificationRequestedDomainEvent
@@ -37,20 +38,23 @@ class NotifyImminentArticleUseCase:
     Services provide focused operations - use case orchestrates them.
     """
     
-    def __init__(self, storage_query_service: StorageQueryService):
+    def __init__(self, event_bus: AsyncEventBus, storage_query_service: StorageQueryService):
         """
         Initialize notify imminent article use case.
         
         Args:
+            event_bus: Event bus instance for publishing/subscribing to events
             storage_query_service: Storage query service for fetching articles
         """
-        self.event_bus = get_event_bus()
+        self.event_bus = event_bus
         self.notification_factory = NotificationMessageFactory()
         self.storage_query_service: Final[StorageQueryService] = storage_query_service
         
         # Subscribe to typed Domain.ArticleClassified events
-        subscribe_typed(
-            "Domain.ArticleClassified",
+        # Store wrapper for unsubscribe
+        self._article_classified_wrapper = subscribe_typed(
+            self.event_bus,
+            DomainEventType.ARTICLE_CLASSIFIED,
             ArticleClassifiedDomainEvent,
             self._handle_article_classified,
         )
@@ -66,8 +70,7 @@ class NotifyImminentArticleUseCase:
     
     async def stop(self) -> None:
         """Stop the use case."""
-        # Note: unsubscribe for typed subscriptions would require wrapper tracking.
-        # Use case lifetime matches app lifetime, so we don't unsubscribe here.
+        self.event_bus.unsubscribe("Domain.ArticleClassified", self._article_classified_wrapper)
         logger.info("NotifyImminentArticleUseCase stopped")
     
     async def _handle_article_classified(
@@ -131,7 +134,7 @@ class NotifyImminentArticleUseCase:
                 requested_at=datetime.now()
             )
             
-            await self.event_bus.publish("Domain.NotificationRequested", domain_notification_event.model_dump())
+            await self.event_bus.publish(DomainEventType.NOTIFICATION_REQUESTED, domain_notification_event.model_dump())
             
             logger.info(
                 "✅ NOTIFY USE CASE: Published notification request",

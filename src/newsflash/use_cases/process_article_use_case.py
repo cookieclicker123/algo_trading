@@ -13,12 +13,12 @@ All post-classification actions are now handled by dedicated use cases:
 - Trading: AutoTradeService (event-driven)
 - Audit: StoreAuditLogUseCase (event-driven)
 
-This use case is now minimal - it just logs that classification occurred.
-It can be removed if no additional orchestration is needed.
+This use case logs that classification occurred.
 """
 from ..utils.logging_config import get_logger
-from ..shared.event_bus import get_event_bus
+from ..shared.event_bus import AsyncEventBus
 from ..shared.typed_event_bus import subscribe_typed
+from ..shared.event_types import DomainEventType
 from ..domain.classification.events import ArticleClassifiedDomainEvent
 
 logger = get_logger(__name__)
@@ -38,21 +38,23 @@ class ProcessArticleUseCase:
     - Trading: AutoTradeService
     - Audit: StoreAuditLogUseCase
     
-    This use case can be removed if no additional orchestration is needed.
     """
     
-    def __init__(self):
+    def __init__(self, event_bus: AsyncEventBus):
         """
         Initialize process article use case.
         
-        No dependencies needed - all orchestration is event-driven.
+        Args:
+            event_bus: Event bus instance for publishing/subscribing to events
         """
-        self.event_bus = get_event_bus()
+        self.event_bus = event_bus
         
         # Use case subscribes to domain events
         # All processing is handled by dedicated use cases (event-driven)
-        subscribe_typed(
-            "Domain.ArticleClassified",
+        # Store wrapper for unsubscribe
+        self._article_classified_wrapper = subscribe_typed(
+            self.event_bus,
+            DomainEventType.ARTICLE_CLASSIFIED,
             ArticleClassifiedDomainEvent,
             self._handle_article_classified,
         )
@@ -105,5 +107,5 @@ class ProcessArticleUseCase:
     
     async def stop(self) -> None:
         """Stop the use case."""
-        self.event_bus.unsubscribe("Domain.ArticleClassified", self._handle_article_classified)
+        self.event_bus.unsubscribe("Domain.ArticleClassified", self._article_classified_wrapper)
         logger.info("ProcessArticleUseCase stopped")

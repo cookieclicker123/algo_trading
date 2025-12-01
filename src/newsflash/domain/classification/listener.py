@@ -8,7 +8,8 @@ from datetime import datetime
 
 from newsflash.domain.classification.models import ClassificationResult
 
-from ...shared.event_bus import get_event_bus
+from ...shared.event_bus import AsyncEventBus
+from ...shared.event_types import DomainEventType, InfrastructureEventType
 from ...infra.classification.infrastructure_models import (
     ClassificationRequestedInfrastructureEvent,
     ClassificationCompletedInfrastructureEvent,
@@ -49,8 +50,14 @@ class ClassificationDomainListener(
     - Mappers: Transform domain → infrastructure (reverse mapping for forwarding to infra)
     """
     
-    def __init__(self):
-        self.event_bus = get_event_bus()
+    def __init__(self, event_bus: AsyncEventBus):
+        """
+        Initialize classification domain listener.
+        
+        Args:
+            event_bus: Event bus instance for publishing/subscribing to events
+        """
+        self.event_bus = event_bus
         # Validators: Validate domain models
         self.request_validator = ClassificationRequestValidator()
         self.result_validator = ClassificationResultValidator()
@@ -70,11 +77,10 @@ class ClassificationDomainListener(
         self.is_running = True
         
         # Subscribe to domain classification requests (use cases → infrastructure)
-        self.event_bus.subscribe("Domain.ClassificationRequested", self._handle_domain_classification_request)
+        self.event_bus.subscribe(DomainEventType.CLASSIFICATION_REQUESTED, self._handle_domain_classification_request)
         
-        # Subscribe to infrastructure classification results (infrastructure → services)
-        self.event_bus.subscribe("ClassificationCompleted", self._handle_infra_classification_completed_from_bus)
-        self.event_bus.subscribe("ClassificationFailed", self._handle_infra_classification_failed_from_bus)
+        self.event_bus.subscribe(InfrastructureEventType.CLASSIFICATION_COMPLETED, self._handle_infra_classification_completed_from_bus)
+        self.event_bus.subscribe(InfrastructureEventType.CLASSIFICATION_FAILED, self._handle_infra_classification_failed_from_bus)
         
         logger.info("ClassificationDomainListener started - listening to domain and infrastructure events")
     
@@ -150,7 +156,6 @@ class ClassificationDomainListener(
         Args:
             event: Typed infrastructure event model (validated)
         """
-        # Legacy wrapper for event bus compatibility (event_bus passes event_type, event_data)
         await self._handle_domain_classification_request("ClassificationRequested", event.model_dump())
     
     async def _handle_infra_classification_completed_from_bus(self, event_type: str, event_data: Dict[str, Any]) -> None:
@@ -257,7 +262,7 @@ class ClassificationDomainListener(
         """
         # This is handled by _handle_domain_classification_request which forwards to infrastructure
         # This method is for protocol compliance, but the actual publishing is done in the handler
-        await self.event_bus.publish("Domain.ClassificationRequested", event.model_dump())
+        await self.event_bus.publish(DomainEventType.CLASSIFICATION_REQUESTED, event.model_dump())
     
     async def publish_article_classified(
         self,
@@ -277,7 +282,7 @@ class ClassificationDomainListener(
                 result=result,  # ✅ Typed domain model
                 classified_at=classified_at
             )
-            await self.event_bus.publish("Domain.ArticleClassified", domain_event.model_dump())
+            await self.event_bus.publish(DomainEventType.ARTICLE_CLASSIFIED, domain_event.model_dump())
             
             logger.info(
                 "ClassificationDomainListener: Published domain article classified event",
@@ -312,7 +317,7 @@ class ClassificationDomainListener(
                 error=error,
                 failed_at=failed_at or datetime.now()
             )
-            await self.event_bus.publish("Domain.ClassificationFailed", domain_event.model_dump())
+            await self.event_bus.publish(DomainEventType.CLASSIFICATION_FAILED, domain_event.model_dump())
             
             logger.info(
                 "ClassificationDomainListener: Published domain classification failed event",

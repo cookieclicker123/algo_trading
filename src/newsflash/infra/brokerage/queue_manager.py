@@ -9,7 +9,7 @@ from pathlib import Path
 
 from ...utils.logging_config import get_logger
 from ...models.base_models import TradeRequest
-from ...shared.event_bus import get_event_bus
+from ...shared.event_bus import AsyncEventBus
 from .events import TradeRequestQueuedEvent
 from .event_builders import build_infrastructure_trade_request_data
 from ...utils.brokerage.session_detector import get_next_premarket_time
@@ -31,14 +31,15 @@ class TradeQueueManager:
     - Know about business logic
     """
     
-    def __init__(self, queue_file_path: Optional[Path] = None):
+    def __init__(self, event_bus: AsyncEventBus, queue_file_path: Optional[Path] = None):
         """
         Initialize queue manager.
         
         Args:
+            event_bus: Event bus instance for publishing/subscribing to events
             queue_file_path: Optional path to queue JSON file
         """
-        self.event_bus = get_event_bus()
+        self.event_bus = event_bus
         self.queue_file_path = queue_file_path or Path("tmp/queued_trades.json")
         self.queue_file_path.parent.mkdir(parents=True, exist_ok=True)
         

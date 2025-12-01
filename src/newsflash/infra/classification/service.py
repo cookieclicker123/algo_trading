@@ -12,7 +12,8 @@ from datetime import datetime
 from groq import AsyncGroq
 
 from ...utils.logging_config import get_logger
-from ...shared.event_bus import get_event_bus
+from ...shared.event_bus import AsyncEventBus
+from ...shared.event_types import InfrastructureEventType
 from .infrastructure_models import (
     InfrastructureClassificationRequestData,
     InfrastructureClassificationResponseData,
@@ -45,6 +46,7 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
     
     def __init__(
         self,
+        event_bus: AsyncEventBus,  
         api_key: str,
         model: str = "llama-3.3-70b-versatile",
         enabled: bool = True,
@@ -53,6 +55,7 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
         Initialize classification infrastructure service.
         
         Args:
+            event_bus: Event bus instance for publishing/subscribing to events
             api_key: Groq API key
             model: Groq model name to use
             enabled: Whether classification is enabled
@@ -60,6 +63,7 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
         self.enabled = enabled
         self.model = model
         self.api_key = api_key
+            
         
         # Stateful: Groq client (initialized if enabled)
         self.client: Optional[AsyncGroq] = None
@@ -73,7 +77,7 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
         self.system_prompt = self._load_prompt()
         
         # Event bus for publishing events
-        self.event_bus = get_event_bus()
+        self.event_bus = event_bus
         
         # Statistics
         self.stats = {
@@ -152,7 +156,7 @@ Summary: {summary}"""
         
         # Subscribe to classification requests from domain layer
         # Domain listener will publish ClassificationRequestedInfrastructureEvent
-        self.event_bus.subscribe("ClassificationRequested", self.handle_classification_requested)
+        self.event_bus.subscribe(InfrastructureEventType.CLASSIFICATION_REQUESTED, self.handle_classification_requested)
         logger.info("ClassificationInfrastructureService: Subscribed to ClassificationRequested events")
         
         logger.info("✅ Classification Infrastructure Service started")
@@ -166,7 +170,7 @@ Summary: {summary}"""
         self.is_running = False
         
         # Unsubscribe from events
-        self.event_bus.unsubscribe("ClassificationRequested", self.handle_classification_requested)
+        self.event_bus.unsubscribe(InfrastructureEventType.CLASSIFICATION_REQUESTED, self.handle_classification_requested)
         
         logger.info("✅ Classification Infrastructure Service stopped")
     
@@ -283,7 +287,7 @@ Summary: {summary}"""
                 success=True
             )
             
-            await self.event_bus.publish("ClassificationCompleted", completed_event.model_dump())
+            await self.event_bus.publish(InfrastructureEventType.CLASSIFICATION_COMPLETED, completed_event.model_dump())
             
         except json.JSONDecodeError as e:
             # JSON parsing error
@@ -306,7 +310,7 @@ Summary: {summary}"""
                 failed_at=datetime.now()
             )
             
-            await self.event_bus.publish("ClassificationFailed", failed_event.model_dump())
+            await self.event_bus.publish(InfrastructureEventType.CLASSIFICATION_FAILED, failed_event.model_dump())
             
         except Exception as e:
             # General error
@@ -329,7 +333,7 @@ Summary: {summary}"""
                 failed_at=datetime.now()
             )
             
-            await self.event_bus.publish("ClassificationFailed", failed_event.model_dump())
+            await self.event_bus.publish(InfrastructureEventType.CLASSIFICATION_FAILED, failed_event.model_dump())
     
     def get_stats(self) -> dict:
         """Get classification infrastructure service statistics."""

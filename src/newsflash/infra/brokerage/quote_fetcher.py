@@ -11,7 +11,7 @@ from ib_insync import IB, Stock
 from datetime import datetime
 
 from ...utils.logging_config import get_logger
-from ...shared.event_bus import get_event_bus
+from ...shared.event_bus import AsyncEventBus
 from .events import QuoteReceivedEvent
 from .infrastructure_models import InfrastructureQuoteData
 from ...utils.brokerage.nbbo_formatters import build_nbbo_info
@@ -33,9 +33,14 @@ class IBKRQuoteFetcher:
     - Know about business logic
     """
     
-    def __init__(self):
-        """Initialize quote fetcher."""
-        self.event_bus = get_event_bus()
+    def __init__(self, event_bus: AsyncEventBus):
+        """
+        Initialize quote fetcher.
+        
+        Args:
+            event_bus: Event bus instance for publishing/subscribing to events
+        """
+        self.event_bus = event_bus
         self._quote_snapshots: Dict[str, Dict[str, Any]] = {}
         
         logger.info("IBKRQuoteFetcher initialized")

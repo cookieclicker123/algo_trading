@@ -8,7 +8,8 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 from ...utils.logging_config import get_logger
-from ...shared.event_bus import get_event_bus
+from ...shared.event_bus import AsyncEventBus
+from ...shared.event_types import InfrastructureEventType
 from .infrastructure_models import (
     NotificationSendRequestData,
     NotificationSentInfrastructureEvent,
@@ -37,20 +38,27 @@ class NotificationInfrastructureService(InfrastructureNotificationRequestEventSu
     - Know about domain models
     """
     
-    def __init__(self, enabled: bool = True):
+    def __init__(self, event_bus: AsyncEventBus, telegram_config_1: dict, telegram_config_2: dict, enabled: bool = True):
         """
         Initialize notification infrastructure service.
         
         Args:
+            event_bus: Event bus instance for publishing/subscribing to events
+            telegram_config_1: Configuration dict for primary Telegram bot
+            telegram_config_2: Configuration dict for secondary Telegram bot
             enabled: Whether notifications are enabled
         """
         self.enabled = enabled
         
-        # Stateful: Notification clients (initialized once)
-        self.telegram_client = TelegramNotificationClient(enabled=enabled)
+        # Stateful: Notification clients (initialized once) - inject config
+        self.telegram_client = TelegramNotificationClient(
+            telegram_config_1=telegram_config_1,
+            telegram_config_2=telegram_config_2,
+            enabled=enabled
+        )
         
         # Event bus for publishing events
-        self.event_bus = get_event_bus()
+        self.event_bus = event_bus
         
         # Statistics
         self.stats = {
@@ -81,7 +89,7 @@ class NotificationInfrastructureService(InfrastructureNotificationRequestEventSu
         
         # Subscribe to notification requests from domain layer
         # Domain listener will publish NotificationSendRequestedInfrastructureEvent
-        self.event_bus.subscribe("NotificationSendRequested", self.handle_notification_send_requested)
+        self.event_bus.subscribe(InfrastructureEventType.NOTIFICATION_SEND_REQUESTED, self.handle_notification_send_requested)
         
         logger.info("NotificationInfrastructureService: Subscribed to notification request events")
         logger.info("✅ Notification Infrastructure Service started")
@@ -227,7 +235,7 @@ class NotificationInfrastructureService(InfrastructureNotificationRequestEventSu
                 sent_at=datetime.now()
             )
             
-            await self.event_bus.publish("NotificationSent", event.model_dump())
+            await self.event_bus.publish(InfrastructureEventType.NOTIFICATION_SENT, event.model_dump())
             
             logger.info(
                 "NotificationInfrastructureService: Published notification sent event",
@@ -256,7 +264,7 @@ class NotificationInfrastructureService(InfrastructureNotificationRequestEventSu
                 failed_at=datetime.now()
             )
             
-            await self.event_bus.publish("NotificationFailed", event.model_dump())
+            await self.event_bus.publish(InfrastructureEventType.NOTIFICATION_FAILED, event.model_dump())
             
             logger.warning(
                 "NotificationInfrastructureService: Published notification failed event",

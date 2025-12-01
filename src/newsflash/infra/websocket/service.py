@@ -13,7 +13,8 @@ from datetime import datetime
 from ...utils.logging_config import get_logger
 from ...models.benzinga_models import BenzingaArticle
 from .infrastructure_models import InfrastructureArticleData
-from ...shared.event_bus import get_event_bus
+from ...shared.event_bus import AsyncEventBus
+from ...shared.event_types import InfrastructureEventType
 from .events import (
     ArticleReceivedEvent, 
     WebSocketConnectedEvent, 
@@ -41,11 +42,12 @@ class BenzingaWebSocketMicroservice:
     - Know about business logic
     """
     
-    def __init__(self, token: str):
+    def __init__(self, event_bus: AsyncEventBus, token: str):
         """
         Initialize WebSocket microservice.
         
         Args:
+            event_bus: Event bus instance for publishing/subscribing to events
             token: Benzinga API token
         """
         self.token = token
@@ -56,7 +58,7 @@ class BenzingaWebSocketMicroservice:
         self.min_request_interval = 3.0
         
         # Event bus for publishing events
-        self.event_bus = get_event_bus()
+        self.event_bus = event_bus
         
         # Statistics
         self.stats = {
@@ -157,7 +159,7 @@ class BenzingaWebSocketMicroservice:
         self._monitor_thread.start()
         
         # Start health monitor
-        self.health_monitor = WebSocketHealthMonitor(self)
+        self.health_monitor = WebSocketHealthMonitor(self.event_bus, self)
         self.health_monitor.start()
         
         logger.info("WebSocket microservice threads started")
@@ -378,7 +380,6 @@ class BenzingaWebSocketMicroservice:
                         if news_data.get("action") == "Created" and "content" in news_data:
                             self._process_news_articles([news_data["content"]])
                     elif "news" in data:
-                        # Handle news articles (legacy format)
                         self._process_news_articles(data["news"])
                     elif "heartbeat" in data:
                         # Handle heartbeat messages
@@ -514,7 +515,7 @@ class BenzingaWebSocketMicroservice:
             article_data=article_data,  # ✅ Typed infrastructure model
             received_at=datetime.now()
         )
-        await self.event_bus.publish("ArticleReceived", event.model_dump())
+        await self.event_bus.publish(InfrastructureEventType.ARTICLE_RECEIVED, event.model_dump())
     
     async def _publish_connected(self) -> None:
         """Publish WebSocketConnected event."""

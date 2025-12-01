@@ -3,7 +3,7 @@ Async event bus for pub/sub communication.
 Shared component - used across infrastructure, domain, and services layers.
 """
 import asyncio
-from typing import Dict, List, Callable, Any, Optional
+from typing import Dict, List, Callable, Any
 from collections import defaultdict
 from ..utils.logging_config import get_logger
 
@@ -99,22 +99,4 @@ class AsyncEventBus:
     def get_subscriber_count(self, event_type: str) -> int:
         """Get the number of subscribers for an event type."""
         return len(self._subscribers.get(event_type, []))
-
-
-# Global event bus instance
-_event_bus: Optional[AsyncEventBus] = None
-
-
-def get_event_bus() -> AsyncEventBus:
-    """Get the global event bus instance."""
-    global _event_bus
-    if _event_bus is None:
-        _event_bus = AsyncEventBus()
-    return _event_bus
-
-
-def reset_event_bus() -> None:
-    """Reset the event bus (for testing)."""
-    global _event_bus
-    _event_bus = None
 

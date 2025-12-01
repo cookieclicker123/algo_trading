@@ -6,7 +6,8 @@ This bridges infrastructure ↔ domain for trading operations.
 from typing import Dict, Any
 from datetime import datetime
 
-from ...shared.event_bus import get_event_bus
+from ...shared.event_bus import AsyncEventBus
+from ...shared.event_types import DomainEventType, InfrastructureEventType
 from ...infra.brokerage.infrastructure_models import (
     InfrastructureTradeExecutionRequestEvent,
     InfrastructureTradeExecutedEvent,
@@ -62,8 +63,14 @@ class BrokerageDomainListener(
     - Mappers: Transform domain → infrastructure (reverse mapping for forwarding to infra)
     """
     
-    def __init__(self):
-        self.event_bus = get_event_bus()
+    def __init__(self, event_bus: AsyncEventBus):
+        """
+        Initialize brokerage domain listener.
+        
+        Args:
+            event_bus: Event bus instance for publishing/subscribing to events
+        """
+        self.event_bus = event_bus
         # Validators: Validate domain models
         self.request_validator = TradeRequestValidator()
         self.result_validator = TradeResultValidator()
@@ -84,19 +91,16 @@ class BrokerageDomainListener(
         self.is_running = True
         
         # Subscribe to domain trade requests (use cases → infrastructure)
-        self.event_bus.subscribe("Domain.TradeRequested", self._handle_domain_trade_request)
+        self.event_bus.subscribe(DomainEventType.TRADE_REQUESTED, self._handle_domain_trade_request)
         
-        # Subscribe to infrastructure trade results (infrastructure → services)
-        self.event_bus.subscribe("TradeExecuted", self._handle_infra_trade_executed_from_bus)
-        self.event_bus.subscribe("TradeFailed", self._handle_infra_trade_failed)
-        self.event_bus.subscribe("TradeRequestQueued", self._handle_infra_trade_queued)
+        self.event_bus.subscribe(InfrastructureEventType.TRADE_EXECUTED, self._handle_infra_trade_executed_from_bus)
+        self.event_bus.subscribe(InfrastructureEventType.TRADE_FAILED, self._handle_infra_trade_failed)
+        self.event_bus.subscribe(InfrastructureEventType.TRADE_REQUEST_QUEUED, self._handle_infra_trade_queued)
         
-        # Subscribe to infrastructure quotes
-        self.event_bus.subscribe("QuoteReceived", self._handle_infra_quote_received)
+        self.event_bus.subscribe(InfrastructureEventType.QUOTE_RECEIVED, self._handle_infra_quote_received)
         
-        # Subscribe to infrastructure connection and health events
-        self.event_bus.subscribe("ConnectionStatusChanged", self._handle_connection_status_from_bus)
-        self.event_bus.subscribe("BrokerageHealthStatus", self._handle_brokerage_health_from_bus)
+        self.event_bus.subscribe(InfrastructureEventType.CONNECTION_STATUS_CHANGED, self._handle_connection_status_from_bus)
+        self.event_bus.subscribe(InfrastructureEventType.BROKERAGE_HEALTH_STATUS, self._handle_brokerage_health_from_bus)
         
         logger.info("BrokerageDomainListener started - listening to domain and infrastructure events")
     
@@ -225,7 +229,7 @@ class BrokerageDomainListener(
                 trade_result=trade_result,
                 executed_at=executed_at
             )
-            await self.event_bus.publish("Domain.TradeExecuted", domain_event.model_dump())
+            await self.event_bus.publish(DomainEventType.TRADE_EXECUTED, domain_event.model_dump())
             
             logger.info(
                 "BrokerageDomainListener: Published domain trade executed event",
@@ -254,7 +258,7 @@ class BrokerageDomainListener(
                 error=error,
                 failed_at=failed_at
             )
-            await self.event_bus.publish("Domain.TradeFailed", domain_event.model_dump())
+            await self.event_bus.publish(DomainEventType.TRADE_FAILED, domain_event.model_dump())
             
             logger.info(
                 "BrokerageDomainListener: Published domain trade failed event",
@@ -282,7 +286,7 @@ class BrokerageDomainListener(
                 queued_at=queued_at,
                 target_premarket=target_premarket
             )
-            await self.event_bus.publish("Domain.TradeQueued", domain_event.model_dump())
+            await self.event_bus.publish(DomainEventType.TRADE_QUEUED, domain_event.model_dump())
             
             logger.info(
                 "BrokerageDomainListener: Published domain trade queued event",
@@ -308,7 +312,7 @@ class BrokerageDomainListener(
                 quote=quote,
                 received_at=received_at
             )
-            await self.event_bus.publish("Domain.QuoteReceived", domain_event.model_dump())
+            await self.event_bus.publish(DomainEventType.QUOTE_RECEIVED, domain_event.model_dump())
             
             logger.debug(
                 "BrokerageDomainListener: Published domain quote received event",
@@ -439,7 +443,7 @@ class BrokerageDomainListener(
                 changed_at=infra_event.changed_at,
                 reason=infra_event.reason
             )
-            await self.event_bus.publish("Domain.BrokerageConnectionStatus", domain_event.model_dump())
+            await self.event_bus.publish(DomainEventType.BROKERAGE_CONNECTION_STATUS, domain_event.model_dump())
             
             logger.debug(
                 "BrokerageDomainListener: Published domain connection status event",
@@ -466,7 +470,7 @@ class BrokerageDomainListener(
                 is_critical=infra_event.is_critical,
                 stats=infra_event.stats
             )
-            await self.event_bus.publish("Domain.BrokerageHealthStatus", domain_event.model_dump())
+            await self.event_bus.publish(DomainEventType.BROKERAGE_HEALTH_STATUS, domain_event.model_dump())
             
             logger.debug(
                 "BrokerageDomainListener: Published domain health status event",

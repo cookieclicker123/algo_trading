@@ -6,10 +6,10 @@ Pure infrastructure - handles JSON file operations, rolling window, archiving.
 import json
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Set
+from typing import List, Dict, Any, Optional
 import aiofiles
 
-from ...config.settings import get_storage_config
+# Config now injected via constructor - no direct import needed
 from ...utils.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -26,9 +26,14 @@ class ArticleRepository:
     - File I/O operations
     """
     
-    def __init__(self):
-        """Initialize article repository."""
-        self.config = get_storage_config()
+    def __init__(self, storage_config: dict):
+        """
+        Initialize article repository.
+        
+        Args:
+            storage_config: Storage configuration dictionary
+        """
+        self.config = storage_config
         self.tmp_dir = Path(self.config["tmp_dir"])
         self.json_file = self.tmp_dir / self.config["articles_json_file"]
         self.rolling_window_hours = self.config["rolling_window_hours"]
@@ -37,8 +42,6 @@ class ArticleRepository:
         # Ensure tmp directory exists
         self.tmp_dir.mkdir(parents=True, exist_ok=True)
         
-        # Track processed article IDs to avoid duplicates
-        self.processed_ids: set[str] = set[str]()
         
         logger.info(
             "ArticleRepository initialized",
@@ -57,16 +60,13 @@ class ArticleRepository:
         Returns:
             Tuple of (file_path, is_archived)
         """
-        # Check if already processed (deduplication)
-        if article_id in self.processed_ids:
-            logger.debug("Article already processed, skipping", article_id=article_id)
-            return (str(self.json_file), False)
-        
-        # Add to processed set
-        self.processed_ids.add(article_id)
-        
         # Load existing articles
         existing_articles = await self._load_articles()
+        
+        # Check if already processed (deduplication)
+        if any(self._get_article_id_from_data(a) == article_id for a in existing_articles):
+            logger.debug("Article already processed, skipping", article_id=article_id)
+            return (str(self.json_file), False)
         
         # Add new article
         existing_articles.append(article_data)
@@ -171,7 +171,6 @@ class ArticleRepository:
         articles = await self._load_articles()
         current_articles = []
         articles_to_archive = []
-        removed_ids = set()
         
         for article in articles:
             try:
@@ -190,14 +189,9 @@ class ArticleRepository:
                 elif pub_timestamp >= archive_timestamp:
                     # Archive (older than rolling window, but within 24 hours)
                     articles_to_archive.append(article)
-                    article_id = self._get_article_id_from_data(article)
-                    if article_id:
-                        removed_ids.add(article_id)
                 else:
                     # Too old - remove completely
-                    article_id = self._get_article_id_from_data(article)
-                    if article_id:
-                        removed_ids.add(article_id)
+                    pass
                     
             except (ValueError, TypeError) as e:
                 # Keep articles with invalid timestamps
@@ -208,9 +202,6 @@ class ArticleRepository:
         archive_path = None
         if articles_to_archive:
             archive_path = await self._archive_articles(articles_to_archive)
-        
-        # Update processed IDs set
-        self.processed_ids -= removed_ids
         
         # Save current articles
         await self._save_articles(current_articles)

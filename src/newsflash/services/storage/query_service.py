@@ -3,42 +3,54 @@ Storage query service - provides article fetching operations.
 
 Service subscribes to domain events and provides focused storage query operations.
 """
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 from ...utils.logging_config import get_logger
-from ...shared.event_bus import get_event_bus
+from ...shared.event_bus import AsyncEventBus
 from ...shared.typed_event_bus import subscribe_typed
+from ...shared.event_types import DomainEventType
 from ...domain.storage.events import ArticleFetchRequestedDomainEvent, ArticleFetchedDomainEvent
 from ...domain.storage.factories import StoredArticleFactory
 from ...domain.websocket.models import Article as DomainArticle
+from ...infra.storage.article_repository import ArticleRepository
 
 logger = get_logger(__name__)
 
 
 class StorageQueryService:
     """
-    Service for querying storage - fetches articles by ID.
+    Service for querying storage - fetches articles by ID and provides query operations.
     
     Responsibilities:
     - Provides fetch_article method for services/use cases
+    - Provides query methods (get_recent_articles, get_archived_articles, get_archive_stats)
     - Publishes Domain.ArticleFetchRequested event
     - Subscribes to Domain.ArticleFetched event
     - Returns domain Article model
     
     Does NOT:
     - Know about infrastructure details
-    - Know about file paths or JSON
+    - Know about file paths or JSON (delegates to repository)
     """
     
-    def __init__(self):
-        """Initialize storage query service."""
-        self.event_bus = get_event_bus()
+    def __init__(self, event_bus: AsyncEventBus, article_repository: ArticleRepository):
+        """
+        Initialize storage query service.
+        
+        Args:
+            event_bus: Event bus instance for publishing/subscribing to events
+            article_repository: Article repository for direct queries
+        """
+        self.event_bus = event_bus
+        self.article_repository = article_repository
         self.stored_article_factory = StoredArticleFactory()
         
         # Subscribe to typed fetch results
-        subscribe_typed(
-            "Domain.ArticleFetched",
+        # Store wrapper for unsubscribe
+        self._article_fetched_wrapper = subscribe_typed(
+            self.event_bus,
+            DomainEventType.ARTICLE_FETCHED,
             ArticleFetchedDomainEvent,
             self._handle_article_fetched,
         )
@@ -54,7 +66,14 @@ class StorageQueryService:
     
     async def stop(self) -> None:
         """Stop the service."""
-        self.event_bus.unsubscribe("Domain.ArticleFetched", self._handle_article_fetched)
+        self.event_bus.unsubscribe(DomainEventType.ARTICLE_FETCHED, self._article_fetched_wrapper)
+        
+        # Clean up any remaining pending fetches
+        for article_id, (future, _) in list(self._pending_fetches.items()):
+            if not future.done():
+                future.cancel()
+            self._pending_fetches.pop(article_id, None)
+        
         logger.info("StorageQueryService stopped")
     
     async def fetch_article(self, article_id: str, timeout_seconds: float = 5.0) -> Optional[DomainArticle]:
@@ -80,7 +99,7 @@ class StorageQueryService:
                 article_id=article_id,
                 requested_at=datetime.now()
             )
-            await self.event_bus.publish("Domain.ArticleFetchRequested", fetch_event.model_dump())
+            await self.event_bus.publish(DomainEventType.ARTICLE_FETCH_REQUESTED, fetch_event.model_dump())
             
             logger.debug("StorageQueryService: Published article fetch request", article_id=article_id)
             
@@ -114,10 +133,13 @@ class StorageQueryService:
                     
             except asyncio.TimeoutError:
                 logger.warning("StorageQueryService: Fetch timeout", article_id=article_id, timeout=timeout_seconds)
+                # Cancel the future if it's still pending
+                if not future.done():
+                    future.cancel()
                 return None
                 
         finally:
-            # Clean up pending fetch
+            # Clean up pending fetch (already handled in timeout case, but ensure cleanup)
             self._pending_fetches.pop(article_id, None)
     
     async def _handle_article_fetched(
@@ -135,11 +157,13 @@ class StorageQueryService:
                 future, _ = self._pending_fetches[article_id]
                 
                 if not future.done():
-                    # Set result (StoredArticle or None)
                     future.set_result(domain_event.article)
                     logger.debug("StorageQueryService: Resolved fetch request", article_id=article_id)
                 else:
                     logger.warning("StorageQueryService: Fetch future already done", article_id=article_id)
+                
+                # Clean up after resolving
+                self._pending_fetches.pop(article_id, None)
             else:
                 logger.debug("StorageQueryService: No pending fetch for article", article_id=article_id)
                 
@@ -150,4 +174,42 @@ class StorageQueryService:
                 future, _ = self._pending_fetches[domain_event.article_id]
                 if not future.done():
                     future.set_result(None)
+                self._pending_fetches.pop(domain_event.article_id, None)
+    
+    async def get_recent_articles(self, hours: int = 1) -> List[Dict[str, Any]]:
+        """
+        Get articles from the last N hours.
+        
+        Args:
+            hours: Number of hours to look back
+            
+        Returns:
+            List of article dictionaries
+        """
+        return await self.article_repository.get_recent_articles(hours)
+    
+    async def get_archived_articles(self, date: str) -> List[Dict[str, Any]]:
+        """
+        Get archived articles for a specific date.
+        
+        Args:
+            date: Date in YYYY-MM-DD format
+            
+        Returns:
+            List of archived articles for that date
+        """
+        return await self.article_repository.get_archived_articles(date)
+    
+    async def get_archive_stats(self) -> Dict[str, Any]:
+        """
+        Get statistics about archived articles.
+        
+        Returns:
+            Dictionary with archive statistics
+        """
+        # Calculate stats from repository
+        # This is a simple implementation - can be enhanced later
+        return {
+            "note": "Archive stats calculation - can be enhanced with actual stats"
+        }
 

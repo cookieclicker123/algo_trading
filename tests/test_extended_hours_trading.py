@@ -18,7 +18,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from ib_insync import IB, Stock, LimitOrder
 import pytz
-import yfinance as yf
 from newsflash.utils.logging_config import setup_logging, get_logger
 
 # Setup logging
@@ -50,26 +49,6 @@ def get_market_session() -> Tuple[str, bool]:
         logger.info("🌙 Currently MARKET CLOSED")
         return 'closed', True
 
-async def get_yfinance_price(ticker_symbol: str) -> Optional[float]:
-    """Get INSTANT price from yfinance with prepost=True."""
-    try:
-        logger.info(f"📊 Getting INSTANT price from yfinance for {ticker_symbol}...")
-        
-        ticker = yf.Ticker(ticker_symbol)
-        data = ticker.history(period="1d", interval="1m", prepost=True)
-        
-        if not data.empty:
-            # Use the last available price
-            current_price = data['Close'].iloc[-1]
-            logger.info(f"💰 yfinance price: ${current_price}")
-            return float(current_price)
-        else:
-            logger.error(f"❌ No data available for {ticker_symbol}")
-            return None
-            
-    except Exception as e:
-        logger.error(f"❌ Error fetching {ticker_symbol} price from yfinance: {e}")
-        return None
 
 async def test_extended_hours_trading():
     """Test IBKR extended hours trading - OPTIMIZED VERSION."""
@@ -114,37 +93,41 @@ async def test_extended_hours_trading():
         contract_time = time.time() - contract_start
         logger.info(f"✅ Contract created: {contract} - {contract_time:.3f}s")
         
-        # Get INSTANT price from yfinance
+        # Get price from IBKR
         price_start = time.time()
-        current_price = await get_yfinance_price(contract.symbol)
+        from ib_insync import MarketOrder
+        quote = ib.reqMktData(contract, '', False, False)
+        ib.sleep(1)
+        if quote.last:
+            current_price = quote.last
+        elif quote.close:
+            current_price = quote.close
+        else:
+            logger.error("❌ Could not get price from IBKR - aborting trade")
+            return False
+        ib.cancelMktData(contract)
         price_time = time.time() - price_start
         logger.info(f"💰 Price retrieval: {price_time:.3f}s")
-        
-        if not current_price:
-            logger.error("❌ Could not get price from yfinance - aborting trade")
-            return False
         
         logger.info(f"💰 Current SOFI price: ${current_price}")
         
         # AGGRESSIVE CONTINUATION: 0.25% to 10% with 0.0001s intervals
         logger.info("🚀 Starting AGGRESSIVE CONTINUATION: 0.25% to 10% above price with 0.0001s intervals")
         
-        base_percentage = 0.25   # Start at 0.25% above price
-        max_percentage = 10.0    # Go up to 10% above price
-        increment = 0.25        # Increase by 0.25% each time
-        wait_time = 0.0001      # Wait 0.0001 seconds between attempts (INSTANT)
+        base_percentage = 0.25
+        max_percentage = 10.0
+        increment = 0.25
+        wait_time = 0.0001
         
         current_percentage = base_percentage
         attempt_number = 1
         
-        # Start trading timing
         trading_start = time.time()
         
         while current_percentage <= max_percentage:
             attempt_start = time.time()
-            logger.info(f"🚀 Attempt {attempt_number}: {current_percentage}% above yfinance price")
+            logger.info(f"🚀 Attempt {attempt_number}: {current_percentage}% above IBKR price")
             
-            # Calculate limit price using yfinance price
             calc_start = time.time()
             limit_price = round(current_price * (1 + current_percentage / 100), 2)
             calc_time = time.time() - calc_start
@@ -180,17 +163,16 @@ async def test_extended_hours_trading():
                     total_time = time.time() - total_start_time
                     
                     logger.info(f"🎉 ORDER FILLED! Price: ${fill_price}")
-                    logger.info(f"✅ SUCCESS at attempt {attempt_number}: {current_percentage}% above yfinance price")
+                    logger.info(f"✅ SUCCESS at attempt {attempt_number}: {current_percentage}% above IBKR price")
                     logger.info(f"⏱️ Fill wait time: {fill_wait_time:.3f}s")
                     logger.info(f"⏱️ Total trading time: {total_trading_time:.3f}s")
                     logger.info(f"⏱️ TOTAL TIME: {total_time:.3f}s")
                     
-                    # Performance summary
                     logger.info("🚀 OPTIMIZED PERFORMANCE SUMMARY:")
                     logger.info(f"   📊 Market session detection: {session_time:.3f}s")
                     logger.info(f"   🔌 Connection: {connect_time:.3f}s")
                     logger.info(f"   📋 Contract creation: {contract_time:.3f}s")
-                    logger.info(f"   📊 yfinance price retrieval: {price_time:.3f}s")
+                    logger.info(f"   📊 IBKR price retrieval: {price_time:.3f}s")
                     logger.info(f"   🚀 Trading (to fill): {total_trading_time:.3f}s")
                     logger.info(f"   ⚡ TOTAL: {total_time:.3f}s")
                     
@@ -225,7 +207,7 @@ async def test_extended_hours_trading():
             current_percentage += increment
             attempt_number += 1
         
-        logger.error("❌ AGGRESSIVE CONTINUATION FAILED - no fill up to 10% above yfinance price")
+        logger.error("❌ AGGRESSIVE CONTINUATION FAILED - no fill up to 10% above IBKR price")
         logger.error("🚨 This should NEVER happen - check market conditions!")
         return False
         
@@ -244,7 +226,7 @@ async def test_extended_hours_trading():
 
 if __name__ == "__main__":
     logger.info("🚀 OPTIMIZED EXTENDED HOURS TRADING TEST")
-    logger.info("📄 yfinance data with aggressive continuation (0.25% to 10%)")
+    logger.info("📄 IBKR data with aggressive continuation (0.25% to 10%)")
     
     result = asyncio.run(test_extended_hours_trading())
     

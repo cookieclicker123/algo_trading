@@ -9,8 +9,9 @@ USE CASES ORCHESTRATE SERVICES:
 from datetime import datetime
 
 from ..utils.logging_config import get_logger
-from ..shared.event_bus import get_event_bus
+from ..shared.event_bus import AsyncEventBus
 from ..shared.typed_event_bus import subscribe_typed
+from ..shared.event_types import DomainEventType
 from ..domain.websocket.events import ArticleReceivedDomainEvent
 from ..domain.storage.events import ArticleStorageRequestedDomainEvent
 from ..domain.storage.factories import StoredArticleFactory
@@ -31,14 +32,21 @@ class StoreArticleUseCase:
     Services provide focused operations - use case orchestrates them.
     """
     
-    def __init__(self):
-        """Initialize store article use case."""
-        self.event_bus = get_event_bus()
+    def __init__(self, event_bus: AsyncEventBus):
+        """
+        Initialize store article use case.
+        
+        Args:
+            event_bus: Event bus instance for publishing/subscribing to events
+        """
+        self.event_bus = event_bus
         self.stored_article_factory = StoredArticleFactory()
         
         # Subscribe to typed Domain.ArticleReceived events
-        subscribe_typed(
-            "Domain.ArticleReceived",
+        # Store wrapper for unsubscribe
+        self._article_received_wrapper = subscribe_typed(
+            self.event_bus,
+            DomainEventType.ARTICLE_RECEIVED,
             ArticleReceivedDomainEvent,
             self._handle_article_received,
         )
@@ -51,7 +59,7 @@ class StoreArticleUseCase:
     
     async def stop(self) -> None:
         """Stop the use case."""
-        self.event_bus.unsubscribe("Domain.ArticleReceived", self._handle_article_received)
+        self.event_bus.unsubscribe(DomainEventType.ARTICLE_RECEIVED, self._article_received_wrapper)
         logger.info("StoreArticleUseCase stopped")
     
     async def _handle_article_received(
@@ -88,7 +96,7 @@ class StoreArticleUseCase:
                 requested_at=datetime.now()
             )
             
-            await self.event_bus.publish("Domain.ArticleStorageRequested", domain_storage_event.model_dump())
+            await self.event_bus.publish(DomainEventType.ARTICLE_STORAGE_REQUESTED, domain_storage_event.model_dump())
             
             logger.info(
                 "✅ STORE USE CASE: Published article storage request",

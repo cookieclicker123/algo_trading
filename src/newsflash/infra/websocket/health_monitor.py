@@ -9,7 +9,7 @@ from typing import Dict, Any
 from datetime import datetime, timedelta
 
 from ...utils.logging_config import get_logger
-from ...shared.event_bus import get_event_bus
+from ...shared.event_bus import AsyncEventBus
 from .events import WebSocketHealthStatusEvent
 
 logger = get_logger(__name__)
@@ -23,11 +23,12 @@ class WebSocketHealthMonitor:
     and publishes health events that services can subscribe to.
     """
     
-    def __init__(self, websocket_service, check_interval: float = 30.0, inactivity_threshold_minutes: int = 5):
+    def __init__(self, event_bus: AsyncEventBus, websocket_service, check_interval: float = 30.0, inactivity_threshold_minutes: int = 5):
         """
         Initialize health monitor.
         
         Args:
+            event_bus: Event bus instance for publishing/subscribing to events
             websocket_service: WebSocket microservice to monitor
             check_interval: How often to check health (seconds)
             inactivity_threshold_minutes: Alert if no messages for this many minutes
@@ -37,7 +38,7 @@ class WebSocketHealthMonitor:
         self.inactivity_threshold_minutes = inactivity_threshold_minutes
         self.is_running = False
         self.monitor_thread: threading.Thread | None = None
-        self.event_bus = get_event_bus()
+        self.event_bus = event_bus
         
         # Store reference to main event loop for thread-safe publishing
         try:

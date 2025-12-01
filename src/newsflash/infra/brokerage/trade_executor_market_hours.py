@@ -11,7 +11,7 @@ from ib_insync import IB, Stock, MarketOrder
 
 from ...utils.logging_config import get_logger
 from ...models.base_models import TradeRequest
-from ...shared.event_bus import get_event_bus
+from ...shared.event_bus import AsyncEventBus
 from .events import TradeExecutedEvent, TradeFailedEvent
 from .quote_fetcher import IBKRQuoteFetcher
 from .event_builders import build_infrastructure_trade_request_data
@@ -34,15 +34,16 @@ class MarketHoursTradeExecutor:
     - Send Telegram notifications
     """
     
-    def __init__(self, quote_fetcher: IBKRQuoteFetcher):
+    def __init__(self, event_bus: AsyncEventBus, quote_fetcher: IBKRQuoteFetcher):
         """
         Initialize market hours trade executor.
         
         Args:
+            event_bus: Event bus instance for publishing/subscribing to events
             quote_fetcher: Quote fetcher instance for getting prices
         """
         self.quote_fetcher = quote_fetcher
-        self.event_bus = get_event_bus()
+        self.event_bus = event_bus
         
         logger.info("MarketHoursTradeExecutor initialized")
     

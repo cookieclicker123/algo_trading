@@ -11,7 +11,8 @@ from ib_insync import Stock
 from ...utils.logging_config import get_logger
 from ...models.base_models import TradeRequest
 from .infrastructure_models import InfrastructureTradeExecutionRequestEvent
-from ...shared.event_bus import get_event_bus
+from ...shared.event_bus import AsyncEventBus
+from ...shared.event_types import InfrastructureEventType
 from .connection_manager import IBKRConnectionManager
 from .quote_fetcher import IBKRQuoteFetcher
 from .trade_executor_market_hours import MarketHoursTradeExecutor
@@ -41,26 +42,27 @@ class IBKRBrokerageService:
     - Know about AI classification
     """
     
-    def __init__(self, paper_trading: bool = False, client_id: int = 5):
+    def __init__(self, event_bus: AsyncEventBus, paper_trading: bool = False, client_id: int = 5):
         """
         Initialize brokerage service.
         
         Args:
+            event_bus: Event bus instance for publishing/subscribing to events
             paper_trading: Whether to use paper trading port
             client_id: IBKR client ID
         """
         self.paper_trading = paper_trading
         self.client_id = client_id
         
-        # Core components
-        self.connection_manager = IBKRConnectionManager(paper_trading=paper_trading, client_id=client_id)
-        self.quote_fetcher = IBKRQuoteFetcher()
-        self.market_hours_executor = MarketHoursTradeExecutor(self.quote_fetcher)
-        self.extended_hours_executor = ExtendedHoursTradeExecutor(self.quote_fetcher)
-        self.queue_manager = TradeQueueManager()
+        # Core components - inject event_bus into all sub-components
+        self.connection_manager = IBKRConnectionManager(event_bus=event_bus, paper_trading=paper_trading, client_id=client_id)
+        self.quote_fetcher = IBKRQuoteFetcher(event_bus=event_bus)
+        self.market_hours_executor = MarketHoursTradeExecutor(event_bus=event_bus, quote_fetcher=self.quote_fetcher)
+        self.extended_hours_executor = ExtendedHoursTradeExecutor(event_bus=event_bus, quote_fetcher=self.quote_fetcher)
+        self.queue_manager = TradeQueueManager(event_bus=event_bus)
         
         # Event bus
-        self.event_bus = get_event_bus()
+        self.event_bus = event_bus
         
         # State
         self.is_running = False
@@ -77,7 +79,7 @@ class IBKRBrokerageService:
         self.is_running = True
         
         # Subscribe to trade execution requests from domain listener
-        self.event_bus.subscribe("TradeExecutionRequested", self._handle_trade_execution_request)
+        self.event_bus.subscribe(InfrastructureEventType.TRADE_EXECUTION_REQUESTED, self._handle_trade_execution_request)
         logger.info("Subscribed to TradeExecutionRequested events")
         
         # Start connection manager (will connect automatically)
@@ -353,6 +355,6 @@ class IBKRBrokerageService:
             is_critical=not is_healthy and not self.is_connected(),
         )
         
-        await self.event_bus.publish("BrokerageHealthStatus", event.model_dump())
+        await self.event_bus.publish(InfrastructureEventType.BROKERAGE_HEALTH_STATUS, event.model_dump())
         logger.debug("Published BrokerageHealthStatus event", is_healthy=is_healthy)
 

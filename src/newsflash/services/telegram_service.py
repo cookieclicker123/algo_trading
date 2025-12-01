@@ -10,9 +10,7 @@ from telegram.error import TelegramError
 from ..models.base_models import StandardizedArticle
 from ..models.benzinga_models import BenzingaArticle
 from ..models.classification_models import NewsClassification, ClassificationResult
-from ..config.settings import get_telegram_config, get_telegram_config_2
 from ..utils.logging_config import get_logger
-# Removed imports to prevent circular dependencies - use dependency injection instead
 
 logger = get_logger(__name__)
 
@@ -26,8 +24,9 @@ class TelegramNotifier:
     
     def __init__(
         self,
+        telegram_config_1: dict,
+        telegram_config_2: dict,
         test_mode: bool = False,
-        yfinance_service=None,
         trade_handler=None,
         trade_handler_2=None,
     ):
@@ -35,18 +34,16 @@ class TelegramNotifier:
         Initialize Telegram notifier.
         
         Args:
+            telegram_config_1: Configuration dict for primary Telegram bot
+            telegram_config_2: Configuration dict for secondary Telegram bot
             test_mode: If True, write to JSON instead of sending to Telegram
-            yfinance_service: Optional yfinance service (injected dependency)
             trade_handler: Optional trade handler (injected dependency)
         """
         self.test_mode = test_mode
         
-        # Get configuration for both bots
-        self.config_1 = get_telegram_config()
-        self.config_2 = get_telegram_config_2()
-        
-        # Use injected dependencies or create defaults
-        self.yfinance_service = yfinance_service
+        # Use injected configuration
+        self.config_1 = telegram_config_1
+        self.config_2 = telegram_config_2
         # Trade handlers for each bot (optional)
         self.trade_handler = trade_handler
         self.trade_handler_2 = trade_handler_2
@@ -93,7 +90,7 @@ class TelegramNotifier:
             Message data dictionary
         """
         # Get classification emoji and label
-        # Only IMMINENT articles should reach here (filtered by article_processor)
+        # Only IMMINENT articles should reach here
         if classification:
             if classification.classification == NewsClassification.IMMINENT:
                 emoji = "🚨"
@@ -132,7 +129,6 @@ class TelegramNotifier:
         # Format publication timestamp (already in UTC from API)
         published_gmt = article.published.strftime("%Y-%m-%d %H:%M:%S UTC")
         
-        # YFinance removed - no fundamental data fetching
         fundamental_data = None
         
         # Build message data
@@ -257,7 +253,6 @@ class TelegramNotifier:
         # Trades are executed immediately via auto-trade use case or queued if market is closed
         
         if self.enabled_1:
-            # Bot 1 gets English message (translation service removed)
             english_message = self.format_message(message_data)
             
             # Add trading options for IMMINENT news
@@ -492,26 +487,4 @@ class TelegramNotifier:
                 logger.error("Failed to send message to Bot 2", error=str(e))
 
 
-def get_telegram_notifier(
-    test_mode: bool = False,
-    yfinance_service=None,
-    trade_handler=None,
-    trade_handler_2=None,
-) -> TelegramNotifier:
-    """
-    Get Telegram notifier instance with optional dependencies.
-    
-    Args:
-        test_mode: If True, write to JSON instead of sending to Telegram
-        yfinance_service: Optional yfinance service (injected dependency)
-        trade_handler: Optional trade handler (injected dependency)
-        
-    Returns:
-        TelegramNotifier instance
-    """
-    return TelegramNotifier(
-        test_mode=test_mode,
-        yfinance_service=yfinance_service,
-        trade_handler=trade_handler,
-        trade_handler_2=trade_handler_2,
-    )
+# This was unnecessary indirection - just call TelegramNotifier() directly
