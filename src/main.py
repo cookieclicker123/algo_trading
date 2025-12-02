@@ -30,8 +30,8 @@ class NewsFlashStandalone:
         logger.info("Starting NewsFlash standalone polling system")
         
         try:
-            # Initialize services
-            self.services = initialize_services()
+            # Initialize services (async for future database connections)
+            self.services = await initialize_services()
             
             # Start all services
             await start_services(self.services)

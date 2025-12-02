@@ -78,8 +78,18 @@ class Services:
         self.trading = None  # Deprecated - use self.brokerage instead
 
 
-def initialize_services() -> Services:
-    """Initialize all services."""
+async def initialize_services() -> Services:
+    """
+    Initialize all services asynchronously.
+    
+    This function is async to support future async operations like:
+    - Database connection pooling
+    - Async config loading
+    - Async service initialization
+    
+    Returns:
+        Services: Initialized services container
+    """
     logger.info("Initializing services...")
     services = Services()
     
@@ -140,7 +150,25 @@ def initialize_services() -> Services:
         logger.info("ClassificationInfrastructureService initialized")
         
         # Classification microservice - Domain layer
-        services.classification_domain_listener = ClassificationDomainListener(event_bus=event_bus)
+        # Create domain dependencies
+        from ..domain.classification.validators import ClassificationRequestValidator, ClassificationResultValidator
+        from ..domain.classification.factories import ClassificationRequestFactory, ClassificationResultFactory
+        from ..domain.classification.mappers import ClassificationRequestMapper
+        
+        classification_request_validator = ClassificationRequestValidator()
+        classification_result_validator = ClassificationResultValidator()
+        classification_request_factory = ClassificationRequestFactory()
+        classification_result_factory = ClassificationResultFactory()
+        classification_request_mapper = ClassificationRequestMapper()
+        
+        services.classification_domain_listener = ClassificationDomainListener(
+            event_bus=event_bus,
+            request_validator=classification_request_validator,
+            result_validator=classification_result_validator,
+            request_factory=classification_request_factory,
+            result_factory=classification_result_factory,
+            request_mapper=classification_request_mapper,
+        )
         logger.info("ClassificationDomainListener initialized")
         
         # Classification microservice - Use cases layer
@@ -157,7 +185,25 @@ def initialize_services() -> Services:
         logger.info("StorageInfrastructureService initialized")
         
         # Storage microservice - Domain layer
-        services.storage_domain_listener = StorageDomainListener(event_bus=event_bus)
+        # Create domain dependencies
+        from ..domain.storage.validators import StoredArticleValidator, AuditEntryValidator
+        from ..domain.storage.mappers import ArticleStorageMapper, AuditLogMapper
+        from ..domain.storage.factories import StoredArticleFactory
+        
+        stored_article_validator = StoredArticleValidator()
+        audit_entry_validator = AuditEntryValidator()
+        article_storage_mapper = ArticleStorageMapper()
+        audit_log_mapper = AuditLogMapper()
+        stored_article_factory = StoredArticleFactory()
+        
+        services.storage_domain_listener = StorageDomainListener(
+            event_bus=event_bus,
+            article_validator=stored_article_validator,
+            audit_validator=audit_entry_validator,
+            article_mapper=article_storage_mapper,
+            audit_mapper=audit_log_mapper,
+            stored_article_factory=stored_article_factory,
+        )
         logger.info("StorageDomainListener initialized")
         
         # Storage microservice - Services layer
@@ -190,7 +236,18 @@ def initialize_services() -> Services:
         logger.info("NotificationInfrastructureService initialized", enabled=notification_enabled)
         
         # Notification microservice - Domain layer
-        services.notification_domain_listener = NotificationDomainListener(event_bus=event_bus)
+        # Create domain dependencies
+        from ..domain.notification.validators import NotificationMessageValidator
+        from ..domain.notification.mappers import NotificationMapper
+        
+        notification_message_validator = NotificationMessageValidator()
+        notification_mapper = NotificationMapper()
+        
+        services.notification_domain_listener = NotificationDomainListener(
+            event_bus=event_bus,
+            message_validator=notification_message_validator,
+            notification_mapper=notification_mapper,
+        )
         logger.info("NotificationDomainListener initialized")
         
         # Notification microservice - Use cases layer
@@ -238,10 +295,41 @@ def initialize_services() -> Services:
         from ..domain.websocket.listener import WebSocketDomainListener
         from ..domain.brokerage.listener import BrokerageDomainListener
         
-        services.websocket_domain_listener = WebSocketDomainListener(event_bus=event_bus)
+        # WebSocket domain listener dependencies
+        from ..domain.websocket.validators import ArticleValidator
+        from ..domain.websocket.factories import ArticleFactory
+        
+        websocket_article_validator = ArticleValidator()
+        websocket_article_factory = ArticleFactory()
+        
+        services.websocket_domain_listener = WebSocketDomainListener(
+            event_bus=event_bus,
+            validator=websocket_article_validator,
+            factory=websocket_article_factory,
+        )
         logger.info("WebSocket domain listener initialized")
         
-        services.brokerage_domain_listener = BrokerageDomainListener(event_bus=event_bus)
+        # Brokerage domain listener dependencies
+        from ..domain.brokerage.validators import TradeRequestValidator, TradeResultValidator
+        from ..domain.brokerage.factories import TradeRequestFactory, TradeResultFactory, QuoteFactory
+        from ..domain.brokerage.mappers import TradeRequestMapper
+        
+        trade_request_validator = TradeRequestValidator()
+        trade_result_validator = TradeResultValidator()
+        trade_request_factory = TradeRequestFactory()
+        trade_result_factory = TradeResultFactory()
+        quote_factory = QuoteFactory()
+        trade_request_mapper = TradeRequestMapper()
+        
+        services.brokerage_domain_listener = BrokerageDomainListener(
+            event_bus=event_bus,
+            request_validator=trade_request_validator,
+            result_validator=trade_result_validator,
+            request_factory=trade_request_factory,
+            result_factory=trade_result_factory,
+            quote_factory=quote_factory,
+            request_mapper=trade_request_mapper,
+        )
         logger.info("Brokerage domain listener initialized")
         
         # Classification domain listener already initialized above

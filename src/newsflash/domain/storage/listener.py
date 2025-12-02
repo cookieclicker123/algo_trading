@@ -20,6 +20,7 @@ from ...infra.storage.infrastructure_models import (
 from ...utils.logging_config import get_logger
 from .validators import StoredArticleValidator, AuditEntryValidator
 from .mappers import ArticleStorageMapper, AuditLogMapper
+from .factories import StoredArticleFactory
 from .events import (
     ArticleFetchRequestedDomainEvent,
     ArticleStorageRequestedDomainEvent,
@@ -56,20 +57,32 @@ class StorageDomainListener(
     - Mappers: Transform domain ↔ infrastructure (bidirectional flow)
     """
     
-    def __init__(self, event_bus: AsyncEventBus):
+    def __init__(
+        self,
+        event_bus: AsyncEventBus,
+        article_validator: StoredArticleValidator,
+        audit_validator: AuditEntryValidator,
+        article_mapper: ArticleStorageMapper,
+        audit_mapper: AuditLogMapper,
+        stored_article_factory: StoredArticleFactory,
+    ):
         """
         Initialize storage domain listener.
         
         Args:
             event_bus: Event bus instance for publishing/subscribing to events
+            article_validator: Validator for StoredArticle domain models
+            audit_validator: Validator for AuditEntry domain models
+            article_mapper: Mapper for article domain ↔ infrastructure transformation
+            audit_mapper: Mapper for audit entry domain ↔ infrastructure transformation
+            stored_article_factory: Factory for creating StoredArticle domain models
         """
         self.event_bus = event_bus
-        # Validators: Validate domain models
-        self.article_validator = StoredArticleValidator()
-        self.audit_validator = AuditEntryValidator()
-        # Mappers: Bidirectional mapping (domain ↔ infra)
-        self.article_mapper = ArticleStorageMapper()
-        self.audit_mapper = AuditLogMapper()
+        self.article_validator = article_validator
+        self.audit_validator = audit_validator
+        self.article_mapper = article_mapper
+        self.audit_mapper = audit_mapper
+        self.stored_article_factory = stored_article_factory
         self.is_running = False
     
     async def start(self) -> None:
@@ -358,8 +371,7 @@ class StorageDomainListener(
             # Convert article_data dict to StoredArticle domain model if found
             stored_article = None
             if infra_event.article_data:
-                from .factories import StoredArticleFactory
-                stored_article = StoredArticleFactory.create_from_dict(infra_event.article_data)
+                stored_article = self.stored_article_factory.create_from_dict(infra_event.article_data)
             
             # Publish typed domain event
             domain_event = ArticleFetchedDomainEvent(

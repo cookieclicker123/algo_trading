@@ -50,22 +50,32 @@ class ClassificationDomainListener(
     - Mappers: Transform domain → infrastructure (reverse mapping for forwarding to infra)
     """
     
-    def __init__(self, event_bus: AsyncEventBus):
+    def __init__(
+        self,
+        event_bus: AsyncEventBus,
+        request_validator: ClassificationRequestValidator,
+        result_validator: ClassificationResultValidator,
+        request_factory: ClassificationRequestFactory,
+        result_factory: ClassificationResultFactory,
+        request_mapper: ClassificationRequestMapper,
+    ):
         """
         Initialize classification domain listener.
         
         Args:
             event_bus: Event bus instance for publishing/subscribing to events
+            request_validator: Validator for ClassificationRequest domain models
+            result_validator: Validator for ClassificationResult domain models
+            request_factory: Factory for creating ClassificationRequest domain models
+            result_factory: Factory for creating ClassificationResult domain models
+            request_mapper: Mapper for classification request domain ↔ infrastructure transformation
         """
         self.event_bus = event_bus
-        # Validators: Validate domain models
-        self.request_validator = ClassificationRequestValidator()
-        self.result_validator = ClassificationResultValidator()
-        # Factories: Create domain models (infra → domain, uses mappers internally)
-        self.request_factory = ClassificationRequestFactory()
-        self.result_factory = ClassificationResultFactory()
-        # Mappers: Reverse mapping (domain → infra) - only needed for bidirectional flow
-        self.request_mapper = ClassificationRequestMapper()
+        self.request_validator = request_validator
+        self.result_validator = result_validator
+        self.request_factory = request_factory
+        self.result_factory = result_factory
+        self.request_mapper = request_mapper
         self.is_running = False
     
     async def start(self) -> None:

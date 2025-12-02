@@ -44,18 +44,23 @@ class WebSocketDomainListener(InfrastructureArticleEventSubscriber, DomainArticl
     - Note: No mappers needed here - only one-way flow (infra → domain), no reverse mapping required
     """
     
-    def __init__(self, event_bus: AsyncEventBus):
+    def __init__(
+        self,
+        event_bus: AsyncEventBus,
+        validator: ArticleValidator,
+        factory: ArticleFactory,
+    ):
         """
         Initialize WebSocket domain listener.
         
         Args:
             event_bus: Event bus instance for publishing/subscribing to events
+            validator: Validator for Article domain models
+            factory: Factory for creating Article domain models from infrastructure
         """
         self.event_bus = event_bus
-        # Validators: Validate domain models
-        self.validator = ArticleValidator()
-        # Factories: Create domain models (infra → domain, uses mappers internally)
-        self.factory = ArticleFactory()
+        self.validator = validator
+        self.factory = factory
         self.is_running = False
     
     async def start(self) -> None:

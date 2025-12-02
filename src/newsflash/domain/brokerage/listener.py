@@ -63,23 +63,35 @@ class BrokerageDomainListener(
     - Mappers: Transform domain → infrastructure (reverse mapping for forwarding to infra)
     """
     
-    def __init__(self, event_bus: AsyncEventBus):
+    def __init__(
+        self,
+        event_bus: AsyncEventBus,
+        request_validator: TradeRequestValidator,
+        result_validator: TradeResultValidator,
+        request_factory: TradeRequestFactory,
+        result_factory: TradeResultFactory,
+        quote_factory: QuoteFactory,
+        request_mapper: TradeRequestMapper,
+    ):
         """
         Initialize brokerage domain listener.
         
         Args:
             event_bus: Event bus instance for publishing/subscribing to events
+            request_validator: Validator for TradeRequest domain models
+            result_validator: Validator for TradeResult domain models
+            request_factory: Factory for creating TradeRequest domain models
+            result_factory: Factory for creating TradeResult domain models
+            quote_factory: Factory for creating Quote domain models
+            request_mapper: Mapper for trade request domain ↔ infrastructure transformation
         """
         self.event_bus = event_bus
-        # Validators: Validate domain models
-        self.request_validator = TradeRequestValidator()
-        self.result_validator = TradeResultValidator()
-        # Factories: Create domain models (infra → domain, uses mappers internally)
-        self.request_factory = TradeRequestFactory()
-        self.result_factory = TradeResultFactory()
-        self.quote_factory = QuoteFactory()
-        # Mappers: Reverse mapping (domain → infra) - only needed for bidirectional flow
-        self.request_mapper = TradeRequestMapper()
+        self.request_validator = request_validator
+        self.result_validator = result_validator
+        self.request_factory = request_factory
+        self.result_factory = result_factory
+        self.quote_factory = quote_factory
+        self.request_mapper = request_mapper
         self.is_running = False
     
     async def start(self) -> None:

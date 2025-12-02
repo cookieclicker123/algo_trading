@@ -45,18 +45,23 @@ class NotificationDomainListener(
     - Mappers: Transform domain ↔ infrastructure (bidirectional flow)
     """
     
-    def __init__(self, event_bus: AsyncEventBus):
+    def __init__(
+        self,
+        event_bus: AsyncEventBus,
+        message_validator: NotificationMessageValidator,
+        notification_mapper: NotificationMapper,
+    ):
         """
         Initialize notification domain listener.
         
         Args:
             event_bus: Event bus instance for publishing/subscribing to events
+            message_validator: Validator for NotificationMessage domain models
+            notification_mapper: Mapper for notification domain ↔ infrastructure transformation
         """
         self.event_bus = event_bus
-        # Validators: Validate domain models
-        self.message_validator = NotificationMessageValidator()
-        # Mappers: Bidirectional mapping (domain ↔ infra)
-        self.notification_mapper = NotificationMapper()
+        self.message_validator = message_validator
+        self.notification_mapper = notification_mapper
         self.is_running = False
     
     async def start(self) -> None:
