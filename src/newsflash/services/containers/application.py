@@ -47,13 +47,16 @@ class ApplicationContainer(containers.DeclarativeContainer):
     - Container manages the dependency graph automatically
     """
     
-    # Sub-containers
-    config = containers.Container(ConfigurationContainer)
-    shared = containers.Container(SharedContainer)
+    # Sub-containers - instantiate directly
+    config = ConfigurationContainer()
+    shared = SharedContainer()
     
     # Configuration providers (automatically resolved from config container)
     telegram_config_1 = providers.Callable(config.telegram_config_1)
     telegram_config_2 = providers.Callable(config.telegram_config_2)
+    
+    # Expose event_bus directly from shared container for easy access
+    event_bus = providers.Callable(shared.event_bus)
     
     # Factory providers - container automatically injects dependencies!
     # When called, container resolves event_bus and storage_config and passes them automatically

@@ -15,6 +15,11 @@ from .service_initialization import Services
 # Import DI container
 from .containers.application import ApplicationContainer
 
+# Import use cases for manual creation (needed because they depend on async storage)
+from ..use_cases.notification import NotifyImminentArticleUseCase
+from .brokerage.auto_trade import AutoTradeService
+from ..config import settings
+
 logger = get_logger(__name__)
 
 
@@ -119,17 +124,35 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer]:
     logger.info("WebSocket microservice initialized")
     
     # Step 5: Wire cross-microservice dependencies
-    # These are created via container but need to be attached to microservices
-    notification_use_case = container.notification_use_case()
+    # Get event bus from container first
+    event_bus = container.event_bus()
+    
+    # Create use cases manually using awaited storage instance
+    # (Can't use container providers here because storage_microservice is async)
+    notification_use_case = NotifyImminentArticleUseCase(
+        event_bus=event_bus,
+        storage_query_service=storage.query_service,
+    )
     notification.use_case = notification_use_case
-    logger.info("Notification use case created with storage query service")
+    # Start use case immediately (subscribes to events in __init__, start() confirms readiness)
+    await notification_use_case.start()
+    logger.info("Notification use case created and started")
     
-    auto_trade_service = container.auto_trade_service()
+    # Get auto-trade config from settings
+    from decimal import Decimal
+    auto_trading_enabled = settings.AUTO_TRADING_ENABLED
+    auto_trade_amount_usd = Decimal(str(settings.AUTO_TRADE_AMOUNT_USD))
+    
+    auto_trade_service = AutoTradeService(
+        event_bus=event_bus,
+        storage_query_service=storage.query_service,
+        enabled=auto_trading_enabled,
+        trade_amount_usd=auto_trade_amount_usd,
+    )
     brokerage.auto_trade_service = auto_trade_service
-    logger.info("Auto-trade service created with storage query service")
-    
-    # Get event bus from container
-    event_bus = container.shared.event_bus()
+    # Start auto-trade service immediately (subscribes to events in __init__, start() confirms readiness)
+    await auto_trade_service.start()
+    logger.info("Auto-trade service created and started")
     
     logger.info("All services initialized via DI container")
     
