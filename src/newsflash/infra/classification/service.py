@@ -196,10 +196,10 @@ Summary: {summary}"""
             # Update stats
             self.stats["classifications_requested"] += 1
             
-            logger.debug(
-                "ClassificationInfrastructureService: Handling classification request",
+            logger.info(
+                "🎯 CLASSIFY INFRA: Handling classification request",
                 article_id=infra_event.request_data.article_id,
-                title=infra_event.request_data.article_title[:100] if infra_event.request_data.article_title else ""
+                title=infra_event.request_data.article_title or ""
             )
             
             # Classify via Groq API
@@ -234,8 +234,8 @@ Summary: {summary}"""
             # Format article for classification
             article_text = self._format_article_for_classification(request_data)
             
-            logger.debug(
-                "ClassificationInfrastructureService: Calling Groq API",
+            logger.info(
+                "🤖 CLASSIFY INFRA: Calling Groq API",
                 article_id=request_data.article_id,
                 model=self.model
             )
@@ -271,11 +271,12 @@ Summary: {summary}"""
             self.stats["last_classification_time"] = datetime.now().isoformat()
             
             logger.info(
-                "ClassificationInfrastructureService: Classification completed",
+                "✅ CLASSIFY INFRA: Classification completed",
                 article_id=request_data.article_id,
                 classification=response_data.classification,
                 confidence=response_data.confidence,
-                latency_ms=latency_ms
+                reasoning=response_data.reasoning,
+                latency_ms=round(latency_ms, 2)
             )
             
             # Publish typed infrastructure event (completed)

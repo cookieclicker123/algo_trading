@@ -147,8 +147,9 @@ class ClassificationDomainListener(
             await self.event_bus.publish("ClassificationRequested", infra_event.model_dump())
             
             logger.info(
-                "ClassificationDomainListener: Published infrastructure classification request event",
-                article_id=classification_request.article_id
+                "✅ CLASSIFY DOMAIN: Published infrastructure classification request event",
+                article_id=classification_request.article_id,
+                title=classification_request.article_title or ""
             )
             
         except Exception as e:
@@ -180,8 +181,8 @@ class ClassificationDomainListener(
         3. Publish domain event
         """
         try:
-            logger.debug(
-                "ClassificationDomainListener: Received infrastructure classification completed event",
+            logger.info(
+                "🎯 CLASSIFY DOMAIN: Received infrastructure classification completed event",
                 event_type=event_type
             )
             
@@ -295,10 +296,11 @@ class ClassificationDomainListener(
             await self.event_bus.publish(DomainEventType.ARTICLE_CLASSIFIED, domain_event.model_dump())
             
             logger.info(
-                "ClassificationDomainListener: Published domain article classified event",
+                "✅ CLASSIFY DOMAIN: Published domain article classified event",
                 article_id=result.article_id,
                 classification=result.classification.value,
-                confidence=result.confidence.value
+                confidence=result.confidence.value,
+                reasoning=result.reasoning
             )
         except Exception as e:
             logger.error(

@@ -17,6 +17,7 @@ from .containers.application import ApplicationContainer
 
 # Import use cases for manual creation (needed because they depend on async storage)
 from ..use_cases.notification import NotifyImminentArticleUseCase
+from ..use_cases.brokerage import ExitTradeUseCase
 from .brokerage.auto_trade import AutoTradeService
 from ..config import settings
 
@@ -153,6 +154,12 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer]:
     # Start auto-trade service immediately (subscribes to events in __init__, start() confirms readiness)
     await auto_trade_service.start()
     logger.info("Auto-trade service created and started")
+    
+    # Create exit trade use case (schedules exits after entry trades)
+    exit_trade_use_case = ExitTradeUseCase(event_bus=event_bus)
+    brokerage.exit_trade_use_case = exit_trade_use_case
+    await exit_trade_use_case.start()
+    logger.info("Exit trade use case created and started")
     
     logger.info("All services initialized via DI container")
     

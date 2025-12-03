@@ -21,6 +21,9 @@ from ...domain.brokerage.listener import BrokerageDomainListener
 # Services layer
 from .auto_trade import AutoTradeService
 
+# Use cases layer
+from ...use_cases.brokerage import ExitTradeUseCase
+
 logger = get_logger(__name__)
 
 
@@ -33,10 +36,12 @@ class BrokerageMicroservice:
     - Infrastructure service
     - Domain listener (bridge)
     - Services (auto-trade)
+    - Use cases (exit trade)
     """
     infra: IBKRBrokerageService
     domain_listener: BrokerageDomainListener
     auto_trade_service: Optional[AutoTradeService]  # Will be created in composition root after dependencies wired
+    exit_trade_use_case: Optional[ExitTradeUseCase] = None  # Will be created in composition root
     
     async def start(self) -> None:
         """Start all brokerage microservice components."""
@@ -56,13 +61,22 @@ class BrokerageMicroservice:
             await self.auto_trade_service.start()
             logger.info("AutoTradeService started")
         
+        # Start use cases
+        if self.exit_trade_use_case:
+            await self.exit_trade_use_case.start()
+            logger.info("ExitTradeUseCase started")
+        
         logger.info("Brokerage microservice started")
     
     async def stop(self) -> None:
         """Stop all brokerage microservice components."""
         logger.info("Stopping brokerage microservice...")
         
-        # Stop services first
+        # Stop use cases first
+        if self.exit_trade_use_case:
+            await self.exit_trade_use_case.stop()
+        
+        # Stop services
         if self.auto_trade_service:
             await self.auto_trade_service.stop()
         
@@ -130,6 +144,7 @@ async def initialize_brokerage_microservice(
         infra=infra,
         domain_listener=domain_listener,
         auto_trade_service=None,  # Will be created in composition root
+        exit_trade_use_case=None,  # Will be created in composition root
     )
 
 

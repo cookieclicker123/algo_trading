@@ -26,6 +26,7 @@ from .feed_health_monitor import FeedHealthMonitor
 
 # Use cases layer
 from ...use_cases.websocket import ProcessArticleUseCase
+from ...use_cases.classification import ClassifyArticleUseCase
 
 # Notification service (shared dependency)
 from ..notification.notification import TelegramNotifier
@@ -49,6 +50,7 @@ class WebSocketMicroservice:
     feed_manager: FeedManager
     health_monitor: FeedHealthMonitor
     process_article_use_case: ProcessArticleUseCase
+    classify_article_use_case: ClassifyArticleUseCase
     _health_monitor_task: Optional[asyncio.Task] = field(default=None, init=False, repr=False)
     
     async def start(self) -> None:
@@ -64,7 +66,10 @@ class WebSocketMicroservice:
         await self.domain_listener.start()
         logger.info("WebSocket domain listener started")
         
-        # Start process article use case
+        # Start use cases
+        await self.classify_article_use_case.start()
+        logger.info("Classify article use case started")
+        
         await self.process_article_use_case.start()
         logger.info("Process article use case started")
         
@@ -100,10 +105,14 @@ class WebSocketMicroservice:
             await self.feed_manager.stop_all_feeds()
             logger.info("Feed manager stopped")
         
-        # Stop process article use case
+        # Stop use cases
         if self.process_article_use_case:
             await self.process_article_use_case.stop()
             logger.info("Process article use case stopped")
+        
+        if self.classify_article_use_case:
+            await self.classify_article_use_case.stop()
+            logger.info("Classify article use case stopped")
         
         # Stop domain listener
         await self.domain_listener.stop()
@@ -170,6 +179,9 @@ async def initialize_websocket_microservice(
     logger.info("Feed health monitor initialized")
     
     # Step 4: Use cases layer
+    classify_article_use_case = ClassifyArticleUseCase(event_bus=event_bus)
+    logger.info("Classify article use case initialized")
+    
     process_article_use_case = ProcessArticleUseCase(event_bus=event_bus)
     logger.info("Process article use case initialized")
     
@@ -179,6 +191,7 @@ async def initialize_websocket_microservice(
         feed_manager=feed_manager,
         health_monitor=health_monitor,
         process_article_use_case=process_article_use_case,
+        classify_article_use_case=classify_article_use_case,
     )
 
 

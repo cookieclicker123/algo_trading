@@ -97,6 +97,9 @@ class StorageQueryService:
         """
         Fetch an article by ID from storage.
         
+        Optimized: Tries direct repository query first (fast path), then falls back to event-driven fetch.
+        Since articles persist in ~8ms and classification takes ~300ms, direct query should succeed immediately.
+        
         Args:
             article_id: Article ID to fetch
             timeout_seconds: Maximum time to wait for response (defaults to config value if None)
@@ -106,6 +109,24 @@ class StorageQueryService:
         """
         import asyncio
         
+        # FAST PATH: Try direct repository query first (articles persist in ~8ms, classification takes ~300ms)
+        # By the time we fetch, article should already be stored
+        try:
+            article_data = await self.article_repository.fetch_article(article_id)
+            if article_data:
+                # Convert dict to StoredArticle domain model
+                stored_article = self.stored_article_factory.create_from_dict(article_data)
+                if stored_article:
+                    # Convert StoredArticle to DomainArticle
+                    domain_article = convert_stored_article_to_domain_article(stored_article)
+                    if domain_article:
+                        logger.debug("StorageQueryService: Article found via direct repository query", article_id=article_id)
+                        return domain_article
+        except Exception as e:
+            logger.debug("StorageQueryService: Direct repository query failed, falling back to event-driven fetch", 
+                        article_id=article_id, error=str(e))
+        
+        # FALLBACK PATH: Event-driven fetch (for articles that might not be stored yet)
         # Use configured timeout if not specified
         timeout = timeout_seconds if timeout_seconds is not None else self.fetch_timeout_seconds
         

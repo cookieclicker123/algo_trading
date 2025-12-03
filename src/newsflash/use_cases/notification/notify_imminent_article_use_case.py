@@ -100,14 +100,43 @@ class NotifyImminentArticleUseCase:
                 )
                 return
             
-            # Fetch article from storage on demand via StorageQueryService
-            domain_article = await self.storage_query_service.fetch_article(
-                classification_result.article_id
-            )
+            # Fetch article from storage on demand via StorageQueryService with retry logic
+            # (Handles race condition where classification completes before storage finishes)
+            import asyncio
+            domain_article = None
+            max_retries = 3
+            initial_delay = 0.5
+            
+            for attempt in range(max_retries):
+                domain_article = await self.storage_query_service.fetch_article(
+                    classification_result.article_id
+                )
+                if domain_article:
+                    if attempt > 0:
+                        logger.info(
+                            "NotifyImminentArticleUseCase: Article found after retry",
+                            article_id=classification_result.article_id,
+                            attempt=attempt + 1
+                        )
+                    break
+                
+                # If not found and we have retries left, wait before retrying
+                if attempt < max_retries - 1:
+                    delay = initial_delay * (2 ** attempt)  # Exponential backoff
+                    logger.debug(
+                        "NotifyImminentArticleUseCase: Article not found, retrying",
+                        article_id=classification_result.article_id,
+                        attempt=attempt + 1,
+                        max_retries=max_retries,
+                        delay_seconds=delay
+                    )
+                    await asyncio.sleep(delay)
+            
             if not domain_article:
                 logger.warning(
-                    "NotifyImminentArticleUseCase: Article not found in storage for notification, skipping",
-                    article_id=classification_result.article_id
+                    "NotifyImminentArticleUseCase: Article not found in storage for notification after retries, skipping",
+                    article_id=classification_result.article_id,
+                    max_retries=max_retries
                 )
                 return
             

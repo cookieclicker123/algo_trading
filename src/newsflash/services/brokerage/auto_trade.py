@@ -50,18 +50,26 @@ def should_process_classification(result: ClassificationResult, enabled: bool) -
 
 async def fetch_article_for_trade(
     storage_service: StorageQueryService,
-    article_id: str
+    article_id: str,
+    max_retries: int = 3,
+    initial_delay: float = 0.5
 ) -> Optional[Article]:
     """
-    Fetch an article from storage for trade processing.
+    Fetch an article from storage for trade processing with retry logic.
+    
+    Handles race condition where classification completes before storage finishes.
     
     Args:
         storage_service: Storage query service
         article_id: Article ID to fetch
+        max_retries: Maximum number of retry attempts
+        initial_delay: Initial delay before first retry in seconds
         
     Returns:
-        Domain Article model, or None if not found
+        Domain Article model, or None if not found after retries
     """
+    import asyncio
+    
     if not storage_service:
         logger.warning(
             "AutoTradeService: Storage query service not available",
@@ -69,16 +77,38 @@ async def fetch_article_for_trade(
         )
         return None
     
-    domain_article = await storage_service.fetch_article(article_id)
+    # Try fetching with exponential backoff retry
+    for attempt in range(max_retries):
+        domain_article = await storage_service.fetch_article(article_id)
+        
+        if domain_article:
+            if attempt > 0:
+                logger.info(
+                    "AutoTradeService: Article found after retry",
+                    article_id=article_id,
+                    attempt=attempt + 1
+                )
+            return domain_article
+        
+        # If not found and we have retries left, wait before retrying
+        if attempt < max_retries - 1:
+            delay = initial_delay * (2 ** attempt)  # Exponential backoff
+            logger.debug(
+                "AutoTradeService: Article not found, retrying",
+                article_id=article_id,
+                attempt=attempt + 1,
+                max_retries=max_retries,
+                delay_seconds=delay
+            )
+            await asyncio.sleep(delay)
     
-    if not domain_article:
-        logger.warning(
-            "AutoTradeService: Article not found in storage",
-            article_id=article_id
-        )
-        return None
-    
-    return domain_article
+    # All retries exhausted
+    logger.warning(
+        "AutoTradeService: Article not found in storage after retries",
+        article_id=article_id,
+        max_retries=max_retries
+    )
+    return None
 
 
 def build_trade_request_for_article(article: Article, trade_amount_usd: Decimal) -> Optional[TradeRequest]:

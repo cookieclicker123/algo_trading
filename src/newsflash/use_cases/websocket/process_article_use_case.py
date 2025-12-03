@@ -86,6 +86,7 @@ class ProcessArticleUseCase:
                 article_id=classification_result.article_id,
                 classification=classification_result.classification.value,
                 confidence=classification_result.confidence.value,
+                reasoning=classification_result.reasoning,
                 note="All processing handled by dedicated use cases (event-driven)"
             )
             
