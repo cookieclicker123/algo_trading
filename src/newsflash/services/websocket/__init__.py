@@ -13,7 +13,6 @@ from typing import Optional
 
 from ...utils.logging_config import get_logger
 from ...shared.event_bus import AsyncEventBus
-from ...config.settings import BENZINGA_API_KEY, BENZINGA_WEBSOCKET_ENABLED
 
 # Infrastructure layer
 from ...infra.websocket.service import BenzingaWebSocketMicroservice
@@ -120,7 +119,9 @@ class WebSocketMicroservice:
 
 async def initialize_websocket_microservice(
     event_bus: AsyncEventBus,
-    telegram_service: Optional[TelegramNotifier] = None
+    telegram_service: Optional[TelegramNotifier] = None,
+    benzinga_api_key: Optional[str] = None,
+    benzinga_websocket_enabled: bool = False,
 ) -> WebSocketMicroservice:
     """
     Initialize websocket microservice independently.
@@ -131,6 +132,8 @@ async def initialize_websocket_microservice(
     Args:
         event_bus: Event bus instance (shared dependency)
         telegram_service: Telegram service (shared dependency for health monitoring)
+        benzinga_api_key: Benzinga API key (injected via DI)
+        benzinga_websocket_enabled: Whether WebSocket is enabled (injected via DI)
         
     Returns:
         WebSocketMicroservice: Initialized websocket microservice
@@ -138,8 +141,8 @@ async def initialize_websocket_microservice(
     logger.info("Initializing websocket microservice...")
     
     # Step 1: Infrastructure layer
-    if BENZINGA_WEBSOCKET_ENABLED and BENZINGA_API_KEY:
-        infra = BenzingaWebSocketMicroservice(event_bus=event_bus, token=BENZINGA_API_KEY)
+    if benzinga_websocket_enabled and benzinga_api_key:
+        infra = BenzingaWebSocketMicroservice(event_bus=event_bus, token=benzinga_api_key)
         logger.info("WebSocket infrastructure initialized")
     else:
         infra = None

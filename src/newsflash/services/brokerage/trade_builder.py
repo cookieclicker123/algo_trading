@@ -11,7 +11,6 @@ from ...domain.websocket.models import Article
 from ...domain.brokerage.models import TradeRequest, TradeAction
 from ...domain.brokerage.factories import TradeRequestFactory
 from ...utils.logging_config import get_logger
-from ...config.settings import AUTO_TRADE_AMOUNT_USD
 
 logger = get_logger(__name__)
 
@@ -93,7 +92,7 @@ def build_trade_request(
 
 def build_trade_request_from_article(
     article: Article,
-    amount_usd: Optional[Decimal] = None,
+    amount_usd: Decimal,
     leverage: Optional[Decimal] = None,
     action: TradeAction = TradeAction.BUY,
 ) -> Optional[TradeRequest]:
@@ -102,7 +101,7 @@ def build_trade_request_from_article(
     
     Args:
         article: Domain Article model with tickers
-        amount_usd: Trade notional in USD (defaults to AUTO_TRADE_AMOUNT_USD)
+        amount_usd: Trade notional in USD (required, injected via DI)
         leverage: Leverage multiplier (defaults to None, max 2x)
         action: Trade action (default: BUY)
         
@@ -113,10 +112,7 @@ def build_trade_request_from_article(
     if not ticker:
         return None
     
-    # Use default amount if not specified
-    trade_amount = amount_usd if amount_usd is not None else Decimal(str(AUTO_TRADE_AMOUNT_USD))
-    
-    return build_trade_request(ticker, article, trade_amount, leverage, action)
+    return build_trade_request(ticker, article, amount_usd, leverage, action)
 
 
 def validate_trade_request(trade_request: TradeRequest) -> bool:
@@ -134,21 +130,22 @@ def validate_trade_request(trade_request: TradeRequest) -> bool:
     return TradeRequestValidator.is_valid_domain_trade_request(trade_request)
 
 
-def create_default_trade_request(article: Article) -> Optional[TradeRequest]:
+def create_default_trade_request(article: Article, trade_amount_usd: Decimal) -> Optional[TradeRequest]:
     """
     Create a trade request with default settings.
     
-    Uses AUTO_TRADE_AMOUNT_USD and 2x leverage by default.
+    Uses provided trade_amount_usd and 2x leverage by default.
     
     Args:
         article: Domain Article model
+        trade_amount_usd: Trade amount in USD (injected via DI)
         
     Returns:
         Domain TradeRequest model, or None if invalid
     """
     return build_trade_request_from_article(
         article=article,
-        amount_usd=Decimal(str(AUTO_TRADE_AMOUNT_USD)),
+        amount_usd=trade_amount_usd,
         leverage=Decimal("2.0"),
         action=TradeAction.BUY
     )

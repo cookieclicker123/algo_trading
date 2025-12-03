@@ -1,125 +1,139 @@
 """
-Composition Root - wires microservices together.
+Composition Root - wires microservices together using dependency injection.
 
 This is the ONLY place that knows about cross-microservice dependencies.
-All microservices initialize themselves independently.
+All microservices initialize themselves independently, but dependencies are
+provided via the DI container.
 """
+from typing import Tuple
+
 from ..utils.logging_config import get_logger
-from ..shared.event_bus import AsyncEventBus
-from ..config.settings import (
-    get_telegram_config,
-    get_telegram_config_2,
-)
-
-# Import microservice initializers
-from .storage import initialize_storage_microservice
-from .notification import initialize_notification_microservice
-from .classification import initialize_classification_microservice
-from .brokerage import initialize_brokerage_microservice
-from .websocket import initialize_websocket_microservice
-
-# Import shared services
-from .notification.notification import TelegramNotifier
-from .notification.trade_handler import get_telegram_trade_handler
 
 # Import Services container
 from .service_initialization import Services
 
+# Import DI container
+from .containers.application import ApplicationContainer
+
 logger = get_logger(__name__)
 
 
-async def initialize_services() -> Services:
+def _create_trade_handler_if_enabled(
+    container: ApplicationContainer,
+    telegram_config: dict,
+    brokerage_infra,
+    factory_attr: str,
+) -> object:
     """
-    Composition Root - wires microservices together.
+    Helper function to conditionally create trade handler if enabled.
     
-    This is the ONLY place that knows about cross-microservice dependencies.
-    All microservices initialize themselves independently.
+    Args:
+        container: Application container
+        telegram_config: Telegram configuration dict
+        brokerage_infra: Brokerage infrastructure service
+        factory_attr: Attribute name of factory on container
+        
+    Returns:
+        Trade handler instance or None
+    """
+    if telegram_config.get("enabled") and telegram_config.get("bot_token"):
+        factory = getattr(container, factory_attr)
+        return factory(
+            bot_token=telegram_config["bot_token"],
+            trading_service=brokerage_infra
+        )
+    return None
+
+
+async def initialize_services() -> Tuple[Services, ApplicationContainer]:
+    """
+    Composition Root - wires microservices together using DI container.
+    
+    This function uses the dependency injection container to:
+    1. Create all microservices with their dependencies automatically resolved
+    2. Wire cross-microservice dependencies
+    3. Return a Services container with all initialized services and the DI container
     
     Returns:
-        Services: Composed services container
+        Tuple of (Services, ApplicationContainer): Composed services container and DI container
     """
-    logger.info("Initializing services...")
+    logger.info("Initializing services using dependency injection container...")
     
-    # Step 1: Create shared dependencies
-    event_bus = AsyncEventBus()
-    logger.info("Event bus created")
+    # Step 1: Create and configure the DI container
+    container = ApplicationContainer()
     
-    # Step 2: Initialize microservices independently
-    # Order doesn't matter - they're independent!
-    storage = await initialize_storage_microservice(event_bus)
+    # Wire container for automatic dependency injection in route handlers
+    # This enables @inject decorator usage in route handlers
+    container.wire(
+        modules=[
+            "newsflash.api.routes.health",
+            "newsflash.api.routes.storage.articles",
+            "newsflash.api.routes.websocket.feeds",
+        ]
+    )
+    logger.info("DI container created and wired")
+    
+    # Step 2: Initialize microservices via container (dependencies auto-resolved)
+    # Order doesn't matter - container handles dependency resolution!
+    storage = await container.storage_microservice()
     logger.info("Storage microservice initialized")
     
-    classification = await initialize_classification_microservice(event_bus)
+    classification = await container.classification_microservice()
     logger.info("Classification microservice initialized")
     
-    notification = await initialize_notification_microservice(event_bus)
+    notification = await container.notification_microservice()
     logger.info("Notification microservice initialized")
     
-    brokerage = await initialize_brokerage_microservice(event_bus)
+    brokerage = await container.brokerage_microservice()
     logger.info("Brokerage microservice initialized")
     
-    # Step 3: Initialize shared services (used by multiple microservices)
-    telegram_config_1 = get_telegram_config()
-    telegram_config_2 = get_telegram_config_2()
+    # Step 3: Initialize shared services via container (using helper functions)
+    # Get configs from container (DI-managed)
+    telegram_config_1 = container.telegram_config_1()
+    telegram_config_2 = container.telegram_config_2()
     
-    # Initialize Telegram trade handlers (still using brokerage service)
-    trade_handler = None
-    trade_handler_2 = None
+    # Create trade handlers conditionally using helper function (cleaner approach)
+    trade_handler = _create_trade_handler_if_enabled(
+        container, telegram_config_1, brokerage.infra, "trade_handler_factory_1"
+    )
+    trade_handler_2 = _create_trade_handler_if_enabled(
+        container, telegram_config_2, brokerage.infra, "trade_handler_factory_2"
+    )
     
-    bot_token_1 = telegram_config_1.get("bot_token", "")
-    bot_token_2 = telegram_config_2.get("bot_token", "")
+    if trade_handler:
+        logger.info("Trade handler 1 initialized")
+    if trade_handler_2:
+        logger.info("Trade handler 2 initialized")
     
-    if telegram_config_1.get("enabled") and bot_token_1:
-        trade_handler = get_telegram_trade_handler(
-            bot_token=bot_token_1,
-            trading_service=brokerage.infra
-        )
-    
-    if telegram_config_2.get("enabled") and bot_token_2:
-        trade_handler_2 = get_telegram_trade_handler(
-            bot_token=bot_token_2,
-            trading_service=brokerage.infra
-        )
-    
-    telegram = TelegramNotifier(
-        telegram_config_1=telegram_config_1,
-        telegram_config_2=telegram_config_2,
+    # Telegram service - container factory, trade handlers injected
+    telegram = container.telegram_service_factory(
         trade_handler=trade_handler,
         trade_handler_2=trade_handler_2
     )
     logger.info("Telegram notifier initialized")
     
-    # Step 4: Initialize websocket (needs telegram for health monitoring)
-    websocket = await initialize_websocket_microservice(
-        event_bus=event_bus,
+    # Step 4: Initialize websocket via container (telegram_service injected)
+    websocket = await container.websocket_microservice_factory(
         telegram_service=telegram
     )
     logger.info("WebSocket microservice initialized")
     
-    # Step 5: Create services with cross-microservice dependencies (minimal, explicit)
-    # This is the ONLY place cross-microservice dependencies are wired!
-    
-    # Create notification use case with storage query service
-    from ..use_cases.notification import NotifyImminentArticleUseCase
-    notification_use_case = NotifyImminentArticleUseCase(
-        event_bus=event_bus,
-        storage_query_service=storage.query_service
-    )
+    # Step 5: Wire cross-microservice dependencies
+    # These are created via container but need to be attached to microservices
+    notification_use_case = container.notification_use_case()
     notification.use_case = notification_use_case
     logger.info("Notification use case created with storage query service")
     
-    # Create brokerage auto-trade service with storage query service
-    from .brokerage.auto_trade import AutoTradeService
-    auto_trade_service = AutoTradeService(
-        event_bus=event_bus,
-        storage_query_service=storage.query_service
-    )
+    auto_trade_service = container.auto_trade_service()
     brokerage.auto_trade_service = auto_trade_service
     logger.info("Auto-trade service created with storage query service")
     
-    logger.info("Cross-microservice dependencies wired")
+    # Get event bus from container
+    event_bus = container.shared.event_bus()
     
-    return Services(
+    logger.info("All services initialized via DI container")
+    
+    services = Services(
         storage=storage,
         notification=notification,
         classification=classification,
@@ -130,4 +144,6 @@ async def initialize_services() -> Services:
         trade_handler_2=trade_handler_2,
         event_bus=event_bus,
     )
+    
+    return services, container
 

@@ -11,7 +11,6 @@ from typing import Optional
 
 from ...utils.logging_config import get_logger
 from ...shared.event_bus import AsyncEventBus
-from ...config.settings import get_telegram_config, get_telegram_config_2, TELEGRAM_ENABLED, TELEGRAM_ENABLED_2
 
 # Infrastructure layer
 from ...infra.notification import NotificationInfrastructureService
@@ -75,7 +74,11 @@ class NotificationMicroservice:
         logger.info("Notification microservice stopped")
 
 
-async def initialize_notification_microservice(event_bus: AsyncEventBus) -> NotificationMicroservice:
+async def initialize_notification_microservice(
+    event_bus: AsyncEventBus,
+    telegram_config_1: dict,
+    telegram_config_2: dict,
+) -> NotificationMicroservice:
     """
     Initialize notification microservice independently.
     
@@ -86,6 +89,8 @@ async def initialize_notification_microservice(event_bus: AsyncEventBus) -> Noti
     
     Args:
         event_bus: Event bus instance (shared dependency)
+        telegram_config_1: Primary Telegram bot configuration (injected via DI)
+        telegram_config_2: Secondary Telegram bot configuration (injected via DI)
         
     Returns:
         NotificationMicroservice: Initialized notification microservice
@@ -93,9 +98,7 @@ async def initialize_notification_microservice(event_bus: AsyncEventBus) -> Noti
     logger.info("Initializing notification microservice...")
     
     # Step 1: Infrastructure layer
-    telegram_config_1 = get_telegram_config()
-    telegram_config_2 = get_telegram_config_2()
-    notification_enabled = TELEGRAM_ENABLED or TELEGRAM_ENABLED_2
+    notification_enabled = telegram_config_1.get("enabled", False) or telegram_config_2.get("enabled", False)
     
     infra = NotificationInfrastructureService(
         event_bus=event_bus,

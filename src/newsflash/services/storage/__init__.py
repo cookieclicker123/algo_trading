@@ -11,7 +11,6 @@ from dataclasses import dataclass
 
 from ...utils.logging_config import get_logger
 from ...shared.event_bus import AsyncEventBus
-from ...config.settings import get_storage_config
 
 # Infrastructure layer
 from ...infra.storage import StorageInfrastructureService
@@ -88,7 +87,10 @@ class StorageMicroservice:
         logger.info("Storage microservice stopped")
 
 
-async def initialize_storage_microservice(event_bus: AsyncEventBus) -> StorageMicroservice:
+async def initialize_storage_microservice(
+    event_bus: AsyncEventBus,
+    storage_config: dict
+) -> StorageMicroservice:
     """
     Initialize storage microservice independently.
     
@@ -97,6 +99,7 @@ async def initialize_storage_microservice(event_bus: AsyncEventBus) -> StorageMi
     
     Args:
         event_bus: Event bus instance (shared dependency)
+        storage_config: Storage configuration dictionary (injected via DI)
         
     Returns:
         StorageMicroservice: Initialized storage microservice
@@ -104,7 +107,6 @@ async def initialize_storage_microservice(event_bus: AsyncEventBus) -> StorageMi
     logger.info("Initializing storage microservice...")
     
     # Step 1: Infrastructure layer
-    storage_config = get_storage_config()
     infra = StorageInfrastructureService(
         event_bus=event_bus,
         storage_config=storage_config

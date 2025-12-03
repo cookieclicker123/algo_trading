@@ -10,7 +10,6 @@ from typing import AsyncGenerator
 from fastapi import FastAPI
 
 from ..services.composition_root import initialize_services
-from ..services.service_initialization import start_services, stop_services
 from ..utils.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -94,13 +93,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     
     try:
         # Initialize services (async for future database connections)
-        services = await initialize_services()
+        services, container = await initialize_services()
         
-        # Start all services
-        await start_services(services)
+        # Get lifecycle manager from DI container
+        lifecycle_manager = container.lifecycle_manager()
         
-        # Store services in app.state for access in endpoints
+        # Start all services via lifecycle manager (DI-managed)
+        await lifecycle_manager.start_services(services)
+        
+        # Store services and container in app.state for access in endpoints
         app.state.services = services
+        app.state.container = container
         
         logger.info("API server startup completed successfully")
         
@@ -115,16 +118,26 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Shutting down NewsFlash API server")
     
     try:
-        # Get services from app.state
+        # Get services and container from app.state
         services = getattr(app.state, "services", None)
+        container = getattr(app.state, "container", None)
         
-        if services:
-            # Stop all services (this handles service-specific cleanup)
-            await stop_services(services)
+        if services and container:
+            # Get lifecycle manager from DI container
+            lifecycle_manager = container.lifecycle_manager()
+            
+            # Stop all services via lifecycle manager (DI-managed)
+            await lifecycle_manager.stop_services(services)
         
         # Cancel any remaining background tasks
         # This ensures all tasks are cleaned up even if stop_services missed some
         await cleanup_background_tasks()
+        
+        # Unwire container on shutdown
+        container = getattr(app.state, "container", None)
+        if container:
+            container.unwire()
+            logger.info("DI container unwired")
         
         logger.info("API server shutdown completed")
         

@@ -10,7 +10,6 @@ from dataclasses import dataclass
 
 from ...utils.logging_config import get_logger
 from ...shared.event_bus import AsyncEventBus
-from ...config.settings import GROQ_API_KEY, GROQ_MODEL, CLASSIFICATION_ENABLED
 
 # Infrastructure layer
 from ...infra.classification import ClassificationInfrastructureService
@@ -62,7 +61,12 @@ class ClassificationMicroservice:
         logger.info("Classification microservice stopped")
 
 
-async def initialize_classification_microservice(event_bus: AsyncEventBus) -> ClassificationMicroservice:
+async def initialize_classification_microservice(
+    event_bus: AsyncEventBus,
+    api_key: str,
+    model: str,
+    enabled: bool,
+) -> ClassificationMicroservice:
     """
     Initialize classification microservice independently.
     
@@ -71,6 +75,9 @@ async def initialize_classification_microservice(event_bus: AsyncEventBus) -> Cl
     
     Args:
         event_bus: Event bus instance (shared dependency)
+        api_key: GROQ API key (injected via DI)
+        model: GROQ model name (injected via DI)
+        enabled: Whether classification is enabled (injected via DI)
         
     Returns:
         ClassificationMicroservice: Initialized classification microservice
@@ -80,9 +87,9 @@ async def initialize_classification_microservice(event_bus: AsyncEventBus) -> Cl
     # Step 1: Infrastructure layer
     infra = ClassificationInfrastructureService(
         event_bus=event_bus,
-        api_key=GROQ_API_KEY,
-        model=GROQ_MODEL,
-        enabled=CLASSIFICATION_ENABLED
+        api_key=api_key,
+        model=model,
+        enabled=enabled
     )
     logger.info("Classification infrastructure initialized")
     

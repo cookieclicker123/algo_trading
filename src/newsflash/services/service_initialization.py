@@ -1,14 +1,12 @@
 """
-Services container and lifecycle management.
+Services container - holds all initialized microservices.
+
+Note: Lifecycle management (start/stop) has been moved to LifecycleManager
+which is created via dependency injection.
 """
 from typing import Dict, Any, Optional
 
-from ..utils.bot_conflict_resolver import resolve_bot_conflicts
 from ..utils.logging_config import get_logger
-from ..config.settings import (
-    get_telegram_config,
-    get_telegram_config_2,
-)
 
 # Import microservice types
 from .storage import StorageMicroservice
@@ -55,77 +53,9 @@ class Services:
 
 
 
-async def start_services(services: Services) -> None:
-    """Start all services."""
-    logger.info("Starting all services...")
-    
-    try:
-        # Resolve bot conflicts (shared concern)
-        telegram_config_1 = get_telegram_config()
-        telegram_config_2 = get_telegram_config_2()
-        
-        bot_tokens = []
-        if telegram_config_1.get("enabled") and telegram_config_1.get("bot_token"):
-            bot_tokens.append(telegram_config_1.get("bot_token"))
-        if telegram_config_2.get("enabled") and telegram_config_2.get("bot_token"):
-            bot_tokens.append(telegram_config_2.get("bot_token"))
-        
-        if bot_tokens:
-            conflict_resolved = await resolve_bot_conflicts(bot_tokens, aggressive=True)
-            if not conflict_resolved:
-                logger.warning("Bot conflicts detected but not resolved - services may fail to start")
-        else:
-            logger.info("No enabled bots found, skipping conflict resolution")
-        
-        # Start Telegram trade handlers (shared services)
-        if services.trade_handler and telegram_config_1.get("enabled"):
-            await services.trade_handler.start()
-            logger.info("Telegram trade handler 1 started")
-        
-        if services.trade_handler_2 and telegram_config_2.get("enabled"):
-            await services.trade_handler_2.start()
-            logger.info("Telegram trade handler 2 started")
-        
-        # Start each microservice (they manage their own lifecycle!)
-        await services.storage.start()
-        await services.classification.start()
-        await services.notification.start()
-        await services.brokerage.start()
-        await services.websocket.start()
-        
-        logger.info("All services started successfully")
-        
-    except Exception as e:
-        logger.error("Failed to start services", error=str(e))
-        raise
-
-
-async def stop_services(services: Services) -> None:
-    """Stop all services."""
-    logger.info("Stopping all services...")
-    
-    try:
-        # Stop microservices in reverse order (they manage their own lifecycle!)
-        await services.websocket.stop()
-        await services.brokerage.stop()
-        await services.notification.stop()
-        await services.classification.stop()
-        await services.storage.stop()
-        
-        # Stop shared services
-        if services.trade_handler:
-            await services.trade_handler.stop()
-            logger.info("Telegram trade handler 1 stopped")
-        
-        if services.trade_handler_2:
-            await services.trade_handler_2.stop()
-            logger.info("Telegram trade handler 2 stopped")
-        
-        logger.info("All services stopped successfully")
-        
-    except Exception as e:
-        logger.error("Failed to stop services", error=str(e))
-        raise
+# Note: start_services and stop_services have been moved to LifecycleManager
+# which is created via dependency injection. This ensures all dependencies
+# (like config) are properly injected rather than called directly.
 
 
 async def get_stats(services: Services) -> Dict[str, Any]:

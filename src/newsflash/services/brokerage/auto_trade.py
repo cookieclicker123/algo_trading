@@ -12,13 +12,12 @@ from ...shared.event_bus import AsyncEventBus
 from ...shared.typed_event_bus import subscribe_typed
 from ...shared.event_types import DomainEventType
 from ...domain.brokerage.events import TradeRequestDomainEvent
-from ...domain.brokerage.models import TradeRequest
+from ...domain.brokerage.models import TradeRequest, TradeAction
 from ...domain.classification.events import ArticleClassifiedDomainEvent
 from ...domain.classification.models import ClassificationResult, ClassificationCategory
 from ...domain.websocket.models import Article
-from ...config.settings import AUTO_TRADING_ENABLED, AUTO_TRADE_AMOUNT_USD
 from ...services.storage import StorageQueryService
-from .trade_builder import create_default_trade_request
+from .trade_builder import build_trade_request_from_article
 
 logger = get_logger(__name__)
 
@@ -82,17 +81,23 @@ async def fetch_article_for_trade(
     return domain_article
 
 
-def build_trade_request_for_article(article: Article) -> Optional[TradeRequest]:
+def build_trade_request_for_article(article: Article, trade_amount_usd: Decimal) -> Optional[TradeRequest]:
     """
-    Build a trade request from an article using default settings.
+    Build a trade request from an article using provided trade amount.
     
     Args:
         article: Domain Article model
+        trade_amount_usd: Trade amount in USD
         
     Returns:
         Domain TradeRequest model, or None if invalid
     """
-    trade_request = create_default_trade_request(article)
+    trade_request = build_trade_request_from_article(
+        article=article,
+        amount_usd=trade_amount_usd,
+        leverage=Decimal("2.0"),
+        action=TradeAction.BUY
+    )
     
     if not trade_request:
         logger.info(
@@ -136,7 +141,8 @@ async def process_imminent_article(
     event_bus: AsyncEventBus,
     storage_service: StorageQueryService,
     classification_result: ClassificationResult,
-    enabled: bool
+    enabled: bool,
+    trade_amount_usd: Decimal
 ) -> None:
     """
     Process an IMMINENT classification result and publish trade request if valid.
@@ -172,7 +178,7 @@ async def process_imminent_article(
         )
         
         # Build trade request
-        trade_request = build_trade_request_for_article(domain_article)
+        trade_request = build_trade_request_for_article(domain_article, trade_amount_usd)
         
         if not trade_request:
             return
@@ -210,15 +216,24 @@ class AutoTradeService:
     - Know about infrastructure details
     """
     
-    def __init__(self, event_bus: AsyncEventBus, storage_query_service: StorageQueryService):
+    def __init__(
+        self,
+        event_bus: AsyncEventBus,
+        storage_query_service: StorageQueryService,
+        enabled: bool,
+        trade_amount_usd: Decimal
+    ):
         """
         Initialize auto-trade service.
         
         Args:
             event_bus: Event bus instance for publishing/subscribing to events
             storage_query_service: Storage query service for fetching articles
+            enabled: Whether auto-trading is enabled (injected via DI)
+            trade_amount_usd: Trade amount in USD (injected via DI)
         """
-        self.is_enabled = AUTO_TRADING_ENABLED
+        self.is_enabled = enabled
+        self.trade_amount_usd = trade_amount_usd
         self.event_bus = event_bus
         self.storage_query_service = storage_query_service
         
@@ -250,7 +265,8 @@ class AutoTradeService:
             self.event_bus,
             self.storage_query_service,
             domain_event.result,
-            self.is_enabled
+            self.is_enabled,
+            self.trade_amount_usd
         )
     
     async def start(self) -> None:

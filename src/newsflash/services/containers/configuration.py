@@ -1,0 +1,59 @@
+"""
+Configuration container - provides configuration values.
+"""
+from decimal import Decimal
+from dependency_injector import containers, providers
+
+from ...config import settings
+
+
+class ConfigurationContainer(containers.DeclarativeContainer):
+    """Configuration container for application settings."""
+    
+    wiring_config = containers.WiringConfiguration(
+        modules=[
+            # Route handlers can use @inject decorator for automatic injection
+            "newsflash.api.routes.health",
+            "newsflash.api.routes.storage.articles",
+            "newsflash.api.routes.websocket.feeds",
+        ]
+    )
+    
+    # Configuration providers
+    storage_config = providers.Callable(settings.get_storage_config)
+    telegram_config_1 = providers.Callable(settings.get_telegram_config)
+    telegram_config_2 = providers.Callable(settings.get_telegram_config_2)
+    classification_config = providers.Callable(settings.get_classification_config)
+    server_config = providers.Callable(settings.get_server_config)
+    
+    # Direct config values
+    groq_api_key = providers.Callable(lambda: settings.GROQ_API_KEY)
+    groq_model = providers.Callable(lambda: settings.GROQ_MODEL)
+    classification_enabled = providers.Callable(lambda: settings.CLASSIFICATION_ENABLED)
+    benzinga_api_key = providers.Callable(lambda: settings.BENZINGA_API_KEY)
+    benzinga_websocket_enabled = providers.Callable(lambda: settings.BENZINGA_WEBSOCKET_ENABLED)
+    
+    # IBKR Configuration
+    ibkr_paper_trading = providers.Callable(lambda: settings.IBKR_PAPER_TRADING)
+    ibkr_client_id = providers.Callable(lambda: settings.IBKR_CLIENT_ID)
+    
+    # Auto-Trading Configuration
+    auto_trading_enabled = providers.Callable(lambda: settings.AUTO_TRADING_ENABLED)
+    auto_trade_amount_usd = providers.Callable(lambda: Decimal(str(settings.AUTO_TRADE_AMOUNT_USD)))
+    auto_trade_exit_delay_minutes = providers.Callable(lambda: settings.AUTO_TRADE_EXIT_DELAY_MINUTES)
+    
+    # IBKR Additional Configuration
+    ibkr_paper_trading_port = providers.Callable(lambda: settings.IBKR_PAPER_TRADING_PORT)
+    ibkr_live_trading_port = providers.Callable(lambda: settings.IBKR_LIVE_TRADING_PORT)
+    ibkr_keepalive_enabled = providers.Callable(lambda: settings.IBKR_KEEPALIVE_ENABLED)
+    ibkr_daily_restart_time = providers.Callable(lambda: settings.IBKR_DAILY_RESTART_TIME)
+    
+    # Ladder Configuration
+    ladder_initial_cents = providers.Callable(lambda: settings.LADDER_INITIAL_CENTS)
+    ladder_step_cents = providers.Callable(lambda: settings.LADDER_STEP_CENTS)
+    ladder_step_cents_after = providers.Callable(lambda: settings.LADDER_STEP_CENTS_AFTER)
+    ladder_switch_attempt = providers.Callable(lambda: settings.LADDER_SWITCH_ATTEMPT)
+    ladder_interval_ms = providers.Callable(lambda: settings.LADDER_INTERVAL_MS)
+    ladder_interval_ms_late = providers.Callable(lambda: settings.LADDER_INTERVAL_MS_LATE)
+    ladder_max_cents = providers.Callable(lambda: settings.LADDER_MAX_CENTS)
+

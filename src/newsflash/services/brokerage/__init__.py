@@ -75,7 +75,11 @@ class BrokerageMicroservice:
         logger.info("Brokerage microservice stopped")
 
 
-async def initialize_brokerage_microservice(event_bus: AsyncEventBus) -> BrokerageMicroservice:
+async def initialize_brokerage_microservice(
+    event_bus: AsyncEventBus,
+    paper_trading: bool,
+    client_id: int,
+) -> BrokerageMicroservice:
     """
     Initialize brokerage microservice independently.
     
@@ -86,6 +90,8 @@ async def initialize_brokerage_microservice(event_bus: AsyncEventBus) -> Brokera
     
     Args:
         event_bus: Event bus instance (shared dependency)
+        paper_trading: Whether to use paper trading (injected via DI)
+        client_id: IBKR client ID (injected via DI)
         
     Returns:
         BrokerageMicroservice: Initialized brokerage microservice
@@ -95,8 +101,8 @@ async def initialize_brokerage_microservice(event_bus: AsyncEventBus) -> Brokera
     # Step 1: Infrastructure layer
     infra = IBKRBrokerageService(
         event_bus=event_bus,
-        paper_trading=True,
-        client_id=5
+        paper_trading=paper_trading,
+        client_id=client_id
     )
     logger.info("Brokerage infrastructure initialized")
     
