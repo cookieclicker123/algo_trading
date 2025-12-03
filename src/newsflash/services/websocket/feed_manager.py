@@ -8,6 +8,11 @@ No direct coupling to classification/article processing.
 from ...utils.logging_config import get_logger
 from ...shared.event_bus import AsyncEventBus
 from ...shared.event_types import DomainEventType
+from .feed_utils import (
+    extract_article_from_event,
+    log_article_reception,
+    create_feed_stats,
+)
 
 logger = get_logger(__name__)
 
@@ -59,20 +64,18 @@ class FeedManager:
         Article processing is handled by ProcessArticleUseCase.
         """
         try:
-            # Reconstruct typed domain event
-            from ...domain.websocket.events import ArticleReceivedDomainEvent
-            domain_event = ArticleReceivedDomainEvent(**event_data)
+            # Extract typed domain event using pure function
+            domain_event = extract_article_from_event(event_data)
             
             # Extract typed domain Article model
             article = domain_event.article
             
-            # Log article reception
+            # Log article reception using pure function
             self.articles_received_count += 1
-            logger.info(
-                "FeedManager: Article received from domain",
+            log_article_reception(
                 article_id=article.id,
                 tickers=list(article.tickers) if article.tickers else [],
-                total_received=self.articles_received_count
+                total_count=self.articles_received_count
             )
         
         except Exception as e:
@@ -94,10 +97,7 @@ class FeedManager:
     
     def get_stats(self) -> dict:
         """Get current feed statistics."""
-        return {
-            "is_running": self.is_running,
-            "articles_received": self.articles_received_count
-        }
+        return create_feed_stats(self.is_running, self.articles_received_count)
     
     def is_healthy(self) -> bool:
         """Check if feed manager is healthy."""

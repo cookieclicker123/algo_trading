@@ -10,7 +10,8 @@ from pathlib import Path
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
-from newsflash.services.service_initialization import initialize_services, start_services, stop_services
+from newsflash.services.composition_root import initialize_services
+from newsflash.services.service_initialization import start_services, stop_services
 from newsflash.utils.logging_config import setup_logging, get_logger
 
 # Setup logging

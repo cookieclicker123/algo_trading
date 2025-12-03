@@ -3,7 +3,7 @@ Storage query service - provides article fetching operations.
 
 Service subscribes to domain events and provides focused storage query operations.
 """
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, List
 from datetime import datetime
 
 from ...utils.logging_config import get_logger
@@ -12,8 +12,15 @@ from ...shared.typed_event_bus import subscribe_typed
 from ...shared.event_types import DomainEventType
 from ...domain.storage.events import ArticleFetchRequestedDomainEvent, ArticleFetchedDomainEvent
 from ...domain.storage.factories import StoredArticleFactory
+from ...domain.storage.models import StoredArticle, ArchiveStatistics
 from ...domain.websocket.models import Article as DomainArticle
 from ...infra.storage.article_repository import ArticleRepository
+from .article_query import (
+    convert_stored_article_to_domain_article,
+    query_recent_articles,
+    query_archived_articles,
+    create_empty_archive_stats,
+)
 
 logger = get_logger(__name__)
 
@@ -34,16 +41,23 @@ class StorageQueryService:
     - Know about file paths or JSON (delegates to repository)
     """
     
-    def __init__(self, event_bus: AsyncEventBus, article_repository: ArticleRepository):
+    def __init__(
+        self, 
+        event_bus: AsyncEventBus, 
+        article_repository: ArticleRepository,
+        fetch_timeout_seconds: float
+    ):
         """
         Initialize storage query service.
         
         Args:
             event_bus: Event bus instance for publishing/subscribing to events
             article_repository: Article repository for direct queries
+            fetch_timeout_seconds: Default timeout for article fetch operations (from config)
         """
         self.event_bus = event_bus
         self.article_repository = article_repository
+        self.fetch_timeout_seconds = fetch_timeout_seconds
         self.stored_article_factory = StoredArticleFactory()
         
         # Subscribe to typed fetch results
@@ -58,7 +72,10 @@ class StorageQueryService:
         # Pending fetch requests: article_id -> (future, timestamp)
         self._pending_fetches: Dict[str, tuple] = {}
         
-        logger.info("StorageQueryService initialized - provides article fetching operations")
+        logger.info(
+            "StorageQueryService initialized - provides article fetching operations",
+            fetch_timeout_seconds=fetch_timeout_seconds
+        )
     
     async def start(self) -> None:
         """Start the service (already subscribed in __init__)."""
@@ -76,18 +93,21 @@ class StorageQueryService:
         
         logger.info("StorageQueryService stopped")
     
-    async def fetch_article(self, article_id: str, timeout_seconds: float = 5.0) -> Optional[DomainArticle]:
+    async def fetch_article(self, article_id: str, timeout_seconds: Optional[float] = None) -> Optional[DomainArticle]:
         """
         Fetch an article by ID from storage.
         
         Args:
             article_id: Article ID to fetch
-            timeout_seconds: Maximum time to wait for response
+            timeout_seconds: Maximum time to wait for response (defaults to config value if None)
             
         Returns:
             Domain Article model if found, None otherwise
         """
         import asyncio
+        
+        # Use configured timeout if not specified
+        timeout = timeout_seconds if timeout_seconds is not None else self.fetch_timeout_seconds
         
         # Create future for this fetch
         future = asyncio.Future()
@@ -105,34 +125,17 @@ class StorageQueryService:
             
             # Wait for response with timeout
             try:
-                stored_article = await asyncio.wait_for(future, timeout=timeout_seconds)
+                stored_article = await asyncio.wait_for(future, timeout=timeout)
                 
                 if stored_article:
-                    # Convert StoredArticle back to DomainArticle
-                    # This is a reverse mapping - we need to reconstruct DomainArticle from StoredArticle
-                    from ...domain.websocket.models import Article, ArticleSource
-                    
-                    return Article(
-                        id=stored_article.article_id,
-                        source=ArticleSource(stored_article.source),
-                        source_id=stored_article.source_id,
-                        title=stored_article.title,
-                        content=stored_article.content,
-                        summary=stored_article.summary,
-                        author=stored_article.author,
-                        published_at=stored_article.published_at,
-                        updated_at=stored_article.updated_at,
-                        url=stored_article.url,
-                        tickers=stored_article.tickers,
-                        tags=stored_article.tags,
-                        categories=stored_article.categories
-                    )
+                    # Convert StoredArticle back to DomainArticle using pure function
+                    return convert_stored_article_to_domain_article(stored_article)
                 else:
                     logger.debug("StorageQueryService: Article not found", article_id=article_id)
                     return None
                     
             except asyncio.TimeoutError:
-                logger.warning("StorageQueryService: Fetch timeout", article_id=article_id, timeout=timeout_seconds)
+                logger.warning("StorageQueryService: Fetch timeout", article_id=article_id, timeout=timeout)
                 # Cancel the future if it's still pending
                 if not future.done():
                     future.cancel()
@@ -176,7 +179,7 @@ class StorageQueryService:
                     future.set_result(None)
                 self._pending_fetches.pop(domain_event.article_id, None)
     
-    async def get_recent_articles(self, hours: int = 1) -> List[Dict[str, Any]]:
+    async def get_recent_articles(self, hours: int) -> List[StoredArticle]:
         """
         Get articles from the last N hours.
         
@@ -184,11 +187,15 @@ class StorageQueryService:
             hours: Number of hours to look back
             
         Returns:
-            List of article dictionaries
+            List of StoredArticle domain models
         """
-        return await self.article_repository.get_recent_articles(hours)
+        return await query_recent_articles(
+            self.article_repository,
+            hours,
+            self.stored_article_factory
+        )
     
-    async def get_archived_articles(self, date: str) -> List[Dict[str, Any]]:
+    async def get_archived_articles(self, date: str) -> List[StoredArticle]:
         """
         Get archived articles for a specific date.
         
@@ -196,20 +203,20 @@ class StorageQueryService:
             date: Date in YYYY-MM-DD format
             
         Returns:
-            List of archived articles for that date
+            List of StoredArticle domain models
         """
-        return await self.article_repository.get_archived_articles(date)
+        return await query_archived_articles(
+            self.article_repository,
+            date,
+            self.stored_article_factory
+        )
     
-    async def get_archive_stats(self) -> Dict[str, Any]:
+    async def get_archive_stats(self) -> ArchiveStatistics:
         """
         Get statistics about archived articles.
         
         Returns:
-            Dictionary with archive statistics
+            ArchiveStatistics domain model with archive statistics
         """
-        # Calculate stats from repository
-        # This is a simple implementation - can be enhanced later
-        return {
-            "note": "Archive stats calculation - can be enhanced with actual stats"
-        }
+        return create_empty_archive_stats()
 

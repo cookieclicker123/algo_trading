@@ -8,6 +8,13 @@ from datetime import datetime
 from ...utils.logging_config import get_logger
 from ...shared.event_bus import AsyncEventBus
 from ...shared.event_types import DomainEventType
+from .health_utils import (
+    format_connection_status_message,
+    format_health_alert_message,
+    should_send_health_alert,
+    update_feed_state,
+    check_state_changed,
+)
 
 logger = get_logger(__name__)
 
@@ -85,14 +92,11 @@ class FeedHealthMonitor:
             
             # Send Telegram notification
             if self.telegram_service and (self.telegram_service.enabled_1 or self.telegram_service.enabled_2):
-                emoji = "✅" if domain_event.is_connected else "❌"
-                mode = "Paper Trading" if domain_event.paper_trading else "Live Trading"
-                status = "connected and verified" if domain_event.is_connected else "disconnected"
-                
-                message = f"{emoji} IB Gateway {status}\n\n"
-                message += f"Mode: {mode}\n"
-                if domain_event.reason:
-                    message += f"Reason: {domain_event.reason}\n"
+                message = format_connection_status_message(
+                    is_connected=domain_event.is_connected,
+                    paper_trading=domain_event.paper_trading,
+                    reason=domain_event.reason
+                )
                 
                 try:
                     # Send to all enabled bots
@@ -306,40 +310,30 @@ class FeedHealthMonitor:
         previous_state = self.previous_state[feed_name]
         was_healthy = previous_state["healthy"]
         
-        # Check if state changed
-        state_changed = (was_healthy is not None) and (was_healthy != is_healthy)
+        # Check if state changed using pure function
+        state_changed = check_state_changed(was_healthy, is_healthy)
         
-        # Track consecutive failures
-        if not is_healthy:
-            previous_state["consecutive_failures"] += 1
-        else:
-            previous_state["consecutive_failures"] = 0
-        
-        # Send alert if:
-        # 1. State changed (healthy -> unhealthy or vice versa)
-        # 2. Still unhealthy after initial alert (every 5 minutes)
-        should_alert = False
         if state_changed:
-            should_alert = True
             logger.warning(f"{feed_name} health state changed: {was_healthy} -> {is_healthy}", reason=reason)
-        elif not is_healthy:
-            # Still unhealthy - send reminder every 5 minutes
-            last_alert = previous_state["last_alert_time"]
-            if last_alert:
-                time_since_alert = (datetime.now() - last_alert).total_seconds()
-                if time_since_alert >= 300:  # 5 minutes
-                    should_alert = True
-            else:
-                # First time unhealthy
-                should_alert = True
         
-        # Update previous state
-        previous_state["healthy"] = is_healthy
+        # Determine if alert should be sent using pure function
+        should_alert = should_send_health_alert(
+            is_healthy=is_healthy,
+            was_healthy=was_healthy,
+            last_alert_time=previous_state.get("last_alert_time"),
+            state_changed=state_changed
+        )
         
-        # Send alert if needed
+        # Update state using pure function
         if should_alert:
-            previous_state["last_alert_time"] = datetime.now()
+            update_feed_state(
+                previous_state,
+                is_healthy,
+                last_alert_time=datetime.now()
+            )
             await self._send_health_alert(feed_name, health_status, was_healthy, state_changed)
+        else:
+            update_feed_state(previous_state, is_healthy)
 
             # If needed, publish a restart event that infrastructure can subscribe to
         
@@ -357,42 +351,16 @@ class FeedHealthMonitor:
             logger.warning("Telegram service not available for health alerts")
             return
         
-        is_healthy = health_status.get("healthy", False)
-        reason = health_status.get("reason", "Unknown")
-        stats = health_status.get("stats", {})
-        error = health_status.get("error")
-        last_error = health_status.get("last_error")
-        
-        # Build alert message
-        emoji = "✅" if is_healthy else "⚠️"
-        status_text = "HEALTHY" if is_healthy else "UNHEALTHY"
-        
-        if state_changed:
-            if is_healthy:
-                message = f"{emoji} *Feed Recovered: {feed_name.replace('_', ' ').title()}*\n\n"
-                message += f"Feed is now {status_text}.\n\n"
-            else:
-                message = f"{emoji} *Feed Disconnected: {feed_name.replace('_', ' ').title()}*\n\n"
-                message += f"Feed status: {status_text}\n\n"
-        else:
-            message = f"{emoji} *Feed Health Alert: {feed_name.replace('_', ' ').title()}*\n\n"
-            message += f"Status: {status_text}\n\n"
-        
-        message += f"*Reason:* {reason}\n\n"
-        
-        if error or last_error:
-            error_msg = error or last_error
-            message += f"*Error:* `{error_msg}`\n\n"
-        
-        # Add relevant stats
-        if stats:
-            message += "*Statistics:*\n"
-            for key, value in list(stats.items())[:5]:  # Limit to first 5 stats
-                if value is not None:
-                    message += f"• {key}: `{value}`\n"
-        
-        # Add timestamp
-        message += f"\n_Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}_"
+        # Build alert message using pure function
+        message = format_health_alert_message(
+            feed_name=feed_name,
+            is_healthy=health_status.get("healthy", False),
+            reason=health_status.get("reason", "Unknown"),
+            error=health_status.get("error") or health_status.get("last_error"),
+            stats=health_status.get("stats", {}),
+            was_healthy=was_healthy,
+            state_changed=state_changed
+        )
         
         try:
             # Send to both bots if enabled
@@ -410,8 +378,7 @@ class FeedHealthMonitor:
                     parse_mode="Markdown"
                 )
             
-            logger.info(f"Health alert sent for {feed_name}", healthy=is_healthy)
+            logger.info(f"Health alert sent for {feed_name}", healthy=health_status.get("healthy", False))
             
         except Exception as e:
             logger.error(f"Failed to send health alert for {feed_name}", error=str(e))
-

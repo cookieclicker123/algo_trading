@@ -11,6 +11,7 @@ load_dotenv()
 TMP_DIR = "tmp"
 ARTICLES_JSON_FILE = "articles.json"
 ROLLING_WINDOW_HOURS = 1  # Keep articles for 1 hour
+ARTICLE_FETCH_TIMEOUT_SECONDS = float(os.getenv("ARTICLE_FETCH_TIMEOUT_SECONDS", "5.0"))
 
 # Server Configuration
 HOST = "0.0.0.0"
@@ -71,6 +72,7 @@ def get_storage_config() -> dict:
         "tmp_dir": TMP_DIR,
         "articles_json_file": ARTICLES_JSON_FILE,
         "rolling_window_hours": ROLLING_WINDOW_HOURS,
+        "article_fetch_timeout_seconds": ARTICLE_FETCH_TIMEOUT_SECONDS,
     }
 
 def get_telegram_config() -> dict:

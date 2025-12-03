@@ -40,6 +40,44 @@ class StoredArticle(BaseModel):
         return None
 
 
+class ArchiveStatistics(BaseModel):
+    """
+    Domain model - archive statistics.
+    
+    Typed model for archive statistics to replace dictionaries.
+    
+    TODO: Expand this model with trading-specific analytics:
+    - Historical article counts by classification type (IMMINENT, etc.)
+    - Win rate statistics per article source/type
+    - Time-based patterns (e.g., articles published during market hours vs. after-hours)
+    - Ticker-specific statistics (which tickers had most profitable articles)
+    - Correlation metrics between article classifications and trade outcomes
+    - Backtesting data quality metrics (date ranges, coverage, gaps)
+    
+    Use Cases for Trading Win Rate Improvement:
+    1. Backtesting: Analyze historical patterns to identify which article characteristics
+       led to successful trades vs. losses
+    2. Pattern Recognition: Find recurring patterns in articles that preceded profitable trades
+       (e.g., specific keywords, sources, or timing)
+    3. Performance Metrics: Track win rate by article source, classification confidence,
+       or time of day to optimize trading strategy
+    4. Strategy Refinement: Compare historical performance of different trading strategies
+       based on article classifications
+    5. Data Quality: Ensure sufficient historical data for reliable backtesting
+    
+    Users:
+    - Trading researchers analyzing historical performance
+    - Strategy developers backtesting new trading models
+    - Analytics services providing insights to traders
+    - System administrators monitoring data completeness
+    """
+    total_archived_dates: int = Field(default=0, description="Total number of archived dates")
+    total_archived_files: int = Field(default=0, description="Total number of archived files")
+    archive_directory: Optional[str] = Field(None, description="Path to archive directory")
+    
+    model_config = {"frozen": True}
+
+
 class AuditEntry(BaseModel):
     """
     Domain model - audit trail entry (pure business logic).

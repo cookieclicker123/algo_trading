@@ -9,10 +9,62 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 
-from ..services.service_initialization import initialize_services, start_services, stop_services
+from ..services.composition_root import initialize_services
+from ..services.service_initialization import start_services, stop_services
 from ..utils.logging_config import get_logger
 
 logger = get_logger(__name__)
+
+
+async def cleanup_background_tasks() -> None:
+    """
+    Cancel and wait for background tasks properly.
+    
+    Handles nested tasks without recursion error.
+    Uses asyncio.wait() instead of gather() to avoid recursion.
+    """
+    # Get all tasks except current one
+    current_task = asyncio.current_task()
+    tasks = [
+        task for task in asyncio.all_tasks()
+        if task != current_task and not task.done()
+    ]
+    
+    if not tasks:
+        return
+    
+    logger.info(f"Cancelling {len(tasks)} remaining background tasks")
+    
+    # Cancel all tasks (non-recursive)
+    for task in tasks:
+        if not task.done():
+            task.cancel()
+    
+    # Wait for tasks with timeout (using wait() not gather())
+    try:
+        done, pending = await asyncio.wait(
+            tasks,
+            timeout=5.0,  # 5 second timeout
+            return_when=asyncio.ALL_COMPLETED
+        )
+        
+        # Log any tasks that didn't complete
+        if pending:
+            logger.warning(f"{len(pending)} tasks did not complete within timeout")
+            for task in pending:
+                logger.warning(f"Pending task: {task.get_name() if hasattr(task, 'get_name') else 'unknown'}")
+        
+        # Check for exceptions (ignore CancelledError - expected)
+        for task in done:
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass  # Expected for cancelled tasks
+            except Exception as e:
+                logger.error(f"Task exception during cleanup", error=str(e))
+                
+    except Exception as e:
+        logger.error(f"Error during task cleanup", error=str(e))
 
 
 @asynccontextmanager
@@ -72,16 +124,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         
         # Cancel any remaining background tasks
         # This ensures all tasks are cleaned up even if stop_services missed some
-        tasks = [task for task in asyncio.all_tasks() if not task.done()]
-        if tasks:
-            logger.info(f"Cancelling {len(tasks)} remaining background tasks")
-            for task in tasks:
-                # Don't cancel the current task (ourselves)
-                if task != asyncio.current_task():
-                    task.cancel()
-            
-            # Wait for all tasks to complete cancellation
-            await asyncio.gather(*tasks, return_exceptions=True)
+        await cleanup_background_tasks()
         
         logger.info("API server shutdown completed")
         
