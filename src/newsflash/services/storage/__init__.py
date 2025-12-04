@@ -8,9 +8,13 @@ This module initializes all storage-related components:
 - Use cases
 """
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from ...utils.logging_config import get_logger
 from ...shared.event_bus import AsyncEventBus
+
+if TYPE_CHECKING:
+    from ...infra.storage.types import StorageConfig
 
 # Infrastructure layer
 from ...infra.storage import StorageInfrastructureService
@@ -89,7 +93,7 @@ class StorageMicroservice:
 
 async def initialize_storage_microservice(
     event_bus: AsyncEventBus,
-    storage_config: dict
+    storage_config: "StorageConfig"
 ) -> StorageMicroservice:
     """
     Initialize storage microservice independently.

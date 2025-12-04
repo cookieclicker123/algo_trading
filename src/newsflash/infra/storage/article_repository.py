@@ -11,6 +11,7 @@ import aiofiles
 
 # Config now injected via constructor - no direct import needed
 from ...utils.logging_config import get_logger
+from .types import StorageConfig
 
 logger = get_logger(__name__)
 
@@ -26,7 +27,7 @@ class ArticleRepository:
     - File I/O operations
     """
     
-    def __init__(self, storage_config: dict):
+    def __init__(self, storage_config: StorageConfig):
         """
         Initialize article repository.
         

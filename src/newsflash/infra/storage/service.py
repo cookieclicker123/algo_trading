@@ -27,6 +27,7 @@ from .event_protocols import (
 )
 from .article_repository import ArticleRepository
 from .audit_repository import AuditRepository
+from .types import StorageConfig
 
 logger = get_logger(__name__)
 
@@ -51,7 +52,7 @@ class StorageInfrastructureService(
     - Know about domain models
     """
     
-    def __init__(self, event_bus: AsyncEventBus, storage_config: dict):
+    def __init__(self, event_bus: AsyncEventBus, storage_config: StorageConfig):
         """
         Initialize storage infrastructure service.
         
