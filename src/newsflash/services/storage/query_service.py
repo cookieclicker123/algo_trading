@@ -133,7 +133,13 @@ class StorageQueryService:
                     # Convert StoredArticle to DomainArticle
                     domain_article = convert_stored_article_to_domain_article(stored_article)
                     if domain_article:
-                        logger.debug("StorageQueryService: Article found via direct repository query", article_id=article_id)
+                        tickers_list = list(domain_article.tickers) if domain_article.tickers else []
+                        logger.info(
+                            "✅ StorageQueryService: Article found via direct repository query",
+                            article_id=article_id,
+                            tickers=tickers_list,
+                            has_tickers=len(tickers_list) > 0
+                        )
                         return domain_article
         except Exception as e:
             logger.debug("StorageQueryService: Direct repository query failed, falling back to event-driven fetch", 
@@ -174,7 +180,16 @@ class StorageQueryService:
             
             if stored_article:
                 # Convert StoredArticle back to DomainArticle using pure function
-                return convert_stored_article_to_domain_article(stored_article)
+                domain_article = convert_stored_article_to_domain_article(stored_article)
+                if domain_article:
+                    tickers_list = list[str](domain_article.tickers) if domain_article.tickers else []
+                    logger.info(
+                        "✅ StorageQueryService: Article found via event-driven fetch",
+                        article_id=article_id,
+                        tickers=tickers_list,
+                        has_tickers=len(tickers_list) > 0
+                    )
+                return domain_article
             else:
                 logger.debug("StorageQueryService: Article not found", article_id=article_id)
                 return None

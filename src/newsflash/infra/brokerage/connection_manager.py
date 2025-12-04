@@ -581,6 +581,17 @@ class IBKRConnectionManager:
             )
             return
         
+        # Special handling for market data subscription errors
+        if error_code == 10197:
+            logger.error(
+                "❌ IBKR Error 10197: No market data during competing live session",
+                error_code=error_code,
+                error_message=error_message,
+                misc=misc,
+                solution="Close any live TWS/Gateway sessions or ensure paper account has separate market data subscription"
+            )
+            return
+        
         # Log other errors
         logger.warning(
             "IBKR error event",

@@ -191,20 +191,34 @@ async def process_imminent_article(
             return
         
         # Fetch article from storage
+        logger.info(
+            "🔍 AUTO-TRADE: Attempting to fetch article from storage",
+            article_id=classification_result.article_id,
+            classification=classification_result.classification.value
+        )
+        
         domain_article = await fetch_article_for_trade(
             storage_service,
             classification_result.article_id
         )
         
         if not domain_article:
+            logger.warning(
+                "⏭️ AUTO-TRADE SKIPPED: Article not found in storage",
+                article_id=classification_result.article_id,
+                classification=classification_result.classification.value
+            )
             return
         
         # Log processing
+        tickers_list = list(domain_article.tickers) if domain_article.tickers else []
         logger.info(
             "🤖 AUTO-TRADE: Processing IMMINENT article",
             article_id=domain_article.id,
             title=domain_article.title[:100] if domain_article.title else "",
-            tickers=list(domain_article.tickers) if domain_article.tickers else []
+            tickers=tickers_list,
+            has_tickers=len(tickers_list) > 0,
+            ticker_count=len(tickers_list)
         )
         
         # Build trade request

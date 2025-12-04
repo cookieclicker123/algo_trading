@@ -129,14 +129,24 @@ class IBKRQuoteFetcher:
             last_snapshot: Dict[str, Any] = {}
             
             # Wait for quote data
-            for iteration in range(10):
+            # Market data subscriptions can take 1-3 seconds to initialize
+            # Use longer timeout: up to 5 seconds or the provided timeout, whichever is smaller
+            max_wait_time = 5.0 if timeout_deadline is None else min(5.0, timeout_deadline - time.monotonic())
+            max_iterations = int(max_wait_time / 0.1)  # Check every 100ms
+            max_iterations = max(20, min(max_iterations, 100))  # At least 2 seconds, max 10 seconds
+            
+            for iteration in range(max_iterations):
                 remaining = time_left()
                 if remaining is not None and remaining <= 0:
                     break
                 
-                sleep_interval = 0.05 if remaining is None else min(0.05, max(remaining, 0))
+                sleep_interval = 0.1 if remaining is None else min(0.1, max(remaining, 0))
                 if sleep_interval > 0:
                     await asyncio.sleep(sleep_interval)
+                
+                # Log progress every second
+                if iteration > 0 and iteration % 10 == 0:
+                    logger.debug(f"Waiting for market data... ({iteration * 0.1:.1f}s)", ticker=contract.symbol)
                 
                 # Extract quote data
                 last_price = getattr(ticker, "last", None)
@@ -206,8 +216,19 @@ class IBKRQuoteFetcher:
             last_snapshot.setdefault("price_used", None)
             last_snapshot.setdefault("price_source", "unavailable")
             self._record_quote_snapshot(contract.symbol, last_snapshot)
+            
+            # Check for specific IBKR errors in the snapshot (if error was captured)
+            error_msg = "IBKR quote unavailable (no last/bbo/close)"
+            if "error_code" in last_snapshot:
+                error_code = last_snapshot.get("error_code")
+                if error_code == 10197:
+                    error_msg = (
+                        "IBKR Error 10197: No market data during competing live session. "
+                        "Close any live TWS/Gateway sessions or ensure paper account has separate market data subscription."
+                    )
+            
             logger.error(
-                "❌ IBKR quote unavailable (no last/bbo/close)",
+                f"❌ {error_msg}",
                 ticker=contract.symbol,
                 snapshot=last_snapshot,
             )
