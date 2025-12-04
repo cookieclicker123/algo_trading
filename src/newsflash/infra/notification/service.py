@@ -38,7 +38,14 @@ class NotificationInfrastructureService(InfrastructureNotificationRequestEventSu
     - Know about domain models
     """
     
-    def __init__(self, event_bus: AsyncEventBus, telegram_config_1: dict, telegram_config_2: dict, enabled: bool = True):
+    def __init__(
+        self,
+        event_bus: AsyncEventBus,
+        telegram_config_1: dict,
+        telegram_config_2: dict,
+        metrics_service,  # Required - injected via DI
+        enabled: bool = True,
+    ):
         """
         Initialize notification infrastructure service.
         
@@ -47,8 +54,10 @@ class NotificationInfrastructureService(InfrastructureNotificationRequestEventSu
             telegram_config_1: Configuration dict for primary Telegram bot
             telegram_config_2: Configuration dict for secondary Telegram bot
             enabled: Whether notifications are enabled
+            metrics_service: Optional metrics service for statistics (injected via DI)
         """
         self.enabled = enabled
+        self.metrics_service = metrics_service  # ✅ Injected metrics service
         
         # Stateful: Notification clients (initialized once) - inject config
         self.telegram_client = TelegramNotificationClient(
@@ -60,17 +69,7 @@ class NotificationInfrastructureService(InfrastructureNotificationRequestEventSu
         # Event bus for publishing events
         self.event_bus = event_bus
         
-        # Statistics
-        self.stats = {
-            "notifications_requested": 0,
-            "notifications_sent": 0,
-            "notifications_failed": 0,
-            "last_notification_time": None,
-            "is_enabled": enabled,
-        }
-        
-        # State
-        self.is_running = False
+        # ✅ No stats dictionary - MetricsService aggregates from events!
         
         logger.info(
             "NotificationInfrastructureService initialized",
@@ -78,32 +77,33 @@ class NotificationInfrastructureService(InfrastructureNotificationRequestEventSu
         )
     
     async def start(self) -> None:
-        """Start the notification infrastructure service."""
-        if self.is_running:
-            logger.warning("NotificationInfrastructureService: Already running")
-            return
+        """
+        Start the notification infrastructure service.
         
+        Idempotent: Safe to call multiple times. Event bus prevents duplicate subscriptions.
+        """
         logger.info("🚀 Starting Notification Infrastructure Service")
-        self.is_running = True
-        self.stats["is_enabled"] = self.enabled
+        # ✅ No stats mutation - MetricsService tracks from events
         
         # Subscribe to notification requests from domain layer
         # Domain listener will publish NotificationSendRequestedInfrastructureEvent
+        # Event bus automatically prevents duplicate subscriptions
         self.event_bus.subscribe(InfrastructureEventType.NOTIFICATION_SEND_REQUESTED, self.handle_notification_send_requested)
         
         logger.info("NotificationInfrastructureService: Subscribed to notification request events")
         logger.info("✅ Notification Infrastructure Service started")
     
     async def stop(self) -> None:
-        """Stop the notification infrastructure service."""
-        if not self.is_running:
-            return
+        """
+        Stop the notification infrastructure service.
         
-        self.is_running = False
-        self.stats["is_enabled"] = False
+        Idempotent: Safe to call multiple times. Unsubscribing when not subscribed is safe.
+        """
+        logger.info("Stopping Notification Infrastructure Service")
+        # ✅ No stats mutation - MetricsService tracks from events
         
-        # Unsubscribe from events
-        self.event_bus.unsubscribe("NotificationSendRequested", self.handle_notification_send_requested)
+        # Unsubscribe from events (safe even if not subscribed)
+        self.event_bus.unsubscribe(InfrastructureEventType.NOTIFICATION_SEND_REQUESTED, self.handle_notification_send_requested)
         
         logger.info("NotificationInfrastructureService stopped")
     
@@ -123,8 +123,7 @@ class NotificationInfrastructureService(InfrastructureNotificationRequestEventSu
             # Reconstruct typed infrastructure request
             request_data = NotificationSendRequestData(**event_data)
             
-            self.stats["notifications_requested"] += 1
-            self.stats["last_notification_time"] = datetime.now()
+            # ✅ No stats mutation - MetricsService subscribes to NotificationSendRequested event
             
             logger.info(
                 "NotificationInfrastructureService: Processing notification request",
@@ -228,7 +227,7 @@ class NotificationInfrastructureService(InfrastructureNotificationRequestEventSu
     async def _publish_notification_sent(self, request_data: NotificationSendRequestData) -> None:
         """Publish NotificationSent infrastructure event."""
         try:
-            self.stats["notifications_sent"] += 1
+            # ✅ No stats mutation - MetricsService subscribes to NotificationSent event
             
             event = NotificationSentInfrastructureEvent(
                 request_data=request_data,
@@ -256,7 +255,7 @@ class NotificationInfrastructureService(InfrastructureNotificationRequestEventSu
     ) -> None:
         """Publish NotificationFailed infrastructure event."""
         try:
-            self.stats["notifications_failed"] += 1
+            # ✅ No stats mutation - MetricsService subscribes to NotificationFailed event
             
             event = NotificationFailedInfrastructureEvent(
                 request_data=request_data,
@@ -281,5 +280,6 @@ class NotificationInfrastructureService(InfrastructureNotificationRequestEventSu
     
     def get_stats(self) -> Dict[str, Any]:
         """Get service statistics."""
-        return self.stats.copy()
+        # ✅ Delegate to MetricsService - statistics aggregated from events
+        return self.metrics_service.get_notification_stats(enabled=self.enabled)
 

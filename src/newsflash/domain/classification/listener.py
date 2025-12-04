@@ -76,16 +76,13 @@ class ClassificationDomainListener(
         self.request_factory = request_factory
         self.result_factory = result_factory
         self.request_mapper = request_mapper
-        self.is_running = False
     
     async def start(self) -> None:
-        """Start listening to events."""
-        if self.is_running:
-            logger.warning("ClassificationDomainListener already running")
-            return
+        """
+        Start listening to events.
         
-        self.is_running = True
-        
+        Idempotent: Safe to call multiple times. Event bus prevents duplicate subscriptions.
+        """
         # Subscribe to domain classification requests (use cases → infrastructure)
         self.event_bus.subscribe(DomainEventType.CLASSIFICATION_REQUESTED, self._handle_domain_classification_request)
         
@@ -95,11 +92,11 @@ class ClassificationDomainListener(
         logger.info("ClassificationDomainListener started - listening to domain and infrastructure events")
     
     async def stop(self) -> None:
-        """Stop listening to events."""
-        if not self.is_running:
-            return
+        """
+        Stop listening to events.
         
-        self.is_running = False
+        Idempotent: Safe to call multiple times. Unsubscribing when not subscribed is safe.
+        """
         logger.info("ClassificationDomainListener stopped")
     
     async def _handle_domain_classification_request(self, event_type: str, event_data: Dict[str, Any]) -> None:

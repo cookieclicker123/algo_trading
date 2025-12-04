@@ -78,6 +78,7 @@ async def initialize_notification_microservice(
     event_bus: AsyncEventBus,
     telegram_config_1: dict,
     telegram_config_2: dict,
+    metrics_service,  # Required - injected via DI
 ) -> NotificationMicroservice:
     """
     Initialize notification microservice independently.
@@ -91,6 +92,7 @@ async def initialize_notification_microservice(
         event_bus: Event bus instance (shared dependency)
         telegram_config_1: Primary Telegram bot configuration (injected via DI)
         telegram_config_2: Secondary Telegram bot configuration (injected via DI)
+        metrics_service: Optional metrics service (injected via DI)
         
     Returns:
         NotificationMicroservice: Initialized notification microservice
@@ -104,7 +106,8 @@ async def initialize_notification_microservice(
         event_bus=event_bus,
         telegram_config_1=telegram_config_1,
         telegram_config_2=telegram_config_2,
-        enabled=notification_enabled
+        enabled=notification_enabled,
+        metrics_service=metrics_service  # ✅ Pass metrics service
     )
     logger.info("Notification infrastructure initialized", enabled=notification_enabled)
     

@@ -71,7 +71,8 @@ class TelegramNotifier:
         # Message queues for both bots
         self.message_queue_1: asyncio.Queue = asyncio.Queue()
         self.message_queue_2: asyncio.Queue = asyncio.Queue()
-        self.is_running = False
+        # Queue processing control (operational state for async tasks)
+        self._queue_processing_active = False
         
         if test_mode:
             logger.info("Telegram service in test mode - messages will be logged only")
@@ -226,7 +227,7 @@ class TelegramNotifier:
             chat_id: Chat ID to send to
             bot_name: Name of the bot (for logging)
         """
-        while self.is_running:
+        while self._queue_processing_active:
             try:
                 # Get message from queue (with timeout to allow shutdown)
                 try:
@@ -264,12 +265,10 @@ class TelegramNotifier:
             logger.info("Telegram service not started (test mode)")
             return
         
-        if self.is_running:
-            logger.warning("Telegram service already running")
-            return
-        
-        self.is_running = True
         logger.info("Telegram notification service started")
+        
+        # Start queue processing (operational state)
+        self._queue_processing_active = True
         
         # Start trade handlers with staggered timing to prevent conflicts
         # Only start if the bot is enabled (defensive check)
@@ -325,17 +324,20 @@ class TelegramNotifier:
             tasks.append(task_2)
         
         if tasks:
-            # Start queue processors in background (they run until self.is_running = False)
+            # Start queue processors in background (they run until self._queue_processing_active = False)
             self._queue_tasks = tasks
             logger.info("Started queue processors in background")
     
     async def stop(self) -> None:
-        """Stop the Telegram notification service."""
-        if not self.is_running:
-            return
+        """
+        Stop the Telegram notification service.
         
+        Idempotent: Safe to call multiple times.
+        """
         logger.info("Stopping Telegram notification service")
-        self.is_running = False
+        
+        # Stop queue processing (operational state)
+        self._queue_processing_active = False
         
         # Cancel background queue tasks
         if hasattr(self, '_queue_tasks'):

@@ -36,20 +36,29 @@ class IBKRConnectionManager:
     - Send Telegram notifications (publishes events instead)
     """
     
-    def __init__(self, event_bus: AsyncEventBus, paper_trading: bool = False, client_id: int = 5):
+    def __init__(
+        self,
+        event_bus: AsyncEventBus,
+        metrics_service,  # Required - injected via DI
+        paper_trading: bool = False,
+        client_id: int = 5,
+    ):
         """
         Initialize connection manager.
-        
         Args:
             event_bus: Event bus instance for publishing/subscribing to events
             paper_trading: Whether to use paper trading port
             client_id: IBKR client ID (default 5 for trading service)
+            metrics_service: Optional metrics service for statistics (injected via DI)
         """
         self.paper_trading = paper_trading
         self.client_id = client_id
         self.ib: Optional[IB] = None
         self.is_connected = False
-        self.is_running = False
+        # Thread control flag (operational state needed by threads)
+        # Lifecycle is tracked by LifecycleManager, this is for thread coordination
+        self._threads_should_run = False
+        self.metrics_service = metrics_service  # ✅ Injected metrics service
         
         # Event bus for publishing events
         self.event_bus = event_bus
@@ -76,13 +85,11 @@ class IBKRConnectionManager:
         # Daily restart handling
         self.next_connect_time: Optional[datetime] = None
         
-        # Statistics
-        self.stats = {
-            "connection_attempts": 0,
-            "reconnect_attempts": 0,
-            "last_connection_time": None,
-            "last_disconnection_time": None,
-            "last_keepalive_time": None,
+        # ✅ Reduced stats - only operational stats not tracked via events
+        # Business stats (connection_attempts, last_connection_time, last_disconnection_time, is_connected) come from MetricsService
+        self._operational_stats = {
+            "reconnect_attempts": 0,  # Not published as event yet (operational metric)
+            "last_keepalive_time": None,  # Operational metric (not from events)
         }
         
         port = settings.IBKR_PAPER_TRADING_PORT if paper_trading else settings.IBKR_LIVE_TRADING_PORT
@@ -98,13 +105,14 @@ class IBKRConnectionManager:
         return self.ib if self.is_connected and self.ib and self.ib.isConnected() else None
     
     async def start(self) -> None:
-        """Start the connection manager and establish connection."""
-        if self.is_running:
-            logger.warning("Connection manager already running")
-            return
+        """
+        Start the connection manager and establish connection.
         
+        Idempotent: Safe to call multiple times.
+        """
         logger.info("🚀 Starting IBKR Connection Manager")
-        self.is_running = True
+        # Set thread control flag (operational state for threads)
+        self._threads_should_run = True
         
         # Initialize connection lock (will be set in async context)
         if self._connection_lock is None:
@@ -139,9 +147,14 @@ class IBKRConnectionManager:
         logger.info("IBKR Connection Manager started (connection scheduled in background)")
     
     async def stop(self) -> None:
-        """Stop the connection manager."""
+        """
+        Stop the connection manager.
+        
+        Idempotent: Safe to call multiple times.
+        """
         logger.info("🛑 Stopping IBKR Connection Manager")
-        self.is_running = False
+        # Signal threads to stop (operational state for threads)
+        self._threads_should_run = False
         
         # Cancel background tasks
         tasks = [
@@ -307,8 +320,7 @@ class IBKRConnectionManager:
             )
             
             self.is_connected = True
-            self.stats["connection_attempts"] += 1
-            self.stats["last_connection_time"] = datetime.now()
+            # ✅ No stats mutation - MetricsService tracks via CONNECTION_STATUS_CHANGED event
             
             # Request real-time market data
             try:
@@ -343,7 +355,7 @@ class IBKRConnectionManager:
         """Handle Gateway-initiated disconnects."""
         logger.warning("⚠️ Gateway disconnected API client - scheduling reconnect")
         self.is_connected = False
-        self.stats["last_disconnection_time"] = datetime.now()
+        # ✅ No stats mutation - MetricsService tracks via CONNECTION_STATUS_CHANGED event
         
         # Handle daily restart window
         self._handle_daily_restart_window()
@@ -390,7 +402,7 @@ class IBKRConnectionManager:
         """Reconnect to IB Gateway after a disconnect."""
         await asyncio.sleep(1)
         
-        while self.is_running and not self.is_connected:
+        while self._threads_should_run and not self.is_connected:
             # Check if we should delay reconnection
             if self.next_connect_time is not None:
                 now = datetime.now()
@@ -400,13 +412,13 @@ class IBKRConnectionManager:
                 else:
                     self.next_connect_time = None
             
-            self.stats["reconnect_attempts"] += 1
+            self._operational_stats["reconnect_attempts"] += 1
             try:
                 await self._connect_with_confirmation()
-                logger.info("🔄 Reconnected to IB Gateway", attempts=self.stats["reconnect_attempts"])
+                logger.info("🔄 Reconnected to IB Gateway", attempts=self._operational_stats["reconnect_attempts"])
                 break
             except Exception as exc:
-                logger.error(f"❌ Reconnect attempt failed: {exc}", attempts=self.stats["reconnect_attempts"])
+                logger.error(f"❌ Reconnect attempt failed: {exc}", attempts=self._operational_stats["reconnect_attempts"])
                 await asyncio.sleep(self.reconnect_backoff_seconds)
     
     def _start_connection_verification(self) -> None:
@@ -421,10 +433,10 @@ class IBKRConnectionManager:
     async def _verify_connection(self) -> None:
         """Periodically verify that the Gateway API client responds."""
         try:
-            while self.is_running:
+            while self._threads_should_run:
                 await asyncio.sleep(self.verification_interval)
                 
-                if not self.is_running:
+                if not self._threads_should_run:
                     break
                 
                 if not self.ib:
@@ -469,16 +481,16 @@ class IBKRConnectionManager:
     async def _keepalive_loop(self) -> None:
         """Send lightweight keepalive pings to avoid idle disconnects."""
         try:
-            while self.is_running:
+            while self._threads_should_run:
                 await asyncio.sleep(self.keep_alive_interval)
                 
-                if not self.is_running:
+                if not self._threads_should_run:
                     break
                 
                 try:
                     ib = await self.ensure_connected()
                     ib.accountValues()
-                    self.stats["last_keepalive_time"] = datetime.now()
+                    self._operational_stats["last_keepalive_time"] = datetime.now()
                     logger.debug("🔁 Keepalive ping successful")
                 except Exception as exc:
                     logger.warning(f"⚠️ Keepalive ping failed: {exc}")
@@ -541,8 +553,7 @@ class IBKRConnectionManager:
             # Store instance
             self.ib = ib
             self.is_connected = True
-            self.stats["last_connection_time"] = datetime.now()
-            self.stats["connection_attempts"] += 1
+            # ✅ No stats mutation - MetricsService tracks via CONNECTION_STATUS_CHANGED event
             
             logger.info("✅ IB Gateway connected successfully in dedicated thread")
             
@@ -559,7 +570,7 @@ class IBKRConnectionManager:
             
             # Keep event loop running to maintain connection
             # Wait until we're told to stop
-            while self.is_connected and self.is_running:
+            while self.is_connected and self._threads_should_run:
                 await asyncio.sleep(1)
                 
         except Exception as e:
@@ -614,15 +625,18 @@ class IBKRConnectionManager:
     
     def get_stats(self) -> dict:
         """Get connection statistics."""
+        # Merge MetricsService stats (from events) with operational stats
+        brokerage_stats = self.metrics_service.get_brokerage_connection_stats()
         return {
-            "is_connected": self.is_connected,
-            "is_running": self.is_running,
+            **brokerage_stats,
+            **self._operational_stats,
+            # Note: Running state is tracked by LifecycleManager
             "paper_trading": self.paper_trading,
             "client_id": self.client_id,
-            **self.stats
         }
     
     def is_healthy(self) -> bool:
         """Check if connection manager is healthy."""
-        return self.is_running and self.is_connected
+        # Use connection state instead of lifecycle flag
+        return self.is_connected
 

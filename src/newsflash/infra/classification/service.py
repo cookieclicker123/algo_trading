@@ -48,6 +48,7 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
         self,
         event_bus: AsyncEventBus,  
         api_key: str,
+        metrics_service,  # Required - injected via DI
         model: str = "llama-3.3-70b-versatile",
         enabled: bool = True,
     ):
@@ -59,10 +60,12 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
             api_key: Groq API key
             model: Groq model name to use
             enabled: Whether classification is enabled
+            metrics_service: Optional metrics service for statistics (injected via DI)
         """
         self.enabled = enabled
         self.model = model
         self.api_key = api_key
+        self.metrics_service = metrics_service  # ✅ Injected metrics service
             
         
         # Stateful: Groq client (initialized if enabled)
@@ -79,18 +82,7 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
         # Event bus for publishing events
         self.event_bus = event_bus
         
-        # Statistics
-        self.stats = {
-            "classifications_requested": 0,
-            "classifications_completed": 0,
-            "classifications_failed": 0,
-            "last_classification_time": None,
-            "is_enabled": enabled,
-            "has_api_key": bool(api_key),
-        }
-        
-        # State
-        self.is_running = False
+        # ✅ No stats dictionary - MetricsService aggregates from events!
         
         logger.info(
             "ClassificationInfrastructureService initialized",
@@ -146,30 +138,30 @@ Tickers: {tickers}
 Summary: {summary}"""
     
     async def start(self) -> None:
-        """Start the classification infrastructure service."""
-        if self.is_running:
-            logger.warning("ClassificationInfrastructureService: Already running")
-            return
+        """
+        Start the classification infrastructure service.
         
+        Idempotent: Safe to call multiple times. Event bus prevents duplicate subscriptions.
+        """
         logger.info("🚀 Starting Classification Infrastructure Service")
-        self.is_running = True
         
         # Subscribe to classification requests from domain layer
         # Domain listener will publish ClassificationRequestedInfrastructureEvent
+        # Event bus automatically prevents duplicate subscriptions
         self.event_bus.subscribe(InfrastructureEventType.CLASSIFICATION_REQUESTED, self.handle_classification_requested)
         logger.info("ClassificationInfrastructureService: Subscribed to ClassificationRequested events")
         
         logger.info("✅ Classification Infrastructure Service started")
     
     async def stop(self) -> None:
-        """Stop the classification infrastructure service."""
-        if not self.is_running:
-            return
+        """
+        Stop the classification infrastructure service.
         
+        Idempotent: Safe to call multiple times. Unsubscribing when not subscribed is safe.
+        """
         logger.info("Stopping Classification Infrastructure Service")
-        self.is_running = False
         
-        # Unsubscribe from events
+        # Unsubscribe from events (safe even if not subscribed)
         self.event_bus.unsubscribe(InfrastructureEventType.CLASSIFICATION_REQUESTED, self.handle_classification_requested)
         
         logger.info("✅ Classification Infrastructure Service stopped")
@@ -193,8 +185,7 @@ Summary: {summary}"""
             # Reconstruct typed infrastructure event (Pydantic validates)
             infra_event = ClassificationRequestedInfrastructureEvent(**event_data)
             
-            # Update stats
-            self.stats["classifications_requested"] += 1
+            # ✅ No stats mutation - MetricsService subscribes to ClassificationRequested event
             
             logger.info(
                 "🎯 CLASSIFY INFRA: Handling classification request",
@@ -266,9 +257,7 @@ Summary: {summary}"""
             # Create typed infrastructure response model
             response_data = InfrastructureClassificationResponseData(**result_json)
             
-            # Update stats
-            self.stats["classifications_completed"] += 1
-            self.stats["last_classification_time"] = datetime.now().isoformat()
+            # ✅ No stats mutation - MetricsService subscribes to ClassificationCompleted event
             
             logger.info(
                 "✅ CLASSIFY INFRA: Classification completed",
@@ -295,7 +284,7 @@ Summary: {summary}"""
             latency_ms = (datetime.now() - start_time).total_seconds() * 1000
             error_msg = f"Failed to parse LLM response as JSON: {str(e)}"
             
-            self.stats["classifications_failed"] += 1
+            # ✅ No stats mutation - MetricsService subscribes to ClassificationFailed event
             
             logger.error(
                 "ClassificationInfrastructureService: JSON parse error",
@@ -318,7 +307,7 @@ Summary: {summary}"""
             latency_ms = (datetime.now() - start_time).total_seconds() * 1000
             error_msg = f"Classification failed: {str(e)}"
             
-            self.stats["classifications_failed"] += 1
+            # ✅ No stats mutation - MetricsService subscribes to ClassificationFailed event
             
             logger.error(
                 "ClassificationInfrastructureService: Classification error",
@@ -338,8 +327,10 @@ Summary: {summary}"""
     
     def get_stats(self) -> dict:
         """Get classification infrastructure service statistics."""
-        return {
-            **self.stats,
-            "model": self.model,
-        }
+        # ✅ Delegate to MetricsService - statistics aggregated from events
+        return self.metrics_service.get_classification_stats(
+            model=self.model,
+            enabled=self.enabled,
+            has_api_key=bool(self.api_key)
+        )
 

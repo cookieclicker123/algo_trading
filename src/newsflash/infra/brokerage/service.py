@@ -42,7 +42,13 @@ class IBKRBrokerageService:
     - Know about AI classification
     """
     
-    def __init__(self, event_bus: AsyncEventBus, paper_trading: bool = False, client_id: int = 5):
+    def __init__(
+        self,
+        event_bus: AsyncEventBus,
+        metrics_service,  # Required - injected via DI
+        paper_trading: bool = False,
+        client_id: int = 5,
+    ):
         """
         Initialize brokerage service.
         
@@ -50,12 +56,18 @@ class IBKRBrokerageService:
             event_bus: Event bus instance for publishing/subscribing to events
             paper_trading: Whether to use paper trading port
             client_id: IBKR client ID
+            metrics_service: Optional metrics service for statistics (injected via DI)
         """
         self.paper_trading = paper_trading
         self.client_id = client_id
         
         # Core components - inject event_bus into all sub-components
-        self.connection_manager = IBKRConnectionManager(event_bus=event_bus, paper_trading=paper_trading, client_id=client_id)
+        self.connection_manager = IBKRConnectionManager(
+            event_bus=event_bus,
+            paper_trading=paper_trading,
+            client_id=client_id,
+            metrics_service=metrics_service  # ✅ Pass metrics service
+        )
         self.quote_fetcher = IBKRQuoteFetcher(event_bus=event_bus)
         self.market_hours_executor = MarketHoursTradeExecutor(event_bus=event_bus, quote_fetcher=self.quote_fetcher)
         self.extended_hours_executor = ExtendedHoursTradeExecutor(event_bus=event_bus, quote_fetcher=self.quote_fetcher)
@@ -64,25 +76,22 @@ class IBKRBrokerageService:
         # Event bus
         self.event_bus = event_bus
         
-        # State
-        self.is_running = False
-        
         logger.info("IBKRBrokerageService initialized", paper_trading=paper_trading, client_id=client_id)
     
     async def start(self) -> None:
-        """Start the brokerage service."""
-        if self.is_running:
-            logger.warning("Brokerage service already running")
-            return
+        """
+        Start the brokerage service.
         
+        Idempotent: Safe to call multiple times. Event bus prevents duplicate subscriptions.
+        """
         logger.info("🚀 Starting IBKR Brokerage Service")
-        self.is_running = True
         
         # Subscribe to trade execution requests from domain listener
+        # Event bus automatically prevents duplicate subscriptions
         self.event_bus.subscribe(InfrastructureEventType.TRADE_EXECUTION_REQUESTED, self._handle_trade_execution_request)
         logger.info("Subscribed to TradeExecutionRequested events")
         
-        # Start connection manager (will connect automatically)
+        # Start connection manager (will connect automatically, idempotent)
         await self.connection_manager.start()
         
         logger.info("✅ IBKR Brokerage Service started")
@@ -132,12 +141,18 @@ class IBKRBrokerageService:
             )
     
     async def stop(self) -> None:
-        """Stop the brokerage service."""
-        logger.info("🛑 Stopping IBKR Brokerage Service")
-        self.is_running = False
+        """
+        Stop the brokerage service.
         
-        # Stop connection manager
+        Idempotent: Safe to call multiple times. Connection manager stop is idempotent.
+        """
+        logger.info("🛑 Stopping IBKR Brokerage Service")
+        
+        # Stop connection manager (idempotent)
         await self.connection_manager.stop()
+        
+        # Unsubscribe from events (safe even if not subscribed)
+        self.event_bus.unsubscribe(InfrastructureEventType.TRADE_EXECUTION_REQUESTED, self._handle_trade_execution_request)
         
         logger.info("✅ IBKR Brokerage Service stopped")
     
@@ -326,19 +341,18 @@ class IBKRBrokerageService:
     def get_stats(self) -> Dict[str, Any]:
         """Get brokerage service statistics."""
         stats = {
-            "is_running": self.is_running,
             "is_connected": self.is_connected(),
             "paper_trading": self.paper_trading,
             "client_id": self.client_id,
             "connection": self.connection_manager.get_stats(),
             "queued_trades_count": len(self.queue_manager.get_queued_trades()),
+            # Note: Running state is tracked by LifecycleManager, not individual services
         }
         return serialize_stats(stats)
     
     def is_healthy(self) -> bool:
         """Check if brokerage service is healthy."""
-        if not self.is_running:
-            return False
+        # Use connection manager state instead of is_running flag
         return self.connection_manager.is_healthy()
     
     async def publish_health_status(self) -> None:

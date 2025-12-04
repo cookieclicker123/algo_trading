@@ -42,39 +42,44 @@ class BenzingaWebSocketMicroservice:
     - Know about business logic
     """
     
-    def __init__(self, event_bus: AsyncEventBus, token: str):
+    def __init__(
+        self,
+        event_bus: AsyncEventBus,
+        token: str,
+        metrics_service,  # Required - injected via DI
+    ):
         """
         Initialize WebSocket microservice.
         
         Args:
             event_bus: Event bus instance for publishing/subscribing to events
             token: Benzinga API token
+            metrics_service: Optional metrics service for statistics (injected via DI)
         """
         self.token = token
         self.websocket_url = f"wss://api.benzinga.com/api/v1/news/stream"
         self.websocket = None
-        self.is_running = False
+        # Thread control flag (operational state needed by threads)
+        # Lifecycle is tracked by LifecycleManager, this is for thread coordination
+        self._threads_should_run = False
         self.last_request_time = 0
         self.min_request_interval = 3.0
+        self.metrics_service = metrics_service  # ✅ Injected metrics service
         
         # Event bus for publishing events
         self.event_bus = event_bus
         
-        # Statistics
-        self.stats = {
-            "messages_received": 0,
-            "articles_received": 0,
-            "connection_attempts": 0,
-            "last_message_time": None,
-            "last_error": None,
-            "is_connected": False,
-            "last_ping_sent": None,
-            "last_pong_received": None,
-            "ping_sent_count": 0,
-            "pong_received_count": 0,
-            "missed_pongs": 0,
-            "connection_verified_at": None,
-            "last_connection_check": None,
+        # ✅ Reduced stats - only operational stats not tracked via events
+        # Business stats (articles_received, messages_received, is_connected) come from MetricsService
+        self._operational_stats = {
+            "connection_attempts": 0,  # Not published as event yet
+            "ping_sent_count": 0,  # Operational metric
+            "pong_received_count": 0,  # Operational metric
+            "missed_pongs": 0,  # Operational metric
+            "last_ping_sent": None,  # Operational metric
+            "last_pong_received": None,  # Operational metric
+            "last_connection_check": None,  # Operational metric
+            "connection_verified_at": None,  # Operational metric
         }
         
         # Configuration
@@ -116,9 +121,14 @@ class BenzingaWebSocketMicroservice:
                 logger.warning("No event loop available, cannot publish event")
     
     def start(self) -> None:
-        """Start the WebSocket connection."""
+        """
+        Start the WebSocket connection.
+        
+        Idempotent: Safe to call multiple times. Thread control flag prevents duplicate threads.
+        """
         logger.info("Starting Benzinga WebSocket microservice")
-        self.is_running = True
+        # Set thread control flag (operational state for threads)
+        self._threads_should_run = True
         self._reconnect_allowed = True
         
         # Store reference to main event loop for thread-safe publishing
@@ -165,9 +175,14 @@ class BenzingaWebSocketMicroservice:
         logger.info("WebSocket microservice threads started")
     
     def stop(self) -> None:
-        """Stop the WebSocket connection."""
+        """
+        Stop the WebSocket connection.
+        
+        Idempotent: Safe to call multiple times.
+        """
         logger.info("Stopping Benzinga WebSocket microservice")
-        self.is_running = False
+        # Signal threads to stop (operational state for threads)
+        self._threads_should_run = False
         self._reconnect_allowed = False
         
         # Stop health monitor
@@ -189,27 +204,35 @@ class BenzingaWebSocketMicroservice:
         if self.websocket_thread and self.websocket_thread.is_alive():
             self.websocket_thread.join(timeout=10)
         
-        with self._lock:
-            self.stats["is_connected"] = False
+        # ✅ No stats mutation - MetricsService tracks via WEBSOCKET_DISCONNECTED event
         
         logger.info("WebSocket microservice stopped")
     
     def is_connected(self) -> bool:
         """Check if WebSocket is connected."""
         with self._lock:
-            return self.stats["is_connected"]
+            websocket_stats = self.metrics_service.get_websocket_stats()
+            return websocket_stats.get("is_connected", False)
     
     def get_stats(self) -> Dict[str, Any]:
         """Get WebSocket service statistics."""
-        return serialize_stats(self.stats)
+        # Merge MetricsService stats (from events) with operational stats
+        websocket_stats = self.metrics_service.get_websocket_stats()
+        return serialize_stats({
+            **websocket_stats,
+            **self._operational_stats,
+        })
     
     def is_healthy(self) -> bool:
         """Check if WebSocket service is healthy."""
         with self._lock:
+            websocket_stats = self.metrics_service.get_websocket_stats()
+            is_connected = websocket_stats.get("is_connected", False)
+            last_error = websocket_stats.get("last_error")
             return (
-                self.stats["is_connected"] and
-                self.is_running and
-                (self.stats.get("last_error") is None or "429" not in str(self.stats.get("last_error", "")))
+                is_connected and
+                self._threads_should_run and
+                (last_error is None or "429" not in str(last_error))
             )
     
     def _cleanup_connections(self) -> None:
@@ -223,8 +246,7 @@ class BenzingaWebSocketMicroservice:
                 logger.error("Error closing WebSocket", error=str(e))
         
         self.websocket = None
-        with self._lock:
-            self.stats["is_connected"] = False
+        # ✅ No stats mutation - MetricsService tracks via WEBSOCKET_DISCONNECTED event
         
         time.sleep(2)
     
@@ -235,12 +257,10 @@ class BenzingaWebSocketMicroservice:
             self._connect_and_process()
         except Exception as e:
             logger.error("WebSocket connection failed", error=str(e))
-            with self._lock:
-                self.stats["last_error"] = str(e)
-            
+            # ✅ No stats mutation - MetricsService tracks via WEBSOCKET_ERROR event
             # Check if it's a rate limit error
             error_str = str(e)
-            is_rate_limit = "429" in error_str or "Too Many Requests" in error_str
+            is_rate_limit = ("429" in error_str) or ("Too Many Requests" in error_str)
             if is_rate_limit:
                 self._reconnect_allowed = False
                 self._publish_event_threadsafe(self._publish_rate_limit())
@@ -254,7 +274,7 @@ class BenzingaWebSocketMicroservice:
         logger.info("Connecting to Benzinga WebSocket", url=self.websocket_url)
         
         with self._lock:
-            self.stats["connection_attempts"] += 1
+            self._operational_stats["connection_attempts"] += 1
         
         # Rate limiting
         current_time = time.time()
@@ -278,17 +298,15 @@ class BenzingaWebSocketMicroservice:
         def on_message(ws, message):
             """Handle incoming messages."""
             try:
-                with self._lock:
-                    self.stats["messages_received"] += 1
-                    self.stats["last_message_time"] = datetime.now()
+                # ✅ No stats mutation - MetricsService subscribes to ARTICLE_RECEIVED event
+                # (messages_received and last_message_time tracked via events)
                 
                 logger.info(f"Received WebSocket message ({len(message)} chars)")
                 self._process_message(message)
                 
             except Exception as e:
                 logger.error("Error processing message", error=str(e))
-                with self._lock:
-                    self.stats["last_error"] = str(e)
+                # ✅ No stats mutation - MetricsService tracks via WEBSOCKET_ERROR event
                 # Publish error event
                 self._publish_event_threadsafe(self._publish_error(str(e)))
         
@@ -297,8 +315,7 @@ class BenzingaWebSocketMicroservice:
             error_msg = str(error)
             logger.error("WebSocket error", error=error_msg)
             
-            with self._lock:
-                self.stats["last_error"] = error_msg
+            # ✅ No stats mutation - MetricsService tracks via WEBSOCKET_ERROR event
             
             is_rate_limit = "429" in error_msg or "Too Many Requests" in error_msg
             if is_rate_limit:
@@ -312,8 +329,7 @@ class BenzingaWebSocketMicroservice:
             """Handle close."""
             logger.info(f"WebSocket closed: {close_status_code} - {close_msg}")
             
-            with self._lock:
-                self.stats["is_connected"] = False
+            # ✅ No stats mutation - MetricsService tracks via WEBSOCKET_DISCONNECTED event
             
             # Publish disconnect event
             self._publish_event_threadsafe(self._publish_disconnect(close_msg))
@@ -323,8 +339,8 @@ class BenzingaWebSocketMicroservice:
             logger.info("WebSocket connection opened")
             
             with self._lock:
-                self.stats["is_connected"] = True
-                self.stats["connection_verified_at"] = datetime.now()
+                self._operational_stats["connection_verified_at"] = datetime.now()
+            # ✅ is_connected tracked via WEBSOCKET_CONNECTED event (MetricsService)
             
             # Start ping thread after connection is open
             if self._ping_thread and not self._ping_thread.is_alive():
@@ -337,10 +353,10 @@ class BenzingaWebSocketMicroservice:
             """Handle WebSocket pong frame."""
             logger.info("📥 WebSocket pong received")
             with self._lock:
-                self.stats["last_pong_received"] = datetime.now()
-                self.stats["pong_received_count"] += 1
-                if self.stats.get("missed_pongs", 0) > 0:
-                    self.stats["missed_pongs"] = 0
+                self._operational_stats["last_pong_received"] = datetime.now()
+                self._operational_stats["pong_received_count"] += 1
+                if self._operational_stats.get("missed_pongs", 0) > 0:
+                    self._operational_stats["missed_pongs"] = 0
         
         def on_ping(ws, data):
             """Handle WebSocket ping frame from server."""
@@ -387,18 +403,17 @@ class BenzingaWebSocketMicroservice:
                     elif "pong" in str(data).lower() or data.get("type") == "pong":
                         # Handle JSON pong message
                         with self._lock:
-                            self.stats["last_pong_received"] = datetime.now()
-                            self.stats["pong_received_count"] += 1
-                            if self.stats.get("missed_pongs", 0) > 0:
-                                self.stats["missed_pongs"] = 0
+                            self._operational_stats["last_pong_received"] = datetime.now()
+                            self._operational_stats["pong_received_count"] += 1
+                            if self._operational_stats.get("missed_pongs", 0) > 0:
+                                self._operational_stats["missed_pongs"] = 0
                         logger.info("📥 WebSocket JSON pong received")
                     elif "error" in data:
                         # Handle error messages from server
                         error_msg = data.get("error", "Unknown error")
                         logger.error("Benzinga WebSocket error", error=error_msg)
                         
-                        with self._lock:
-                            self.stats["last_error"] = error_msg
+                        # ✅ No stats mutation - MetricsService tracks via WEBSOCKET_ERROR event
                         
                         # Check if it's a rate limit error
                         is_rate_limit = "429" in str(error_msg) or "Too Many Requests" in str(error_msg)
@@ -457,8 +472,7 @@ class BenzingaWebSocketMicroservice:
                     # Publish typed infrastructure event
                     self._publish_event_threadsafe(self._publish_article_received(infra_article_data))
                     
-                    with self._lock:
-                        self.stats["articles_received"] += 1
+                    # ✅ No stats mutation - MetricsService subscribes to ARTICLE_RECEIVED event
                     
                     article_id = infra_article_data.source_id or str(infra_article_data.benzinga_id) if infra_article_data.benzinga_id else "unknown"
                     logger.info("Published ArticleReceived event", article_id=article_id)
@@ -574,16 +588,20 @@ class BenzingaWebSocketMicroservice:
         """Ping loop for keepalive."""
         # Keep existing ping loop logic
         logger.info("Ping loop started")
-        while self.is_running:
+        while self._threads_should_run:
             try:
                 time.sleep(self.ping_interval)
-                if self.websocket and self.stats["is_connected"]:
+                # Check connection status from MetricsService
+                websocket_stats = self.metrics_service.get_websocket_stats()
+                is_connected = websocket_stats.get("is_connected", False)
+                
+                if self.websocket and is_connected:
                     try:
                         self.websocket.send(json.dumps({"action": "ping"}))
                         with self._lock:
-                            self.stats["last_ping_sent"] = datetime.now()
-                            self.stats["ping_sent_count"] += 1
-                            ping_count = self.stats["ping_sent_count"]
+                            self._operational_stats["last_ping_sent"] = datetime.now()
+                            self._operational_stats["ping_sent_count"] += 1
+                            ping_count = self._operational_stats["ping_sent_count"]
                         logger.info("📤 WebSocket ping sent", ping_count=ping_count)
                     except Exception as e:
                         logger.error("Error sending ping", error=str(e))
@@ -597,11 +615,11 @@ class BenzingaWebSocketMicroservice:
     def _connection_monitor_loop(self) -> None:
         """Monitor connection health."""
         logger.info("Connection monitor started")
-        while self.is_running:
+        while self._threads_should_run:
             try:
                 time.sleep(self.connection_check_interval)
                 with self._lock:
-                    self.stats["last_connection_check"] = datetime.now()
+                    self._operational_stats["last_connection_check"] = datetime.now()
             except Exception as e:
                 logger.error("Error in connection monitor", error=str(e))
                 self._publish_event_threadsafe(self._publish_error(f"Connection monitor error: {str(e)}", is_rate_limit=False))

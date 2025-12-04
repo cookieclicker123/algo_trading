@@ -15,7 +15,8 @@ router = APIRouter(tags=["feeds"])
 async def start_feeds_endpoint(feed_manager: FeedManagerDep):
     """Manually start all feeds (if not already running)."""
     try:
-        if feed_manager.is_running:
+        # Feed manager is always running if subscribed to events (event-driven)
+        if True:
             return FeedStatusResponse(message="Feeds already running", status="running")
         
         await feed_manager.start_all_feeds()

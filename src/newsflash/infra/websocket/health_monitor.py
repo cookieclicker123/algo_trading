@@ -36,7 +36,8 @@ class WebSocketHealthMonitor:
         self.websocket_service = websocket_service
         self.check_interval = check_interval
         self.inactivity_threshold_minutes = inactivity_threshold_minutes
-        self.is_running = False
+        # Thread control flag (operational state needed by threads)
+        self._threads_should_run = False
         self.monitor_thread: threading.Thread | None = None
         self.event_bus = event_bus
         
@@ -49,19 +50,25 @@ class WebSocketHealthMonitor:
         logger.info("WebSocketHealthMonitor initialized", check_interval=check_interval)
     
     def start(self) -> None:
-        """Start health monitoring."""
-        if self.is_running:
-            logger.warning("Health monitor already running")
-            return
+        """
+        Start health monitoring.
         
-        self.is_running = True
+        Idempotent: Safe to call multiple times. Thread control prevents duplicate threads.
+        """
+        # Set thread control flag (operational state for threads)
+        self._threads_should_run = True
         self.monitor_thread = threading.Thread(target=self._monitor_loop, daemon=True)
         self.monitor_thread.start()
         logger.info("WebSocket health monitor started")
     
     def stop(self) -> None:
-        """Stop health monitoring."""
-        self.is_running = False
+        """
+        Stop health monitoring.
+        
+        Idempotent: Safe to call multiple times.
+        """
+        # Signal thread to stop (operational state for threads)
+        self._threads_should_run = False
         if self.monitor_thread and self.monitor_thread.is_alive():
             self.monitor_thread.join(timeout=5)
         logger.info("WebSocket health monitor stopped")
@@ -70,11 +77,11 @@ class WebSocketHealthMonitor:
         """Main monitoring loop."""
         logger.info("WebSocket health monitor loop started")
         
-        while self.is_running:
+        while self._threads_should_run:
             try:
                 time.sleep(self.check_interval)
                 
-                if not self.is_running:
+                if not self._threads_should_run:
                     break
                 
                 # Check health and publish event
@@ -114,10 +121,11 @@ class WebSocketHealthMonitor:
         try:
             stats = self.websocket_service.get_stats()
             is_connected = stats.get("is_connected", False)
-            is_running = self.websocket_service.is_running
+            # Check if service threads are running (operational state)
+            threads_running = self.websocket_service._threads_should_run
             
             # Check if service is running
-            if not is_running:
+            if not threads_running:
                 return {
                     "healthy": False,
                     "reason": "WebSocket service is not running",

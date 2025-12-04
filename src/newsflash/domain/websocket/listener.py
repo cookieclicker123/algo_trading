@@ -61,15 +61,13 @@ class WebSocketDomainListener(InfrastructureArticleEventSubscriber, DomainArticl
         self.event_bus = event_bus
         self.validator = validator
         self.factory = factory
-        self.is_running = False
     
     async def start(self) -> None:
-        """Start listening to infrastructure events."""
-        if self.is_running:
-            logger.warning("WebSocketDomainListener already running")
-            return
+        """
+        Start listening to infrastructure events.
         
-        self.is_running = True
+        Idempotent: Safe to call multiple times. Event bus prevents duplicate subscriptions.
+        """
         # Subscribe to infrastructure article events
         self.event_bus.subscribe(InfrastructureEventType.ARTICLE_RECEIVED, self._handle_article_received_from_bus)
         self.event_bus.subscribe(InfrastructureEventType.WEBSOCKET_HEALTH_STATUS, self._handle_websocket_health_status_from_bus)
@@ -80,12 +78,11 @@ class WebSocketDomainListener(InfrastructureArticleEventSubscriber, DomainArticl
         logger.info("WebSocketDomainListener started - listening to infrastructure events")
     
     async def stop(self) -> None:
-        """Stop listening to infrastructure events."""
-        if not self.is_running:
-            return
+        """
+        Stop listening to infrastructure events.
         
-        self.is_running = False
-        # Note: Event bus doesn't have unsubscribe yet, but we can ignore events
+        Idempotent: Safe to call multiple times.
+        """
         logger.info("WebSocketDomainListener stopped")
     
     async def handle_article_received(self, event: ArticleReceivedInfrastructureEvent) -> None:

@@ -121,15 +121,16 @@ class ArticleRepository:
     
     def _get_article_id_from_data(self, article_data: Dict[str, Any]) -> str:
         """Extract article ID from article data dict."""
-        # Try different ID formats
-        if 'benzinga_id' in article_data:
-            return str(article_data['benzinga_id'])
-        if 'source_id' in article_data and 'source' in article_data:
-            return f"{article_data['source']}_{article_data['source_id']}"
+        # Try different ID formats - prioritize article_id (standard format: "source:source_id")
         if 'article_id' in article_data:
             return str(article_data['article_id'])
         if 'id' in article_data:
             return str(article_data['id'])
+        # Fallback: construct from source and source_id (use colon format to match domain model)
+        if 'source_id' in article_data and 'source' in article_data:
+            return f"{article_data['source']}:{article_data['source_id']}"
+        if 'benzinga_id' in article_data:
+            return str(article_data['benzinga_id'])
         return ""
     
     async def _load_articles(self) -> List[Dict[str, Any]]:

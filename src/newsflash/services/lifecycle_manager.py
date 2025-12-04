@@ -3,10 +3,16 @@ Lifecycle manager for starting and stopping services.
 
 This service orchestrates the startup and shutdown sequence of all microservices.
 It's created via dependency injection to ensure all dependencies are properly injected.
+
+STATELESS PRINCIPLE:
+- LifecycleManager is the SINGLE SOURCE OF TRUTH for service running state
+- Services don't need is_running flags - lifecycle manager tracks this
+- Services are idempotent (safe to call start/stop multiple times)
 """
 from ..utils.bot_conflict_resolver import resolve_bot_conflicts
 from ..utils.logging_config import get_logger
 from .service_initialization import Services
+from typing import Set
 
 logger = get_logger(__name__)
 
@@ -17,6 +23,11 @@ class LifecycleManager:
     
     This service orchestrates startup and shutdown sequences.
     All dependencies (like config) are injected via DI.
+    
+    SINGLE SOURCE OF TRUTH:
+    - Tracks which services are currently running
+    - Services don't need is_running flags - check lifecycle manager instead
+    - Services are idempotent (safe to call start/stop multiple times)
     """
     
     def __init__(
@@ -33,6 +44,35 @@ class LifecycleManager:
         """
         self.telegram_config_1 = telegram_config_1
         self.telegram_config_2 = telegram_config_2
+        
+        # Track which services are currently running
+        # This is the SINGLE SOURCE OF TRUTH for service state
+        self._running_services: Set[str] = set[str]()
+    
+    def is_service_running(self, service_name: str) -> bool:
+        """
+        Check if a service is currently running.
+        
+        This is the SINGLE SOURCE OF TRUTH for service running state.
+        Services should use this instead of maintaining their own is_running flags.
+        
+        Args:
+            service_name: Name of the service to check
+            
+        Returns:
+            True if service is running, False otherwise
+        """
+        return service_name in self._running_services
+    
+    def _mark_service_running(self, service_name: str) -> None:
+        """Mark a service as running."""
+        self._running_services.add(service_name)
+        logger.debug(f"Service '{service_name}' marked as running")
+    
+    def _mark_service_stopped(self, service_name: str) -> None:
+        """Mark a service as stopped."""
+        self._running_services.discard(service_name)
+        logger.debug(f"Service '{service_name}' marked as stopped")
     
     async def start_services(self, services: Services) -> None:
         """
@@ -61,18 +101,29 @@ class LifecycleManager:
             # Start Telegram trade handlers (shared services)
             if services.trade_handler and self.telegram_config_1.get("enabled"):
                 await services.trade_handler.start()
+                self._mark_service_running("trade_handler_1")
                 logger.info("Telegram trade handler 1 started")
             
             if services.trade_handler_2 and self.telegram_config_2.get("enabled"):
                 await services.trade_handler_2.start()
+                self._mark_service_running("trade_handler_2")
                 logger.info("Telegram trade handler 2 started")
             
-            # Start each microservice (they manage their own lifecycle!)
+            # Start each microservice (they are idempotent - safe to call multiple times)
             await services.storage.start()
+            self._mark_service_running("storage")
+            
             await services.classification.start()
+            self._mark_service_running("classification")
+            
             await services.notification.start()
+            self._mark_service_running("notification")
+            
             await services.brokerage.start()
+            self._mark_service_running("brokerage")
+            
             await services.websocket.start()
+            self._mark_service_running("websocket")
             
             logger.info("All services started successfully")
             
@@ -90,20 +141,31 @@ class LifecycleManager:
         logger.info("Stopping all services...")
         
         try:
-            # Stop microservices in reverse order (they manage their own lifecycle!)
+            # Stop microservices in reverse order (they are idempotent - safe to call multiple times)
             await services.websocket.stop()
+            self._mark_service_stopped("websocket")
+            
             await services.brokerage.stop()
+            self._mark_service_stopped("brokerage")
+            
             await services.notification.stop()
+            self._mark_service_stopped("notification")
+            
             await services.classification.stop()
+            self._mark_service_stopped("classification")
+            
             await services.storage.stop()
+            self._mark_service_stopped("storage")
             
             # Stop shared services
             if services.trade_handler:
                 await services.trade_handler.stop()
+                self._mark_service_stopped("trade_handler_1")
                 logger.info("Telegram trade handler 1 stopped")
             
             if services.trade_handler_2:
                 await services.trade_handler_2.stop()
+                self._mark_service_stopped("trade_handler_2")
                 logger.info("Telegram trade handler 2 stopped")
             
             logger.info("All services stopped successfully")

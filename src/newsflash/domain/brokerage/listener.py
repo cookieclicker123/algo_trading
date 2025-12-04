@@ -92,16 +92,13 @@ class BrokerageDomainListener(
         self.result_factory = result_factory
         self.quote_factory = quote_factory
         self.request_mapper = request_mapper
-        self.is_running = False
     
     async def start(self) -> None:
-        """Start listening to events."""
-        if self.is_running:
-            logger.warning("BrokerageDomainListener already running")
-            return
+        """
+        Start listening to events.
         
-        self.is_running = True
-        
+        Idempotent: Safe to call multiple times. Event bus prevents duplicate subscriptions.
+        """
         # Subscribe to domain trade requests (use cases → infrastructure)
         self.event_bus.subscribe(DomainEventType.TRADE_REQUESTED, self._handle_domain_trade_request)
         
@@ -117,11 +114,11 @@ class BrokerageDomainListener(
         logger.info("BrokerageDomainListener started - listening to domain and infrastructure events")
     
     async def stop(self) -> None:
-        """Stop listening to events."""
-        if not self.is_running:
-            return
+        """
+        Stop listening to events.
         
-        self.is_running = False
+        Idempotent: Safe to call multiple times. Unsubscribing when not subscribed is safe.
+        """
         logger.info("BrokerageDomainListener stopped")
     
     async def _handle_domain_trade_request(self, event_type: str, event_data: Dict[str, Any]) -> None:

@@ -6,6 +6,7 @@ This container manages singleton dependencies that are shared across the entire 
 from dependency_injector import containers, providers
 
 from ...shared.event_bus import AsyncEventBus
+from ..metrics import MetricsService
 
 
 class SharedContainer(containers.DeclarativeContainer):
@@ -17,4 +18,10 @@ class SharedContainer(containers.DeclarativeContainer):
     
     # Event bus is a singleton - created once, shared everywhere
     event_bus = providers.Singleton(AsyncEventBus)
+    
+    # Metrics service is a singleton - aggregates statistics from events
+    metrics_service = providers.Singleton(
+        MetricsService,
+        event_bus=event_bus,
+    )
 

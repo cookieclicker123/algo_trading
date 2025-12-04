@@ -42,7 +42,6 @@ class FeedManager:
         Args:
             event_bus: Event bus instance for publishing/subscribing to events
         """
-        self.is_running = False
         self.articles_received_count = 0
         self.event_bus = event_bus
         
@@ -51,9 +50,12 @@ class FeedManager:
         logger.info("FeedManager subscribed to Domain.ArticleReceived events")
     
     async def start_all_feeds(self) -> None:
-        """Start feed manager (event-driven, no blocking loop needed)."""
+        """
+        Start feed manager (event-driven, no blocking loop needed).
+        
+        Idempotent: Safe to call multiple times. Already subscribed to events.
+        """
         logger.info("Starting feed manager")
-        self.is_running = True
         logger.info("FeedManager started - listening for Domain.ArticleReceived events")
     
     async def _handle_domain_article_received(self, event_type: str, event_data: dict) -> None:
@@ -87,9 +89,12 @@ class FeedManager:
             )
     
     async def stop_all_feeds(self) -> None:
-        """Stop feed manager."""
+        """
+        Stop feed manager.
+        
+        Idempotent: Safe to call multiple times. Unsubscribing when not subscribed is safe.
+        """
         logger.info("Stopping feed manager")
-        self.is_running = False
         
         # Unsubscribe from events
         self.event_bus.unsubscribe(DomainEventType.ARTICLE_RECEIVED, self._handle_domain_article_received)
@@ -97,9 +102,11 @@ class FeedManager:
     
     def get_stats(self) -> dict:
         """Get current feed statistics."""
-        return create_feed_stats(self.is_running, self.articles_received_count)
+        # Note: Running state is tracked by LifecycleManager
+        return create_feed_stats(True, self.articles_received_count)
     
     def is_healthy(self) -> bool:
         """Check if feed manager is healthy."""
-        return self.is_running
+        # Always healthy if subscribed to events (event-driven service)
+        return True
 

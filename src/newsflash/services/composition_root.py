@@ -6,6 +6,7 @@ All microservices initialize themselves independently, but dependencies are
 provided via the DI container.
 """
 from typing import Tuple
+from dependency_injector import providers
 
 from ..utils.logging_config import get_logger
 
@@ -14,12 +15,6 @@ from .service_initialization import Services
 
 # Import DI container
 from .containers.application import ApplicationContainer
-
-# Import use cases for manual creation (needed because they depend on async storage)
-from ..use_cases.notification import NotifyImminentArticleUseCase
-from ..use_cases.brokerage import ExitTradeUseCase
-from .brokerage.auto_trade import AutoTradeService
-from ..config import settings
 
 logger = get_logger(__name__)
 
@@ -79,6 +74,12 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer]:
     )
     logger.info("DI container created and wired")
     
+    # Step 1.5: Initialize and start MetricsService (needs to be running before other services)
+    # MetricsService subscribes to events, so it must start before services that publish events
+    metrics_service = container.metrics_service()
+    await metrics_service.start()
+    logger.info("MetricsService started - subscribing to events")
+    
     # Step 2: Initialize microservices via container (dependencies auto-resolved)
     # Order doesn't matter - container handles dependency resolution!
     storage = await container.storage_microservice()
@@ -124,44 +125,36 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer]:
     )
     logger.info("WebSocket microservice initialized")
     
-    # Step 5: Wire cross-microservice dependencies
-    # Get event bus from container first
-    event_bus = container.event_bus()
+    # Step 5: Wire cross-microservice dependencies using DI container
+    # ✅ DI CONTAINER: Use container providers instead of manual instantiation
+    # After storage is awaited, we can use providers that depend on it
     
-    # Create use cases manually using awaited storage instance
-    # (Can't use container providers here because storage_microservice is async)
-    notification_use_case = NotifyImminentArticleUseCase(
-        event_bus=event_bus,
-        storage_query_service=storage.query_service,
+    # Override storage_query_service provider with the awaited storage instance
+    # This allows other providers to use it
+    container.storage_query_service.override(
+        providers.Callable(lambda: storage.query_service)
     )
+    
+    # Now use container providers - they will automatically get storage_query_service
+    notification_use_case = container.notification_use_case()
     notification.use_case = notification_use_case
-    # Start use case immediately (subscribes to events in __init__, start() confirms readiness)
     await notification_use_case.start()
-    logger.info("Notification use case created and started")
+    logger.info("Notification use case created and started via DI container")
     
-    # Get auto-trade config from settings
-    from decimal import Decimal
-    auto_trading_enabled = settings.AUTO_TRADING_ENABLED
-    auto_trade_amount_usd = Decimal(str(settings.AUTO_TRADE_AMOUNT_USD))
-    
-    auto_trade_service = AutoTradeService(
-        event_bus=event_bus,
-        storage_query_service=storage.query_service,
-        enabled=auto_trading_enabled,
-        trade_amount_usd=auto_trade_amount_usd,
-    )
+    auto_trade_service = container.auto_trade_service()
     brokerage.auto_trade_service = auto_trade_service
-    # Start auto-trade service immediately (subscribes to events in __init__, start() confirms readiness)
     await auto_trade_service.start()
-    logger.info("Auto-trade service created and started")
+    logger.info("Auto-trade service created and started via DI container")
     
-    # Create exit trade use case (schedules exits after entry trades)
-    exit_trade_use_case = ExitTradeUseCase(event_bus=event_bus)
+    exit_trade_use_case = container.exit_trade_use_case()
     brokerage.exit_trade_use_case = exit_trade_use_case
     await exit_trade_use_case.start()
-    logger.info("Exit trade use case created and started")
+    logger.info("Exit trade use case created and started via DI container")
     
     logger.info("All services initialized via DI container")
+    
+    # Get event bus from container for Services container
+    event_bus = container.event_bus()
     
     services = Services(
         storage=storage,

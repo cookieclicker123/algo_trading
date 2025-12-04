@@ -83,16 +83,13 @@ class StorageDomainListener(
         self.article_mapper = article_mapper
         self.audit_mapper = audit_mapper
         self.stored_article_factory = stored_article_factory
-        self.is_running = False
     
     async def start(self) -> None:
-        """Start listening to events."""
-        if self.is_running:
-            logger.warning("StorageDomainListener already running")
-            return
+        """
+        Start listening to events.
         
-        self.is_running = True
-        
+        Idempotent: Safe to call multiple times. Event bus prevents duplicate subscriptions.
+        """
         # Subscribe to domain storage requests (use cases → infrastructure)
         self.event_bus.subscribe(DomainEventType.ARTICLE_STORAGE_REQUESTED, self._handle_domain_article_storage_request)
         self.event_bus.subscribe(DomainEventType.AUDIT_LOG_STORAGE_REQUESTED, self._handle_domain_audit_log_request)
@@ -107,11 +104,11 @@ class StorageDomainListener(
         logger.info("StorageDomainListener started - listening to domain and infrastructure events")
     
     async def stop(self) -> None:
-        """Stop listening to events."""
-        if not self.is_running:
-            return
+        """
+        Stop listening to events.
         
-        self.is_running = False
+        Idempotent: Safe to call multiple times. Unsubscribing when not subscribed is safe.
+        """
         
         # Unsubscribe from events
         self.event_bus.unsubscribe("Domain.ArticleStorageRequested", self._handle_domain_article_storage_request)

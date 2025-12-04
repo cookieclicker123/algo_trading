@@ -93,6 +93,7 @@ async def initialize_brokerage_microservice(
     event_bus: AsyncEventBus,
     paper_trading: bool,
     client_id: int,
+    metrics_service,  # Required - injected via DI
 ) -> BrokerageMicroservice:
     """
     Initialize brokerage microservice independently.
@@ -106,6 +107,7 @@ async def initialize_brokerage_microservice(
         event_bus: Event bus instance (shared dependency)
         paper_trading: Whether to use paper trading (injected via DI)
         client_id: IBKR client ID (injected via DI)
+        metrics_service: Optional metrics service (injected via DI)
         
     Returns:
         BrokerageMicroservice: Initialized brokerage microservice
@@ -116,7 +118,8 @@ async def initialize_brokerage_microservice(
     infra = IBKRBrokerageService(
         event_bus=event_bus,
         paper_trading=paper_trading,
-        client_id=client_id
+        client_id=client_id,
+        metrics_service=metrics_service  # ✅ Pass metrics service
     )
     logger.info("Brokerage infrastructure initialized")
     

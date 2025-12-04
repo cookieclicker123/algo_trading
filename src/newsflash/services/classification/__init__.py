@@ -66,6 +66,7 @@ async def initialize_classification_microservice(
     api_key: str,
     model: str,
     enabled: bool,
+    metrics_service,  # Required - injected via DI
 ) -> ClassificationMicroservice:
     """
     Initialize classification microservice independently.
@@ -78,6 +79,7 @@ async def initialize_classification_microservice(
         api_key: GROQ API key (injected via DI)
         model: GROQ model name (injected via DI)
         enabled: Whether classification is enabled (injected via DI)
+        metrics_service: Optional metrics service (injected via DI)
         
     Returns:
         ClassificationMicroservice: Initialized classification microservice
@@ -88,8 +90,9 @@ async def initialize_classification_microservice(
     infra = ClassificationInfrastructureService(
         event_bus=event_bus,
         api_key=api_key,
+        metrics_service=metrics_service,  # ✅ Pass metrics service
         model=model,
-        enabled=enabled
+        enabled=enabled,
     )
     logger.info("Classification infrastructure initialized")
     

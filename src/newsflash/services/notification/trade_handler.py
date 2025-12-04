@@ -15,25 +15,9 @@ class TelegramTradeHandler:
     """
     Handles Telegram bot interactions for trade decisions.
     Processes user replies to IMMINENT news messages.
+    
+    ✅ STATELESS DESIGN: No singleton pattern - DI container manages instances
     """
-    
-    _instances = {}  # Class variable to store singleton instances
-    
-    def __new__(cls, bot_token: str, trading_service=None):
-        """
-        Singleton pattern - only one instance per bot token.
-        
-        Args:
-            bot_token: Telegram bot token
-            trading_service: IBKR trading service instance
-            
-        Returns:
-            Existing instance if available, otherwise new instance
-        """
-        if bot_token not in cls._instances:
-            instance = super().__new__(cls)
-            cls._instances[bot_token] = instance
-        return cls._instances[bot_token]
     
     def __init__(self, bot_token: str, trading_service=None):
         """
@@ -43,25 +27,24 @@ class TelegramTradeHandler:
             bot_token: Telegram bot token
             trading_service: IBKR trading service instance
         """
-        # Only initialize if not already initialized
-        if hasattr(self, 'bot_token'):
-            return
-            
         self.bot_token = bot_token
         # New brokerage service (or compatible interface)
         self.trading_service = trading_service
         if not self.trading_service:
             logger.warning("No trading service provided to TelegramTradeHandler - trades will fail")
         self.application = None
-        self.is_running = False
         
         logger.info("Telegram trade handler initialized", bot_token=bot_token[:10] + "...")
     
     async def start(self):
-        """Start the Telegram bot handler."""
+        """
+        Start the Telegram bot handler.
+        
+        Idempotent: Safe to call multiple times. Stops existing instance before starting new one.
+        """
         try:
             # Stop any existing instance first to prevent conflicts
-            if self.is_running:
+            if self.application:
                 await self.stop()
             
             # Create application
@@ -77,7 +60,6 @@ class TelegramTradeHandler:
             await self.application.start()
             await self.application.updater.start_polling()
             
-            self.is_running = True
             logger.info("Telegram trade handler started")
             
         except Exception as e:
@@ -85,12 +67,16 @@ class TelegramTradeHandler:
             raise
     
     async def stop(self):
-        """Stop the Telegram bot handler."""
-        if self.application and self.is_running:
+        """
+        Stop the Telegram bot handler.
+        
+        Idempotent: Safe to call multiple times.
+        """
+        if self.application:
             await self.application.updater.stop()
             await self.application.stop()
             await self.application.shutdown()
-            self.is_running = False
+            self.application = None
             logger.info("Telegram trade handler stopped")
     
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -281,7 +267,10 @@ class TelegramTradeHandler:
 
 def get_telegram_trade_handler(bot_token: str, trading_service=None) -> TelegramTradeHandler:
     """
-    Get Telegram trade handler instance.
+    Factory function for Telegram trade handler.
+    
+    ✅ DI CONTAINER: This is used by DI container factories.
+    Container manages singleton instances via providers.Singleton.
     
     Args:
         bot_token: Telegram bot token
@@ -291,72 +280,3 @@ def get_telegram_trade_handler(bot_token: str, trading_service=None) -> Telegram
         TelegramTradeHandler instance
     """
     return TelegramTradeHandler(bot_token, trading_service)
-
-
-def clear_trade_handler_instances():
-    """Clear all trade handler instances (for testing)."""
-    TelegramTradeHandler._instances.clear()
-    logger.info("Cleared all Telegram trade handler instances")
-
-
-async def stop_all_trade_handlers():
-    """Stop all running trade handler instances and clear webhooks."""
-    import asyncio
-    import subprocess
-    import time
-    
-    # First, kill any existing Python processes that might be using these bots
-    try:
-        # Find processes using our bot tokens
-        result = subprocess.run(['ps', 'aux'], capture_output=True, text=True)
-        lines = result.stdout.split('\n')
-        
-        bot_tokens = list(TelegramTradeHandler._instances.keys())
-        for line in lines:
-            for token in bot_tokens:
-                if 'python' in line.lower() and token[:10] in line:
-                    pid = line.split()[1]
-                    try:
-                        subprocess.run(['kill', '-9', pid], check=True)
-                        logger.info("Killed conflicting process", pid=pid, token=token[:10] + "...")
-                    except:
-                        pass
-    except Exception as e:
-        logger.warning("Failed to kill conflicting processes", error=str(e))
-    
-    # Wait a moment for processes to die
-    await asyncio.sleep(2)
-    
-    # Stop all instances
-    stop_tasks = []
-    for token, instance in TelegramTradeHandler._instances.items():
-        if instance.is_running:
-            stop_tasks.append(instance.stop())
-    
-    if stop_tasks:
-        await asyncio.gather(*stop_tasks, return_exceptions=True)
-        logger.info("Stopped all running trade handler instances")
-    
-    # Clear webhooks for all bot tokens with retries
-    for token, instance in TelegramTradeHandler._instances.items():
-        for attempt in range(3):  # Retry up to 3 times
-            try:
-                bot = instance.application.bot if instance.application else None
-                if bot:
-                    await bot.delete_webhook(drop_pending_updates=True)
-                    logger.info("Cleared webhook for bot", token=token[:10] + "...", attempt=attempt+1)
-                    break
-                else:
-                    # Create a temporary bot just to clear webhook
-                    from telegram import Bot
-                    temp_bot = Bot(token=token)
-                    await temp_bot.delete_webhook(drop_pending_updates=True)
-                    logger.info("Cleared webhook for bot (temp)", token=token[:10] + "...", attempt=attempt+1)
-                    break
-            except Exception as e:
-                logger.warning("Failed to clear webhook", token=token[:10] + "...", attempt=attempt+1, error=str(e))
-                if attempt < 2:  # Don't sleep on last attempt
-                    await asyncio.sleep(1)
-    
-    # Final wait to ensure cleanup is complete
-    await asyncio.sleep(3)

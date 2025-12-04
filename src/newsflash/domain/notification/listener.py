@@ -62,16 +62,13 @@ class NotificationDomainListener(
         self.event_bus = event_bus
         self.message_validator = message_validator
         self.notification_mapper = notification_mapper
-        self.is_running = False
     
     async def start(self) -> None:
-        """Start listening to events."""
-        if self.is_running:
-            logger.warning("NotificationDomainListener already running")
-            return
+        """
+        Start listening to events.
         
-        self.is_running = True
-        
+        Idempotent: Safe to call multiple times. Event bus prevents duplicate subscriptions.
+        """
         # Subscribe to domain notification requests (use cases → infrastructure)
         self.event_bus.subscribe(DomainEventType.NOTIFICATION_REQUESTED, self._handle_domain_notification_request)
         
@@ -81,12 +78,11 @@ class NotificationDomainListener(
         logger.info("NotificationDomainListener started - listening to domain and infrastructure events")
     
     async def stop(self) -> None:
-        """Stop listening to events."""
-        if not self.is_running:
-            return
+        """
+        Stop listening to events.
         
-        self.is_running = False
-        
+        Idempotent: Safe to call multiple times. Unsubscribing when not subscribed is safe.
+        """
         # Unsubscribe from events
         self.event_bus.unsubscribe(DomainEventType.NOTIFICATION_REQUESTED, self._handle_domain_notification_request)
         self.event_bus.unsubscribe(InfrastructureEventType.NOTIFICATION_SENT, self._handle_infra_notification_sent_from_bus)

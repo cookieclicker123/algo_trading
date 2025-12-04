@@ -66,22 +66,19 @@ class StorageInfrastructureService(
         # Event bus for publishing events
         self.event_bus = event_bus
         
-        # State
-        self.is_running = False
-        
         logger.info("StorageInfrastructureService initialized")
     
     async def start(self) -> None:
-        """Start the storage infrastructure service."""
-        if self.is_running:
-            logger.warning("StorageInfrastructureService: Already running")
-            return
+        """
+        Start the storage infrastructure service.
         
+        Idempotent: Safe to call multiple times. Event bus prevents duplicate subscriptions.
+        """
         logger.info("🚀 Starting Storage Infrastructure Service")
-        self.is_running = True
         
         # Subscribe to storage requests from domain layer
         # Domain listener will publish ArticleStorageRequestedInfrastructureEvent
+        # Event bus automatically prevents duplicate subscriptions
         self.event_bus.subscribe(InfrastructureEventType.ARTICLE_STORAGE_REQUESTED, self.handle_article_storage_requested)
         self.event_bus.subscribe(InfrastructureEventType.AUDIT_LOG_STORAGE_REQUESTED, self.handle_audit_log_storage_requested)
         self.event_bus.subscribe(InfrastructureEventType.ARTICLE_FETCH_REQUESTED, self.handle_article_fetch_requested)
@@ -90,14 +87,14 @@ class StorageInfrastructureService(
         logger.info("✅ Storage Infrastructure Service started")
     
     async def stop(self) -> None:
-        """Stop the storage infrastructure service."""
-        if not self.is_running:
-            return
+        """
+        Stop the storage infrastructure service.
         
+        Idempotent: Safe to call multiple times. Unsubscribing when not subscribed is safe.
+        """
         logger.info("Stopping Storage Infrastructure Service")
-        self.is_running = False
         
-        # Unsubscribe from events
+        # Unsubscribe from events (safe even if not subscribed)
         self.event_bus.unsubscribe(InfrastructureEventType.ARTICLE_STORAGE_REQUESTED, self.handle_article_storage_requested)
         self.event_bus.unsubscribe(InfrastructureEventType.AUDIT_LOG_STORAGE_REQUESTED, self.handle_audit_log_storage_requested)
         self.event_bus.unsubscribe(InfrastructureEventType.ARTICLE_FETCH_REQUESTED, self.handle_article_fetch_requested)
@@ -274,6 +271,6 @@ class StorageInfrastructureService(
         return {
             "articles_stored": articles_stored,
             "audit_entries_stored": audit_entries_stored,
-            "is_running": self.is_running,
+            # Note: Running state is tracked by LifecycleManager, not individual services
         }
 

@@ -128,6 +128,7 @@ class WebSocketMicroservice:
 
 async def initialize_websocket_microservice(
     event_bus: AsyncEventBus,
+    metrics_service,  # Required - injected via DI
     telegram_service: Optional[TelegramNotifier] = None,
     benzinga_api_key: Optional[str] = None,
     benzinga_websocket_enabled: bool = False,
@@ -143,6 +144,7 @@ async def initialize_websocket_microservice(
         telegram_service: Telegram service (shared dependency for health monitoring)
         benzinga_api_key: Benzinga API key (injected via DI)
         benzinga_websocket_enabled: Whether WebSocket is enabled (injected via DI)
+        metrics_service: Optional metrics service (injected via DI)
         
     Returns:
         WebSocketMicroservice: Initialized websocket microservice
@@ -151,7 +153,11 @@ async def initialize_websocket_microservice(
     
     # Step 1: Infrastructure layer
     if benzinga_websocket_enabled and benzinga_api_key:
-        infra = BenzingaWebSocketMicroservice(event_bus=event_bus, token=benzinga_api_key)
+        infra = BenzingaWebSocketMicroservice(
+            event_bus=event_bus,
+            token=benzinga_api_key,
+            metrics_service=metrics_service  # ✅ Pass metrics service
+        )
         logger.info("WebSocket infrastructure initialized")
     else:
         infra = None

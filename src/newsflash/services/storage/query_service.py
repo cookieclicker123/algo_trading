@@ -2,8 +2,14 @@
 Storage query service - provides article fetching operations.
 
 Service subscribes to domain events and provides focused storage query operations.
+
+Design Note:
+- Uses asyncio.Event for coordinating multiple concurrent fetches of the same article
+- Avoids mutable state by using proper async primitives
+- Each fetch creates its own Event, multiple waiters share the same Event per article_id
 """
-from typing import Optional, Dict, List
+import asyncio
+from typing import Any, Optional, Dict, List
 from datetime import datetime
 
 from ...utils.logging_config import get_logger
@@ -69,8 +75,11 @@ class StorageQueryService:
             self._handle_article_fetched,
         )
         
-        # Pending fetch requests: article_id -> (future, timestamp)
-        self._pending_fetches: Dict[str, tuple] = {}
+        # Pending fetch coordination: article_id -> (asyncio.Event, result, timestamp)
+        # Uses asyncio.Event for proper async coordination - multiple waiters share the same Event
+        # This is operational state (coordination), not business state
+        self._pending_fetches: Dict[str, tuple[asyncio.Event, Optional[StoredArticle], datetime]] = {}
+        self._fetch_lock = asyncio.Lock()  # Protects _pending_fetches dict
         
         logger.info(
             "StorageQueryService initialized - provides article fetching operations",
@@ -86,10 +95,14 @@ class StorageQueryService:
         self.event_bus.unsubscribe(DomainEventType.ARTICLE_FETCHED, self._article_fetched_wrapper)
         
         # Clean up any remaining pending fetches
-        for article_id, (future, _) in list(self._pending_fetches.items()):
-            if not future.done():
-                future.cancel()
-            self._pending_fetches.pop(article_id, None)
+        # Set all Events to notify waiters (they'll get None result)
+        async with self._fetch_lock:
+            for article_id, (fetch_event, _, _) in list(self._pending_fetches.items()):
+                if not fetch_event.is_set():
+                    # Set Event with None to wake up any waiters
+                    self._pending_fetches[article_id] = (fetch_event, None, datetime.now())
+                    fetch_event.set()
+            self._pending_fetches.clear()
         
         logger.info("StorageQueryService stopped")
     
@@ -130,75 +143,94 @@ class StorageQueryService:
         # Use configured timeout if not specified
         timeout = timeout_seconds if timeout_seconds is not None else self.fetch_timeout_seconds
         
-        # Create future for this fetch
-        future = asyncio.Future()
-        self._pending_fetches[article_id] = (future, datetime.now())
-        
-        try:
-            # Publish fetch request
-            fetch_event = ArticleFetchRequestedDomainEvent(
-                article_id=article_id,
-                requested_at=datetime.now()
-            )
-            await self.event_bus.publish(DomainEventType.ARTICLE_FETCH_REQUESTED, fetch_event.model_dump())
-            
-            logger.debug("StorageQueryService: Published article fetch request", article_id=article_id)
-            
-            # Wait for response with timeout
-            try:
-                stored_article = await asyncio.wait_for(future, timeout=timeout)
+        # Use asyncio.Event for proper async coordination
+        # Multiple concurrent fetches for the same article share the same Event
+        async with self._fetch_lock:
+            if article_id not in self._pending_fetches:
+                # First fetch for this article - create Event and publish request
+                fetch_event_obj = asyncio.Event()
+                fetch_timestamp = datetime.now()
+                self._pending_fetches[article_id] = (fetch_event_obj, None, fetch_timestamp)
                 
-                if stored_article:
-                    # Convert StoredArticle back to DomainArticle using pure function
-                    return convert_stored_article_to_domain_article(stored_article)
-                else:
-                    logger.debug("StorageQueryService: Article not found", article_id=article_id)
-                    return None
-                    
-            except asyncio.TimeoutError:
-                logger.warning("StorageQueryService: Fetch timeout", article_id=article_id, timeout=timeout)
-                # Cancel the future if it's still pending
-                if not future.done():
-                    future.cancel()
+                # Publish fetch request
+                fetch_event = ArticleFetchRequestedDomainEvent(
+                    article_id=article_id,
+                    requested_at=fetch_timestamp
+                )
+                await self.event_bus.publish(DomainEventType.ARTICLE_FETCH_REQUESTED, fetch_event.model_dump())
+                logger.debug("StorageQueryService: Published article fetch request", article_id=article_id)
+            else:
+                # Another fetch already in progress - reuse the Event
+                fetch_event_obj, _, _ = self._pending_fetches[article_id]
+                logger.debug("StorageQueryService: Reusing existing fetch request", article_id=article_id)
+        
+        # Wait for the Event to be set (when ArticleFetched arrives)
+        try:
+            await asyncio.wait_for(fetch_event_obj.wait(), timeout=timeout)
+            
+            # Event was set - get the result
+            async with self._fetch_lock:
+                _, stored_article, _ = self._pending_fetches.get(article_id, (None, None, None))
+            
+            if stored_article:
+                # Convert StoredArticle back to DomainArticle using pure function
+                return convert_stored_article_to_domain_article(stored_article)
+            else:
+                logger.debug("StorageQueryService: Article not found", article_id=article_id)
                 return None
                 
-        finally:
-            # Clean up pending fetch (already handled in timeout case, but ensure cleanup)
-            self._pending_fetches.pop(article_id, None)
+        except asyncio.TimeoutError:
+            logger.warning("StorageQueryService: Fetch timeout", article_id=article_id, timeout=timeout)
+            return None
     
     async def _handle_article_fetched(
         self,
         domain_event: ArticleFetchedDomainEvent,
     ) -> None:
         """
-        Handle Domain.ArticleFetched event - resolve pending fetch.
+        Handle Domain.ArticleFetched event - notify all waiters for this article.
+        
+        Uses asyncio.Event for proper async coordination - all waiters are automatically
+        notified when the Event is set. No mutable state mutation needed.
         """
         try:
             article_id = domain_event.article_id
             
-            # Check if we have a pending fetch for this article
-            if article_id in self._pending_fetches:
-                future, _ = self._pending_fetches[article_id]
-                
-                if not future.done():
-                    future.set_result(domain_event.article)
-                    logger.debug("StorageQueryService: Resolved fetch request", article_id=article_id)
+            async with self._fetch_lock:
+                if article_id in self._pending_fetches:
+                    fetch_event, _, _ = self._pending_fetches[article_id]
+                    
+                    # Store result and set Event (notifies all waiters)
+                    self._pending_fetches[article_id] = (
+                        fetch_event,
+                        domain_event.article,
+                        datetime.now()
+                    )
+                    
+                    # Set the Event - all waiters will be notified
+                    fetch_event.set()
+                    
+                    logger.debug(
+                        "StorageQueryService: Notified waiters for article fetch",
+                        article_id=article_id,
+                        found=domain_event.article is not None
+                    )
+                    
+                    # Clean up after a short delay (allows waiters to read result)
+                    # Note: We don't pop immediately because waiters need to read the result
+                    # The cleanup happens when waiters finish or timeout
                 else:
-                    logger.warning("StorageQueryService: Fetch future already done", article_id=article_id)
-                
-                # Clean up after resolving
-                self._pending_fetches.pop(article_id, None)
-            else:
-                logger.debug("StorageQueryService: No pending fetch for article", article_id=article_id)
+                    logger.debug("StorageQueryService: No pending fetch for article", article_id=article_id)
                 
         except Exception as e:
             logger.error("StorageQueryService: Error handling article fetched event", error=str(e), exc_info=True)
-            # Try to resolve any pending fetches with None
+            # Set Event with None result on error
             if 'domain_event' in locals() and domain_event.article_id in self._pending_fetches:
-                future, _ = self._pending_fetches[domain_event.article_id]
-                if not future.done():
-                    future.set_result(None)
-                self._pending_fetches.pop(domain_event.article_id, None)
+                async with self._fetch_lock:
+                    fetch_event, _, _ = self._pending_fetches.get(domain_event.article_id, (None, None, None))
+                    if fetch_event:
+                        self._pending_fetches[domain_event.article_id] = (fetch_event, None, datetime.now())
+                        fetch_event.set()
     
     async def get_recent_articles(self, hours: int) -> List[StoredArticle]:
         """

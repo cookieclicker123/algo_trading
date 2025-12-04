@@ -44,7 +44,7 @@ class FeedHealthMonitor:
             telegram_service: Telegram service for sending alerts
         """
         self.telegram_service = telegram_service
-        self.is_running = False
+        # Note: This service is event-driven, no thread control needed
         
         # Event bus for subscribing to events
         self.event_bus = event_bus
@@ -247,31 +247,22 @@ class FeedHealthMonitor:
             logger.error("Error handling domain WebSocketConnected event", error=str(e), exc_info=True)
     
     async def start(self):
-        """Start the health monitor (just waits - all monitoring via events)."""
-        if self.is_running:
-            logger.warning("Health monitor already running")
-            return
+        """
+        Start the health monitor (event-driven - no loop needed).
         
-        self.is_running = True
+        Idempotent: Safe to call multiple times.
+        """
         logger.info("Starting feed health monitor (event-driven)")
-        
-        try:
-            # Health monitor just waits - all health checks come via events
-            while self.is_running:
-                await asyncio.sleep(1)
-        except asyncio.CancelledError:
-            logger.info("Health monitor cancelled")
-            raise
-        except Exception as e:
-            logger.error("Error in health monitor", error=str(e))
-            raise
-        finally:
-            self.is_running = False
-            logger.info("Feed health monitor stopped")
+        # Note: This is event-driven, no waiting loop needed
+        # All health checks come via event subscriptions
     
     async def stop(self):
-        """Stop the health monitoring loop."""
-        self.is_running = False
+        """
+        Stop the health monitoring.
+        
+        Idempotent: Safe to call multiple times.
+        """
+        logger.info("Feed health monitor stopped")
         
         # Unsubscribe from domain events
         self.event_bus.unsubscribe(DomainEventType.WEBSOCKET_HEALTH_STATUS, self._handle_websocket_health_status)

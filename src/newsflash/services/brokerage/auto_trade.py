@@ -291,6 +291,12 @@ class AutoTradeService:
         
         This is called when classification is complete (event-driven from classification microservice).
         """
+        logger.info(
+            "🎯 AUTO-TRADE: Received ArticleClassified event",
+            article_id=domain_event.result.article_id,
+            classification=domain_event.result.classification.value,
+            enabled=self.is_enabled
+        )
         await process_imminent_article(
             self.event_bus,
             self.storage_query_service,
