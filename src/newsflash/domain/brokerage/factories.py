@@ -8,6 +8,8 @@ from typing import Optional, Dict, Any
 from decimal import Decimal
 from datetime import datetime
 
+from ..base_factory import BaseFactory
+
 from ...utils.logging_config import get_logger
 from ...domain.websocket.models import Article
 from ...infra.brokerage.infrastructure_models import (
@@ -166,34 +168,13 @@ class TradeRequestFactory:
         Returns:
             Domain TradeRequest model, or None if invalid
         """
-        try:
-            # Validate raw data first
-            if not TradeRequestValidator.is_valid_trade_request_data(data):
-                logger.warning("TradeRequestFactory: Invalid trade request data provided")
-                return None
-            
-            # Create domain model
-            trade_request = TradeRequest.from_dict(data)
-            
-            if not trade_request:
-                logger.warning("TradeRequestFactory: Failed to create trade request from dict")
-                return None
-            
-            # Validate domain model
-            if not TradeRequestValidator.is_valid_domain_trade_request(trade_request):
-                logger.warning("TradeRequestFactory: Created trade request failed domain validation")
-                return None
-            
-            logger.debug("TradeRequestFactory: Created trade request from dict", ticker=trade_request.ticker)
-            return trade_request
-            
-        except Exception as e:
-            logger.error(
-                "TradeRequestFactory: Error creating trade request from dict",
-                error=str(e),
-                exc_info=True
-            )
-            return None
+        return BaseFactory.create_from_dict(
+            data=data,
+            model_class=TradeRequest,
+            validate_raw_data=TradeRequestValidator.is_valid_trade_request_data,
+            validate_model=TradeRequestValidator.is_valid_domain_trade_request,
+            factory_name="TradeRequestFactory"
+        )
 
 
 class TradeResultFactory:
@@ -254,33 +235,13 @@ class TradeResultFactory:
         Returns:
             Domain TradeResult model, or None if invalid
         """
-        try:
-            # Validate raw data first
-            if not TradeResultValidator.is_valid_trade_result_data(data):
-                logger.warning("TradeResultFactory: Invalid trade result data provided")
-                return None
-            
-            # Create domain model
-            trade_result = TradeResult.from_dict(data)
-            
-            if not trade_result:
-                logger.warning("TradeResultFactory: Failed to create trade result from dict")
-                return None
-            
-            # Validate domain model
-            if not TradeResultValidator.is_valid_domain_trade_result(trade_result):
-                logger.warning("TradeResultFactory: Created trade result failed domain validation")
-                return None
-            
-            return trade_result
-            
-        except Exception as e:
-            logger.error(
-                "TradeResultFactory: Error creating trade result from dict",
-                error=str(e),
-                exc_info=True
-            )
-            return None
+        return BaseFactory.create_from_dict(
+            data=data,
+            model_class=TradeResult,
+            validate_raw_data=TradeResultValidator.is_valid_trade_result_data,
+            validate_model=TradeResultValidator.is_valid_domain_trade_result,
+            factory_name="TradeResultFactory"
+        )
 
 
 class QuoteFactory:

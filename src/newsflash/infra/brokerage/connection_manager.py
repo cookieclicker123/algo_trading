@@ -6,15 +6,15 @@ import asyncio
 import threading
 import time
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import datetime
 
-import pytz
 from ib_insync import IB
 
 from ...utils.logging_config import get_logger
 from ...config import settings
 from ...shared.event_bus import AsyncEventBus
 from .events import ConnectionStatusChangedEvent
+from .connection_helpers import calculate_daily_restart_window, should_delay_reconnection
 
 logger = get_logger(__name__)
 
@@ -374,43 +374,21 @@ class IBKRConnectionManager:
     
     def _handle_daily_restart_window(self) -> None:
         """Handle daily restart window - delay reconnection if needed."""
-        try:
-            local_tz = pytz.timezone('US/Eastern')
-            now_local = datetime.now(local_tz)
-            hh, mm = [int(x) for x in settings.IBKR_DAILY_RESTART_TIME.split(":", 1)]
-            restart_today = now_local.replace(hour=hh, minute=mm, second=0, microsecond=0)
-            
-            # Choose the most recent restart reference
-            if now_local < restart_today - timedelta(hours=12):
-                restart_today = restart_today - timedelta(days=1)
-            
-            # Window: within +/- 5 minutes of configured restart
-            window_start = restart_today - timedelta(minutes=5)
-            window_end = restart_today + timedelta(minutes=5)
-            
-            if window_start <= now_local <= window_end:
-                planned = (restart_today + timedelta(minutes=2)).astimezone(local_tz)
-                # Convert to naive local time for comparison
-                self.next_connect_time = datetime.now() + (planned - now_local)
-                logger.info(
-                    f"⏳ Delaying reconnect until {planned.strftime('%I:%M %p %Z')} (2 min after daily restart)"
-                )
-        except Exception as e:
-            logger.debug("Could not schedule delayed reconnect window", error=str(e))
+        # Use stateless helper function
+        self.next_connect_time = calculate_daily_restart_window()
     
     async def _reconnect_after_disconnect(self) -> None:
         """Reconnect to IB Gateway after a disconnect."""
         await asyncio.sleep(1)
         
         while self._threads_should_run and not self.is_connected:
-            # Check if we should delay reconnection
-            if self.next_connect_time is not None:
+            # Check if we should delay reconnection (using stateless helper)
+            if should_delay_reconnection(self.next_connect_time):
                 now = datetime.now()
-                if now < self.next_connect_time:
-                    await asyncio.sleep(min(1, (self.next_connect_time - now).total_seconds()))
-                    continue
-                else:
-                    self.next_connect_time = None
+                await asyncio.sleep(min(1, (self.next_connect_time - now).total_seconds()))
+                continue
+            else:
+                self.next_connect_time = None
             
             self._operational_stats["reconnect_attempts"] += 1
             try:

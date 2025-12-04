@@ -21,6 +21,14 @@ from .events import (
     WebSocketDisconnectedEvent
 )
 from .health_monitor import WebSocketHealthMonitor
+from .message_handler import (
+    parse_websocket_message,
+    extract_articles_from_json,
+    is_heartbeat_message,
+    is_error_message,
+    process_xml_message,
+    create_infrastructure_article_data,
+)
 from ...utils.service_utils import serialize_stats
 
 logger = get_logger(__name__)
@@ -383,40 +391,33 @@ class BenzingaWebSocketMicroservice:
     def _process_message(self, message: str) -> None:
         """Process incoming WebSocket message."""
         try:
-            # Try to parse as JSON first
-            try:
-                data = json.loads(message)
-                logger.debug("Message is JSON format")
-                
+            # Parse message (using stateless helper)
+            data, is_json = parse_websocket_message(message)
+            
+            if is_json and data:
                 # Handle JSON message types
                 if isinstance(data, dict):
-                    if data.get("kind") == "News/v1" and "data" in data:
-                        # Handle news articles from Benzinga WebSocket
-                        news_data = data["data"]
-                        if news_data.get("action") == "Created" and "content" in news_data:
-                            self._process_news_articles([news_data["content"]])
-                    elif "news" in data:
-                        self._process_news_articles(data["news"])
-                    elif "heartbeat" in data:
-                        # Handle heartbeat messages
-                        logger.debug("Received heartbeat message from Benzinga")
-                    elif "pong" in str(data).lower() or data.get("type") == "pong":
-                        # Handle JSON pong message
-                        with self._lock:
-                            self._operational_stats["last_pong_received"] = datetime.now()
-                            self._operational_stats["pong_received_count"] += 1
-                            if self._operational_stats.get("missed_pongs", 0) > 0:
-                                self._operational_stats["missed_pongs"] = 0
-                        logger.info("📥 WebSocket JSON pong received")
-                    elif "error" in data:
-                        # Handle error messages from server
-                        error_msg = data.get("error", "Unknown error")
+                    # Check for articles
+                    articles = extract_articles_from_json(data)
+                    if articles:
+                        self._process_news_articles(articles)
+                    # Check for heartbeat/pong
+                    elif is_heartbeat_message(data):
+                        if "pong" in str(data).lower() or data.get("type") == "pong":
+                            # Handle JSON pong message
+                            with self._lock:
+                                self._operational_stats["last_pong_received"] = datetime.now()
+                                self._operational_stats["pong_received_count"] += 1
+                                if self._operational_stats.get("missed_pongs", 0) > 0:
+                                    self._operational_stats["missed_pongs"] = 0
+                            logger.info("📥 WebSocket JSON pong received")
+                        else:
+                            logger.debug("Received heartbeat message from Benzinga")
+                    # Check for errors
+                    elif is_error_message(data)[0]:
+                        is_error, error_msg, is_rate_limit = is_error_message(data)
                         logger.error("Benzinga WebSocket error", error=error_msg)
                         
-                        # ✅ No stats mutation - MetricsService tracks via WEBSOCKET_ERROR event
-                        
-                        # Check if it's a rate limit error
-                        is_rate_limit = "429" in str(error_msg) or "Too Many Requests" in str(error_msg)
                         if is_rate_limit:
                             self._reconnect_allowed = False
                             self._publish_event_threadsafe(self._publish_rate_limit())
@@ -430,14 +431,9 @@ class BenzingaWebSocketMicroservice:
                     self._process_news_articles(data)
                 else:
                     logger.debug("Unexpected JSON message type", message_type=type(data).__name__)
-                    
-            except json.JSONDecodeError:
-                # Not JSON - check if it's XML/HTML
-                if message.strip().startswith('<') or 'xml' in message.lower():
-                    logger.debug("Message is XML/HTML format")
-                    self._process_xml_message(message)
-                else:
-                    logger.debug("Unknown message format", message_preview=message[:100])
+            elif not is_json:
+                # XML/HTML message (using stateless helper)
+                process_xml_message(message)
         
         except Exception as e:
             logger.error("Error processing message", error=str(e))
@@ -445,28 +441,16 @@ class BenzingaWebSocketMicroservice:
     
     def _process_xml_message(self, message: str) -> None:
         """Process XML/HTML message from WebSocket."""
-        try:
-            logger.debug("Processing XML/HTML message from Benzinga WebSocket")
-            logger.debug(f"XML message received: {len(message)} characters")
-            
-            # Check if this looks like news content
-            if any(keyword in message.lower() for keyword in ['news', 'press', 'release', 'earnings', 'financial']):
-                logger.debug("XML message appears to contain news content")
-                # TODO: Parse XML to extract structured news data if needed
-            else:
-                logger.debug("XML message appears to be financial data (not news)")
-        
-        except Exception as e:
-            logger.error("Error processing XML message", error=str(e))
-            # Publish error event for XML processing failures
-            self._publish_event_threadsafe(self._publish_error(f"XML processing error: {str(e)}", is_rate_limit=False))
+        # Delegate to stateless helper
+        process_xml_message(message)
+        # Note: Error handling is done in the helper, but we can publish error events here if needed
     
     def _process_news_articles(self, articles_data: list) -> None:
         """Process news articles and publish events."""
         for article_data in articles_data:
             try:
-                # Create typed infrastructure model from raw WebSocket data
-                infra_article_data = self._create_infrastructure_article_data(article_data)
+                # Create typed infrastructure model (using stateless helper)
+                infra_article_data = create_infrastructure_article_data(article_data)
                 
                 if infra_article_data:
                     # Publish typed infrastructure event
@@ -484,44 +468,8 @@ class BenzingaWebSocketMicroservice:
     
     def _create_infrastructure_article_data(self, data: Dict[str, Any]) -> Optional[InfrastructureArticleData]:
         """Create typed InfrastructureArticleData from raw WebSocket data."""
-        try:
-            # Extract tickers from securities if present
-            tickers = []
-            if data.get("securities"):
-                tickers = [stock.get("symbol", "") for stock in data.get("securities", []) if stock.get("symbol")]
-            elif data.get("tickers"):
-                tickers = data.get("tickers", [])
-            elif data.get("symbols"):
-                tickers = data.get("symbols", [])
-            
-            # Create typed infrastructure model
-            return InfrastructureArticleData(
-                benzinga_id=int(data.get("id", 0)) if data.get("id") else None,
-                source_id=str(data.get("id", "")) if data.get("id") else None,
-                title=data.get("title", "") or data.get("headline", ""),
-                headline=data.get("headline"),
-                content=data.get("content"),
-                body=data.get("body"),
-                teaser=data.get("teaser"),
-                summary=data.get("summary"),
-                author=data.get("author") or (data.get("authors", ["Benzinga"])[0] if data.get("authors") else "Benzinga"),
-                published=data.get("published"),
-                created_at=data.get("created_at"),
-                updated_at=data.get("updated_at"),
-                last_updated=data.get("last_updated"),
-                url=data.get("url"),
-                tickers=tickers,
-                symbols=data.get("symbols", []),
-                securities=data.get("securities", []),
-                tags=data.get("tags", []),
-                categories=data.get("categories", []),
-                channels=data.get("channels", []),
-                images=data.get("images", []),
-                raw_data=data
-            )
-        except Exception as e:
-            logger.error("Failed to create InfrastructureArticleData", error=str(e), data=data)
-            return None
+        # Delegate to stateless helper
+        return create_infrastructure_article_data(data)
     
     async def _publish_article_received(self, article_data: InfrastructureArticleData) -> None:
         """Publish ArticleReceived infrastructure event with typed model."""

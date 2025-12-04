@@ -13,6 +13,8 @@ from ...infra.notification.infrastructure_models import (
     NotificationFailedInfrastructureEvent,
 )
 from ...utils.logging_config import get_logger
+from ...shared.decorators import handle_errors
+from ..base_listener import BaseDomainListener
 from .validators import NotificationMessageValidator
 from .mappers import NotificationMapper
 from .events import (
@@ -27,6 +29,7 @@ logger = get_logger(__name__)
 
 
 class NotificationDomainListener(
+    BaseDomainListener,
     DomainNotificationRequestEventSubscriber,
     DomainNotificationEventPublisher
 ):
@@ -59,7 +62,7 @@ class NotificationDomainListener(
             message_validator: Validator for NotificationMessage domain models
             notification_mapper: Mapper for notification domain ↔ infrastructure transformation
         """
-        self.event_bus = event_bus
+        super().__init__(event_bus, "NotificationDomainListener")
         self.message_validator = message_validator
         self.notification_mapper = notification_mapper
     
@@ -90,141 +93,111 @@ class NotificationDomainListener(
         
         logger.info("NotificationDomainListener stopped")
     
+    @handle_errors(log_context="NotificationDomainListener: Error handling domain notification request")
     async def _handle_domain_notification_request(self, event_type: str, event_data: Dict[str, Any]) -> None:
         """
         Handle domain notification request event (from use cases).
         
         Flow: Validate → Map → Publish (for each channel)
         """
-        try:
-            logger.debug(
-                "NotificationDomainListener: Received domain notification request event",
-                event_type=event_type
+        self.log_debug("Received domain notification request event", event_type=event_type)
+        
+        # Step 1: VALIDATE domain event (using base class helper)
+        domain_event = self.validate_domain_event(
+            event_type, event_data, NotificationRequestedDomainEvent
+        )
+        if not domain_event:
+            return
+        
+        # Extract domain model
+        notification_message = domain_event.message
+        
+        # Step 2: VALIDATE domain model
+        is_valid, error = self.message_validator.validate(notification_message)
+        if not is_valid:
+            self.log_warning(
+                "Invalid notification message",
+                event_type=event_type,
+                error=error,
+                article_id=notification_message.article_id
+            )
+            return
+        
+        # Step 3: MAP and PUBLISH for each channel
+        for channel in notification_message.channels:
+            # Map domain model → infrastructure format
+            infra_request_data = self.notification_mapper.to_infrastructure_request(
+                message=notification_message,
+                channel=channel,
+                requested_at=domain_event.requested_at
             )
             
-            # Step 1: VALIDATE domain event (reconstruct typed event - Pydantic validates)
-            domain_event = NotificationRequestedDomainEvent(**event_data)
-            
-            # Extract domain model
-            notification_message = domain_event.message
-            
-            # Step 2: VALIDATE domain model
-            is_valid, error = self.message_validator.validate(notification_message)
-            if not is_valid:
-                logger.warning(
-                    "NotificationDomainListener: Invalid notification message",
-                    error=error,
-                    article_id=notification_message.article_id
-                )
-                return
-            
-            # Step 3: MAP and PUBLISH for each channel
-            for channel in notification_message.channels:
-                # Map domain model → infrastructure format
-                infra_request_data = self.notification_mapper.to_infrastructure_request(
-                    message=notification_message,
-                    channel=channel,
-                    requested_at=domain_event.requested_at
-                )
-                
-                # Publish typed infrastructure event
-                await self.event_bus.publish(InfrastructureEventType.NOTIFICATION_SEND_REQUESTED, infra_request_data.model_dump())
-                
-                logger.info(
-                    "NotificationDomainListener: Published infrastructure notification request",
-                    article_id=notification_message.article_id,
-                    channel=channel.value
-                )
-            
-        except Exception as e:
-            logger.error(
-                "NotificationDomainListener: Error handling domain notification request",
-                error=str(e),
-                exc_info=True
+            # Publish typed infrastructure event (using base class helper)
+            await self.publish_infrastructure_event(
+                InfrastructureEventType.NOTIFICATION_SEND_REQUESTED,
+                infra_request_data,
+                log_context=f"Published infrastructure notification request (article_id={notification_message.article_id}, channel={channel.value})"
             )
-            # Attempt to extract article_id for logging
-            article_id = "unknown"
-            if 'domain_event' in locals() and domain_event.message:
-                article_id = domain_event.message.article_id
-                # Publish failed event with the actual message
-                await self.publish_notification_failed(
-                    message=domain_event.message,
-                    channel=NotificationChannel.TELEGRAM,  # Default
-                    error=f"Error handling domain notification request: {e}",
-                    failed_at=datetime.now()
-                )
-            else:
-                # Can't publish failed event without a message - just log
-                logger.error(
-                    "NotificationDomainListener: Cannot publish failed event - no message available",
-                    error=str(e)
-                )
     
+    @handle_errors(log_context="NotificationDomainListener: Error handling infrastructure notification sent event")
     async def _handle_infra_notification_sent_from_bus(self, event_type: str, event_data: Dict[str, Any]) -> None:
         """Handle NotificationSent infrastructure event and publish domain event."""
-        try:
-            # Reconstruct typed infrastructure event
-            infra_event = NotificationSentInfrastructureEvent(**event_data)
-            
-            # Reconstruct notification message from payload
-            notification_message = self.notification_mapper.from_infrastructure_dict(infra_event.request_data.payload)
-            
-            # Convert channel string to enum
-            channel = NotificationChannel(infra_event.request_data.channel)
-            
-            # Publish typed domain event
-            await self.publish_notification_sent(
-                message=notification_message,
-                channel=channel,
-                sent_at=infra_event.sent_at
-            )
-            
-            logger.info(
-                "NotificationDomainListener: Published domain notification sent event",
-                article_id=notification_message.article_id,
-                channel=channel.value
-            )
-            
-        except Exception as e:
-            logger.error(
-                "NotificationDomainListener: Error handling infrastructure notification sent event",
-                error=str(e),
-                exc_info=True
-            )
+        # Validate infrastructure event (using base class helper)
+        infra_event = self.validate_infrastructure_event(
+            event_type, event_data, NotificationSentInfrastructureEvent
+        )
+        if not infra_event:
+            return
+        
+        # Reconstruct notification message from payload
+        notification_message = self.notification_mapper.from_infrastructure_dict(infra_event.request_data.payload)
+        
+        # Convert channel string to enum
+        channel = NotificationChannel(infra_event.request_data.channel)
+        
+        # Publish typed domain event
+        await self.publish_notification_sent(
+            message=notification_message,
+            channel=channel,
+            sent_at=infra_event.sent_at
+        )
+        
+        logger.info(
+            "NotificationDomainListener: Published domain notification sent event",
+            article_id=notification_message.article_id,
+            channel=channel.value
+        )
     
+    @handle_errors(log_context="NotificationDomainListener: Error handling infrastructure notification failed event")
     async def _handle_infra_notification_failed_from_bus(self, event_type: str, event_data: Dict[str, Any]) -> None:
         """Handle NotificationFailed infrastructure event and publish domain event."""
-        try:
-            # Reconstruct typed infrastructure event
-            infra_event = NotificationFailedInfrastructureEvent(**event_data)
-            
-            # Reconstruct notification message from payload
-            notification_message = self.notification_mapper.from_infrastructure_dict(infra_event.request_data.payload)
-            
-            # Convert channel string to enum
-            channel = NotificationChannel(infra_event.request_data.channel)
-            
-            # Publish typed domain event
-            await self.publish_notification_failed(
-                message=notification_message,
-                channel=channel,
-                error=infra_event.error,
-                failed_at=infra_event.failed_at
-            )
-            
-            logger.warning(
-                "NotificationDomainListener: Published domain notification failed event",
-                article_id=notification_message.article_id,
-                channel=channel.value,
-                error=infra_event.error
-            )
-            
-        except Exception as e:
-            logger.error(
-                "NotificationDomainListener: Error handling infrastructure notification failed event",
-                error=str(e),
-                exc_info=True
-            )
+        # Validate infrastructure event (using base class helper)
+        infra_event = self.validate_infrastructure_event(
+            event_type, event_data, NotificationFailedInfrastructureEvent
+        )
+        if not infra_event:
+            return
+        
+        # Reconstruct notification message from payload
+        notification_message = self.notification_mapper.from_infrastructure_dict(infra_event.request_data.payload)
+        
+        # Convert channel string to enum
+        channel = NotificationChannel(infra_event.request_data.channel)
+        
+        # Publish typed domain event
+        await self.publish_notification_failed(
+            message=notification_message,
+            channel=channel,
+            error=infra_event.error,
+            failed_at=infra_event.failed_at
+        )
+        
+        logger.warning(
+            "NotificationDomainListener: Published domain notification failed event",
+            article_id=notification_message.article_id,
+            channel=channel.value,
+            error=infra_event.error
+        )
     
     # Protocol implementations
     async def handle_notification_requested(self, event_type: str, event_data: dict) -> None:

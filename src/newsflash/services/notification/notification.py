@@ -5,7 +5,6 @@ Supports sending to both primary and secondary Telegram bots.
 import asyncio
 from typing import Optional, Union
 from telegram import Bot
-from telegram.error import TelegramError
 
 from ...models.base_models import StandardizedArticle
 from ...models.benzinga_models import BenzingaArticle
@@ -16,6 +15,8 @@ from .message_formatter import (
     format_telegram_message,
     format_trading_options,
 )
+from .queue_processor import process_message_queue, drain_queue_on_shutdown
+from .message_sender import send_telegram_message, send_to_all_bots
 
 logger = get_logger(__name__)
 
@@ -190,6 +191,8 @@ class TelegramNotifier:
         """
         Actually send message to Telegram.
         
+        Delegates to stateless helper function.
+        
         Args:
             bot: Telegram bot instance
             chat_id: Chat ID to send to
@@ -199,27 +202,13 @@ class TelegramNotifier:
         Returns:
             True if sent successfully
         """
-        if not bot or not chat_id:
-            logger.error(f"{bot_name} not configured")
-            return False
-        
-        try:
-            await bot.send_message(
-                chat_id=chat_id,
-                text=message,
-                parse_mode="Markdown",  # Support Markdown formatting
-                disable_web_page_preview=False,
-            )
-            logger.info(f"{bot_name} message sent successfully")
-            return True
-            
-        except TelegramError as e:
-            logger.error(f"Failed to send {bot_name} message", error=str(e))
-            return False
+        return await send_telegram_message(bot, chat_id, message, bot_name)
     
     async def _process_queue(self, queue: asyncio.Queue, bot: Bot, chat_id: str, bot_name: str) -> None:
         """
         Process queued messages for a specific bot.
+        
+        Delegates to stateless helper function.
         
         Args:
             queue: Message queue for this bot
@@ -227,37 +216,14 @@ class TelegramNotifier:
             chat_id: Chat ID to send to
             bot_name: Name of the bot (for logging)
         """
-        while self._queue_processing_active:
-            try:
-                # Get message from queue (with timeout to allow shutdown)
-                try:
-                    message, article = await asyncio.wait_for(
-                        queue.get(),
-                        timeout=1.0
-                    )
-                except asyncio.TimeoutError:
-                    continue
-                
-                # Send message
-                success = await self._send_message(bot, chat_id, message, bot_name)
-                
-                if success:
-                    logger.info(
-                        f"{bot_name} notification sent",
-                        article_id=getattr(article, 'benzinga_id', getattr(article, 'source_id', 'unknown'))
-                    )
-                else:
-                    logger.warning(
-                        f"Failed to send {bot_name} notification",
-                        article_id=getattr(article, 'benzinga_id', getattr(article, 'source_id', 'unknown'))
-                    )
-                
-                # Rate limit: Telegram allows 30 messages/second, use 20 to be safe
-                await asyncio.sleep(0.05)  # 50ms = 20 messages/second
-                
-            except Exception as e:
-                logger.error(f"Error processing {bot_name} queue", error=str(e))
-                await asyncio.sleep(1.0)
+        await process_message_queue(
+            queue=queue,
+            bot=bot,
+            chat_id=chat_id,
+            bot_name=bot_name,
+            queue_processing_active=self._queue_processing_active,
+            send_message_func=self._send_message
+        )
     
     async def start(self) -> None:
         """Start the Telegram notification service."""
@@ -354,18 +320,12 @@ class TelegramNotifier:
             logger.info("Stopped Telegram trade handler (bot 2)")
         
         # Process remaining messages in both queues
-        for queue, bot, chat_id, bot_name in [
-            (self.message_queue_1, self.bot_1, self.config_1["chat_id"], "Primary Bot"),
-            (self.message_queue_2, self.bot_2, self.config_2["chat_id"], "Secondary Bot")
-        ]:
-            while not queue.empty():
-                try:
-                    message, _ = queue.get_nowait()
-                    await self._send_message(bot, chat_id, message, bot_name)
-                except asyncio.QueueEmpty:
-                    break
-                except Exception as e:
-                    logger.error(f"Error sending queued message during shutdown ({bot_name})", error=str(e))
+        await drain_queue_on_shutdown(
+            self.message_queue_1, self.bot_1, self.config_1["chat_id"], "Primary Bot", self._send_message
+        )
+        await drain_queue_on_shutdown(
+            self.message_queue_2, self.bot_2, self.config_2["chat_id"], "Secondary Bot", self._send_message
+        )
         
         logger.info("Telegram notification service stopped")
     
@@ -373,30 +333,18 @@ class TelegramNotifier:
         """
         Send a plain text message to all enabled bots.
         
+        Delegates to stateless helper function.
+        
         Args:
             message: Message text to send
         """
-        if self.enabled_1 and self.bot_1 and self.config_1:
-            try:
-                await self._send_message(
-                    self.bot_1, 
-                    self.config_1["chat_id"], 
-                    message, 
-                    "Bot 1"
-                )
-            except Exception as e:
-                logger.error("Failed to send message to Bot 1", error=str(e))
-        
-        if self.enabled_2 and self.bot_2 and self.config_2:
-            try:
-                await self._send_message(
-                    self.bot_2, 
-                    self.config_2["chat_id"], 
-                    message, 
-                    "Bot 2"
-                )
-            except Exception as e:
-                logger.error("Failed to send message to Bot 2", error=str(e))
-
-
-# This was unnecessary indirection - just call TelegramNotifier() directly
+        await send_to_all_bots(
+            bot_1=self.bot_1,
+            config_1=self.config_1,
+            enabled_1=self.enabled_1,
+            bot_2=self.bot_2,
+            config_2=self.config_2,
+            enabled_2=self.enabled_2,
+            message=message,
+            send_message_func=self._send_message
+        )

@@ -3,12 +3,8 @@ Event definitions for brokerage microservice.
 
 Infrastructure events use infrastructure-specific typed models.
 """
-from pydantic import BaseModel, Field
-from datetime import datetime
-from typing import Optional, Dict, Any
 
 from .infrastructure_models import (
-    InfrastructureTradeRequestData,
     InfrastructureTradeExecutedEvent,
     InfrastructureTradeFailedEvent,
     InfrastructureQuoteReceivedEvent,
