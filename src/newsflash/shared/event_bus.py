@@ -23,7 +23,7 @@ class AsyncEventBus:
     
     def __init__(self):
         """Initialize the event bus."""
-        self._subscribers: Dict[str, List[Callable]] = defaultdict(list)
+        self._subscribers: Dict[str, List[Callable]] = defaultdict[str, list](list)
         self._lock = asyncio.Lock()
         logger.info("EventBus initialized")
     
