@@ -36,20 +36,16 @@ CLASSIFICATION_ENABLED = os.getenv("CLASSIFICATION_ENABLED", "true").lower() == 
 BENZINGA_API_KEY = os.getenv("BENZINGA_API_KEY", "")
 BENZINGA_WEBSOCKET_ENABLED = os.getenv("BENZINGA_WEBSOCKET_ENABLED", "false").lower() == "true"
 FEED_AUTORESTART_WEBSOCKET = os.getenv("FEED_AUTORESTART_WEBSOCKET", "true").lower() == "true"
+# Skip articles older than this many minutes when WebSocket first starts (prevents processing backlog)
+WEBSOCKET_STARTUP_SKIP_OLD_MESSAGES_MINUTES = int(os.getenv("WEBSOCKET_STARTUP_SKIP_OLD_MESSAGES_MINUTES", "10"))
 
 # Auto-Trading Configuration
 AUTO_TRADING_ENABLED = os.getenv("AUTO_TRADING_ENABLED", "true").lower() == "true"
 AUTO_TRADE_AMOUNT_USD = float(os.getenv("AUTO_TRADE_AMOUNT_USD", "100.0"))
 AUTO_TRADE_EXIT_DELAY_MINUTES = int(os.getenv("AUTO_TRADE_EXIT_DELAY_MINUTES", "5"))
 
-# IBKR Configuration
-IBKR_PAPER_TRADING = os.getenv("IBKR_PAPER_TRADING", "true").lower() == "true"
-IBKR_CLIENT_ID = int(os.getenv("IBKR_CLIENT_ID", "5"))
-IBKR_PAPER_TRADING_PORT = 4001
-IBKR_LIVE_TRADING_PORT = 7497
-IBKR_KEEPALIVE_ENABLED = os.getenv("IBKR_KEEPALIVE_ENABLED", "true").lower() == "true"
-# Daily mandatory restart time (local time, HH:MM). Gateway/TWS auto-restarts once/day
-IBKR_DAILY_RESTART_TIME = os.getenv("IBKR_DAILY_RESTART_TIME", "23:45")
+# Brokerage Configuration
+PAPER_TRADING = os.getenv("PAPER_TRADING", "true").lower() == "true"
 
 # Extended-hours ladder tuning (cents and milliseconds)
 LADDER_INITIAL_CENTS = int(os.getenv("LADDER_INITIAL_CENTS", "1"))            # first step from NBBO
