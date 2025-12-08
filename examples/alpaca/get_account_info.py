@@ -1,14 +1,19 @@
 from alpaca.trading.client import TradingClient
-from alpaca.trading.requests import GetAssetsRequest
+from alpaca.trading.requests import MarketOrderRequest
+from alpaca.trading.enums import OrderSide, TimeInForce
+import dotenv
+import os
+dotenv.load_dotenv()
 
-trading_client = TradingClient('PK457NJ67N3EEORVXS2ZHLFN2S', '5Esz8XhyTX5i2uKQy5dtefRBnDMvVw7tZoCMetG5sCnJ')
 
-# Get our account information.
-account = trading_client.get_account()
+trading_client = TradingClient(os.getenv('ALPACA_KEY'), os.getenv('ALPACA_SECRET'))
 
-# Check if our account is restricted from trading.
-if account.trading_blocked:
-    print('Account is currently restricted from trading.')
+market_order_data = MarketOrderRequest(
+                    symbol="MU",
+                    qty=2,
+                    side=OrderSide.BUY,
+                    time_in_force=TimeInForce.DAY
+)
 
-# Check how much money we can use to open new positions.
-print(f'${account.buying_power} is available as buying power.')
+order = trading_client.submit_order(market_order_data)
+print(order)
