@@ -73,6 +73,17 @@ class AlpacaMarketHoursTradeExecutor:
         connect_time = timing_info.get("connection", 0.0)
         
         try:
+            def time_left() -> Optional[float]:
+                """Calculate remaining time until timeout deadline."""
+                if timeout_deadline is None:
+                    return None
+                return timeout_deadline - time.monotonic()
+            
+            # Check timeout before starting execution
+            remaining = time_left()
+            if remaining is not None and remaining <= 0:
+                raise TimeoutError("Trade timed out before execution started")
+            
             action = trade_request.action.upper()
             quantity = trade_request.shares
             
@@ -134,11 +145,25 @@ class AlpacaMarketHoursTradeExecutor:
             
             # Poll for order status
             import asyncio
-            max_wait_time = 30.0  # Max 30 seconds to wait for fill
             check_interval = 0.5
+            max_wait_time = 30.0  # Default max wait time if no timeout deadline provided
+            
+            # Calculate actual max wait time based on timeout deadline
+            remaining = time_left()
+            if remaining is not None:
+                # Use the smaller of: remaining timeout or default max wait time
+                max_wait_time = min(remaining, max_wait_time)
+                if max_wait_time <= 0:
+                    raise TimeoutError("Trade timed out before waiting for fill")
+            
             waited = 0.0
             
             while waited < max_wait_time:
+                # Check timeout deadline on each iteration
+                remaining = time_left()
+                if remaining is not None and remaining <= 0:
+                    raise TimeoutError("Trade timed out while waiting for fill")
+                
                 order_status = self.trading_client.get_order_by_id(order.id)
                 
                 if order_status.status == "filled":
@@ -156,8 +181,17 @@ class AlpacaMarketHoursTradeExecutor:
                     await self._publish_failed_event(trade_request, error_result["error"])
                     return error_result
                 
-                await asyncio.sleep(check_interval)
-                waited += check_interval
+                # Calculate sleep interval respecting timeout
+                sleep_interval = check_interval
+                if remaining is not None:
+                    sleep_interval = min(check_interval, max(remaining, 0))
+                
+                if sleep_interval > 0:
+                    await asyncio.sleep(sleep_interval)
+                    waited += sleep_interval
+                else:
+                    # No time left, break out of loop
+                    break
             
             fill_wait_time = time.time() - fill_wait_start
             
@@ -217,6 +251,18 @@ class AlpacaMarketHoursTradeExecutor:
             )
             
             return result
+            
+        except TimeoutError as exc:
+            logger.error(f"⏱️ Market hours trade timed out: {exc}")
+            error_result = {
+                "success": False,
+                "error": f"Trade execution timed out: {str(exc)}",
+                "session": "market_hours",
+                "order_type": "MARKET",
+                "instrument": "stock",
+            }
+            await self._publish_failed_event(trade_request, error_result["error"])
+            return error_result
             
         except Exception as exc:
             logger.error(f"⏱️ Market hours trade execution failed: {exc}", exc_info=True)

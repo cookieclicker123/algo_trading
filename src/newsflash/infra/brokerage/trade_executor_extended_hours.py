@@ -82,6 +82,7 @@ class AlpacaExtendedHoursTradeExecutor:
         connect_time = timing_info.get("connection", 0.0)
         projected_notional: Optional[float] = None
         price_fallback_used = False
+        current_order_id: Optional[str] = None  # Track current order for cancellation (accessible in exception handlers)
         
         try:
             def time_left() -> Optional[float]:
@@ -161,14 +162,27 @@ class AlpacaExtendedHoursTradeExecutor:
             current_cents = initial_cents
             attempt_number = 0
             wait_time = interval_early
+            # current_order_id is already initialized at function start for exception handler access
             
             # Ladder loop
             while abs(current_cents) <= abs(max_cents_from_start):
                 remaining = time_left()
                 if remaining is not None and remaining <= 0:
+                    # Cancel any pending order before timeout
+                    if current_order_id:
+                        await self._cancel_order_safely(current_order_id)
                     raise TimeoutError("Trade timed out before ladder could fill")
                 
                 attempt_number += 1
+                
+                # Cancel previous unfilled order before placing new one
+                if current_order_id:
+                    logger.info(
+                        f"Cancelling previous unfilled order before ladder step {attempt_number}",
+                        previous_order_id=current_order_id
+                    )
+                    await self._cancel_order_safely(current_order_id)
+                    current_order_id = None
                 
                 # Switch to late step if needed
                 if should_switch_to_late_step(attempt_number, switch_after):
@@ -196,6 +210,7 @@ class AlpacaExtendedHoursTradeExecutor:
                 )
                 
                 order = self.trading_client.submit_order(order_data=order_data)
+                current_order_id = order.id  # Track this order
                 
                 # Wait for fill
                 fill_wait_start = time.time()
@@ -203,6 +218,9 @@ class AlpacaExtendedHoursTradeExecutor:
                 fill_wait_time = time.time() - fill_wait_start
                 
                 if filled:
+                    # Order filled - clear tracking
+                    current_order_id = None
+                    
                     # Get order details
                     order_status = self.trading_client.get_order_by_id(order.id)
                     fill_price = float(order_status.filled_avg_price) if order_status.filled_avg_price else limit_price
@@ -257,6 +275,7 @@ class AlpacaExtendedHoursTradeExecutor:
                     await self._publish_executed_event(trade_request, result)
                     return result
                 
+                # Order didn't fill - will be cancelled before next attempt
                 # Move to next ladder step
                 if attempt_number < switch_after:
                     current_cents += early_step
@@ -266,7 +285,11 @@ class AlpacaExtendedHoursTradeExecutor:
                 # Wait before next attempt
                 await asyncio.sleep(wait_time)
             
-            # Ladder exhausted
+            # Ladder exhausted - cancel any pending order
+            if current_order_id:
+                logger.info("Ladder exhausted - cancelling final unfilled order", order_id=current_order_id)
+                await self._cancel_order_safely(current_order_id)
+            
             error_result = {
                 "success": False,
                 "error": f"Ladder exhausted after {attempt_number} attempts without fill",
@@ -279,6 +302,9 @@ class AlpacaExtendedHoursTradeExecutor:
             
         except TimeoutError as exc:
             logger.error(f"⏱️ Extended hours trade timed out: {exc}")
+            # Cancel any pending order on timeout
+            if 'current_order_id' in locals() and current_order_id:
+                await self._cancel_order_safely(current_order_id)
             error_result = {
                 "success": False,
                 "error": f"Trade execution timed out: {str(exc)}",
@@ -291,6 +317,9 @@ class AlpacaExtendedHoursTradeExecutor:
             
         except Exception as exc:
             logger.error(f"⏱️ Extended hours trade execution failed: {exc}", exc_info=True)
+            # Cancel any pending order on error
+            if 'current_order_id' in locals() and current_order_id:
+                await self._cancel_order_safely(current_order_id)
             error_result = {
                 "success": False,
                 "error": str(exc),
@@ -300,6 +329,32 @@ class AlpacaExtendedHoursTradeExecutor:
             }
             await self._publish_failed_event(trade_request, str(exc))
             return error_result
+    
+    async def _cancel_order_safely(self, order_id: str) -> None:
+        """
+        Cancel an order safely, handling cases where it may already be filled/cancelled.
+        
+        Args:
+            order_id: Order ID to cancel
+        """
+        try:
+            order_status = self.trading_client.get_order_by_id(order_id)
+            if order_status.status not in ["filled", "canceled", "expired", "rejected"]:
+                self.trading_client.cancel_order_by_id(order_id)
+                logger.info("Cancelled unfilled ladder order", order_id=order_id)
+            else:
+                logger.debug(
+                    "Order already in final state, skipping cancellation",
+                    order_id=order_id,
+                    status=order_status.status
+                )
+        except Exception as e:
+            # Order might not exist or already be cancelled - log but don't fail
+            logger.warning(
+                "Failed to cancel order (may already be filled/cancelled)",
+                order_id=order_id,
+                error=str(e)
+            )
     
     async def _wait_for_fill(self, order_id: str, wait_time: float, timeout_deadline: Optional[float]) -> bool:
         """
