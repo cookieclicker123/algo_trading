@@ -4,21 +4,16 @@ version = "0.1.0"
 description = "High-frequency news trading system using Polygon.io"
 requires-python = ">=3.9"
 dependencies = [
-    "polygon-api-client>=1.12.0", # Official Polygon.io Python client
-    "httpx>=0.25.0", # Async HTTP client
     "python-dotenv>=1.0.0", # Environment variable loading
     "fastapi>=0.104.0", # Web framework for health endpoints
     "uvicorn[standard]>=0.24.0", # ASGI server
     "pydantic>=2.5.0", # Data validation
     "structlog>=23.2.0", # Structured logging
-    "tenacity>=8.2.0", # Retry logic with exponential backoff
     "aiofiles>=23.0.0", # Async file operations
     "python-telegram-bot>=20.7", # Telegram bot API
     "groq>=0.9.0", # Groq API for LLM classification
-    "ib-insync>=0.9.86", # Interactive Brokers API
     "pytz>=2023.3", # Timezone handling for extended hours detection
-    "websockets>=12.0", # WebSocket client for Benzinga direct feed
-    "websocket-client>=1.6.0", # Alternative WebSocket client for testing
+    "websocket-client>=1.6.0", # WebSocket client for Benzinga direct feed
     "dependency-injector>=4.41.0", # Dependency injection framework
     "alpaca-py>=0.1.0", # Alpaca Trading API Python SDK
 ]
