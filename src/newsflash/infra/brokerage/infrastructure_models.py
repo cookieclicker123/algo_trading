@@ -18,9 +18,10 @@ class InfrastructureTradeRequestData(BaseModel):
     ticker: str
     amount_usd: float
     action: str  # "BUY" or "SELL"
-    shares: Optional[int] = None
+    shares: Optional[float] = None  # Supports fractional shares
     leverage: Optional[float] = None
     instrument: str = "stock"
+    article_id: Optional[str] = None  # Associated article ID if triggered by news
     # Infrastructure-specific fields can be added here
 
 
@@ -40,7 +41,7 @@ class InfrastructureTradeExecutedEvent(BaseModel):
     """Infrastructure event - trade executed."""
     trade_request: InfrastructureTradeRequestData
     success: bool
-    shares: Optional[int] = None
+    shares: Optional[float] = None  # Supports fractional shares
     fill_price: Optional[float] = None
     total_cost: Optional[float] = None
     commission: Optional[float] = None
@@ -51,6 +52,7 @@ class InfrastructureTradeExecutedEvent(BaseModel):
     timing_info: Dict[str, float] = Field(default_factory=dict)
     limit_price_used: Optional[float] = None
     percentage_above_below: Optional[float] = None
+    spread_info: Dict[str, Any] = Field(default_factory=dict, description="Bid, ask, spread, mid from NBBO snapshot")
     executed_at: datetime
     source: str = "brokerage"
 

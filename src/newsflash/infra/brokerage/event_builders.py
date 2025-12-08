@@ -23,6 +23,7 @@ def build_infrastructure_trade_request_data(trade_request: TradeRequest) -> Infr
         action=trade_request.action,
         shares=trade_request.shares,
         leverage=trade_request.leverage,
-        instrument=trade_request.instrument.value if hasattr(trade_request.instrument, 'value') else str(trade_request.instrument)
+        instrument=trade_request.instrument.value if hasattr(trade_request.instrument, 'value') else str(trade_request.instrument),
+        article_id=getattr(trade_request, 'article_id', None)
     )
 

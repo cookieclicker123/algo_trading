@@ -1,333 +1,135 @@
 """
-Quote fetcher for IBKR market data.
+Alpaca quote fetcher - REST API quote fetching.
 Pure infrastructure - fetches quotes and publishes events.
 """
-import asyncio
-import time
 from typing import Optional, Dict, Any
-
-from ib_insync import IB, Stock
-
 from datetime import datetime
+
+from alpaca.data.historical import StockHistoricalDataClient
+from alpaca.data.requests import StockLatestQuoteRequest
 
 from ...utils.logging_config import get_logger
 from ...shared.event_bus import AsyncEventBus
 from .events import QuoteReceivedEvent
 from .infrastructure_models import InfrastructureQuoteData
-from ...utils.brokerage.nbbo_formatters import build_nbbo_info
 
 logger = get_logger(__name__)
 
 
-class IBKRQuoteFetcher:
+class AlpacaQuoteFetcher:
     """
-    Fetches market quotes/NBBO from IBKR.
-
+    Fetches market quotes via Alpaca REST API.
+    
     Responsibilities:
-    - Fetch real-time quotes for stocks
-    - Manage quote snapshots
-    - Publish QuoteReceivedEvent
+    - Fetch realtime prices
+    - Fetch NBBO snapshots
+    - Publish quote events
     
     Does NOT:
-    - Execute trades
     - Know about business logic
+    - Send Telegram notifications
     """
     
-    def __init__(self, event_bus: AsyncEventBus):
+    def __init__(self, event_bus: AsyncEventBus, market_data_client: StockHistoricalDataClient):
         """
         Initialize quote fetcher.
         
         Args:
             event_bus: Event bus instance for publishing/subscribing to events
+            market_data_client: Alpaca StockHistoricalDataClient instance for market data
         """
         self.event_bus = event_bus
-        self._quote_snapshots: Dict[str, Dict[str, Any]] = {}
+        self.market_data_client = market_data_client
         
-        logger.info("IBKRQuoteFetcher initialized")
+        logger.info("AlpacaQuoteFetcher initialized")
     
-    def get_last_quote_snapshot(self, symbol: str) -> Optional[Dict[str, Any]]:
+    async def get_realtime_price(self, symbol: str) -> Optional[float]:
         """
-        Get the most recently recorded NBBO snapshot for a symbol.
+        Get realtime price for a symbol.
         
         Args:
             symbol: Stock ticker symbol
             
         Returns:
-            Quote snapshot dictionary or None
+            Current price (bid or ask) or None if unavailable
         """
-        return self._quote_snapshots.get(symbol)
+        try:
+            # Get latest quote using market data client
+            request = StockLatestQuoteRequest(symbol_or_symbols=[symbol])
+            quotes = self.market_data_client.get_stock_latest_quote(request)
+            
+            if quotes and symbol in quotes:
+                quote = quotes[symbol]
+                # Use ask price if available, otherwise bid
+                price = quote.ask_price if quote.ask_price and quote.ask_price > 0 else quote.bid_price
+                return float(price) if price else None
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Failed to get realtime price for {symbol}: {e}", exc_info=True)
+            return None
     
-    def _record_quote_snapshot(self, symbol: str, snapshot: Dict[str, Any]) -> None:
+    async def get_nbbo_snapshot(self, symbol: str) -> Optional[Dict[str, Any]]:
         """
-        Store the most recent NBBO snapshot for a symbol.
+        Get NBBO (National Best Bid/Offer) snapshot for a symbol.
         
         Args:
             symbol: Stock ticker symbol
-            snapshot: Quote snapshot dictionary
+            
+        Returns:
+            Dictionary with bid, ask, spread, mid, or None if unavailable
         """
         try:
-            clean_snapshot = {
-                key: float(value) if isinstance(value, (int, float)) and value is not None else value
-                for key, value in snapshot.items()
+            # Get latest quote using market data client
+            request = StockLatestQuoteRequest(symbol_or_symbols=[symbol])
+            quotes = self.market_data_client.get_stock_latest_quote(request)
+            
+            if not quotes or symbol not in quotes:
+                return None
+            
+            quote = quotes[symbol]
+            bid = float(quote.bid_price) if quote.bid_price and quote.bid_price > 0 else None
+            ask = float(quote.ask_price) if quote.ask_price and quote.ask_price > 0 else None
+            
+            if bid is None or ask is None:
+                return None
+            
+            spread = ask - bid
+            mid = (bid + ask) / 2
+            
+            result = {
+                "bid": bid,
+                "ask": ask,
+                "spread": spread,
+                "mid": mid,
             }
-        except Exception:
-            clean_snapshot = snapshot
-        
-        self._quote_snapshots[symbol] = clean_snapshot
-    
-    async def get_realtime_price(
-        self,
-        ib: IB,
-        contract: Stock,
-        timeout_deadline: Optional[float] = None,
-    ) -> Optional[float]:
-        """
-        Get real-time price for a stock contract.
-        
-        Args:
-            ib: IBKR connection instance
-            contract: Stock contract
-            timeout_deadline: Optional timeout deadline
             
-        Returns:
-            Real-time price or None if unavailable
-        """
-        try:
-            def time_left() -> Optional[float]:
-                if timeout_deadline is None:
-                    return None
-                return timeout_deadline - time.monotonic()
+            # Publish quote event
+            await self._publish_quote_event(symbol, bid, ask, spread)
             
-            remaining = time_left()
-            if remaining is not None and remaining <= 0:
-                raise TimeoutError("Trade timed out before qualifying contract")
+            return result
             
-            logger.info(f"📊 Requesting IBKR real-time quote for {contract.symbol}...")
-            
-            # Request real-time market data type
-            try:
-                ib.reqMarketDataType(1)
-            except Exception as exc:
-                logger.warning("⚠️ Unable to request real-time market data type", error=str(exc))
-            
-            # Qualify contract
-            qualify_coro = ib.qualifyContractsAsync(contract)
-            if remaining is None:
-                qualified_list = await qualify_coro
-            else:
-                qualified_list = await asyncio.wait_for(qualify_coro, timeout=max(remaining, 0))
-            
-            if not qualified_list:
-                logger.error("❌ IBKR returned empty qualification list")
-                return None
-            
-            [qualified] = qualified_list
-            logger.debug("Qualified contract", contract=qualified)
-            
-            # Request market data
-            ticker = ib.reqMktData(qualified, "", True, False)
-            last_snapshot: Dict[str, Any] = {}
-            
-            # Wait for quote data
-            # Market data subscriptions can take 1-3 seconds to initialize
-            # Use longer timeout: up to 5 seconds or the provided timeout, whichever is smaller
-            max_wait_time = 5.0 if timeout_deadline is None else min(5.0, timeout_deadline - time.monotonic())
-            max_iterations = int(max_wait_time / 0.1)  # Check every 100ms
-            max_iterations = max(20, min(max_iterations, 100))  # At least 2 seconds, max 10 seconds
-            
-            for iteration in range(max_iterations):
-                remaining = time_left()
-                if remaining is not None and remaining <= 0:
-                    break
-                
-                sleep_interval = 0.1 if remaining is None else min(0.1, max(remaining, 0))
-                if sleep_interval > 0:
-                    await asyncio.sleep(sleep_interval)
-                
-                # Log progress every second
-                if iteration > 0 and iteration % 10 == 0:
-                    logger.debug(f"Waiting for market data... ({iteration * 0.1:.1f}s)", ticker=contract.symbol)
-                
-                # Extract quote data
-                last_price = getattr(ticker, "last", None)
-                bid = getattr(ticker, "bid", None)
-                ask = getattr(ticker, "ask", None)
-                close = getattr(ticker, "close", None)
-                
-                snapshot = {
-                    "last": float(last_price) if last_price else None,
-                    "bid": float(bid) if bid else None,
-                    "ask": float(ask) if ask else None,
-                    "close": float(close) if close else None,
-                    "iteration": iteration,
-                }
-                
-                # Build NBBO
-                if snapshot.get("bid") is not None and snapshot.get("ask") is not None:
-                    snapshot["mid"] = round((snapshot["bid"] + snapshot["ask"]) / 2.0, 4)
-                    snapshot["spread"] = round(snapshot["ask"] - snapshot["bid"], 4)
-                
-                last_snapshot = snapshot
-                
-                # Try to get price from various sources
-                if last_price and last_price > 0:
-                    snapshot["price_used"] = float(last_price)
-                    snapshot["price_source"] = "last"
-                    self._record_quote_snapshot(contract.symbol, snapshot)
-                    await self._publish_quote(contract.symbol, snapshot)
-                    ib.cancelMktData(qualified)
-                    return float(last_price)
-                
-                if bid and ask and bid > 0 and ask > 0:
-                    mid_price = (bid + ask) / 2.0
-                    snapshot["price_used"] = float(mid_price)
-                    snapshot["price_source"] = "mid"
-                    self._record_quote_snapshot(contract.symbol, snapshot)
-                    await self._publish_quote(contract.symbol, snapshot)
-                    ib.cancelMktData(qualified)
-                    return float(mid_price)
-                
-                if close and close > 0:
-                    snapshot["price_used"] = float(close)
-                    snapshot["price_source"] = "close"
-                    self._record_quote_snapshot(contract.symbol, snapshot)
-                    await self._publish_quote(contract.symbol, snapshot)
-                    ib.cancelMktData(qualified)
-                    return float(close)
-            
-            # Cleanup
-            ib.cancelMktData(qualified)
-            
-            # Timeout or no data
-            remaining = time_left()
-            if remaining is not None and remaining <= 0:
-                last_snapshot.setdefault("price_used", None)
-                last_snapshot.setdefault("price_source", "timeout")
-                self._record_quote_snapshot(contract.symbol, last_snapshot)
-                logger.error(
-                    "⏱️ Timeout waiting for IBKR quote",
-                    ticker=contract.symbol,
-                    snapshot=last_snapshot,
-                )
-                raise TimeoutError(
-                    "Timeout waiting for IBKR quote (no last/bid/ask received)"
-                )
-            
-            last_snapshot.setdefault("price_used", None)
-            last_snapshot.setdefault("price_source", "unavailable")
-            self._record_quote_snapshot(contract.symbol, last_snapshot)
-            
-            # Check for specific IBKR errors in the snapshot (if error was captured)
-            error_msg = "IBKR quote unavailable (no last/bbo/close)"
-            if "error_code" in last_snapshot:
-                error_code = last_snapshot.get("error_code")
-                if error_code == 10197:
-                    error_msg = (
-                        "IBKR Error 10197: No market data during competing live session. "
-                        "Close any live TWS/Gateway sessions or ensure paper account has separate market data subscription."
-                    )
-            
-            logger.error(
-                f"❌ {error_msg}",
-                ticker=contract.symbol,
-                snapshot=last_snapshot,
-            )
-            return None
-        
-        except TimeoutError:
-            raise
-        except Exception as exc:
-            snapshot = {"price_used": None, "price_source": "error", "error": str(exc)}
-            self._record_quote_snapshot(contract.symbol, snapshot)
-            logger.error(f"❌ Error fetching IBKR quote for {contract.symbol}: {exc}")
+        except Exception as e:
+            logger.error(f"Failed to get NBBO snapshot for {symbol}: {e}", exc_info=True)
             return None
     
-    async def get_nbbo_snapshot(
-        self,
-        ib: IB,
-        contract: Stock,
-        timeout_deadline: Optional[float] = None,
-    ) -> Optional[Dict[str, Any]]:
-        """
-        Get NBBO snapshot for a stock contract (bid/ask only, no price).
-        
-        Args:
-            ib: IBKR connection instance
-            contract: Stock contract
-            timeout_deadline: Optional timeout deadline
-            
-        Returns:
-            NBBO dictionary with bid/ask/spread or None
-        """
-        try:
-            def time_left() -> Optional[float]:
-                if timeout_deadline is None:
-                    return None
-                return timeout_deadline - time.monotonic()
-            
-            remaining = time_left()
-            if remaining is not None and remaining <= 0:
-                return None
-            
-            # Qualify contract
-            qualify_coro = ib.qualifyContractsAsync(contract)
-            if remaining is None:
-                qualified_list = await qualify_coro
-            else:
-                qualified_list = await asyncio.wait_for(qualify_coro, timeout=max(remaining, 0))
-            
-            if not qualified_list:
-                return None
-            
-            [qualified] = qualified_list
-            
-            # Request market data
-            ticker = ib.reqMktData(qualified, "", True, False)
-            #TODO: isnt code here duplicated from the get_realtime_price method? and utilities?
-            # Wait briefly for NBBO
-            sleep_interval = 0.03 if remaining is None else min(0.03, max(remaining, 0))
-            if sleep_interval > 0:
-                await asyncio.sleep(sleep_interval)
-            
-            # Extract bid/ask
-            bid = getattr(ticker, "bid", None)
-            ask = getattr(ticker, "ask", None)
-            
-            # Build NBBO
-            nbbo = build_nbbo_info(
-                float(bid) if bid and bid > 0 else None,
-                float(ask) if ask and ask > 0 else None,
-                source="ladder_snapshot",
-                fallback=self.get_last_quote_snapshot(contract.symbol),
-            )
-            
-            ib.cancelMktData(qualified)
-            
-            if nbbo:
-                await self._publish_quote(contract.symbol, nbbo)
-            
-            return nbbo
-        
-        except Exception as exc:
-            logger.error(f"Error fetching NBBO snapshot for {contract.symbol}", error=str(exc))
-            return None
-    
-    async def _publish_quote(self, symbol: str, nbbo: Dict[str, Any]) -> None:
-        """Publish QuoteReceivedEvent with typed infrastructure model."""
-        # Convert dict to typed InfrastructureQuoteData
+    async def _publish_quote_event(self, symbol: str, bid: float, ask: float, spread: float) -> None:
+        """Publish quote received event."""
         quote_data = InfrastructureQuoteData(
-            bid=nbbo.get("bid", 0.0),
-            ask=nbbo.get("ask", 0.0),
-            last=nbbo.get("last"),
-            volume=nbbo.get("volume"),
-            spread=nbbo.get("spread")
+            bid=bid,
+            ask=ask,
+            last=None,  # Alpaca quote doesn't include last price
+            volume=None,  # Alpaca quote doesn't include volume
+            spread=spread
         )
         
         event = QuoteReceivedEvent(
             symbol=symbol,
-            nbbo=quote_data,  # ✅ Typed infrastructure model
-            received_at=datetime.now()
+            nbbo=quote_data,
+            received_at=datetime.now(),
+            source="brokerage"
         )
+        
         await self.event_bus.publish("QuoteReceived", event.model_dump())
-        logger.debug("Published QuoteReceived event", symbol=symbol)
-
+        logger.debug(f"Published QuoteReceived event for {symbol}")

@@ -3,7 +3,7 @@ Brokerage infrastructure microservice.
 Handles connection management, trade execution, and market data.
 
 This microservice provides:
-- Connection management (IBKR Gateway)
+- Connection management (Alpaca REST API)
 - Trade execution (market hours & extended hours)
 - Quote fetching and NBBO management
 - Queue management for closed-market trades
@@ -12,12 +12,12 @@ This microservice provides:
 All components are event-driven and decoupled from business logic.
 """
 
-from .service import IBKRBrokerageService
-from .connection_manager import IBKRConnectionManager
-from .quote_fetcher import IBKRQuoteFetcher
+from .service import BrokerageService
+from .connection_manager import AlpacaConnectionManager
+from .quote_fetcher import AlpacaQuoteFetcher
 from .queue_manager import TradeQueueManager
-from .trade_executor_market_hours import MarketHoursTradeExecutor
-from .trade_executor_extended_hours import ExtendedHoursTradeExecutor
+from .trade_executor_market_hours import AlpacaMarketHoursTradeExecutor
+from .trade_executor_extended_hours import AlpacaExtendedHoursTradeExecutor
 from .events import (
     TradeExecutedEvent,
     TradeFailedEvent,
@@ -30,13 +30,13 @@ from .protocol import BrokerageServiceProtocol
 
 __all__ = [
     # Main service
-    "IBKRBrokerageService",
+    "BrokerageService",
     # Core components
-    "IBKRConnectionManager",
-    "IBKRQuoteFetcher",
+    "AlpacaConnectionManager",
+    "AlpacaQuoteFetcher",
     "TradeQueueManager",
-    "MarketHoursTradeExecutor",
-    "ExtendedHoursTradeExecutor",
+    "AlpacaMarketHoursTradeExecutor",
+    "AlpacaExtendedHoursTradeExecutor",
     # Events
     "TradeExecutedEvent",
     "TradeFailedEvent",

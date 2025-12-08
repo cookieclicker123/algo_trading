@@ -1,22 +1,20 @@
 """
-IBKR Brokerage Service - main orchestrator for brokerage infrastructure.
+Alpaca Brokerage Service - main orchestrator for brokerage infrastructure.
 Pure infrastructure - coordinates connection, quotes, executors, and queue.
 """
 import time
 from typing import Optional, Dict, Any
 from datetime import datetime
 
-from ib_insync import Stock
-
 from ...utils.logging_config import get_logger
 from ...models.base_models import TradeRequest
 from .infrastructure_models import InfrastructureTradeExecutionRequestEvent
 from ...shared.event_bus import AsyncEventBus
 from ...shared.event_types import InfrastructureEventType
-from .connection_manager import IBKRConnectionManager
-from .quote_fetcher import IBKRQuoteFetcher
-from .trade_executor_market_hours import MarketHoursTradeExecutor
-from .trade_executor_extended_hours import ExtendedHoursTradeExecutor
+from .connection_manager import AlpacaConnectionManager
+from .quote_fetcher import AlpacaQuoteFetcher
+from .trade_executor_market_hours import AlpacaMarketHoursTradeExecutor
+from .trade_executor_extended_hours import AlpacaExtendedHoursTradeExecutor
 from .queue_manager import TradeQueueManager
 from .events import BrokerageHealthStatusEvent
 from ...utils.brokerage.session_detector import get_market_session
@@ -25,9 +23,9 @@ from ...utils.service_utils import serialize_stats
 logger = get_logger(__name__)
 
 
-class IBKRBrokerageService:
+class BrokerageService:
     """
-    Main IBKR brokerage service orchestrator.
+    Main Alpaca brokerage service orchestrator.
     
     Responsibilities:
     - Manage connection lifecycle
@@ -46,37 +44,51 @@ class IBKRBrokerageService:
         self,
         event_bus: AsyncEventBus,
         metrics_service,  # Required - injected via DI
-        paper_trading: bool = False,
-        client_id: int = 5,
+        paper_trading: bool = True,
     ):
         """
         Initialize brokerage service.
         
         Args:
             event_bus: Event bus instance for publishing/subscribing to events
-            paper_trading: Whether to use paper trading port
-            client_id: IBKR client ID
-            metrics_service: Optional metrics service for statistics (injected via DI)
+            paper_trading: Whether to use paper trading
+            metrics_service: Metrics service for statistics (injected via DI)
         """
         self.paper_trading = paper_trading
-        self.client_id = client_id
         
         # Core components - inject event_bus into all sub-components
-        self.connection_manager = IBKRConnectionManager(
+        self.connection_manager = AlpacaConnectionManager(
             event_bus=event_bus,
             paper_trading=paper_trading,
-            client_id=client_id,
-            metrics_service=metrics_service  # ✅ Pass metrics service
+            metrics_service=metrics_service
         )
-        self.quote_fetcher = IBKRQuoteFetcher(event_bus=event_bus)
-        self.market_hours_executor = MarketHoursTradeExecutor(event_bus=event_bus, quote_fetcher=self.quote_fetcher)
-        self.extended_hours_executor = ExtendedHoursTradeExecutor(event_bus=event_bus, quote_fetcher=self.quote_fetcher)
+        
+        # Quote fetcher needs market data client
+        self.quote_fetcher = AlpacaQuoteFetcher(
+            event_bus=event_bus,
+            market_data_client=self.connection_manager.market_data_client
+        )
+        
+        # Trade executors
+        self.market_hours_executor = AlpacaMarketHoursTradeExecutor(
+            event_bus=event_bus,
+            quote_fetcher=self.quote_fetcher,
+            trading_client=self.connection_manager.trading_client
+        )
+        
+        self.extended_hours_executor = AlpacaExtendedHoursTradeExecutor(
+            event_bus=event_bus,
+            quote_fetcher=self.quote_fetcher,
+            trading_client=self.connection_manager.trading_client
+        )
+        
         self.queue_manager = TradeQueueManager(event_bus=event_bus)
         
         # Event bus
         self.event_bus = event_bus
         
-        logger.info("IBKRBrokerageService initialized", paper_trading=paper_trading, client_id=client_id)
+        mode = "Paper Trading" if paper_trading else "Live Trading"
+        logger.info(f"BrokerageService initialized for {mode}", paper_trading=paper_trading)
     
     async def start(self) -> None:
         """
@@ -84,7 +96,7 @@ class IBKRBrokerageService:
         
         Idempotent: Safe to call multiple times. Event bus prevents duplicate subscriptions.
         """
-        logger.info("🚀 Starting IBKR Brokerage Service")
+        logger.info("🚀 Starting Brokerage Service")
         
         # Subscribe to trade execution requests from domain listener
         # Event bus automatically prevents duplicate subscriptions
@@ -94,7 +106,7 @@ class IBKRBrokerageService:
         # Start connection manager (will connect automatically, idempotent)
         await self.connection_manager.start()
         
-        logger.info("✅ IBKR Brokerage Service started")
+        logger.info("✅ Brokerage Service started")
     
     async def _handle_trade_execution_request(self, event_type: str, event_data: Dict[str, Any]) -> None:
         """
@@ -146,7 +158,7 @@ class IBKRBrokerageService:
         
         Idempotent: Safe to call multiple times. Connection manager stop is idempotent.
         """
-        logger.info("🛑 Stopping IBKR Brokerage Service")
+        logger.info("🛑 Stopping Brokerage Service")
         
         # Stop connection manager (idempotent)
         await self.connection_manager.stop()
@@ -154,7 +166,7 @@ class IBKRBrokerageService:
         # Unsubscribe from events (safe even if not subscribed)
         self.event_bus.unsubscribe(InfrastructureEventType.TRADE_EXECUTION_REQUESTED, self._handle_trade_execution_request)
         
-        logger.info("✅ IBKR Brokerage Service stopped")
+        logger.info("✅ Brokerage Service stopped")
     
     def is_connected(self) -> bool:
         """Check if brokerage is connected."""
@@ -214,39 +226,26 @@ class IBKRBrokerageService:
                         "queued": False,
                     }
             
-            # Ensure connection
+            # Ensure connection (simple for REST API)
             remaining = remaining_time()
             if remaining is not None and remaining <= 0:
-                raise TimeoutError("Trade timeout reached before connecting to IB Gateway")
+                raise TimeoutError("Trade timeout reached before connecting")
             
             connect_start = time.time()
-            ib = await self.connection_manager.ensure_connected(remaining)
+            await self.connection_manager.ensure_connected(remaining)
             connect_time = time.time() - connect_start
             logger.info(f"✅ Connection ready - {connect_time:.3f}s")
             
-            # Create stock contract (stocks only, no options)
-            remaining = remaining_time()
-            if remaining is not None and remaining <= 0:
-                raise TimeoutError("Trade timeout reached before contract creation")
-            
-            contract_start = time.time()
-            contract = Stock(trade_request.ticker, "SMART", "USD")
-            contract_time = time.time() - contract_start
-            logger.info(f"✅ Contract created: {contract.symbol} - {contract_time:.3f}s")
-            
-            # Prepare timing info
+            # Prepare timing info (no contract creation needed for Alpaca!)
             timing_info = {
                 "session_detection": session_time,
                 "connection": connect_time,
-                "contract_creation": contract_time,
             }
             
             # Route to appropriate executor
             if session == "market_hours":
                 logger.info("📈 MARKET HOURS: Using market order strategy")
                 return await self.market_hours_executor.execute(
-                    ib,
-                    contract,
                     trade_request,
                     timing_info,
                     deadline,
@@ -255,8 +254,6 @@ class IBKRBrokerageService:
             # Extended hours (premarket or postmarket)
             logger.info("🌙 EXTENDED HOURS: Using ladder limit order strategy", session=session)
             return await self.extended_hours_executor.execute(
-                ib,
-                contract,
                 trade_request,
                 session,
                 timing_info,
@@ -300,14 +297,10 @@ class IBKRBrokerageService:
         """
         try:
             # Ensure connection
-            ib = await self.connection_manager.ensure_connected(timeout_seconds)
+            await self.connection_manager.ensure_connected(timeout_seconds)
             
-            # Create contract
-            contract = Stock(ticker, "SMART", "USD")
-            
-            # Get price
-            timeout_deadline = None if timeout_seconds is None else time.monotonic() + timeout_seconds
-            return await self.quote_fetcher.get_realtime_price(ib, contract, timeout_deadline)
+            # Get price (no contract needed for Alpaca!)
+            return await self.quote_fetcher.get_realtime_price(ticker)
         
         except Exception as exc:
             logger.error(f"Failed to get real-time price for {ticker}", error=str(exc))
@@ -332,7 +325,9 @@ class IBKRBrokerageService:
         Returns:
             Quote snapshot dictionary or None
         """
-        return self.quote_fetcher.get_last_quote_snapshot(ticker)
+        # Quote fetcher doesn't cache snapshots
+        # Could add caching if needed, but for now return None
+        return None
     
     def get_queued_trades(self) -> list[Dict[str, Any]]:
         """Get all queued trades."""
@@ -343,17 +338,13 @@ class IBKRBrokerageService:
         stats = {
             "is_connected": self.is_connected(),
             "paper_trading": self.paper_trading,
-            "client_id": self.client_id,
-            "connection": self.connection_manager.get_stats(),
             "queued_trades_count": len(self.queue_manager.get_queued_trades()),
-            # Note: Running state is tracked by LifecycleManager, not individual services
         }
         return serialize_stats(stats)
     
     def is_healthy(self) -> bool:
         """Check if brokerage service is healthy."""
-        # Use connection manager state instead of is_running flag
-        return self.connection_manager.is_healthy()
+        return self.connection_manager.is_connected
     
     async def publish_health_status(self) -> None:
         """Publish health status event."""
@@ -371,4 +362,3 @@ class IBKRBrokerageService:
         
         await self.event_bus.publish(InfrastructureEventType.BROKERAGE_HEALTH_STATUS, event.model_dump())
         logger.debug("Published BrokerageHealthStatus event", is_healthy=is_healthy)
-

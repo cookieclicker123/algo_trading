@@ -11,7 +11,7 @@ class BrokerageServiceProtocol(Protocol):
     Protocol for brokerage service implementations.
     
     Defines the contract that brokerage services must implement,
-    allowing different implementations (IBKR, others) to be swapped.
+    allowing different implementations to be swapped.
     """
     # TODO: Review: we should extend and then utilise this in the service which at present we don't, along with the other protocols. they are certainly similiar but concretly they are not followed.
     
