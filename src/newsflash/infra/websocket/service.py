@@ -8,7 +8,7 @@ import websocket
 import threading
 import time
 from typing import Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from ...utils.logging_config import get_logger
 from ...models.benzinga_models import BenzingaArticle
@@ -111,6 +111,11 @@ class BenzingaWebSocketMicroservice:
         # Health monitor (infrastructure layer)
         self.health_monitor: Optional[WebSocketHealthMonitor] = None
         
+        # Startup filtering - track when service started to skip old messages
+        self._startup_time: Optional[datetime] = None
+        from ...config import settings
+        self._startup_skip_old_minutes = settings.WEBSOCKET_STARTUP_SKIP_OLD_MESSAGES_MINUTES
+        
         logger.info("BenzingaWebSocketMicroservice initialized", token_prefix=token[:10] + "...")
     
     def _publish_event_threadsafe(self, coro) -> None:
@@ -138,6 +143,12 @@ class BenzingaWebSocketMicroservice:
         # Set thread control flag (operational state for threads)
         self._threads_should_run = True
         self._reconnect_allowed = True
+        
+        # Record startup time for filtering old messages
+        self._startup_time = datetime.now()
+        logger.info(
+            f"WebSocket startup time recorded - will skip articles older than {self._startup_skip_old_minutes} minutes during startup"
+        )
         
         # Store reference to main event loop for thread-safe publishing
         try:
@@ -449,6 +460,15 @@ class BenzingaWebSocketMicroservice:
         """Process news articles and publish events."""
         for article_data in articles_data:
             try:
+                # Check if article is too old during startup period
+                if self._should_skip_old_article(article_data):
+                    article_id = article_data.get("id") or article_data.get("benzinga_id") or "unknown"
+                    logger.debug(
+                        f"Skipping old article during startup: {article_id}",
+                        skip_threshold_minutes=self._startup_skip_old_minutes
+                    )
+                    continue
+                
                 # Create typed infrastructure model (using stateless helper)
                 infra_article_data = create_infrastructure_article_data(article_data)
                 
@@ -465,6 +485,73 @@ class BenzingaWebSocketMicroservice:
                 logger.error("Error processing article", error=str(e), article_data=article_data)
                 # Publish error event for article processing failures
                 self._publish_event_threadsafe(self._publish_error(f"Article processing error: {str(e)}", is_rate_limit=False))
+    
+    def _should_skip_old_article(self, article_data: Dict[str, Any]) -> bool:
+        """
+        Check if article should be skipped because it's too old (during startup period).
+        
+        Args:
+            article_data: Raw article data dictionary
+            
+        Returns:
+            True if article should be skipped, False otherwise
+        """
+        # If startup time not set, don't skip (shouldn't happen, but be safe)
+        if not self._startup_time:
+            return False
+        
+        # Check if we're still in startup period (first 5 minutes after startup)
+        startup_period_end = self._startup_time + timedelta(minutes=5)
+        if datetime.now() > startup_period_end:
+            # Startup period expired, process all articles
+            return False
+        
+        # Extract article timestamp
+        article_timestamp = None
+        
+        # Try different timestamp fields
+        for field in ["published", "created_at", "updated_at", "last_updated"]:
+            timestamp_str = article_data.get(field)
+            if timestamp_str:
+                try:
+                    # Parse ISO format timestamp
+                    if isinstance(timestamp_str, str):
+                        # Handle various formats
+                        if 'T' in timestamp_str:
+                            # ISO format
+                            article_timestamp = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+                        else:
+                            # Try other formats if needed
+                            continue
+                    elif isinstance(timestamp_str, (int, float)):
+                        # Unix timestamp
+                        article_timestamp = datetime.fromtimestamp(timestamp_str)
+                    break
+                except (ValueError, TypeError):
+                    continue
+        
+        # If no timestamp found, don't skip (process it to be safe)
+        if not article_timestamp:
+            return False
+        
+        # Make article_timestamp timezone-aware if needed
+        if article_timestamp.tzinfo is None:
+            # Assume UTC if no timezone
+            article_timestamp = article_timestamp.replace(tzinfo=timezone.utc)
+        
+        # Make startup_time timezone-aware for comparison
+        startup_time_aware = self._startup_time
+        if startup_time_aware.tzinfo is None:
+            startup_time_aware = startup_time_aware.replace(tzinfo=timezone.utc)
+        
+        # Calculate age of article
+        article_age = (startup_time_aware - article_timestamp).total_seconds() / 60.0  # age in minutes
+        
+        # Skip if article is older than threshold
+        if article_age > self._startup_skip_old_minutes:
+            return True
+        
+        return False
     
     def _create_infrastructure_article_data(self, data: Dict[str, Any]) -> Optional[InfrastructureArticleData]:
         """Create typed InfrastructureArticleData from raw WebSocket data."""
