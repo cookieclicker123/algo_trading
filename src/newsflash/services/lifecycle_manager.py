@@ -141,6 +141,33 @@ class LifecycleManager:
         logger.info("Stopping all services...")
         
         try:
+            import asyncio
+            
+            # Stop shared services first (Telegram bots can block)
+            if services.trade_handler:
+                try:
+                    await asyncio.wait_for(
+                        services.trade_handler.stop(),
+                        timeout=5.0  # 5 second timeout for Telegram bot
+                    )
+                    self._mark_service_stopped("trade_handler_1")
+                    logger.info("Telegram trade handler 1 stopped")
+                except asyncio.TimeoutError:
+                    logger.warning("Telegram trade handler 1 stop timed out")
+                    self._mark_service_stopped("trade_handler_1")
+            
+            if services.trade_handler_2:
+                try:
+                    await asyncio.wait_for(
+                        services.trade_handler_2.stop(),
+                        timeout=5.0  # 5 second timeout for Telegram bot
+                    )
+                    self._mark_service_stopped("trade_handler_2")
+                    logger.info("Telegram trade handler 2 stopped")
+                except asyncio.TimeoutError:
+                    logger.warning("Telegram trade handler 2 stop timed out")
+                    self._mark_service_stopped("trade_handler_2")
+            
             # Stop microservices in reverse order (they are idempotent - safe to call multiple times)
             await services.websocket.stop()
             self._mark_service_stopped("websocket")
@@ -157,20 +184,9 @@ class LifecycleManager:
             await services.storage.stop()
             self._mark_service_stopped("storage")
             
-            # Stop shared services
-            if services.trade_handler:
-                await services.trade_handler.stop()
-                self._mark_service_stopped("trade_handler_1")
-                logger.info("Telegram trade handler 1 stopped")
-            
-            if services.trade_handler_2:
-                await services.trade_handler_2.stop()
-                self._mark_service_stopped("trade_handler_2")
-                logger.info("Telegram trade handler 2 stopped")
-            
             logger.info("All services stopped successfully")
             
         except Exception as e:
             logger.error("Failed to stop services", error=str(e))
-            raise
+            # Don't raise - we want to ensure we try to stop everything
 

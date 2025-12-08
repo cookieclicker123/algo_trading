@@ -13,7 +13,7 @@ from ...utils.logging_config import get_logger
 from ...shared.event_bus import AsyncEventBus
 
 # Infrastructure layer
-from ...infra.brokerage import IBKRBrokerageService
+from ...infra.brokerage import BrokerageService
 
 # Domain layer
 from ...domain.brokerage.listener import BrokerageDomainListener
@@ -38,7 +38,7 @@ class BrokerageMicroservice:
     - Services (auto-trade)
     - Use cases (exit trade)
     """
-    infra: IBKRBrokerageService
+    infra: BrokerageService
     domain_listener: BrokerageDomainListener
     auto_trade_service: Optional[AutoTradeService]  # Will be created in composition root after dependencies wired
     exit_trade_use_case: Optional[ExitTradeUseCase] = None  # Will be created in composition root
@@ -48,9 +48,9 @@ class BrokerageMicroservice:
         logger.info("Starting brokerage microservice...")
         
         # Start infrastructure FIRST
-        logger.info("About to start IBKR Brokerage Service...")
+        logger.info("About to start Brokerage Service...")
         await self.infra.start()
-        logger.info("IBKR Brokerage Service started")
+        logger.info("Brokerage Service started")
         
         # Start domain listener
         await self.domain_listener.start()
@@ -92,8 +92,7 @@ class BrokerageMicroservice:
 async def initialize_brokerage_microservice(
     event_bus: AsyncEventBus,
     paper_trading: bool,
-    client_id: int,
-    metrics_service,  # Required - injected via DI
+    metrics_service=None,  # Required - injected via DI
 ) -> BrokerageMicroservice:
     """
     Initialize brokerage microservice independently.
@@ -106,8 +105,7 @@ async def initialize_brokerage_microservice(
     Args:
         event_bus: Event bus instance (shared dependency)
         paper_trading: Whether to use paper trading (injected via DI)
-        client_id: IBKR client ID (injected via DI)
-        metrics_service: Optional metrics service (injected via DI)
+        metrics_service: Metrics service (injected via DI)
         
     Returns:
         BrokerageMicroservice: Initialized brokerage microservice
@@ -115,11 +113,10 @@ async def initialize_brokerage_microservice(
     logger.info("Initializing brokerage microservice...")
     
     # Step 1: Infrastructure layer
-    infra = IBKRBrokerageService(
+    infra = BrokerageService(
         event_bus=event_bus,
         paper_trading=paper_trading,
-        client_id=client_id,
-        metrics_service=metrics_service  # ✅ Pass metrics service
+        metrics_service=metrics_service
     )
     logger.info("Brokerage infrastructure initialized")
     
