@@ -2,6 +2,7 @@
 Telegram bot handler for processing user trade decisions.
 Handles replies to IMMINENT news messages.
 """
+import asyncio
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
@@ -25,7 +26,7 @@ class TelegramTradeHandler:
         
         Args:
             bot_token: Telegram bot token
-            trading_service: IBKR trading service instance
+            trading_service: Trading service instance
         """
         self.bot_token = bot_token
         # New brokerage service (or compatible interface)
@@ -73,11 +74,34 @@ class TelegramTradeHandler:
         Idempotent: Safe to call multiple times.
         """
         if self.application:
-            await self.application.updater.stop()
-            await self.application.stop()
-            await self.application.shutdown()
-            self.application = None
-            logger.info("Telegram trade handler stopped")
+            try:
+                # Stop polling first (this is the blocking operation)
+                if self.application.updater.running:
+                    await asyncio.wait_for(
+                        self.application.updater.stop(),
+                        timeout=2.0  # 2 second timeout
+                    )
+                
+                # Stop application
+                await asyncio.wait_for(
+                    self.application.stop(),
+                    timeout=2.0
+                )
+                
+                # Shutdown
+                await asyncio.wait_for(
+                    self.application.shutdown(),
+                    timeout=2.0
+                )
+                
+                self.application = None
+                logger.info("Telegram trade handler stopped")
+            except asyncio.TimeoutError:
+                logger.warning("Telegram bot stop timed out, forcing shutdown")
+                self.application = None
+            except Exception as e:
+                logger.error(f"Error stopping Telegram bot: {e}")
+                self.application = None
     
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /start command."""
@@ -180,7 +204,7 @@ class TelegramTradeHandler:
                     f"• Market closed (trade will be queued)\n"
                     f"• Insufficient buying power\n"
                     f"• Invalid ticker symbol\n"
-                    f"• IBKR Gateway connection issues"
+                    f"• Brokerage connection issues"
                 )
                 
         except Exception as e:
@@ -274,7 +298,7 @@ def get_telegram_trade_handler(bot_token: str, trading_service=None) -> Telegram
     
     Args:
         bot_token: Telegram bot token
-        trading_service: Optional IBKR trading service instance
+        trading_service: Optional trading service instance
         
     Returns:
         TelegramTradeHandler instance
