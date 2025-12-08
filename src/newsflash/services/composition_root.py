@@ -151,10 +151,22 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer]:
     await exit_trade_use_case.start()
     logger.info("Exit trade use case created and started via DI container")
     
-    logger.info("All services initialized via DI container")
+    # Notify trade executed use case - sends notifications when trades execute
+    notify_trade_executed_use_case = container.notify_trade_executed_use_case()
+    notification.notify_trade_executed_use_case = notify_trade_executed_use_case
+    await notify_trade_executed_use_case.start()
+    logger.info("Notify trade executed use case created and started via DI container")
     
-    # Get event bus from container for Services container
+    # Notify exit trade use case - sends notifications when exit trades execute
+    notify_exit_trade_use_case = container.notify_exit_trade_use_case()
+    notification.notify_exit_trade_use_case = notify_exit_trade_use_case
+    await notify_exit_trade_use_case.start()
+    logger.info("Notify exit trade use case created and started via DI container")
+    
+    # Get event bus from container (needed for Services container)
     event_bus = container.event_bus()
+    
+    logger.info("All services initialized via DI container")
     
     services = Services(
         storage=storage,

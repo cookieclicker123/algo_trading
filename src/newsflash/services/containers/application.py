@@ -20,6 +20,8 @@ from ..websocket import initialize_websocket_microservice
 from ..notification.notification import TelegramNotifier
 from ..notification.trade_handler import get_telegram_trade_handler
 from ...use_cases.notification import NotifyImminentArticleUseCase
+from ...use_cases.notification.notify_trade_executed_use_case import NotifyTradeExecutedUseCase
+from ...use_cases.notification.notify_exit_trade_use_case import NotifyExitTradeUseCase
 from ...use_cases.brokerage import ExitTradeUseCase
 from ..brokerage.auto_trade import AutoTradeService
 from ..lifecycle_manager import LifecycleManager
@@ -90,8 +92,7 @@ class ApplicationContainer(containers.DeclarativeContainer):
     brokerage_microservice = providers.Factory(
         initialize_brokerage_microservice,
         event_bus=shared.event_bus,
-        paper_trading=config.ibkr_paper_trading,
-        client_id=config.ibkr_client_id,
+        paper_trading=config.paper_trading,
         metrics_service=shared.metrics_service,  # ✅ Inject metrics service
     )
     
@@ -151,6 +152,19 @@ class ApplicationContainer(containers.DeclarativeContainer):
     # Exit trade use case - only needs event_bus (no storage dependency)
     exit_trade_use_case = providers.Factory(
         ExitTradeUseCase,
+        event_bus=shared.event_bus,
+    )
+    
+    # Notify trade executed use case - needs event_bus and storage_query_service
+    notify_trade_executed_use_case = providers.Factory(
+        NotifyTradeExecutedUseCase,
+        event_bus=shared.event_bus,
+        storage_query_service=storage_query_service,
+    )
+    
+    # Notify exit trade use case - only needs event_bus
+    notify_exit_trade_use_case = providers.Factory(
+        NotifyExitTradeUseCase,
         event_bus=shared.event_bus,
     )
     
