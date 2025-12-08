@@ -33,20 +33,13 @@ class ConfigurationContainer(containers.DeclarativeContainer):
     benzinga_api_key = providers.Callable(lambda: settings.BENZINGA_API_KEY)
     benzinga_websocket_enabled = providers.Callable(lambda: settings.BENZINGA_WEBSOCKET_ENABLED)
     
-    # IBKR Configuration
-    ibkr_paper_trading = providers.Callable(lambda: settings.IBKR_PAPER_TRADING)
-    ibkr_client_id = providers.Callable(lambda: settings.IBKR_CLIENT_ID)
+    # Brokerage Configuration
+    paper_trading = providers.Callable(lambda: settings.PAPER_TRADING)
     
     # Auto-Trading Configuration
     auto_trading_enabled = providers.Callable(lambda: settings.AUTO_TRADING_ENABLED)
     auto_trade_amount_usd = providers.Callable(lambda: Decimal(str(settings.AUTO_TRADE_AMOUNT_USD)))
     auto_trade_exit_delay_minutes = providers.Callable(lambda: settings.AUTO_TRADE_EXIT_DELAY_MINUTES)
-    
-    # IBKR Additional Configuration
-    ibkr_paper_trading_port = providers.Callable(lambda: settings.IBKR_PAPER_TRADING_PORT)
-    ibkr_live_trading_port = providers.Callable(lambda: settings.IBKR_LIVE_TRADING_PORT)
-    ibkr_keepalive_enabled = providers.Callable(lambda: settings.IBKR_KEEPALIVE_ENABLED)
-    ibkr_daily_restart_time = providers.Callable(lambda: settings.IBKR_DAILY_RESTART_TIME)
     
     # Ladder Configuration
     ladder_initial_cents = providers.Callable(lambda: settings.LADDER_INITIAL_CENTS)
