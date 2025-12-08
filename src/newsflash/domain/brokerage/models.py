@@ -50,7 +50,7 @@ class TradeRequest(BaseModel):
     
     # Trade parameters
     amount_usd: Decimal = Field(..., gt=0, description="Notional value in USD")
-    shares: Optional[int] = Field(None, gt=0, description="Number of shares (if specified)")
+    shares: Optional[float] = Field(None, gt=0, description="Number of shares (if specified, supports fractional)")
     leverage: Optional[Decimal] = Field(None, gt=0, le=Decimal("2.0"), description="Leverage multiplier (max 2x)")
     instrument: TradeInstrument = Field(default=TradeInstrument.STOCK, description="Instrument type")
     
@@ -154,7 +154,7 @@ class TradeResult(BaseModel):
     status: TradeStatus = Field(..., description="Trade status")
     
     # Execution details
-    shares: Optional[int] = Field(None, gt=0, description="Shares executed")
+    shares: Optional[float] = Field(None, gt=0, description="Shares executed (supports fractional)")
     fill_price: Optional[Decimal] = Field(None, gt=0, description="Fill price per share")
     total_cost: Optional[Decimal] = Field(None, description="Total cost including commission")
     commission: Optional[Decimal] = Field(None, ge=0, description="Commission paid")

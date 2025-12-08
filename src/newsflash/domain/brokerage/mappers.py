@@ -45,6 +45,7 @@ class TradeRequestMapper:
                 "shares": infra_request.shares,
                 "leverage": infra_request.leverage,
                 "instrument": TradeInstrument(infra_request.instrument),  # Convert string → enum
+                "article_id": infra_request.article_id,
             }
             
             # Validate first
@@ -84,6 +85,7 @@ class TradeRequestMapper:
             shares=domain_request.shares,
             leverage=float(domain_request.leverage) if domain_request.leverage else None,
             instrument=domain_request.instrument.value,
+            article_id=domain_request.article_id,
         )
     
     @staticmethod
@@ -112,6 +114,7 @@ class TradeRequestMapper:
             "shares": domain_request.shares,
             "leverage": float(domain_request.leverage) if domain_request.leverage else None,
             "instrument": domain_request.instrument.value,
+            "article_id": domain_request.article_id,
         }
     
     @staticmethod
@@ -135,6 +138,7 @@ class TradeRequestMapper:
                 "shares": data.get("shares"),
                 "leverage": data.get("leverage"),
                 "instrument": data.get("instrument", "stock"),
+                "article_id": data.get("article_id"),
             }
             
             # Validate first
@@ -184,9 +188,14 @@ class TradeResultMapper:
             else:
                 status = TradeStatus.FAILED
             
+            # Store spread_info in trade_request dict as metadata for notifications
+            trade_request_dict = infra_event.trade_request.model_dump()
+            if infra_event.spread_info:
+                trade_request_dict["_spread_info"] = infra_event.spread_info  # Store as metadata
+            
             # Build domain TradeResult
             trade_result = TradeResult(
-                trade_request=infra_event.trade_request.model_dump(),  # Convert to dict for storage
+                trade_request=trade_request_dict,  # Convert to dict for storage (includes spread_info metadata)
                 success=infra_event.success,
                 status=status,
                 shares=infra_event.shares,

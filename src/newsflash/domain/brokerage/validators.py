@@ -88,8 +88,8 @@ class TradeRequestValidator:
             # Validate shares (if specified)
             shares = data.get("shares")
             if shares is not None:
-                if not isinstance(shares, int) or shares <= 0:
-                    logger.debug(f"Trade request validation failed: shares must be positive integer: {shares}")
+                if not isinstance(shares, (int, float)) or shares <= 0:
+                    logger.debug(f"Trade request validation failed: shares must be positive number: {shares}")
                     return False
             
             return True
