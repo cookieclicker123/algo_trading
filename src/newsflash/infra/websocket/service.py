@@ -524,8 +524,9 @@ class BenzingaWebSocketMicroservice:
                             # Try other formats if needed
                             continue
                     elif isinstance(timestamp_str, (int, float)):
-                        # Unix timestamp
-                        article_timestamp = datetime.fromtimestamp(timestamp_str)
+                        # Unix timestamp - explicitly convert as UTC
+                        # fromtimestamp() without tz interprets as local time, which is incorrect
+                        article_timestamp = datetime.fromtimestamp(timestamp_str, tz=timezone.utc)
                     break
                 except (ValueError, TypeError):
                     continue
@@ -534,9 +535,9 @@ class BenzingaWebSocketMicroservice:
         if not article_timestamp:
             return False
         
-        # Make article_timestamp timezone-aware if needed
+        # Make article_timestamp timezone-aware if needed (for ISO strings that might not have timezone)
         if article_timestamp.tzinfo is None:
-            # Assume UTC if no timezone
+            # Assume UTC if no timezone (shouldn't happen for Unix timestamps after fix above)
             article_timestamp = article_timestamp.replace(tzinfo=timezone.utc)
         
         # Make startup_time timezone-aware for comparison
