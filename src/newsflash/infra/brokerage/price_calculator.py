@@ -10,7 +10,7 @@ from ...utils.logging_config import get_logger
 from ...models.base_models import TradeRequest
 
 logger = get_logger(__name__)
-
+#TODO: Review: this file is not used anywhere? could it avoid some duplicaiton and be used in the service? probably.
 
 async def get_trade_price(
     quote_fetcher,

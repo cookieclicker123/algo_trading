@@ -22,7 +22,7 @@ logger = get_logger(__name__)
 class IBKRQuoteFetcher:
     """
     Fetches market quotes/NBBO from IBKR.
-    
+
     Responsibilities:
     - Fetch real-time quotes for stocks
     - Manage quote snapshots
@@ -283,7 +283,7 @@ class IBKRQuoteFetcher:
             
             # Request market data
             ticker = ib.reqMktData(qualified, "", True, False)
-            
+            #TODO: isnt code here duplicated from the get_realtime_price method? and utilities?
             # Wait briefly for NBBO
             sleep_interval = 0.03 if remaining is None else min(0.03, max(remaining, 0))
             if sleep_interval > 0:

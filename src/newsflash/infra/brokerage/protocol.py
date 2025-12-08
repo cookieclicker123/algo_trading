@@ -13,6 +13,7 @@ class BrokerageServiceProtocol(Protocol):
     Defines the contract that brokerage services must implement,
     allowing different implementations (IBKR, others) to be swapped.
     """
+    # TODO: Review: we should extend and then utilise this in the service which at present we don't, along with the other protocols. they are certainly similiar but concretly they are not followed.
     
     def start(self) -> None:
         """Start the brokerage service connection."""

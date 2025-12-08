@@ -90,6 +90,7 @@ class ExtendedHoursTradeExecutor:
         price_fallback_used = False
         
         try:
+            #TODO: Review: this is a common pattern in the codebase, could be moved to a utility file, or use existing logic which i know already exists for this in infra/brokerage. mostly we use dependenices which is good but much of this file could be smaller through using what we already have i think please reiew.
             def time_left() -> Optional[float]:
                 if timeout_deadline is None:
                     return None

@@ -20,6 +20,7 @@ dependencies = [
     "websockets>=12.0", # WebSocket client for Benzinga direct feed
     "websocket-client>=1.6.0", # Alternative WebSocket client for testing
     "dependency-injector>=4.41.0", # Dependency injection framework
+    "alpaca-py>=0.1.0", # Alpaca Trading API Python SDK
 ]
 
 [project.optional-dependencies]
