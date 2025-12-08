@@ -29,24 +29,21 @@ def calculate_trade_quantity(
     
     # Calculate quantity if not provided (with leverage)
     if quantity is None:
-        # Capital available = price of 1 share
-        capital_available = current_price
+        # Use the requested notional amount as base capital
+        base_notional = float(trade_request.amount_usd)
         
         # Apply leverage to get buying power
-        # With 2x leverage, buying power = capital × 2
-        buying_power = capital_available * leverage
+        # With 2x leverage, buying power = base_notional × 2
+        buying_power = base_notional * leverage
         
         # Calculate how many shares we can buy with this buying power
-        # This will be 2.0 or slightly more depending on the stock price
+        # This allows fractional shares (Alpaca supports fractional)
         quantity = buying_power / current_price
-        
-        # Allow fractional shares (Alpaca supports fractional)
-        # Quantity will be exactly leverage (e.g., 2.0) or slightly more if price allows
         
         logger.info(
             "Calculated share quantity for trade with leverage (fractional allowed)",
             quantity=quantity,
-            capital_available=capital_available,
+            base_notional=base_notional,
             leverage=leverage,
             buying_power=buying_power,
             price=current_price,
