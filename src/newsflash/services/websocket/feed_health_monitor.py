@@ -2,7 +2,6 @@
 Health monitoring service - subscribes to health events.
 NO direct infrastructure access - pure event subscription.
 """
-import asyncio
 from typing import Dict, Any, Optional
 from datetime import datetime
 from ...utils.logging_config import get_logger

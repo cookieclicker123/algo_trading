@@ -35,6 +35,8 @@ class TelegramNotifier:
         test_mode: bool = False,
         trade_handler=None,
         trade_handler_2=None,
+        bot_1: Optional[Bot] = None,
+        bot_2: Optional[Bot] = None,
     ):
         """
         Initialize Telegram notifier.
@@ -44,6 +46,8 @@ class TelegramNotifier:
             telegram_config_2: Configuration dict for secondary Telegram bot
             test_mode: If True, write to JSON instead of sending to Telegram
             trade_handler: Optional trade handler (injected dependency)
+            bot_1: Optional Bot instance for primary bot (injected via DI)
+            bot_2: Optional Bot instance for secondary bot (injected via DI)
         """
         self.test_mode = test_mode
         
@@ -54,20 +58,29 @@ class TelegramNotifier:
         self.trade_handler = trade_handler
         self.trade_handler_2 = trade_handler_2
         
-        # Initialize bot 1
-        self.bot_1: Optional[Bot] = None
+        # Use injected Bot instances if provided, otherwise create them (backward compatibility)
         self.enabled_1 = self.config_1["enabled"]
-        
-        if not test_mode and self.config_1["bot_token"] and self.enabled_1:
+        if bot_1 is not None:
+            self.bot_1 = bot_1
+            logger.info("Primary Telegram bot initialized via DI", chat_id=self.config_1["chat_id"])
+        elif not test_mode and self.config_1["bot_token"] and self.enabled_1:
+            # Fallback: create Bot if not injected (for backward compatibility)
             self.bot_1 = Bot(token=self.config_1["bot_token"])
-            logger.info("Primary Telegram bot initialized", chat_id=self.config_1["chat_id"])
+            logger.info("Primary Telegram bot initialized (created directly)", chat_id=self.config_1["chat_id"])
+        else:
+            self.bot_1 = None
         
         # Initialize bot 2
-        self.bot_2: Optional[Bot] = None
         self.enabled_2 = self.config_2["enabled"]
-        if not test_mode and self.config_2["bot_token"] and self.enabled_2:
+        if bot_2 is not None:
+            self.bot_2 = bot_2
+            logger.info("Secondary Telegram bot initialized via DI", chat_id=self.config_2["chat_id"])
+        elif not test_mode and self.config_2["bot_token"] and self.enabled_2:
+            # Fallback: create Bot if not injected (for backward compatibility)
             self.bot_2 = Bot(token=self.config_2["bot_token"])
-            logger.info("Secondary Telegram bot initialized", chat_id=self.config_2["chat_id"])
+            logger.info("Secondary Telegram bot initialized (created directly)", chat_id=self.config_2["chat_id"])
+        else:
+            self.bot_2 = None
         
         # Message queues for both bots
         self.message_queue_1: asyncio.Queue = asyncio.Queue()

@@ -67,6 +67,7 @@ class InfrastructureEventType:
     CLASSIFICATION_REQUESTED = "ClassificationRequested"
     CLASSIFICATION_COMPLETED = "ClassificationCompleted"
     CLASSIFICATION_FAILED = "ClassificationFailed"
+    CLASSIFICATION_SKIPPED = "ClassificationSkipped"
     
     # Storage infrastructure events
     ARTICLE_STORAGE_REQUESTED = "ArticleStorageRequested"

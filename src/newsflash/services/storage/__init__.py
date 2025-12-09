@@ -93,7 +93,9 @@ class StorageMicroservice:
 
 async def initialize_storage_microservice(
     event_bus: AsyncEventBus,
-    storage_config: "StorageConfig"
+    storage_config: "StorageConfig",
+    store_article_use_case: StoreArticleUseCase,
+    store_audit_log_use_case: StoreAuditLogUseCase | None = None,
 ) -> StorageMicroservice:
     """
     Initialize storage microservice independently.
@@ -104,6 +106,8 @@ async def initialize_storage_microservice(
     Args:
         event_bus: Event bus instance (shared dependency)
         storage_config: Storage configuration dictionary (injected via DI)
+        store_article_use_case: Store article use case (injected via DI)
+        store_audit_log_use_case: Store audit log use case (injected via DI, optional - will be created if None)
         
     Returns:
         StorageMicroservice: Initialized storage microservice
@@ -142,12 +146,16 @@ async def initialize_storage_microservice(
     logger.info("Storage query service initialized", fetch_timeout_seconds=fetch_timeout)
     
     # Step 4: Use cases layer
-    store_article_use_case = StoreArticleUseCase(event_bus=event_bus)
-    store_audit_log_use_case = StoreAuditLogUseCase(
-        event_bus=event_bus,
-        storage_query_service=query_service  # ✅ Internal dependency wired here
-    )
-    logger.info("Storage use cases initialized")
+    # store_article_use_case is injected via DI ✅
+    # store_audit_log_use_case: use injected if provided, otherwise create (needs query_service)
+    if store_audit_log_use_case is None:
+        store_audit_log_use_case = StoreAuditLogUseCase(
+            event_bus=event_bus,
+            storage_query_service=query_service  # ✅ Internal dependency wired here
+        )
+        logger.info("Storage use cases initialized (store_audit_log_use_case created internally)")
+    else:
+        logger.info("Storage use cases initialized (store_audit_log_use_case injected via DI)")
     
     return StorageMicroservice(
         infra=infra,

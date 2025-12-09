@@ -56,22 +56,20 @@ class TradeRequestFactory:
             Domain TradeRequest model, or None if invalid
         """
         try:
-            # Business rule: Article must have tickers
-            if not article.has_tickers():
-                logger.warning("Cannot create trade request: article has no tickers")
-                return None
-            
+            # Business rule: Use the first ticker (primary company mentioned in news)
+            # If article has multiple tickers, we trade the first one
+            # Note: Ticker existence and exchange validation handled by classification infrastructure
+            # At this point, we can assume article has at least one tradeable ticker
             tickers = list(article.tickers)
-            
-            # Business rule: For now, we only trade articles with exactly one ticker
-            if len(tickers) != 1:
-                logger.warning(
-                    f"Cannot create trade request: article has {len(tickers)} tickers, expected 1",
-                    tickers=tickers
-                )
-                return None
-            
             ticker = tickers[0]
+            
+            if len(tickers) > 1:
+                logger.info(
+                    f"Article has {len(tickers)} tickers, using first ticker for trade",
+                    selected_ticker=ticker,
+                    all_tickers=tickers,
+                    article_id=article.id
+                )
             
             # Validate amount
             if amount_usd <= 0:

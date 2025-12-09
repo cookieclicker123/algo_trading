@@ -19,7 +19,8 @@ from .infrastructure_models import (
     InfrastructureClassificationResponseData,
     ClassificationRequestedInfrastructureEvent,
     ClassificationCompletedInfrastructureEvent,
-    ClassificationFailedInfrastructureEvent
+    ClassificationFailedInfrastructureEvent,
+    ClassificationSkippedInfrastructureEvent
 )
 from .event_protocols import InfrastructureClassificationRequestEventSubscriber
 
@@ -49,6 +50,7 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
         event_bus: AsyncEventBus,  
         api_key: str,
         metrics_service,  # Required - injected via DI
+        ticker_validator=None,  # Will be injected after brokerage is initialized
         model: str = "llama-3.3-70b-versatile",
         enabled: bool = True,
     ):
@@ -61,11 +63,13 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
             model: Groq model name to use
             enabled: Whether classification is enabled
             metrics_service: Optional metrics service for statistics (injected via DI)
+            ticker_validator: TickerValidator instance for exchange validation (injected via DI)
         """
         self.enabled = enabled
         self.model = model
         self.api_key = api_key
         self.metrics_service = metrics_service  # ✅ Injected metrics service
+        self.ticker_validator = ticker_validator  # ✅ Injected ticker validator
             
         
         # Stateful: Groq client (initialized if enabled)
@@ -84,11 +88,14 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
         
         # ✅ No stats dictionary - MetricsService aggregates from events!
         
+        self.ticker_validator = ticker_validator  # Can be None initially, set later
+        
         logger.info(
             "ClassificationInfrastructureService initialized",
             model=model,
             enabled=enabled,
-            has_api_key=bool(api_key)
+            has_api_key=bool(api_key),
+            has_ticker_validator=ticker_validator is not None
         )
     
     def _load_prompt(self) -> str:
@@ -146,6 +153,14 @@ Summary: {summary}"""
         logger.info("🚀 Starting Classification Infrastructure Service")
         
         # Subscribe to classification requests from domain layer
+        # Start ticker validator (begins hourly refresh)
+        # Note: TickerValidator may be None if not yet injected (set in composition_root)
+        if self.ticker_validator:
+            await self.ticker_validator.start()
+            logger.info("TickerValidator started via ClassificationInfrastructureService")
+        else:
+            logger.warning("TickerValidator not set - exchange validation will be skipped")
+        
         # Domain listener will publish ClassificationRequestedInfrastructureEvent
         # Event bus automatically prevents duplicate subscriptions
         self.event_bus.subscribe(InfrastructureEventType.CLASSIFICATION_REQUESTED, self.handle_classification_requested)
@@ -161,6 +176,11 @@ Summary: {summary}"""
         """
         logger.info("Stopping Classification Infrastructure Service")
         
+        # Stop ticker validator
+        if self.ticker_validator:
+            await self.ticker_validator.stop()
+            logger.info("TickerValidator stopped via ClassificationInfrastructureService")
+        
         # Unsubscribe from events (safe even if not subscribed)
         self.event_bus.unsubscribe(InfrastructureEventType.CLASSIFICATION_REQUESTED, self.handle_classification_requested)
         
@@ -175,7 +195,11 @@ Summary: {summary}"""
         Handle ClassificationRequested infrastructure event.
         
         Implements InfrastructureClassificationRequestEventSubscriber protocol.
-        Receives typed infrastructure event, calls Groq API, publishes result.
+        
+        Three-step pre-filtering process:
+        1. Check if article has tickers (Python logic)
+        2. Check if tickers are tradeable on NASDAQ/NYSE (TickerValidator)
+        3. Only if both pass → Call Groq API
         
         Args:
             event_type: Event type string
@@ -184,16 +208,42 @@ Summary: {summary}"""
         try:
             # Reconstruct typed infrastructure event (Pydantic validates)
             infra_event = ClassificationRequestedInfrastructureEvent(**event_data)
+            request_data = infra_event.request_data
             
             # ✅ No stats mutation - MetricsService subscribes to ClassificationRequested event
             
             logger.info(
                 "🎯 CLASSIFY INFRA: Handling classification request",
-                article_id=infra_event.request_data.article_id,
-                title=infra_event.request_data.article_title or ""
+                article_id=request_data.article_id,
+                title=request_data.article_title or "",
+                has_tickers=len(request_data.article_tickers) > 0
             )
             
-            # Classify via Groq API
+            # Step 1: Check if article has tickers (Python logic - no API call)
+            if not request_data.article_tickers:
+                logger.info(
+                    "⏭️ CLASSIFY INFRA: Skipping classification - article has no tickers",
+                    article_id=request_data.article_id
+                )
+                await self._publish_skipped_event(infra_event, "no_tickers")
+                return
+            
+            # Step 2: Check if tickers are tradeable on NASDAQ/NYSE (TickerValidator - cached lookup)
+            if not self.ticker_validator or not self.ticker_validator.are_tradeable(request_data.article_tickers):
+                logger.info(
+                    "⏭️ CLASSIFY INFRA: Skipping classification - tickers not tradeable on NASDAQ/NYSE",
+                    article_id=request_data.article_id,
+                    tickers=request_data.article_tickers
+                )
+                await self._publish_skipped_event(infra_event, "not_tradeable_exchange")
+                return
+            
+            # Step 3: Both checks passed - proceed to Groq API classification
+            logger.info(
+                "✅ CLASSIFY INFRA: Pre-filters passed, proceeding to Groq API",
+                article_id=request_data.article_id,
+                tickers=request_data.article_tickers
+            )
             await self._classify_via_groq(infra_event)
             
         except Exception as e:
@@ -324,6 +374,36 @@ Summary: {summary}"""
             )
             
             await self.event_bus.publish(InfrastructureEventType.CLASSIFICATION_FAILED, failed_event.model_dump())
+    
+    async def _publish_skipped_event(
+        self,
+        infra_event: ClassificationRequestedInfrastructureEvent,
+        reason: str
+    ) -> None:
+        """
+        Publish ClassificationSkipped infrastructure event.
+        
+        Args:
+            infra_event: Original classification request event
+            reason: Skip reason ('no_tickers' or 'not_tradeable_exchange')
+        """
+        skipped_event = ClassificationSkippedInfrastructureEvent(
+            request_data=infra_event.request_data,
+            skipped_at=datetime.now(),
+            reason=reason,
+            source="classification_infrastructure"
+        )
+        
+        await self.event_bus.publish(
+            InfrastructureEventType.CLASSIFICATION_SKIPPED,
+            skipped_event.model_dump()
+        )
+        
+        logger.info(
+            "ClassificationInfrastructureService: Published ClassificationSkipped event",
+            article_id=infra_event.request_data.article_id,
+            reason=reason
+        )
     
     def get_stats(self) -> dict:
         """Get classification infrastructure service statistics."""

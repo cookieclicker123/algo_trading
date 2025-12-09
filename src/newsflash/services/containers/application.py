@@ -23,10 +23,13 @@ from ...use_cases.notification import NotifyImminentArticleUseCase
 from ...use_cases.notification.notify_trade_executed_use_case import NotifyTradeExecutedUseCase
 from ...use_cases.notification.notify_exit_trade_use_case import NotifyExitTradeUseCase
 from ...use_cases.brokerage import ExitTradeUseCase
+from ...use_cases.storage import StoreArticleUseCase, StoreAuditLogUseCase
+from ...use_cases.websocket import ProcessArticleUseCase
+from ...use_cases.classification import ClassifyArticleUseCase
 from ..brokerage.auto_trade import AutoTradeService
 from ..lifecycle_manager import LifecycleManager
-
-
+from ..websocket.feed_manager import FeedManager
+from ..websocket.feed_health_monitor import FeedHealthMonitor
 class ApplicationContainer(containers.DeclarativeContainer):
     """
     Main application container - manages all dependencies via DI.
@@ -64,12 +67,61 @@ class ApplicationContainer(containers.DeclarativeContainer):
     # Expose metrics_service directly from shared container for easy access
     metrics_service = providers.Callable(shared.metrics_service)
     
+    # Use case providers - define BEFORE microservices that use them
+    # Storage use cases
+    # StoreArticleUseCase - only needs event_bus
+    store_article_use_case = providers.Factory(
+        StoreArticleUseCase,
+        event_bus=shared.event_bus,
+    )
+    
+    # StoreAuditLogUseCase - needs event_bus and storage_query_service (will be overridden after storage is created)
+    # Note: storage_query_service provider defined below, will be overridden in composition root
+    storage_query_service = providers.Callable(
+        lambda storage_ms: storage_ms.query_service
+    )
+    
+    store_audit_log_use_case = providers.Factory(
+        StoreAuditLogUseCase,
+        event_bus=shared.event_bus,
+        storage_query_service=storage_query_service,  # Will be overridden in composition root
+    )
+    
+    # WebSocket use cases
+    # ProcessArticleUseCase - only needs event_bus
+    process_article_use_case = providers.Factory(
+        ProcessArticleUseCase,
+        event_bus=shared.event_bus,
+    )
+    
+    # ClassifyArticleUseCase - only needs event_bus
+    classify_article_use_case = providers.Factory(
+        ClassifyArticleUseCase,
+        event_bus=shared.event_bus,
+    )
+    
+    # WebSocket services
+    # FeedManager - only needs event_bus
+    feed_manager = providers.Factory(
+        FeedManager,
+        event_bus=shared.event_bus,
+    )
+    
+    # FeedHealthMonitor - needs event_bus and telegram_service
+    # Note: telegram_service will be provided when feed_health_monitor is called in composition_root
+    feed_health_monitor = providers.Factory(
+        FeedHealthMonitor,
+        event_bus=shared.event_bus,
+        # telegram_service will be passed when feed_health_monitor is called in composition_root
+    )
+    
     # Factory providers - container automatically injects dependencies!
     # When called, container resolves event_bus and storage_config and passes them automatically
     storage_microservice = providers.Factory(
         initialize_storage_microservice,
         event_bus=shared.event_bus,
         storage_config=config.storage_config,
+        store_article_use_case=store_article_use_case,  # ✅ Inject use case via DI
     )
     
     classification_microservice = providers.Factory(
@@ -108,30 +160,30 @@ class ApplicationContainer(containers.DeclarativeContainer):
     )
     
     # Telegram service factory - trade handlers will be provided when called
+    # Note: Bot instances will be created in composition_root and passed here
     telegram_service_factory = providers.Factory(
         TelegramNotifier,
         telegram_config_1=telegram_config_1,
         telegram_config_2=telegram_config_2,
+        # bot_1 and bot_2 will be passed when telegram_service_factory is called in composition_root
     )
     
-    # WebSocket microservice factory - telegram_service will be provided when called
+    # WebSocket microservice factory - feed_health_monitor will be provided when called
     websocket_microservice_factory = providers.Factory(
         initialize_websocket_microservice,
         event_bus=shared.event_bus,
         benzinga_api_key=config.benzinga_api_key,
         benzinga_websocket_enabled=config.benzinga_websocket_enabled,
         metrics_service=shared.metrics_service,  # ✅ Inject metrics service
+        process_article_use_case=process_article_use_case,  # ✅ Inject use case via DI
+        classify_article_use_case=classify_article_use_case,  # ✅ Inject use case via DI
+        feed_manager=feed_manager,  # ✅ Inject service via DI
+        feed_health_monitor=None,  # Will be provided when websocket_microservice_factory is called in composition_root
     )
     
     # Cross-microservice dependencies
     # These providers will be called AFTER storage_microservice is awaited
-    # We use Callable providers that extract from the awaited storage instance
-    
-    # Storage query service provider - extracts from awaited storage microservice
-    # This will be called with the awaited storage instance
-    storage_query_service = providers.Callable(
-        lambda storage_ms: storage_ms.query_service
-    )
+    # storage_query_service is already defined above (used by store_audit_log_use_case)
     
     # Notification use case needs event_bus and storage_query_service
     notification_use_case = providers.Factory(

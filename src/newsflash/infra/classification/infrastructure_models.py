@@ -67,3 +67,19 @@ class ClassificationFailedInfrastructureEvent(BaseModel):
     
     model_config = {"frozen": False}
 
+
+class ClassificationSkippedInfrastructureEvent(BaseModel):
+    """
+    Infrastructure event - classification skipped (pre-filtered).
+    
+    Published when article doesn't meet pre-classification criteria:
+    - No tickers
+    - Tickers not tradeable on NASDAQ/NYSE
+    """
+    request_data: InfrastructureClassificationRequestData = Field(..., description="Original request data")
+    skipped_at: datetime = Field(..., description="When classification was skipped")
+    reason: str = Field(..., description="Skip reason: 'no_tickers' or 'not_tradeable_exchange'")
+    source: str = Field(default="classification_infrastructure", description="Event source")
+    
+    model_config = {"frozen": False}
+
