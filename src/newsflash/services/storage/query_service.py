@@ -125,6 +125,7 @@ class StorageQueryService:
         # FAST PATH: Try direct repository query first (articles persist in ~8ms, classification takes ~300ms)
         # By the time we fetch, article should already be stored
         try:
+            logger.info("StorageQueryService: Attempting direct repository query", article_id=article_id)
             article_data = await self.article_repository.fetch_article(article_id)
             if article_data:
                 # Convert dict to StoredArticle domain model
@@ -141,9 +142,18 @@ class StorageQueryService:
                             has_tickers=len(tickers_list) > 0
                         )
                         return domain_article
+                    else:
+                        logger.info("StorageQueryService: Article data found but failed to convert to DomainArticle", 
+                                   article_id=article_id)
+                else:
+                    logger.info("StorageQueryService: Article data found but failed to convert to StoredArticle", 
+                               article_id=article_id)
+            else:
+                logger.info("StorageQueryService: Article not found in repository (returned None), falling back to event-driven fetch",
+                           article_id=article_id)
         except Exception as e:
-            logger.debug("StorageQueryService: Direct repository query failed, falling back to event-driven fetch", 
-                        article_id=article_id, error=str(e))
+            logger.info("StorageQueryService: Direct repository query failed with exception, falling back to event-driven fetch", 
+                        article_id=article_id, error=str(e), exc_info=True)
         
         # FALLBACK PATH: Event-driven fetch (for articles that might not be stored yet)
         # Use configured timeout if not specified
@@ -164,11 +174,11 @@ class StorageQueryService:
                     requested_at=fetch_timestamp
                 )
                 await self.event_bus.publish(DomainEventType.ARTICLE_FETCH_REQUESTED, fetch_event.model_dump())
-                logger.debug("StorageQueryService: Published article fetch request", article_id=article_id)
+                logger.info("StorageQueryService: Published article fetch request", article_id=article_id)
             else:
                 # Another fetch already in progress - reuse the Event
                 fetch_event_obj, _, _ = self._pending_fetches[article_id]
-                logger.debug("StorageQueryService: Reusing existing fetch request", article_id=article_id)
+                logger.info("StorageQueryService: Reusing existing fetch request", article_id=article_id)
         
         # Wait for the Event to be set (when ArticleFetched arrives)
         try:
@@ -191,7 +201,7 @@ class StorageQueryService:
                     )
                 return domain_article
             else:
-                logger.debug("StorageQueryService: Article not found", article_id=article_id)
+                logger.info("StorageQueryService: Article not found via event-driven fetch", article_id=article_id)
                 return None
                 
         except asyncio.TimeoutError:

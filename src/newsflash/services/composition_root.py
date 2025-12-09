@@ -104,9 +104,18 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer]:
     )
     logger.info("TickerValidator created")
     
-    # Step 2.6: Inject TickerValidator into classification infrastructure (before starting)
+    # Step 2.6: Create MarketDataValidator (needs TradingClient and MarketDataClient from brokerage)
+    from ..infra.brokerage.market_data_validator import MarketDataValidator
+    market_data_validator = MarketDataValidator(
+        trading_client=brokerage.infra.connection_manager.trading_client,
+        market_data_client=brokerage.infra.connection_manager.market_data_client
+    )
+    logger.info("MarketDataValidator created")
+    
+    # Step 2.7: Inject validators into classification infrastructure (before starting)
     classification.infra.ticker_validator = ticker_validator
-    logger.info("TickerValidator injected into ClassificationInfrastructureService")
+    classification.infra.market_data_validator = market_data_validator
+    logger.info("TickerValidator and MarketDataValidator injected into ClassificationInfrastructureService")
     
     # Step 3: Initialize shared services via container (using helper functions)
     # Get configs from container (DI-managed)

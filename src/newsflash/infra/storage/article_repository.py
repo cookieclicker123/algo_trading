@@ -4,6 +4,7 @@ Article repository - handles file I/O for article storage.
 Pure infrastructure - handles JSON file operations, rolling window, archiving.
 """
 import json
+import asyncio
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import List, Dict, Any, Optional
@@ -40,6 +41,10 @@ class ArticleRepository:
         self.rolling_window_hours = self.config["rolling_window_hours"]
         self.archive_window_hours = 24  # Archive articles after 24 hours
         
+        # File operation lock to prevent race conditions in concurrent stores
+        # This serializes access to file load/save operations
+        self._file_lock = asyncio.Lock()
+        
         # Ensure tmp directory exists
         self.tmp_dir.mkdir(parents=True, exist_ok=True)
         
@@ -54,6 +59,8 @@ class ArticleRepository:
         """
         Store an article.
         
+        Uses file locking to prevent race conditions when multiple articles are stored concurrently.
+        
         Args:
             article_id: Unique article identifier
             article_data: Serialized article data (dict)
@@ -61,27 +68,31 @@ class ArticleRepository:
         Returns:
             Tuple of (file_path, is_archived)
         """
-        # Load existing articles
-        existing_articles = await self._load_articles()
-        
-        # Check if already processed (deduplication)
-        if any(self._get_article_id_from_data(a) == article_id for a in existing_articles):
-            logger.debug("Article already processed, skipping", article_id=article_id)
+        # CRITICAL: Use lock to serialize file operations and prevent race conditions
+        # Multiple concurrent store_article calls will wait for each other
+        async with self._file_lock:
+            # Load existing articles
+            existing_articles = await self._load_articles()
+            
+            # Check if already processed (deduplication)
+            if any(self._get_article_id_from_data(a) == article_id for a in existing_articles):
+                logger.debug("Article already processed, skipping", article_id=article_id)
+                return (str(self.json_file), False)
+            
+            # Add new article
+            existing_articles.append(article_data)
+            
+            # Save updated articles
+            await self._save_articles(existing_articles)
+            
+            # Cleanup old articles (moves to 24-hour archives)
+            # NOTE: Cleanup runs inside lock, so it sees the article we just saved
+            archived_path = await self._cleanup_and_archive_articles()
+            
+            if archived_path:
+                return (str(archived_path), True)
+            
             return (str(self.json_file), False)
-        
-        # Add new article
-        existing_articles.append(article_data)
-        
-        # Save updated articles
-        await self._save_articles(existing_articles)
-        
-        # Cleanup old articles (moves to 24-hour archives)
-        archived_path = await self._cleanup_and_archive_articles()
-        
-        if archived_path:
-            return (str(archived_path), True)
-        
-        return (str(self.json_file), False)
     
     async def fetch_article(self, article_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -95,13 +106,17 @@ class ArticleRepository:
         """
         # First check rolling window
         articles = await self._load_articles()
+        logger.debug("Repository: Checking rolling window articles", 
+                    article_id=article_id, articles_count=len(articles))
         for article in articles:
             # Try different ID formats
             if self._get_article_id_from_data(article) == article_id:
+                logger.debug("Repository: Article found in rolling window", article_id=article_id)
                 return article
         
         # Then check archives (recent dates first)
         current_date = datetime.now(timezone.utc)
+        logger.debug("Repository: Article not in rolling window, checking archives", article_id=article_id)
         for days_back in range(7):  # Check last 7 days
             check_date = current_date - timedelta(days=days_back)
             archive_path = self._get_archive_path(check_date)
@@ -112,12 +127,18 @@ class ArticleRepository:
                         content = await f.read()
                         archived_articles = json.loads(content) if content.strip() else []
                     
+                    logger.debug("Repository: Checking archive file", 
+                                article_id=article_id, archive_path=str(archive_path), 
+                                archived_articles_count=len(archived_articles))
                     for article in archived_articles:
                         if self._get_article_id_from_data(article) == article_id:
+                            logger.debug("Repository: Article found in archive", 
+                                        article_id=article_id, archive_path=str(archive_path))
                             return article
                 except Exception as e:
                     logger.warning("Failed to read archive file", path=str(archive_path), error=str(e))
         
+        logger.debug("Repository: Article not found in rolling window or archives", article_id=article_id)
         return None
     
     def _get_article_id_from_data(self, article_data: Dict[str, Any]) -> str:
@@ -137,14 +158,37 @@ class ArticleRepository:
     async def _load_articles(self) -> List[Dict[str, Any]]:
         """Load articles from rolling window JSON file."""
         if not self.json_file.exists():
+            logger.debug("Articles JSON file does not exist", path=str(self.json_file))
             return []
         
         try:
             async with aiofiles.open(self.json_file, 'r') as f:
                 content = await f.read()
-                return json.loads(content) if content.strip() else []
-        except (json.JSONDecodeError, FileNotFoundError) as e:
-            logger.warning("Failed to load articles", error=str(e))
+                if not content.strip():
+                    logger.debug("Articles JSON file is empty", path=str(self.json_file))
+                    return []
+                # Try to parse as single JSON array
+                try:
+                    return json.loads(content)
+                except json.JSONDecodeError as e:
+                    # If that fails, try parsing as newline-delimited JSON (NDJSON)
+                    logger.warning("Failed to parse articles as JSON array, trying NDJSON format", 
+                                 path=str(self.json_file), error=str(e))
+                    articles = []
+                    for line_num, line in enumerate(content.strip().split('\n'), 1):
+                        if line.strip():
+                            try:
+                                article = json.loads(line)
+                                articles.append(article)
+                            except json.JSONDecodeError as line_error:
+                                logger.warning("Failed to parse article line", 
+                                             path=str(self.json_file), line=line_num, error=str(line_error))
+                    return articles
+        except FileNotFoundError:
+            logger.debug("Articles JSON file not found", path=str(self.json_file))
+            return []
+        except Exception as e:
+            logger.error("Failed to load articles", path=str(self.json_file), error=str(e), exc_info=True)
             return []
     
     async def _save_articles(self, articles: List[Dict[str, Any]]):
@@ -160,6 +204,9 @@ class ArticleRepository:
         """
         Remove articles older than rolling window and archive them.
         
+        NOTE: This method should be called while holding _file_lock to prevent race conditions.
+        The cleanup runs after store_article saves, so it will see the newly stored article.
+        
         Returns:
             Path to archive file if articles were archived, None otherwise
         """
@@ -170,7 +217,9 @@ class ArticleRepository:
         rolling_timestamp = rolling_cutoff.timestamp()
         archive_timestamp = archive_cutoff.timestamp()
         
+        # Reload articles (we're inside lock, so this is safe)
         articles = await self._load_articles()
+        logger.debug("Cleanup: Loaded articles for cleanup", articles_count=len(articles))
         current_articles = []
         articles_to_archive = []
         
@@ -205,11 +254,15 @@ class ArticleRepository:
         if articles_to_archive:
             archive_path = await self._archive_articles(articles_to_archive)
         
-        # Save current articles
+        # Save current articles (inside lock, so safe)
         await self._save_articles(current_articles)
         
         if articles_to_archive:
             logger.info("Archived articles", count=len(articles_to_archive), path=str(archive_path))
+        
+        logger.debug("Cleanup: Completed", 
+                    articles_kept=len(current_articles), 
+                    articles_archived=len(articles_to_archive) if articles_to_archive else 0)
         
         return archive_path
     

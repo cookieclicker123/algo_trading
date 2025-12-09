@@ -51,6 +51,7 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
         api_key: str,
         metrics_service,  # Required - injected via DI
         ticker_validator=None,  # Will be injected after brokerage is initialized
+        market_data_validator=None,  # Will be injected after brokerage is initialized
         model: str = "llama-3.3-70b-versatile",
         enabled: bool = True,
     ):
@@ -64,12 +65,14 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
             enabled: Whether classification is enabled
             metrics_service: Optional metrics service for statistics (injected via DI)
             ticker_validator: TickerValidator instance for exchange validation (injected via DI)
+            market_data_validator: MarketDataValidator instance for market cap/price validation (injected via DI)
         """
         self.enabled = enabled
         self.model = model
         self.api_key = api_key
         self.metrics_service = metrics_service  # ✅ Injected metrics service
         self.ticker_validator = ticker_validator  # ✅ Injected ticker validator
+        self.market_data_validator = market_data_validator  # ✅ Injected market data validator
             
         
         # Stateful: Groq client (initialized if enabled)
@@ -88,14 +91,13 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
         
         # ✅ No stats dictionary - MetricsService aggregates from events!
         
-        self.ticker_validator = ticker_validator  # Can be None initially, set later
-        
         logger.info(
             "ClassificationInfrastructureService initialized",
             model=model,
             enabled=enabled,
             has_api_key=bool(api_key),
-            has_ticker_validator=ticker_validator is not None
+            has_ticker_validator=ticker_validator is not None,
+            has_market_data_validator=market_data_validator is not None
         )
     
     def _load_prompt(self) -> str:
@@ -161,6 +163,12 @@ Summary: {summary}"""
         else:
             logger.warning("TickerValidator not set - exchange validation will be skipped")
         
+        if self.market_data_validator:
+            await self.market_data_validator.start()
+            logger.info("MarketDataValidator started via ClassificationInfrastructureService")
+        else:
+            logger.warning("MarketDataValidator not available - market cap/price filtering disabled")
+        
         # Domain listener will publish ClassificationRequestedInfrastructureEvent
         # Event bus automatically prevents duplicate subscriptions
         self.event_bus.subscribe(InfrastructureEventType.CLASSIFICATION_REQUESTED, self.handle_classification_requested)
@@ -180,6 +188,10 @@ Summary: {summary}"""
         if self.ticker_validator:
             await self.ticker_validator.stop()
             logger.info("TickerValidator stopped via ClassificationInfrastructureService")
+        
+        if self.market_data_validator:
+            await self.market_data_validator.stop()
+            logger.info("MarketDataValidator stopped via ClassificationInfrastructureService")
         
         # Unsubscribe from events (safe even if not subscribed)
         self.event_bus.unsubscribe(InfrastructureEventType.CLASSIFICATION_REQUESTED, self.handle_classification_requested)
@@ -238,7 +250,49 @@ Summary: {summary}"""
                 await self._publish_skipped_event(infra_event, "not_tradeable_exchange")
                 return
             
-            # Step 3: Both checks passed - proceed to Groq API classification
+            # Step 3: Check market cap and price thresholds (MarketDataValidator)
+            # Use first ticker for validation (same as trade request factory)
+            primary_ticker = request_data.article_tickers[0] if request_data.article_tickers else None
+            
+            if self.market_data_validator and primary_ticker:
+                logger.debug(
+                    "CLASSIFY INFRA: Checking market cap and price thresholds",
+                    article_id=request_data.article_id,
+                    ticker=primary_ticker
+                )
+                market_cap_millions, price = await self.market_data_validator.get_market_cap_and_price(primary_ticker)
+                
+                logger.debug(
+                    "CLASSIFY INFRA: Market data fetched",
+                    article_id=request_data.article_id,
+                    ticker=primary_ticker,
+                    market_cap_millions=market_cap_millions,
+                    price=price
+                )
+                
+                # Filter 3a: Market cap < $500M
+                if market_cap_millions is not None and market_cap_millions < 500:
+                    logger.info(
+                        "⏭️ CLASSIFY INFRA: Skipping classification - market cap below $500M",
+                        article_id=request_data.article_id,
+                        ticker=primary_ticker,
+                        market_cap_millions=market_cap_millions
+                    )
+                    await self._publish_skipped_event(infra_event, "low_market_cap")
+                    return
+                
+                # Filter 3b: Price < $5
+                if price is not None and price < 5.0:
+                    logger.info(
+                        "⏭️ CLASSIFY INFRA: Skipping classification - price below $5",
+                        article_id=request_data.article_id,
+                        ticker=primary_ticker,
+                        price=price
+                    )
+                    await self._publish_skipped_event(infra_event, "low_price")
+                    return
+            
+            # Step 4: All checks passed - proceed to Groq API classification
             logger.info(
                 "✅ CLASSIFY INFRA: Pre-filters passed, proceeding to Groq API",
                 article_id=request_data.article_id,

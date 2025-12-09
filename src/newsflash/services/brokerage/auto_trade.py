@@ -93,7 +93,7 @@ async def fetch_article_for_trade(
         # If not found and we have retries left, wait before retrying
         if attempt < max_retries - 1:
             delay = initial_delay * (2 ** attempt)  # Exponential backoff
-            logger.debug(
+            logger.info(
                 "AutoTradeService: Article not found, retrying",
                 article_id=article_id,
                 attempt=attempt + 1,
