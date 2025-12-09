@@ -143,12 +143,40 @@ class NotifyImminentArticleUseCase:
             )
             
             # Create notification message from article and classification using factory
-            # Add publication time and notification time to body
+            # Get websocket received time from stored article (if available)
+            # Fetch stored article to get websocket_received_at timestamp
+            websocket_received_at = None
+            try:
+                stored_article_dict = await self.storage_query_service.article_repository.fetch_article(article_id)
+                if stored_article_dict:
+                    stored_article_model = self.storage_query_service.stored_article_factory.create_from_dict(stored_article_dict)
+                    if stored_article_model and stored_article_model.websocket_received_at:
+                        websocket_received_at = stored_article_model.websocket_received_at
+            except Exception as e:
+                logger.debug(
+                    "NotifyImminentArticleUseCase: Could not fetch websocket_received_at",
+                    article_id=article_id,
+                    error=str(e)
+                )
+            
+            # Add publication time, websocket received time, and notification time to body
             notification_time = datetime.now()
-            time_diff_seconds = (notification_time - domain_article.published_at).total_seconds()
+            time_to_notification = (notification_time - domain_article.published_at).total_seconds()
+            time_ws_to_notification = None
+            if websocket_received_at:
+                time_ws_to_notification = (notification_time - websocket_received_at).total_seconds()
             
             # Generate body with timing information
             tickers_str = ", ".join(sorted(domain_article.tickers)) if domain_article.tickers else "None"
+            timing_lines = [
+                f"📅 Published At: {domain_article.published_at.strftime('%Y-%m-%d %H:%M:%S UTC')}"
+            ]
+            if websocket_received_at:
+                timing_lines.append(f"📡 WebSocket Received: {websocket_received_at.strftime('%Y-%m-%d %H:%M:%S UTC')}")
+                timing_lines.append(f"⏱️  WebSocket → Notification: {time_ws_to_notification:.2f} seconds")
+            timing_lines.append(f"📱 Notification Received: {notification_time.strftime('%Y-%m-%d %H:%M:%S UTC')}")
+            timing_lines.append(f"⏱️  Published → Notification: {time_to_notification:.2f} seconds")
+            
             body = (
                 f"🚨 IMMINENT NEWS ALERT\n\n"
                 f"📰 {domain_article.title}\n\n"
@@ -156,9 +184,7 @@ class NotifyImminentArticleUseCase:
                 f"📊 Classification: {classification_result.classification.value.upper()}\n"
                 f"🎯 Confidence: {classification_result.confidence.value}\n"
                 f"💭 Reasoning: {classification_result.reasoning}\n\n"
-                f"📅 Published At: {domain_article.published_at.strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
-                f"📱 Notification Received: {notification_time.strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
-                f"⏱️  Time to Notification: {time_diff_seconds:.2f} seconds\n\n"
+                + "\n".join(timing_lines) + "\n\n"
                 f"🔗 {domain_article.url if domain_article.url else 'No URL'}"
             )
             

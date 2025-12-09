@@ -174,15 +174,23 @@ class ExitTradeUseCase:
             await asyncio.sleep(delay_seconds)
             
             # Create exit trade request
+            # Use exact shares from entry trade (supports fractional shares)
             exit_trade_request = TradeRequest(
                 ticker=ticker,
                 action=TradeAction.SELL,
                 amount_usd=entry_trade_request.amount_usd,  # Use same amount for exit
-                shares=shares,  # Exit same number of shares
+                shares=shares,  # Exit exact same number of shares (supports fractional)
                 leverage=None,  # No leverage on exit
                 instrument=entry_trade_request.instrument,
                 article_id=entry_trade_request.article_id,
                 requested_at=datetime.now()
+            )
+            
+            logger.info(
+                "EXIT USE CASE: Created exit trade request",
+                ticker=ticker,
+                exit_shares=shares,
+                shares_type="fractional" if shares and shares != int(shares) else "whole"
             )
             
             # Publish exit trade request

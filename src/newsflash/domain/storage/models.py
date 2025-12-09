@@ -26,6 +26,7 @@ class StoredArticle(BaseModel):
     tags: FrozenSet[str] = Field(default_factory=frozenset, description="Content tags (immutable)")
     categories: FrozenSet[str] = Field(default_factory=frozenset, description="Content categories (immutable)")
     stored_at: datetime = Field(default_factory=datetime.now, description="When article was stored")
+    websocket_received_at: Optional[datetime] = Field(None, description="When article was received through websocket")
     
     model_config = {"frozen": True, "validate_assignment": False}  # Immutable
     

@@ -29,7 +29,7 @@ class ArticleStorageMapper:
         Returns:
             Dictionary representation for storage
         """
-        return {
+        result = {
             "article_id": domain_article.article_id,
             "source": domain_article.source,
             "source_id": domain_article.source_id,
@@ -44,6 +44,10 @@ class ArticleStorageMapper:
             "tags": list(domain_article.tags),
             "categories": list(domain_article.categories),
         }
+        # Add optional websocket_received_at if present
+        if domain_article.websocket_received_at:
+            result["websocket_received_at"] = domain_article.websocket_received_at.isoformat()
+        return result
     
     @staticmethod
     def to_infrastructure_request(article_data: dict, article_id: str) -> ArticleStorageRequestData:

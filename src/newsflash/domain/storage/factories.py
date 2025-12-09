@@ -18,12 +18,13 @@ class StoredArticleFactory:
     """
     
     @staticmethod
-    def create_from_domain_article(domain_article: DomainArticle) -> Optional[StoredArticle]:
+    def create_from_domain_article(domain_article: DomainArticle, websocket_received_at: Optional[datetime] = None) -> Optional[StoredArticle]:
         """
         Create StoredArticle from domain Article.
         
         Args:
             domain_article: Domain Article model
+            websocket_received_at: Optional timestamp when article was received through websocket
             
         Returns:
             StoredArticle domain model, or None if invalid
@@ -43,7 +44,8 @@ class StoredArticleFactory:
                 tickers=domain_article.tickers,
                 tags=domain_article.tags,
                 categories=domain_article.categories,
-                stored_at=datetime.now()
+                stored_at=datetime.now(),
+                websocket_received_at=websocket_received_at
             )
         except Exception as e:
             logger.error("Error creating StoredArticle from domain Article", error=str(e), exc_info=True)
@@ -117,6 +119,15 @@ class StoredArticleFactory:
                     # Use default if parsing fails
                     pass
             
+            # Parse websocket_received_at (optional)
+            websocket_received_at = None
+            if article_data.get("websocket_received_at"):
+                try:
+                    websocket_received_at = datetime.fromisoformat(article_data["websocket_received_at"].replace('Z', '+00:00'))
+                except (ValueError, AttributeError):
+                    # Optional field, ignore if parsing fails
+                    pass
+            
             # Convert lists to frozensets
             tickers = frozenset(str(t).upper().strip() for t in article_data.get("tickers", []) if t)
             tags = frozenset(str(t) for t in article_data.get("tags", []) if t)
@@ -136,7 +147,8 @@ class StoredArticleFactory:
                 tickers=tickers,
                 tags=tags,
                 categories=categories,
-                stored_at=stored_at
+                stored_at=stored_at,
+                websocket_received_at=websocket_received_at
             )
         except Exception as e:
             logger.error("Error creating StoredArticle from dict", error=str(e), exc_info=True)

@@ -81,7 +81,11 @@ class StoreArticleUseCase:
             )
             
             # Create StoredArticle domain model from domain Article using factory
-            stored_article = self.stored_article_factory.create_from_domain_article(domain_article)
+            # Pass websocket_received_at from event to preserve timing information
+            stored_article = self.stored_article_factory.create_from_domain_article(
+                domain_article, 
+                websocket_received_at=domain_event.received_at
+            )
             
             if not stored_article:
                 logger.warning(

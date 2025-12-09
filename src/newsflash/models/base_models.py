@@ -106,7 +106,7 @@ class TradeRequest(BaseModel):
     ticker: str = Field(..., description="Stock ticker symbol")
     amount_usd: float = Field(..., description="Approximate notional value for logging")
     action: str = Field(default="BUY", description="Trade action (BUY/SELL)")
-    shares: Optional[int] = Field(default=None, description="Units to trade (shares for stock, contracts for options)")
+    shares: Optional[float] = Field(default=None, description="Units to trade (supports fractional shares for stocks)")
     instrument: TradeInstrument = Field(default=TradeInstrument.STOCK, description="Instrument type for the trade")
     option_contract: Optional[OptionContractParams] = Field(
         default=None,
