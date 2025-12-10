@@ -188,14 +188,16 @@ class TradeResultMapper:
             else:
                 status = TradeStatus.FAILED
             
-            # Store spread_info in trade_request dict as metadata for notifications
+            # Store spread_info and instrument_details in trade_request dict as metadata for notifications
             trade_request_dict = infra_event.trade_request.model_dump()
             if infra_event.spread_info:
                 trade_request_dict["_spread_info"] = infra_event.spread_info  # Store as metadata
+            if infra_event.instrument_details:
+                trade_request_dict["_instrument_details"] = infra_event.instrument_details  # Store ladder stats
             
             # Build domain TradeResult
             trade_result = TradeResult(
-                trade_request=trade_request_dict,  # Convert to dict for storage (includes spread_info metadata)
+                trade_request=trade_request_dict,  # Convert to dict for storage (includes metadata)
                 success=infra_event.success,
                 status=status,
                 shares=infra_event.shares,

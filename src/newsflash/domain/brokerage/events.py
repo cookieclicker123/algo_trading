@@ -4,7 +4,7 @@ Domain events for brokerage/trading - business events published by domain layer.
 These use domain models directly - fully typed, not Dict[str, Any].
 """
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 
 from .models import TradeRequest, TradeResult, Quote
@@ -43,6 +43,8 @@ class TradeFailedDomainEvent(BaseModel):
     error: str = Field(..., description="Error message")
     failed_at: datetime = Field(..., description="When trade failed")
     source: str = Field(default="domain.brokerage", description="Event source")
+    ladder_attempts: Optional[int] = Field(None, description="Number of ladder attempts made (for extended hours)")
+    ladder_attempts_detail: Optional[List[Dict[str, Any]]] = Field(None, description="Detailed ladder attempts with timestamps")
     
     model_config = {"frozen": True}
 

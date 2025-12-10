@@ -23,7 +23,7 @@ from ...services.storage import StorageQueryService
 logger = get_logger(__name__)
 
 
-def format_trade_execution_message(trade_result: TradeResult, article_title: str = None, publication_time: datetime = None, spread_info: dict = None) -> str:
+def format_trade_execution_message(trade_result: TradeResult, article_title: str = None, publication_time: datetime = None, spread_info: dict = None, instrument_details: dict = None) -> str:
     """
     Format trade execution notification message with all details.
     
@@ -86,6 +86,23 @@ def format_trade_execution_message(trade_result: TradeResult, article_title: str
         spread = spread_info.get("spread", ask - bid)
         spread_pct = (spread / ((bid + ask) / 2)) * 100 if (bid + ask) > 0 else 0
         message_parts.append(f"📊 Spread: ${spread:.4f} ({spread_pct:.3f}%) | Bid: ${bid:.2f} | Ask: ${ask:.2f}")
+    
+    # Add detailed ladder statistics for extended hours trades
+    if instrument_details and session_str in ["premarket", "postmarket"]:
+        ladder_attempts = instrument_details.get("ladder_attempts")
+        ladder_attempts_detail = instrument_details.get("ladder_attempts_detail", [])
+        distance_to_mid = instrument_details.get("distance_to_mid")
+        distance_to_target = instrument_details.get("distance_to_target")
+        
+        if ladder_attempts:
+            message_parts.append(f"🔄 Ladder Attempts: {ladder_attempts}")
+        
+        if distance_to_mid is not None:
+            target_label = "Ask" if trade_request.action.value == "BUY" else "Bid"
+            mid_label = "Mid"
+            message_parts.append(f"📏 Distance to {mid_label}: ${distance_to_mid:.4f}")
+            if distance_to_target is not None:
+                message_parts.append(f"📏 Distance to {target_label}: ${distance_to_target:.4f}")
     
     # Add commission if present
     if trade_result.commission and trade_result.commission > 0:
@@ -247,16 +264,18 @@ class NotifyTradeExecutedUseCase:
                         note="Trade notification will still be sent without article details"
                     )
             
-            # Get spread_info from trade_request dict metadata (stored by mapper)
+            # Get spread_info and instrument_details from trade_request dict metadata (stored by mapper)
             trade_request_dict = trade_result.trade_request
             spread_info = trade_request_dict.get("_spread_info", {})
+            instrument_details = trade_request_dict.get("_instrument_details", {})
             
             # Format trade execution message
             trade_message = format_trade_execution_message(
                 trade_result=trade_result,
                 article_title=article_title,
                 publication_time=publication_time,
-                spread_info=spread_info
+                spread_info=spread_info,
+                instrument_details=instrument_details
             )
             
             # Create notification message

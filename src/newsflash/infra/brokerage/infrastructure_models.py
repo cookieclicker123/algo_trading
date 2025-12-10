@@ -63,6 +63,8 @@ class InfrastructureTradeFailedEvent(BaseModel):
     error: str
     failed_at: datetime
     source: str = "brokerage"
+    ladder_attempts: Optional[int] = None
+    ladder_attempts_detail: Optional[list] = None  # List of attempt dicts with timestamps
 
 
 class InfrastructureQuoteData(BaseModel):

@@ -3,7 +3,7 @@ Domain listener for brokerage - subscribes to infrastructure events, publishes d
 
 This bridges infrastructure ↔ domain for trading operations.
 """
-from typing import Dict, Any
+from typing import Dict, Any, Optional, List
 from datetime import datetime
 
 from ...shared.event_bus import AsyncEventBus
@@ -241,7 +241,14 @@ class BrokerageDomainListener(
         )
     
     @handle_errors(log_context="BrokerageDomainListener: Error publishing domain trade failed event")
-    async def publish_trade_failed(self, trade_request: TradeRequest, error: str, failed_at: datetime) -> None:
+    async def publish_trade_failed(
+        self, 
+        trade_request: TradeRequest, 
+        error: str, 
+        failed_at: datetime,
+        ladder_attempts: Optional[int] = None,
+        ladder_attempts_detail: Optional[List[Dict[str, Any]]] = None
+    ) -> None:
         """
         Publish TradeFailed domain event (implements DomainTradeEventPublisher).
         
@@ -249,18 +256,23 @@ class BrokerageDomainListener(
             trade_request: Typed domain TradeRequest model
             error: Error message
             failed_at: When trade failed
+            ladder_attempts: Optional number of ladder attempts (for extended hours)
+            ladder_attempts_detail: Optional detailed ladder attempts list
         """
         domain_event = TradeFailedDomainEvent(
             trade_request=trade_request,
             error=error,
-            failed_at=failed_at
+            failed_at=failed_at,
+            ladder_attempts=ladder_attempts,
+            ladder_attempts_detail=ladder_attempts_detail
         )
         await self.event_bus.publish(DomainEventType.TRADE_FAILED, domain_event.model_dump())
         
         logger.info(
             "BrokerageDomainListener: Published domain trade failed event",
             ticker=trade_request.ticker,
-            error=error
+            error=error,
+            ladder_attempts=ladder_attempts
         )
     
     @handle_errors(log_context="BrokerageDomainListener: Error publishing domain trade queued event")
@@ -332,8 +344,14 @@ class BrokerageDomainListener(
             )
             return
         
-        # Step 4: PUBLISH domain event via protocol method
-        await self.publish_trade_failed(domain_trade_request, infra_event.error, infra_event.failed_at)
+        # Step 3: PUBLISH domain event via protocol method (with ladder attempts if available)
+        await self.publish_trade_failed(
+            domain_trade_request, 
+            infra_event.error, 
+            infra_event.failed_at,
+            ladder_attempts=infra_event.ladder_attempts,
+            ladder_attempts_detail=infra_event.ladder_attempts_detail
+        )
     
     @handle_errors(log_context="BrokerageDomainListener: Error handling infrastructure trade queued")
     async def _handle_infra_trade_queued(self, event_type: str, event_data: Dict[str, Any]) -> None:

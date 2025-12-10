@@ -22,7 +22,7 @@ from ...services.storage import StorageQueryService
 logger = get_logger(__name__)
 
 
-def format_trade_failed_message(trade_request, error: str, article_title: str = None, publication_time: datetime = None) -> str:
+def format_trade_failed_message(trade_request, error: str, article_title: str = None, publication_time: datetime = None, ladder_attempts_detail: list = None, ladder_attempts: int = None) -> str:
     """
     Format trade failure notification message with all details.
     
@@ -69,6 +69,25 @@ def format_trade_failed_message(trade_request, error: str, article_title: str = 
         f"⚙️  Instrument: {trade_request.instrument.value.upper()}",
         "",
         f"🚨 Reason: {user_error}",
+    ])
+    
+    # Add ladder attempts detail for extended hours trades
+    if ladder_attempts and ladder_attempts > 0:
+        message_parts.append(f"🔄 Total Attempts: {ladder_attempts}")
+        
+        if ladder_attempts_detail and len(ladder_attempts_detail) > 0:
+            message_parts.append("")
+            message_parts.append("📊 Ladder Attempts Detail:")
+            for i, attempt in enumerate(ladder_attempts_detail[:10], 1):  # Show first 10 attempts
+                limit_price = attempt.get("limit_price")
+                time_since_prev = attempt.get("time_since_previous", 0)
+                if limit_price:
+                    time_str = f"{time_since_prev:.2f}s" if time_since_prev > 0 else "0.00s"
+                    message_parts.append(f"   Attempt {i}: ${limit_price:.2f} (wait: {time_str})")
+            if len(ladder_attempts_detail) > 10:
+                message_parts.append(f"   ... and {len(ladder_attempts_detail) - 10} more attempts")
+    
+    message_parts.extend([
         "",
         f"⏰ Failed At: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}",
     ])
@@ -164,14 +183,8 @@ class NotifyTradeFailedUseCase:
                 )
                 return
             
-            # Only notify for BUY trades (entry trades from imminent articles)
-            # Exit trade failures are less critical and already tracked
-            if trade_request.is_sell():
-                logger.debug(
-                    "NotifyTradeFailedUseCase: Skipping notification for SELL trade failure",
-                    ticker=trade_request.ticker
-                )
-                return
+            # Notify for both BUY and SELL trade failures
+            # Exit trade failures are important - user needs to know why exits failed
             
             logger.info(
                 "🎯 NOTIFY TRADE FAILED: Orchestrating notification request",
@@ -199,12 +212,18 @@ class NotifyTradeFailedUseCase:
                         error=str(e)
                     )
             
+            # Extract ladder attempts detail from domain event (if available)
+            ladder_attempts_detail = domain_event.ladder_attempts_detail
+            ladder_attempts = domain_event.ladder_attempts
+            
             # Format trade failure message
             failure_message = format_trade_failed_message(
                 trade_request=trade_request,
                 error=domain_event.error,
                 article_title=article_title,
-                publication_time=publication_time
+                publication_time=publication_time,
+                ladder_attempts_detail=ladder_attempts_detail,
+                ladder_attempts=ladder_attempts
             )
             
             # Create notification message

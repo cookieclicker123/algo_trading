@@ -5,7 +5,7 @@ Pure infrastructure - executes trades and publishes events.
 import asyncio
 import time
 from typing import Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import LimitOrderRequest
@@ -167,6 +167,9 @@ class AlpacaExtendedHoursTradeExecutor:
             wait_time = interval_early
             # current_order_id is already initialized at function start for exception handler access
             
+            # Track all ladder attempts for detailed statistics
+            ladder_attempts: list[Dict[str, Any]] = []
+            
             # Ladder loop
             while abs(current_cents) <= abs(max_cents_from_start):
                 remaining = time_left()
@@ -195,6 +198,10 @@ class AlpacaExtendedHoursTradeExecutor:
                 # Calculate limit price
                 limit_price = calculate_limit_price(base_price, current_cents)
                 
+                # Record attempt start time
+                attempt_start_time = time.time()
+                attempt_timestamp = datetime.now(timezone.utc) if hasattr(datetime, 'now') else datetime.utcnow()
+                
                 # Place limit order
                 order_data = LimitOrderRequest(
                     symbol=trade_request.ticker,
@@ -219,6 +226,40 @@ class AlpacaExtendedHoursTradeExecutor:
                 fill_wait_start = time.time()
                 filled = await self._wait_for_fill(order.id, wait_time, timeout_deadline)
                 fill_wait_time = time.time() - fill_wait_start
+                attempt_end_time = time.time()
+                
+                # Record attempt details
+                attempt_info = {
+                    "attempt_number": attempt_number,
+                    "timestamp": attempt_start_time,
+                    "limit_price": limit_price,
+                    "cents_offset": current_cents,
+                    "base_price": base_price,
+                    "wait_time": fill_wait_time,
+                    "time_since_previous": attempt_start_time - ladder_attempts[-1]["timestamp"] if ladder_attempts else 0.0,
+                    "filled": filled
+                }
+                
+                # Add NBBO info if available
+                if nbbo_snapshot:
+                    attempt_info["nbbo_bid"] = nbbo_snapshot.get("bid")
+                    attempt_info["nbbo_ask"] = nbbo_snapshot.get("ask")
+                    attempt_info["nbbo_mid"] = nbbo_snapshot.get("mid")
+                    attempt_info["nbbo_spread"] = nbbo_snapshot.get("spread")
+                    
+                    # Calculate distance to mid/ask/bid
+                    if action == "BUY":
+                        if nbbo_snapshot.get("ask"):
+                            attempt_info["distance_to_ask"] = limit_price - nbbo_snapshot.get("ask")
+                        if nbbo_snapshot.get("mid"):
+                            attempt_info["distance_to_mid"] = limit_price - nbbo_snapshot.get("mid")
+                    else:  # SELL
+                        if nbbo_snapshot.get("bid"):
+                            attempt_info["distance_to_bid"] = limit_price - nbbo_snapshot.get("bid")
+                        if nbbo_snapshot.get("mid"):
+                            attempt_info["distance_to_mid"] = limit_price - nbbo_snapshot.get("mid")
+                
+                ladder_attempts.append(attempt_info)
                 
                 if filled:
                     # Order filled - clear tracking
@@ -240,11 +281,28 @@ class AlpacaExtendedHoursTradeExecutor:
                     total_cost = fill_price * filled_shares if fill_price and filled_shares else None
                     commission = 0.0  # Alpaca paper trading has no commission
                     
-                    # Calculate percentage above/below
+                    # Calculate percentage above/below base price
                     percentage_above_below = None
                     if base_price and fill_price:
                         diff = fill_price - base_price
                         percentage_above_below = (diff / base_price) * 100
+                    
+                    # Calculate distance to mid/ask/bid for successful fill
+                    distance_to_mid = None
+                    distance_to_target = None  # ask for BUY, bid for SELL
+                    if nbbo_snapshot:
+                        mid = nbbo_snapshot.get("mid")
+                        if mid:
+                            distance_to_mid = fill_price - mid
+                        
+                        if action == "BUY":
+                            ask = nbbo_snapshot.get("ask")
+                            if ask:
+                                distance_to_target = fill_price - ask
+                        else:  # SELL
+                            bid = nbbo_snapshot.get("bid")
+                            if bid:
+                                distance_to_target = fill_price - bid
                     
                     result = {
                         "success": True,
@@ -271,8 +329,25 @@ class AlpacaExtendedHoursTradeExecutor:
                             "price_fallback_used": price_fallback_used,
                             "nbbo": nbbo_snapshot,
                             "ladder_attempts": attempt_number,
+                            "ladder_attempts_detail": ladder_attempts,  # All attempts with timestamps
+                            "spread": nbbo_snapshot.get("spread") if nbbo_snapshot else None,
+                            "distance_to_mid": distance_to_mid,
+                            "distance_to_target": distance_to_target,  # ask for BUY, bid for SELL
                         },
                     }
+                    
+                    logger.info(
+                        f"✅ ORDER FILLED: Detailed statistics",
+                        ticker=trade_request.ticker,
+                        action=action,
+                        attempts=attempt_number,
+                        fill_price=fill_price,
+                        base_price=base_price,
+                        spread=nbbo_snapshot.get("spread") if nbbo_snapshot else None,
+                        distance_to_mid=distance_to_mid,
+                        distance_to_target=distance_to_target,
+                        ladder_attempts_detail=ladder_attempts
+                    )
                     
                     await self._publish_executed_event(trade_request, result)
                     return result
@@ -292,44 +367,92 @@ class AlpacaExtendedHoursTradeExecutor:
                 logger.info("Ladder exhausted - cancelling final unfilled order", order_id=current_order_id)
                 await self._cancel_order_safely(current_order_id)
             
+            # Log all attempts for failed trade
+            logger.warning(
+                f"❌ LADDER EXHAUSTED: All attempts failed",
+                ticker=trade_request.ticker,
+                action=action,
+                total_attempts=attempt_number,
+                ladder_attempts_detail=ladder_attempts,
+                final_limit_price=ladder_attempts[-1]["limit_price"] if ladder_attempts else None,
+                base_price=base_price
+            )
+            
             error_result = {
                 "success": False,
                 "error": f"Ladder exhausted after {attempt_number} attempts without fill",
                 "session": session,
                 "order_type": "LADDER_LIMIT",
                 "instrument": "stock",
+                "ladder_attempts": attempt_number,
+                "ladder_attempts_detail": ladder_attempts,  # All attempts with timestamps
+                "base_price": base_price,
+                "nbbo": nbbo_snapshot,
             }
-            await self._publish_failed_event(trade_request, error_result["error"])
+            await self._publish_failed_event(trade_request, error_result["error"], error_result)
             return error_result
             
         except TimeoutError as exc:
-            logger.error(f"⏱️ Extended hours trade timed out: {exc}")
+            # Get variables safely
+            attempts_made = attempt_number if 'attempt_number' in locals() else 0
+            attempts_detail = ladder_attempts if 'ladder_attempts' in locals() else []
+            current_session = session if 'session' in locals() else "unknown"
+            current_base_price = base_price if 'base_price' in locals() else None
+            current_nbbo = nbbo_snapshot if 'nbbo_snapshot' in locals() else None
+            
+            logger.error(
+                f"⏱️ Extended hours trade timed out: {exc}",
+                ticker=trade_request.ticker,
+                attempts_made=attempts_made,
+                ladder_attempts_detail=attempts_detail
+            )
             # Cancel any pending order on timeout
             if 'current_order_id' in locals() and current_order_id:
                 await self._cancel_order_safely(current_order_id)
             error_result = {
                 "success": False,
                 "error": f"Trade execution timed out: {str(exc)}",
-                "session": session if 'session' in locals() else "unknown",
+                "session": current_session,
                 "order_type": "LADDER_LIMIT",
                 "instrument": "stock",
+                "ladder_attempts": attempts_made,
+                "ladder_attempts_detail": attempts_detail,
+                "base_price": current_base_price,
+                "nbbo": current_nbbo,
             }
-            await self._publish_failed_event(trade_request, error_result["error"])
+            await self._publish_failed_event(trade_request, error_result["error"], error_result)
             return error_result
             
         except Exception as exc:
-            logger.error(f"⏱️ Extended hours trade execution failed: {exc}", exc_info=True)
+            # Get variables safely
+            attempts_made = attempt_number if 'attempt_number' in locals() else 0
+            attempts_detail = ladder_attempts if 'ladder_attempts' in locals() else []
+            current_session = session if 'session' in locals() else "unknown"
+            current_base_price = base_price if 'base_price' in locals() else None
+            current_nbbo = nbbo_snapshot if 'nbbo_snapshot' in locals() else None
+            
+            logger.error(
+                f"⏱️ Extended hours trade execution failed: {exc}",
+                ticker=trade_request.ticker,
+                attempts_made=attempts_made,
+                ladder_attempts_detail=attempts_detail,
+                exc_info=True
+            )
             # Cancel any pending order on error
             if 'current_order_id' in locals() and current_order_id:
                 await self._cancel_order_safely(current_order_id)
             error_result = {
                 "success": False,
                 "error": str(exc),
-                "session": session if 'session' in locals() else "unknown",
+                "session": current_session,
                 "order_type": "LADDER_LIMIT",
                 "instrument": "stock",
+                "ladder_attempts": attempts_made,
+                "ladder_attempts_detail": attempts_detail,
+                "base_price": current_base_price,
+                "nbbo": current_nbbo,
             }
-            await self._publish_failed_event(trade_request, str(exc))
+            await self._publish_failed_event(trade_request, str(exc), error_result)
             return error_result
     
     async def _cancel_order_safely(self, order_id: str) -> None:
@@ -399,6 +522,18 @@ class AlpacaExtendedHoursTradeExecutor:
         """Publish trade executed event."""
         infra_trade_request = build_infrastructure_trade_request_data(trade_request)
         
+        # Extract spread_info from instrument_details for notifications
+        instrument_details = result.get("instrument_details", {})
+        spread_info = {}
+        if instrument_details.get("nbbo"):
+            nbbo = instrument_details["nbbo"]
+            spread_info = {
+                "bid": nbbo.get("bid"),
+                "ask": nbbo.get("ask"),
+                "spread": nbbo.get("spread"),
+                "mid": nbbo.get("mid")
+            }
+
         event = TradeExecutedEvent(
             trade_request=infra_trade_request,
             success=result["success"],
@@ -409,10 +544,11 @@ class AlpacaExtendedHoursTradeExecutor:
             session=result["session"],
             order_type=result["order_type"],
             instrument=result["instrument"],
-            instrument_details=result.get("instrument_details", {}),
+            instrument_details=instrument_details,  # Include ladder_attempts_detail, spread, distance stats
             timing_info=result.get("timing_info", {}),
             limit_price_used=result.get("limit_price_used"),
             percentage_above_below=result.get("percentage_above_below"),
+            spread_info=spread_info,  # For notifications
             executed_at=datetime.now(),
             source="brokerage"
         )
@@ -420,16 +556,22 @@ class AlpacaExtendedHoursTradeExecutor:
         await self.event_bus.publish("TradeExecuted", event.model_dump())
         logger.debug("Published TradeExecuted event", ticker=trade_request.ticker)
     
-    async def _publish_failed_event(self, trade_request: TradeRequest, error: str) -> None:
+    async def _publish_failed_event(self, trade_request: TradeRequest, error: str, error_result: Optional[Dict[str, Any]] = None) -> None:
         """Publish trade failed event."""
         infra_trade_request = build_infrastructure_trade_request_data(trade_request)
+        
+        # Include ladder attempts detail if available
+        ladder_attempts_detail = error_result.get("ladder_attempts_detail", []) if error_result else []
+        ladder_attempts = error_result.get("ladder_attempts", 0) if error_result else 0
         
         event = TradeFailedEvent(
             trade_request=infra_trade_request,
             error=error,
             failed_at=datetime.now(),
-            source="brokerage"
+            source="brokerage",
+            ladder_attempts=ladder_attempts,
+            ladder_attempts_detail=ladder_attempts_detail if ladder_attempts_detail else None
         )
         
         await self.event_bus.publish("TradeFailed", event.model_dump())
-        logger.debug("Published TradeFailed event", ticker=trade_request.ticker, error=error)
+        logger.debug("Published TradeFailed event", ticker=trade_request.ticker, error=error, attempts=ladder_attempts)

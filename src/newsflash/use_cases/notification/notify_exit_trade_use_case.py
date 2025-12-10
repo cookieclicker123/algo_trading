@@ -24,7 +24,8 @@ logger = get_logger(__name__)
 
 def format_exit_trade_message(
     exit_trade_result: TradeResult,
-    entry_trade_result: Optional[TradeResult] = None
+    entry_trade_result: Optional[TradeResult] = None,
+    instrument_details: Optional[dict] = None
 ) -> str:
     """
     Format exit trade notification message with profit/loss details.
@@ -74,6 +75,21 @@ def format_exit_trade_message(
                 message_parts.append(f"   ✅ Profit: ${pnl:.2f} ({pnl_percent:+.2f}%)")
             else:
                 message_parts.append(f"   ❌ Loss: ${pnl:.2f} ({pnl_percent:+.2f}%)")
+    
+    # Add detailed ladder statistics for extended hours exits
+    if instrument_details:
+        ladder_attempts = instrument_details.get("ladder_attempts")
+        ladder_attempts_detail = instrument_details.get("ladder_attempts_detail", [])
+        distance_to_mid = instrument_details.get("distance_to_mid")
+        distance_to_bid = instrument_details.get("distance_to_target")  # For SELL, target is bid
+        
+        if ladder_attempts:
+            message_parts.append(f"🔄 Ladder Attempts: {ladder_attempts}")
+        
+        if distance_to_mid is not None:
+            message_parts.append(f"📏 Distance to Mid: ${distance_to_mid:.4f}")
+            if distance_to_bid is not None:
+                message_parts.append(f"📏 Distance to Bid: ${distance_to_bid:.4f}")
     
     # Add commission if present
     if exit_trade_result.commission and exit_trade_result.commission > 0:
@@ -190,10 +206,15 @@ class NotifyExitTradeUseCase:
                     note="This can happen if service restarted between entry and exit, or if entry trade notification wasn't tracked"
                 )
             
+            # Get instrument_details from trade_request dict metadata
+            trade_request_dict = trade_result.trade_request
+            instrument_details = trade_request_dict.get("_instrument_details", {})
+            
             # Format exit trade message
             exit_message = format_exit_trade_message(
                 exit_trade_result=trade_result,
-                entry_trade_result=entry_trade
+                entry_trade_result=entry_trade,
+                instrument_details=instrument_details
             )
             
             # Create notification message
