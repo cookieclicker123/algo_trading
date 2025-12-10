@@ -142,6 +142,7 @@ async def test_full_auto_trade_flow_entry_notification_and_exit():
     from newsflash.use_cases.notification.notify_trade_executed_use_case import NotifyTradeExecutedUseCase
     from newsflash.use_cases.notification.notify_imminent_article_use_case import NotifyImminentArticleUseCase
     from newsflash.use_cases.notification.notify_exit_trade_use_case import NotifyExitTradeUseCase
+    from newsflash.use_cases.notification.notify_trade_failed_use_case import NotifyTradeFailedUseCase
     
     # Get telegram config directly from settings to avoid circular import
     telegram_config_1 = settings.get_telegram_config()
@@ -153,6 +154,10 @@ async def test_full_auto_trade_flow_entry_notification_and_exit():
         storage_query_service=mock_storage_service
     )
     notify_exit_trade_use_case = NotifyExitTradeUseCase(event_bus=event_bus)
+    notify_trade_failed_use_case = NotifyTradeFailedUseCase(
+        event_bus=event_bus,
+        storage_query_service=mock_storage_service
+    )
     
     notification = await initialize_notification_microservice(
         event_bus=event_bus,
@@ -168,6 +173,7 @@ async def test_full_auto_trade_flow_entry_notification_and_exit():
     )
     notification.notify_trade_executed_use_case = notify_trade_executed_use_case
     notification.notify_exit_trade_use_case = notify_exit_trade_use_case
+    notification.notify_trade_failed_use_case = notify_trade_failed_use_case
     
     await notification.start()
     print("✅ Notification service started (with all use cases)")

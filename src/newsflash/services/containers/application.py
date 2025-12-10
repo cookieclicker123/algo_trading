@@ -22,6 +22,7 @@ from ..notification.trade_handler import get_telegram_trade_handler
 from ...use_cases.notification import NotifyImminentArticleUseCase
 from ...use_cases.notification.notify_trade_executed_use_case import NotifyTradeExecutedUseCase
 from ...use_cases.notification.notify_exit_trade_use_case import NotifyExitTradeUseCase
+from ...use_cases.notification.notify_trade_failed_use_case import NotifyTradeFailedUseCase
 from ...use_cases.brokerage import ExitTradeUseCase
 from ...use_cases.storage import StoreArticleUseCase, StoreAuditLogUseCase
 from ...use_cases.websocket import ProcessArticleUseCase
@@ -193,12 +194,12 @@ class ApplicationContainer(containers.DeclarativeContainer):
     )
     
     # AutoTrade service needs event_bus, storage_query_service, and auto-trade config
+    # No trade_amount_usd needed - we use 2x leverage (pay for 1 share, leverage the second)
     auto_trade_service = providers.Factory(
         AutoTradeService,
         event_bus=shared.event_bus,
         storage_query_service=storage_query_service,
         enabled=config.auto_trading_enabled,
-        trade_amount_usd=config.auto_trade_amount_usd,
     )
     
     # Exit trade use case - only needs event_bus (no storage dependency)
@@ -218,6 +219,13 @@ class ApplicationContainer(containers.DeclarativeContainer):
     notify_exit_trade_use_case = providers.Factory(
         NotifyExitTradeUseCase,
         event_bus=shared.event_bus,
+    )
+    
+    # Notify trade failed use case - needs event_bus and storage_query_service
+    notify_trade_failed_use_case = providers.Factory(
+        NotifyTradeFailedUseCase,
+        event_bus=shared.event_bus,
+        storage_query_service=storage_query_service,
     )
     
     # Lifecycle manager - orchestrates startup/shutdown

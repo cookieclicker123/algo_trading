@@ -112,10 +112,11 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer]:
     )
     logger.info("MarketDataValidator created")
     
-    # Step 2.7: Inject validators into classification infrastructure (before starting)
+    # Step 2.7: Inject validators and quote_fetcher into classification infrastructure (before starting)
     classification.infra.ticker_validator = ticker_validator
     classification.infra.market_data_validator = market_data_validator
-    logger.info("TickerValidator and MarketDataValidator injected into ClassificationInfrastructureService")
+    classification.infra.quote_fetcher = brokerage.infra.quote_fetcher
+    logger.info("TickerValidator, MarketDataValidator, and QuoteFetcher injected into ClassificationInfrastructureService")
     
     # Step 3: Initialize shared services via container (using helper functions)
     # Get configs from container (DI-managed)
@@ -212,6 +213,12 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer]:
     notification.notify_exit_trade_use_case = notify_exit_trade_use_case
     await notify_exit_trade_use_case.start()
     logger.info("Notify exit trade use case created and started via DI container")
+    
+    # Notify trade failed use case - sends notifications when trades fail for imminent articles
+    notify_trade_failed_use_case = container.notify_trade_failed_use_case()
+    notification.notify_trade_failed_use_case = notify_trade_failed_use_case
+    await notify_trade_failed_use_case.start()
+    logger.info("Notify trade failed use case created and started via DI container")
     
     # Get event bus from container (needed for Services container)
     event_bus = container.event_bus()

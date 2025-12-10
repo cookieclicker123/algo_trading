@@ -107,16 +107,17 @@ class AlpacaMarketHoursTradeExecutor:
                 
                 # Calculate quantity with leverage support (2x by default)
                 leverage = getattr(trade_request, "leverage", None) or 2.0
-                quantity, projected_notional = calculate_trade_quantity(
+                quantity, capital_required = calculate_trade_quantity(
                     trade_request, current_price, leverage
                 )
                 
                 logger.info(
                     "Calculated share quantity for market-hours trade",
                     quantity=quantity,
-                    projected_notional=projected_notional,
+                    capital_required=capital_required,
                     leverage=leverage,
                     price=current_price,
+                    total_cost=quantity * current_price,
                 )
             else:
                 logger.debug("Using explicit quantity for market-hours trade", quantity=quantity)

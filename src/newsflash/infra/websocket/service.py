@@ -107,6 +107,9 @@ class BenzingaWebSocketMicroservice:
         # Reconnection
         self._reconnect_allowed = True
         self._reconnect_delay = 5.0
+        self._max_reconnect_delay = 300.0  # 5 minutes max
+        self._reconnect_attempts = 0
+        self._force_reconnect = False  # Flag to force reconnection from health monitor
         
         # Health monitor (infrastructure layer)
         self.health_monitor: Optional[WebSocketHealthMonitor] = None
@@ -115,6 +118,7 @@ class BenzingaWebSocketMicroservice:
         self._startup_time: Optional[datetime] = None
         from ...config import settings
         self._startup_skip_old_minutes = settings.WEBSOCKET_STARTUP_SKIP_OLD_MESSAGES_MINUTES
+        self._autorestart_enabled = settings.FEED_AUTORESTART_WEBSOCKET
         
         logger.info("BenzingaWebSocketMicroservice initialized", token_prefix=token[:10] + "...")
     
@@ -173,10 +177,16 @@ class BenzingaWebSocketMicroservice:
                 logger.warning("No event loop available for WebSocket event publishing")
                 self._main_event_loop = None
         
-        # Start connection thread
+        # Start connection thread (will loop and reconnect automatically)
         self.websocket_thread = threading.Thread(target=self._run_websocket_loop)
         self.websocket_thread.daemon = True
         self.websocket_thread.start()
+        
+        logger.info(
+            "WebSocket connection thread started",
+            autorestart_enabled=self._autorestart_enabled,
+            reconnect_allowed=self._reconnect_allowed
+        )
         
         # Start ping thread
         self._ping_thread = threading.Thread(target=self._ping_loop)
@@ -270,23 +280,63 @@ class BenzingaWebSocketMicroservice:
         time.sleep(2)
     
     def _run_websocket_loop(self) -> None:
-        """Run WebSocket connection loop."""
-        try:
-            logger.info("Attempting WebSocket connection")
-            self._connect_and_process()
-        except Exception as e:
-            logger.error("WebSocket connection failed", error=str(e))
-            # ✅ No stats mutation - MetricsService tracks via WEBSOCKET_ERROR event
-            # Check if it's a rate limit error
-            error_str = str(e)
-            is_rate_limit = ("429" in error_str) or ("Too Many Requests" in error_str)
-            if is_rate_limit:
-                self._reconnect_allowed = False
-                self._publish_event_threadsafe(self._publish_rate_limit())
-            else:
-                self._publish_event_threadsafe(self._publish_error(f"Connection loop error: {error_str}", is_rate_limit=False))
+        """Run WebSocket connection loop with automatic reconnection."""
+        while self._threads_should_run:
+            try:
+                attempt_num = self._reconnect_attempts + 1
+                logger.info("Attempting WebSocket connection", attempt=attempt_num)
+                self._connect_and_process()
+                
+                # If we exit _connect_and_process() without exception, connection closed normally
+                # This can happen if run_forever() exits (connection closed)
+                # Don't reset attempts here - we'll reset when we successfully reconnect (in on_open)
+                
+            except Exception as e:
+                logger.error("WebSocket connection failed", error=str(e), attempt=self._reconnect_attempts + 1)
+                # ✅ No stats mutation - MetricsService tracks via WEBSOCKET_ERROR event
+                # Check if it's a rate limit error
+                error_str = str(e)
+                is_rate_limit = ("429" in error_str) or ("Too Many Requests" in error_str)
+                if is_rate_limit:
+                    self._reconnect_allowed = False
+                    self._publish_event_threadsafe(self._publish_rate_limit())
+                    logger.warning("WebSocket will NOT auto-reconnect to prevent 429 rate limits")
+                    break  # Don't retry on rate limit
             
-            logger.warning("WebSocket will NOT auto-reconnect to prevent 429 rate limits")
+            # Check if we should reconnect
+            if not self._threads_should_run:
+                break
+            
+            if not self._autorestart_enabled:
+                logger.info("Auto-restart disabled - not reconnecting")
+                break
+            
+            if not self._reconnect_allowed:
+                logger.info("Reconnection not allowed (rate limit or manual stop) - not reconnecting")
+                break
+            
+            # Exponential backoff reconnection
+            with self._lock:
+                self._reconnect_attempts += 1
+                delay = min(self._reconnect_delay * (2 ** (self._reconnect_attempts - 1)), self._max_reconnect_delay)
+                self._reconnect_delay = delay
+            
+            logger.info(
+                "WebSocket connection closed - will reconnect",
+                attempt=self._reconnect_attempts,
+                delay_seconds=delay,
+                autorestart_enabled=self._autorestart_enabled
+            )
+            
+            # Wait before reconnecting (exponential backoff)
+            time.sleep(delay)
+            
+            # Reset force reconnect flag if it was set
+            if self._force_reconnect:
+                with self._lock:
+                    self._force_reconnect = False
+        
+        logger.info("WebSocket connection loop stopped")
     
     def _connect_and_process(self) -> None:
         """Connect to WebSocket and process messages."""
@@ -346,12 +396,24 @@ class BenzingaWebSocketMicroservice:
         
         def on_close(ws, close_status_code, close_msg):
             """Handle close."""
-            logger.info(f"WebSocket closed: {close_status_code} - {close_msg}")
+            logger.warning(
+                f"WebSocket closed: {close_status_code} - {close_msg}",
+                close_status_code=close_status_code,
+                close_msg=close_msg,
+                will_reconnect=self._autorestart_enabled and self._reconnect_allowed and self._threads_should_run
+            )
             
             # ✅ No stats mutation - MetricsService tracks via WEBSOCKET_DISCONNECTED event
             
+            # Clean up connection state
+            with self._lock:
+                self.websocket = None
+            
             # Publish disconnect event
             self._publish_event_threadsafe(self._publish_disconnect(close_msg))
+            
+            # Note: Reconnection is handled by _run_websocket_loop, which will detect
+            # that run_forever() exited and reconnect with exponential backoff
         
         def on_open(ws):
             """Handle open."""
@@ -359,6 +421,10 @@ class BenzingaWebSocketMicroservice:
             
             with self._lock:
                 self._operational_stats["connection_verified_at"] = datetime.now()
+                # Reset reconnect state on successful connection
+                self._reconnect_attempts = 0
+                self._reconnect_delay = 5.0
+                self._force_reconnect = False
             # ✅ is_connected tracked via WEBSOCKET_CONNECTED event (MetricsService)
             
             # Start ping thread after connection is open
@@ -649,15 +715,115 @@ class BenzingaWebSocketMicroservice:
                 break
     
     def _connection_monitor_loop(self) -> None:
-        """Monitor connection health."""
+        """
+        Monitor connection health and trigger reconnection on zombie connections.
+        
+        This loop:
+        1. Subscribes to health status events
+        2. Detects zombie connections (ping/pong timeout)
+        3. Triggers reconnection by closing the current connection
+        """
         logger.info("Connection monitor started")
+        
+        # Subscribe to health status events to detect zombie connections
+        def on_health_status_unhealthy(event_type: str, event_data: dict) -> None:
+            """Handle unhealthy health status - trigger reconnection for zombie connections."""
+            try:
+                status = event_data.get("status", "")
+                reason = event_data.get("reason", "")
+                
+                # Only trigger reconnection for zombie connections or disconnections
+                # (not for rate limits - those are handled separately)
+                if status in ["zombie", "disconnected"] and self._threads_should_run and self._reconnect_allowed and self._autorestart_enabled:
+                    logger.warning(
+                        "Health monitor detected unhealthy connection - triggering reconnection",
+                        status=status,
+                        reason=reason
+                    )
+                    
+                    # Force reconnection by closing current connection
+                    # This will cause run_forever() to exit, and _run_websocket_loop will reconnect
+                    with self._lock:
+                        self._force_reconnect = True
+                    
+                    # Close the connection if it exists (this triggers on_close, which publishes disconnect event)
+                    if self.websocket:
+                        try:
+                            # Close the connection - this will cause run_forever() to exit
+                            # and _run_websocket_loop will detect it and reconnect
+                            self.websocket.close()
+                        except Exception as e:
+                            logger.error("Error closing zombie connection", error=str(e))
+                
+            except Exception as e:
+                logger.error("Error handling health status in connection monitor", error=str(e))
+        
+        # Subscribe to health status events (we'll subscribe in the event bus)
+        # Since we're in a thread, we need to use the event bus's thread-safe subscription
+        # For now, we'll check health status directly by polling
+        
         while self._threads_should_run:
             try:
                 time.sleep(self.connection_check_interval)
+                
                 with self._lock:
                     self._operational_stats["last_connection_check"] = datetime.now()
+                
+                # Check for zombie connections by looking at ping/pong stats
+                if self._threads_should_run and self._reconnect_allowed and self._autorestart_enabled:
+                    stats = self.get_stats()
+                    is_connected = stats.get("is_connected", False)
+                    last_ping_sent = stats.get("last_ping_sent")
+                    last_pong_received = stats.get("last_pong_received")
+                    missed_pongs = stats.get("missed_pongs", 0)
+                    
+                    # Detect zombie connection: connected but no pong response
+                    if is_connected and self.websocket:
+                        if last_ping_sent:
+                            if isinstance(last_ping_sent, str):
+                                last_ping_sent = datetime.fromisoformat(last_ping_sent.replace('Z', '+00:00'))
+                            
+                            time_since_ping = (datetime.now(last_ping_sent.tzinfo) - last_ping_sent).total_seconds()
+                            
+                            # If ping sent more than 60s ago and no pong received, it's a zombie
+                            if time_since_ping > 60:
+                                if not last_pong_received or (
+                                    isinstance(last_pong_received, datetime) and last_pong_received < last_ping_sent
+                                ):
+                                    logger.warning(
+                                        "Connection monitor detected zombie connection - triggering reconnection",
+                                        time_since_ping=time_since_ping,
+                                        missed_pongs=missed_pongs
+                                    )
+                                    
+                                    with self._lock:
+                                        self._force_reconnect = True
+                                    
+                                    # Close zombie connection to trigger reconnection
+                                    try:
+                                        if self.websocket:
+                                            self.websocket.close()
+                                    except Exception as e:
+                                        logger.error("Error closing zombie connection", error=str(e))
+                        
+                        # Also check missed pongs count
+                        if missed_pongs >= 2:
+                            logger.warning(
+                                "Connection monitor detected multiple missed pongs - triggering reconnection",
+                                missed_pongs=missed_pongs
+                            )
+                            
+                            with self._lock:
+                                self._force_reconnect = True
+                            
+                            try:
+                                if self.websocket:
+                                    self.websocket.close()
+                            except Exception as e:
+                                logger.error("Error closing zombie connection", error=str(e))
+                
             except Exception as e:
                 logger.error("Error in connection monitor", error=str(e))
                 self._publish_event_threadsafe(self._publish_error(f"Connection monitor error: {str(e)}", is_rate_limit=False))
-                break
+                time.sleep(5)  # Wait before retrying monitor loop
 

@@ -9,7 +9,7 @@ USE CASES ORCHESTRATE SERVICES:
 This use case sends article headline notifications AFTER trades execute,
 ensuring the order: IMMINENT → Trade → Trade Notification → Article Notification
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Final
 
 from ...utils.logging_config import get_logger
@@ -84,6 +84,11 @@ class NotifyImminentArticleUseCase:
         """
         Handle Domain.TradeExecuted event and send article headline notification.
         
+        CRITICAL WORKFLOW POINT:
+        - This handler is called by subscribe_typed wrapper when TradeExecutedDomainEvent is published
+        - Only sends notifications for BUY trades (entries), not SELL trades (exits)
+        - If this handler isn't called, check for "Error in subscriber for event Domain.TradeExecuted" in logs
+        
         This is called AFTER a trade executes, ensuring the order:
         1. IMMINENT classification
         2. Trade executes
@@ -95,10 +100,17 @@ class NotifyImminentArticleUseCase:
         try:
             trade_result = domain_event.trade_result
             
+            logger.info(
+                "📰 NOTIFY IMMINENT ARTICLE: Handler called",
+                ticker=trade_result.get_ticker(),
+                success=trade_result.success,
+                article_id=trade_result.trade_request.get("article_id")
+            )
+            
             # Only notify for successful trades
             if not trade_result.is_successful():
-                logger.debug(
-                    "NotifyImminentArticleUseCase: Skipping article notification for failed trade",
+                logger.info(
+                    "⚠️ NOTIFY USE CASE: Skipping article notification for failed trade",
                     ticker=trade_result.get_ticker()
                 )
                 return
@@ -108,25 +120,38 @@ class NotifyImminentArticleUseCase:
             article_id = trade_request.article_id
             
             if not article_id:
-                logger.debug(
-                    "NotifyImminentArticleUseCase: Trade has no associated article_id, skipping article notification",
+                logger.info(
+                    "⚠️ NOTIFY USE CASE: Trade has no associated article_id, skipping article notification",
                     ticker=trade_result.get_ticker()
+                )
+                return
+            
+            # Only send article notifications for BUY trades (entries)
+            # Exit trades don't need article notifications - they're just closing positions
+            if trade_request.is_sell():
+                logger.debug(
+                    "⚠️ NOTIFY USE CASE: Skipping article notification for SELL trade (exit trade)",
+                    ticker=trade_result.get_ticker(),
+                    article_id=article_id
                 )
                 return
             
             logger.info(
                 "🎯 NOTIFY USE CASE: Sending article headline notification after trade execution",
                 article_id=article_id,
-                ticker=trade_result.get_ticker()
+                ticker=trade_result.get_ticker(),
+                action=trade_request.action.value
             )
             
             # Fetch article from storage
             domain_article = await self.storage_query_service.fetch_article(article_id)
             
             if not domain_article:
-                logger.warning(
-                    "NotifyImminentArticleUseCase: Article not found in storage for notification",
-                    article_id=article_id
+                logger.error(
+                    "❌ NOTIFY USE CASE: Article not found in storage for notification",
+                    article_id=article_id,
+                    ticker=trade_result.get_ticker(),
+                    note="This is a critical error - article notification cannot be sent without article data"
                 )
                 return
             
@@ -160,10 +185,13 @@ class NotifyImminentArticleUseCase:
                 )
             
             # Add publication time, websocket received time, and notification time to body
-            notification_time = datetime.now()
+            notification_time = datetime.now(timezone.utc)
             time_to_notification = (notification_time - domain_article.published_at).total_seconds()
             time_ws_to_notification = None
             if websocket_received_at:
+                # Ensure websocket_received_at is timezone-aware for comparison
+                if websocket_received_at.tzinfo is None:
+                    websocket_received_at = websocket_received_at.replace(tzinfo=timezone.utc)
                 time_ws_to_notification = (notification_time - websocket_received_at).total_seconds()
             
             # Generate body with timing information
@@ -207,7 +235,7 @@ class NotifyImminentArticleUseCase:
             # Publish typed domain event with NotificationMessage domain model (domain listener will forward to infrastructure)
             domain_notification_event = NotificationRequestedDomainEvent(
                 message=notification_message,
-                requested_at=datetime.now()
+                requested_at=datetime.now(timezone.utc)
             )
             
             await self.event_bus.publish(DomainEventType.NOTIFICATION_REQUESTED, domain_notification_event.model_dump())

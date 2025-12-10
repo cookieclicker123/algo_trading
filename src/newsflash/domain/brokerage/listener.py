@@ -213,6 +213,11 @@ class BrokerageDomainListener(
         """
         Publish TradeExecuted domain event (implements DomainTradeEventPublisher).
         
+        This is a CRITICAL point in the notification workflow:
+        - This event triggers NotifyTradeExecutedUseCase (trade execution notification)
+        - This event triggers NotifyImminentArticleUseCase (article headline notification)
+        - If this isn't published, NO notifications will be sent
+        
         Args:
             trade_result: Typed domain TradeResult model (validated, immutable)
             executed_at: When trade was executed
@@ -221,13 +226,18 @@ class BrokerageDomainListener(
             trade_result=trade_result,
             executed_at=executed_at
         )
+        
+        # CRITICAL: Publish Domain.TradeExecuted event
+        # Subscribers: NotifyTradeExecutedUseCase, NotifyImminentArticleUseCase, NotifyExitTradeUseCase
         await self.event_bus.publish(DomainEventType.TRADE_EXECUTED, domain_event.model_dump())
         
         logger.info(
-            "BrokerageDomainListener: Published domain trade executed event",
+            "✅ BrokerageDomainListener: Published domain trade executed event",
             ticker=trade_result.get_ticker(),
             success=trade_result.success,
-            shares=trade_result.shares
+            shares=trade_result.shares,
+            article_id=trade_result.trade_request.get("article_id"),
+            subscribers=self.event_bus.get_subscriber_count(DomainEventType.TRADE_EXECUTED)
         )
     
     @handle_errors(log_context="BrokerageDomainListener: Error publishing domain trade failed event")

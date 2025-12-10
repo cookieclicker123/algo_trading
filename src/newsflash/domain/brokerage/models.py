@@ -49,7 +49,7 @@ class TradeRequest(BaseModel):
     action: TradeAction = Field(..., description="Trade action (BUY/SELL)")
     
     # Trade parameters
-    amount_usd: Decimal = Field(..., gt=0, description="Notional value in USD")
+    amount_usd: Optional[Decimal] = Field(None, gt=0, description="Notional value in USD (only used if no leverage)")
     shares: Optional[float] = Field(None, gt=0, description="Number of shares (if specified, supports fractional)")
     leverage: Optional[Decimal] = Field(None, gt=0, le=Decimal("2.0"), description="Leverage multiplier (max 2x)")
     instrument: TradeInstrument = Field(default=TradeInstrument.STOCK, description="Instrument type")
@@ -86,14 +86,22 @@ class TradeRequest(BaseModel):
         """Calculate number of shares from amount and price."""
         if self.shares:
             return self.shares
+        if self.leverage and self.leverage > 1.0:
+            # With leverage: always buy leverage shares (e.g., 2.0 with 2x leverage)
+            return int(self.leverage)
+        # No leverage: use amount_usd
+        if not self.amount_usd:
+            raise ValueError("amount_usd required when no leverage")
         return int(self.amount_usd / price_per_share)
     
     def calculate_total_cost(self, price_per_share: Decimal) -> Decimal:
         """Calculate total cost including leverage."""
         shares = self.calculate_shares(price_per_share)
         base_cost = Decimal(shares) * price_per_share
-        if self.leverage:
-            return base_cost / self.leverage
+        if self.leverage and self.leverage > 1.0:
+            # With leverage: we pay for 1 share, leverage provides the rest
+            # Capital = price of 1 share, but we buy leverage shares
+            return price_per_share  # We only pay capital (price of 1 share)
         return base_cost
     
     def is_buy(self) -> bool:
@@ -113,7 +121,7 @@ class TradeRequest(BaseModel):
         return {
             "ticker": self.ticker,
             "action": self.action.value,
-            "amount_usd": str(self.amount_usd),
+            "amount_usd": str(self.amount_usd) if self.amount_usd else None,
             "shares": self.shares,
             "leverage": str(self.leverage) if self.leverage else None,
             "instrument": self.instrument.value,
@@ -125,7 +133,7 @@ class TradeRequest(BaseModel):
     def from_dict(cls, data: dict) -> "TradeRequest":
         """Create TradeRequest from dictionary."""
         # Convert Decimal strings back
-        if "amount_usd" in data:
+        if "amount_usd" in data and data["amount_usd"] is not None:
             data["amount_usd"] = Decimal(str(data["amount_usd"]))
         if "leverage" in data and data["leverage"]:
             data["leverage"] = Decimal(str(data["leverage"]))

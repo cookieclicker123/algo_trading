@@ -100,13 +100,31 @@ class NotificationDomainListener(
         
         Flow: Validate → Map → Publish (for each channel)
         """
-        self.log_debug("Received domain notification request event", event_type=event_type)
+        logger.info(
+            "📨 NotificationDomainListener: Received domain notification request event",
+            event_type=event_type,
+            article_id=event_data.get("message", {}).get("article_id", "unknown") if isinstance(event_data.get("message"), dict) else "unknown"
+        )
         
         # Step 1: VALIDATE domain event (using base class helper)
+        # Log event data structure for debugging
+        logger.info(
+            "📨 NotificationDomainListener: Validating domain event",
+            event_type=event_type,
+            event_data_keys=list(event_data.keys()) if isinstance(event_data, dict) else "not_dict",
+            has_message="message" in event_data if isinstance(event_data, dict) else False,
+            message_type=type(event_data.get("message")).__name__ if isinstance(event_data, dict) and "message" in event_data else "missing"
+        )
+        
         domain_event = self.validate_domain_event(
             event_type, event_data, NotificationRequestedDomainEvent
         )
         if not domain_event:
+            logger.error(
+                "❌ NotificationDomainListener: Failed to validate domain event - REJECTED",
+                event_type=event_type,
+                event_data_structure=str(event_data)[:500] if isinstance(event_data, dict) else "not_dict"
+            )
             return
         
         # Extract domain model
@@ -115,11 +133,14 @@ class NotificationDomainListener(
         # Step 2: VALIDATE domain model
         is_valid, error = self.message_validator.validate(notification_message)
         if not is_valid:
-            self.log_warning(
-                "Invalid notification message",
+            logger.error(
+                "❌ NotificationDomainListener: Invalid notification message - REJECTED",
                 event_type=event_type,
                 error=error,
-                article_id=notification_message.article_id
+                article_id=notification_message.article_id,
+                has_title=bool(notification_message.title),
+                has_body=bool(notification_message.body),
+                channels=[c.value for c in notification_message.channels] if notification_message.channels else []
             )
             return
         
@@ -133,10 +154,21 @@ class NotificationDomainListener(
             )
             
             # Publish typed infrastructure event (using base class helper)
+            logger.info(
+                "📤 NotificationDomainListener: Publishing infrastructure notification request",
+                article_id=notification_message.article_id,
+                channel=channel.value,
+                body_preview=notification_message.body[:100] if notification_message.body else "empty"
+            )
             await self.publish_infrastructure_event(
                 InfrastructureEventType.NOTIFICATION_SEND_REQUESTED,
                 infra_request_data,
                 log_context=f"Published infrastructure notification request (article_id={notification_message.article_id}, channel={channel.value})"
+            )
+            logger.info(
+                "✅ NotificationDomainListener: Infrastructure notification request published",
+                article_id=notification_message.article_id,
+                channel=channel.value
             )
     
     @handle_errors(log_context="NotificationDomainListener: Error handling infrastructure notification sent event")

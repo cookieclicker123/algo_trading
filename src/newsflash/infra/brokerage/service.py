@@ -127,6 +127,7 @@ class BrokerageService:
                 shares=infra_event.trade_request.shares,
                 leverage=infra_event.trade_request.leverage,
                 instrument=TradeInstrument.STOCK,  # Stocks only
+                article_id=infra_event.article_id or infra_event.trade_request.article_id,  # Preserve article_id
             )
             
             logger.info(

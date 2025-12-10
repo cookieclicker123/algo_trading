@@ -11,7 +11,7 @@ load_dotenv()
 TMP_DIR = "tmp"
 ARTICLES_JSON_FILE = "articles.json"
 ROLLING_WINDOW_HOURS = 1  # Keep articles for 1 hour
-ARTICLE_FETCH_TIMEOUT_SECONDS = float(os.getenv("ARTICLE_FETCH_TIMEOUT_SECONDS", "5.0"))
+ARTICLE_FETCH_TIMEOUT_SECONDS = float(os.getenv("ARTICLE_FETCH_TIMEOUT_SECONDS", "10.0"))  # Increased from 5.0 to handle race conditions
 
 # Server Configuration
 HOST = "0.0.0.0"
@@ -41,7 +41,6 @@ WEBSOCKET_STARTUP_SKIP_OLD_MESSAGES_MINUTES = int(os.getenv("WEBSOCKET_STARTUP_S
 
 # Auto-Trading Configuration
 AUTO_TRADING_ENABLED = os.getenv("AUTO_TRADING_ENABLED", "true").lower() == "true"
-AUTO_TRADE_AMOUNT_USD = float(os.getenv("AUTO_TRADE_AMOUNT_USD", "100.0"))
 AUTO_TRADE_EXIT_DELAY_MINUTES = int(os.getenv("AUTO_TRADE_EXIT_DELAY_MINUTES", "5"))
 
 # Brokerage Configuration

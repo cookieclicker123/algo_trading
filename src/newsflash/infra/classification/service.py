@@ -52,6 +52,7 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
         metrics_service,  # Required - injected via DI
         ticker_validator=None,  # Will be injected after brokerage is initialized
         market_data_validator=None,  # Will be injected after brokerage is initialized
+        quote_fetcher=None,  # Will be injected after brokerage is initialized
         model: str = "llama-3.3-70b-versatile",
         enabled: bool = True,
     ):
@@ -66,6 +67,7 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
             metrics_service: Optional metrics service for statistics (injected via DI)
             ticker_validator: TickerValidator instance for exchange validation (injected via DI)
             market_data_validator: MarketDataValidator instance for market cap/price validation (injected via DI)
+            quote_fetcher: AlpacaQuoteFetcher instance for NBBO availability check (injected via DI)
         """
         self.enabled = enabled
         self.model = model
@@ -73,6 +75,7 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
         self.metrics_service = metrics_service  # ✅ Injected metrics service
         self.ticker_validator = ticker_validator  # ✅ Injected ticker validator
         self.market_data_validator = market_data_validator  # ✅ Injected market data validator
+        self.quote_fetcher = quote_fetcher  # ✅ Injected quote fetcher for NBBO check
             
         
         # Stateful: Groq client (initialized if enabled)
@@ -97,7 +100,8 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
             enabled=enabled,
             has_api_key=bool(api_key),
             has_ticker_validator=ticker_validator is not None,
-            has_market_data_validator=market_data_validator is not None
+            has_market_data_validator=market_data_validator is not None,
+            has_quote_fetcher=quote_fetcher is not None
         )
     
     def _load_prompt(self) -> str:
@@ -292,7 +296,27 @@ Summary: {summary}"""
                     await self._publish_skipped_event(infra_event, "low_price")
                     return
             
-            # Step 4: All checks passed - proceed to Groq API classification
+            # Step 4: Check NBBO availability (before expensive Groq API call)
+            if self.quote_fetcher and primary_ticker:
+                logger.debug(
+                    "CLASSIFY INFRA: Checking NBBO availability",
+                    article_id=request_data.article_id,
+                    ticker=primary_ticker
+                )
+                nbbo_snapshot = await self.quote_fetcher.get_nbbo_snapshot(primary_ticker)
+                
+                if not nbbo_snapshot:
+                    logger.info(
+                        "⏭️ CLASSIFY INFRA: Skipping classification - NBBO snapshot unavailable",
+                        article_id=request_data.article_id,
+                        ticker=primary_ticker,
+                        reason="nbbo_unavailable",
+                        diagnostic="Stock does not have active bid/ask in extended hours (check logs for detailed failure reason)"
+                    )
+                    await self._publish_skipped_event(infra_event, "nbbo_unavailable")
+                    return
+            
+            # Step 5: All checks passed - proceed to Groq API classification
             logger.info(
                 "✅ CLASSIFY INFRA: Pre-filters passed, proceeding to Groq API",
                 article_id=request_data.article_id,

@@ -120,15 +120,32 @@ class NotificationInfrastructureService(InfrastructureNotificationRequestEventSu
             event_data: Event data dictionary
         """
         try:
+            logger.info(
+                "📥 NotificationInfrastructureService: Received notification send request event",
+                event_type=event_type,
+                has_channel="channel" in event_data,
+                has_payload="payload" in event_data
+            )
+            
             # Reconstruct typed infrastructure request
-            request_data = NotificationSendRequestData(**event_data)
+            try:
+                request_data = NotificationSendRequestData(**event_data)
+            except Exception as parse_error:
+                logger.error(
+                    "❌ NotificationInfrastructureService: Failed to parse notification request event",
+                    error=str(parse_error),
+                    event_data_keys=list(event_data.keys()) if isinstance(event_data, dict) else "not_dict",
+                    exc_info=True
+                )
+                return
             
             # ✅ No stats mutation - MetricsService subscribes to NotificationSendRequested event
             
             logger.info(
-                "NotificationInfrastructureService: Processing notification request",
+                "📬 NotificationInfrastructureService: Processing notification request",
                 article_id=request_data.payload.get("article_id", "unknown"),
-                channel=request_data.channel
+                channel=request_data.channel,
+                body_preview=request_data.payload.get("body", "")[:100] if request_data.payload.get("body") else "empty"
             )
             
             # Check if notifications are enabled
@@ -196,7 +213,13 @@ class NotificationInfrastructureService(InfrastructureNotificationRequestEventSu
             # Extract message body from payload
             body = request_data.payload.get("body", "")
             
-            if not body:
+            if not body or not body.strip():
+                logger.error(
+                    "❌ NotificationInfrastructureService: Notification body is empty or whitespace",
+                    article_id=request_data.payload.get("article_id", "unknown"),
+                    payload_keys=list(request_data.payload.keys()),
+                    body_length=len(body) if body else 0
+                )
                 return False, "Notification body is empty"
             
             # Send via Telegram client
@@ -204,14 +227,17 @@ class NotificationInfrastructureService(InfrastructureNotificationRequestEventSu
             
             if success:
                 logger.info(
-                    "NotificationInfrastructureService: Telegram notification sent",
-                    article_id=request_data.payload.get("article_id", "unknown")
+                    "✅ NotificationInfrastructureService: Telegram notification sent successfully",
+                    article_id=request_data.payload.get("article_id", "unknown"),
+                    channel=request_data.channel
                 )
             else:
-                logger.warning(
-                    "NotificationInfrastructureService: Telegram notification failed",
+                logger.error(
+                    "❌ NotificationInfrastructureService: Telegram notification FAILED",
                     article_id=request_data.payload.get("article_id", "unknown"),
-                    error=error
+                    channel=request_data.channel,
+                    error=error,
+                    body_preview=request_data.payload.get("body", "")[:100] if request_data.payload.get("body") else "empty"
                 )
             
             return success, error

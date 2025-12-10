@@ -38,7 +38,6 @@ class ConfigurationContainer(containers.DeclarativeContainer):
     
     # Auto-Trading Configuration
     auto_trading_enabled = providers.Callable(lambda: settings.AUTO_TRADING_ENABLED)
-    auto_trade_amount_usd = providers.Callable(lambda: Decimal(str(settings.AUTO_TRADE_AMOUNT_USD)))
     auto_trade_exit_delay_minutes = providers.Callable(lambda: settings.AUTO_TRADE_EXIT_DELAY_MINUTES)
     
     # Ladder Configuration

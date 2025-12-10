@@ -81,51 +81,102 @@ class TelegramNotificationClient:
         errors = []
         
         # Send to bot 1 if enabled
+        bot_1_success = False
         if self.enabled_1 and self.bot_1:
             try:
                 target_chat_id = chat_id or self.config_1["chat_id"]
                 if target_chat_id:
                     await self.bot_1.send_message(chat_id=target_chat_id, text=text)
-                    logger.debug(
-                        "TelegramNotificationClient: Message sent via bot 1",
-                        chat_id=target_chat_id
+                    bot_1_success = True
+                    logger.info(
+                        "📱 TelegramNotificationClient: Message sent via bot 1",
+                        chat_id=target_chat_id,
+                        message_length=len(text)
                     )
+                else:
+                    errors.append("Bot 1: No chat ID configured")
+                    logger.warning("TelegramNotificationClient: Bot 1 enabled but no chat_id configured")
             except TelegramError as e:
                 error_msg = f"Bot 1 error: {str(e)}"
                 errors.append(error_msg)
                 logger.error(
-                    "TelegramNotificationClient: Failed to send via bot 1",
-                    error=str(e)
+                    "❌ TelegramNotificationClient: Failed to send via bot 1",
+                    error=str(e),
+                    chat_id=target_chat_id if 'target_chat_id' in locals() else None
                 )
+            except Exception as e:
+                error_msg = f"Bot 1 unexpected error: {str(e)}"
+                errors.append(error_msg)
+                logger.error(
+                    "❌ TelegramNotificationClient: Unexpected error sending via bot 1",
+                    error=str(e),
+                    exc_info=True
+                )
+        elif self.enabled_1 and not self.bot_1:
+            errors.append("Bot 1: Enabled but not initialized")
+            logger.warning("TelegramNotificationClient: Bot 1 enabled but not initialized (missing token?)")
         
         # Send to bot 2 if enabled
+        bot_2_success = False
         if self.enabled_2 and self.bot_2:
             try:
                 target_chat_id = chat_id or self.config_2["chat_id"]
                 if target_chat_id:
                     await self.bot_2.send_message(chat_id=target_chat_id, text=text)
-                    logger.debug(
-                        "TelegramNotificationClient: Message sent via bot 2",
-                        chat_id=target_chat_id
+                    bot_2_success = True
+                    logger.info(
+                        "📱 TelegramNotificationClient: Message sent via bot 2",
+                        chat_id=target_chat_id,
+                        message_length=len(text)
                     )
+                else:
+                    errors.append("Bot 2: No chat ID configured")
+                    logger.warning("TelegramNotificationClient: Bot 2 enabled but no chat_id configured")
             except TelegramError as e:
                 error_msg = f"Bot 2 error: {str(e)}"
                 errors.append(error_msg)
                 logger.error(
-                    "TelegramNotificationClient: Failed to send via bot 2",
-                    error=str(e)
+                    "❌ TelegramNotificationClient: Failed to send via bot 2",
+                    error=str(e),
+                    chat_id=target_chat_id if 'target_chat_id' in locals() else None
                 )
+            except Exception as e:
+                error_msg = f"Bot 2 unexpected error: {str(e)}"
+                errors.append(error_msg)
+                logger.error(
+                    "❌ TelegramNotificationClient: Unexpected error sending via bot 2",
+                    error=str(e),
+                    exc_info=True
+                )
+        elif self.enabled_2 and not self.bot_2:
+            errors.append("Bot 2: Enabled but not initialized")
+            logger.warning("TelegramNotificationClient: Bot 2 enabled but not initialized (missing token?)")
         
         # Return success if at least one bot succeeded
-        if errors:
-            if self.enabled_1 and self.enabled_2:
-                # Both bots enabled but both failed
-                return False, "; ".join(errors)
-            elif (self.enabled_1 and not self.bot_1) or (self.enabled_2 and not self.bot_2):
-                # One bot not initialized
-                return False, "; ".join(errors)
-            # One bot failed but other might have succeeded
+        if bot_1_success or bot_2_success:
+            if errors:
+                # At least one succeeded but some failed
+                logger.warning(
+                    "TelegramNotificationClient: Partial success",
+                    bot_1_success=bot_1_success,
+                    bot_2_success=bot_2_success,
+                    errors=errors
+                )
             return True, None
         
-        return True, None
+        # All bots failed or none enabled
+        if errors:
+            logger.error(
+                "❌ TelegramNotificationClient: All bots failed to send",
+                errors=errors,
+                enabled_1=self.enabled_1,
+                enabled_2=self.enabled_2,
+                bot_1_initialized=self.bot_1 is not None,
+                bot_2_initialized=self.bot_2 is not None
+            )
+            return False, "; ".join(errors)
+        
+        # No bots enabled
+        logger.warning("TelegramNotificationClient: No bots enabled")
+        return False, "No Telegram bots enabled"
 

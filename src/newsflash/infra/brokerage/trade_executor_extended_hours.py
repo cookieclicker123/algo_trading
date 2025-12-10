@@ -80,7 +80,7 @@ class AlpacaExtendedHoursTradeExecutor:
         total_start_time = time.time()
         session_time = timing_info.get("session_detection", 0.0)
         connect_time = timing_info.get("connection", 0.0)
-        projected_notional: Optional[float] = None
+        capital_required: Optional[float] = None
         price_fallback_used = False
         current_order_id: Optional[str] = None  # Track current order for cancellation (accessible in exception handlers)
         
@@ -119,7 +119,8 @@ class AlpacaExtendedHoursTradeExecutor:
             # Handle price fallback
             if not current_price:
                 fallback_price = None
-                if trade_request.shares and trade_request.amount_usd:
+                # Only use amount_usd fallback if no leverage (leverage uses price of 1 share)
+                if trade_request.shares and trade_request.amount_usd and not leverage:
                     fallback_price = trade_request.amount_usd / max(trade_request.shares, 1)
                 
                 if fallback_price and fallback_price > 0:
@@ -143,16 +144,18 @@ class AlpacaExtendedHoursTradeExecutor:
                 return error_result
             
             # Calculate quantity
-            quantity, projected_notional = calculate_trade_quantity(
-                trade_request, current_price, getattr(trade_request, "leverage", 2.0)
+            leverage = getattr(trade_request, "leverage", 2.0)
+            quantity, capital_required = calculate_trade_quantity(
+                trade_request, current_price, leverage
             )
             
-            # Calculate ladder base price
+            # Calculate ladder base price (start at midprice for better fills)
             base_price = calculate_ladder_base_price(
                 action,
                 nbbo_snapshot.get("ask"),
                 nbbo_snapshot.get("bid"),
                 current_price,
+                mid=nbbo_snapshot.get("mid"),  # Pass midprice for optimal starting point
             )
             
             # Get ladder parameters
@@ -264,8 +267,7 @@ class AlpacaExtendedHoursTradeExecutor:
                         },
                         "instrument_details": {
                             "leverage": getattr(trade_request, "leverage", None),
-                            "target_notional": trade_request.amount_usd,
-                            "projected_notional": projected_notional,
+                            "capital_required": capital_required,
                             "price_fallback_used": price_fallback_used,
                             "nbbo": nbbo_snapshot,
                             "ladder_attempts": attempt_number,

@@ -85,14 +85,51 @@ class AlpacaQuoteFetcher:
             request = StockLatestQuoteRequest(symbol_or_symbols=[symbol])
             quotes = self.market_data_client.get_stock_latest_quote(request)
             
-            if not quotes or symbol not in quotes:
+            # Detailed logging for failure diagnosis
+            if not quotes:
+                logger.warning(
+                    "❌ NBBO FETCH FAILED: Alpaca returned empty quotes dict",
+                    symbol=symbol,
+                    reason="empty_quotes_response",
+                    diagnostic="API call succeeded but quotes dict is None or empty"
+                )
+                return None
+            
+            if symbol not in quotes:
+                logger.warning(
+                    "❌ NBBO FETCH FAILED: Symbol not in quotes response",
+                    symbol=symbol,
+                    reason="symbol_not_in_response",
+                    available_symbols=list(quotes.keys()) if quotes else [],
+                    diagnostic="API call succeeded but symbol missing from response (may not trade in extended hours)"
+                )
                 return None
             
             quote = quotes[symbol]
             bid = float(quote.bid_price) if quote.bid_price and quote.bid_price > 0 else None
             ask = float(quote.ask_price) if quote.ask_price and quote.ask_price > 0 else None
             
-            if bid is None or ask is None:
+            # Detailed logging for missing bid/ask
+            if bid is None:
+                logger.warning(
+                    "❌ NBBO FETCH FAILED: Missing or invalid bid price",
+                    symbol=symbol,
+                    reason="missing_bid",
+                    raw_bid_price=quote.bid_price,
+                    ask_price=ask,
+                    diagnostic="Bid price is None or <= 0 (stock may not have active bid in extended hours)"
+                )
+                return None
+            
+            if ask is None:
+                logger.warning(
+                    "❌ NBBO FETCH FAILED: Missing or invalid ask price",
+                    symbol=symbol,
+                    reason="missing_ask",
+                    bid_price=bid,
+                    raw_ask_price=quote.ask_price,
+                    diagnostic="Ask price is None or <= 0 (stock may not have active ask in extended hours)"
+                )
                 return None
             
             spread = ask - bid
@@ -105,13 +142,30 @@ class AlpacaQuoteFetcher:
                 "mid": mid,
             }
             
+            logger.debug(
+                "✅ NBBO FETCH SUCCESS",
+                symbol=symbol,
+                bid=bid,
+                ask=ask,
+                spread=spread,
+                mid=mid
+            )
+            
             # Publish quote event
             await self._publish_quote_event(symbol, bid, ask, spread)
             
             return result
             
         except Exception as e:
-            logger.error(f"Failed to get NBBO snapshot for {symbol}: {e}", exc_info=True)
+            logger.error(
+                "❌ NBBO FETCH FAILED: Exception during API call",
+                symbol=symbol,
+                reason="api_exception",
+                error_type=type(e).__name__,
+                error_message=str(e),
+                diagnostic="Alpaca API call raised exception (network issue, rate limit, or API error)",
+                exc_info=True
+            )
             return None
     
     async def _publish_quote_event(self, symbol: str, bid: float, ask: float, spread: float) -> None:

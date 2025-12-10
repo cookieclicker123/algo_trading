@@ -7,7 +7,7 @@ USE CASES ORCHESTRATE SERVICES:
 - Use cases publish domain events to trigger workflows
 """
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Final, Dict, Optional
 from decimal import Decimal
 
@@ -61,7 +61,12 @@ class ExitTradeUseCase:
         )
     
     async def start(self) -> None:
-        """Start the use case (already subscribed in __init__)."""
+        """
+        Start the use case (already subscribed in __init__).
+        
+        NOTE: Scheduled exits are stored in memory and will be lost on restart.
+        For production, consider persisting scheduled exits or recovering from Alpaca positions on startup.
+        """
         logger.info("ExitTradeUseCase started")
     
     async def stop(self) -> None:
@@ -175,22 +180,26 @@ class ExitTradeUseCase:
             
             # Create exit trade request
             # Use exact shares from entry trade (supports fractional shares)
+            # No amount_usd needed - we have explicit shares
             exit_trade_request = TradeRequest(
                 ticker=ticker,
                 action=TradeAction.SELL,
-                amount_usd=entry_trade_request.amount_usd,  # Use same amount for exit
+                amount_usd=None,  # Not needed - we have explicit shares
                 shares=shares,  # Exit exact same number of shares (supports fractional)
                 leverage=None,  # No leverage on exit
                 instrument=entry_trade_request.instrument,
                 article_id=entry_trade_request.article_id,
-                requested_at=datetime.now()
+                requested_at=datetime.now(timezone.utc)
             )
             
             logger.info(
                 "EXIT USE CASE: Created exit trade request",
                 ticker=ticker,
                 exit_shares=shares,
-                shares_type="fractional" if shares and shares != int(shares) else "whole"
+                shares_type="fractional" if shares and shares != int(shares) else "whole",
+                entry_article_id=entry_trade_request.article_id,
+                entry_executed_at=entry_trade_result.executed_at.isoformat(),
+                exit_delay_minutes=self.exit_delay_minutes
             )
             
             # Publish exit trade request
@@ -199,7 +208,7 @@ class ExitTradeUseCase:
             exit_domain_event = TradeRequestDomainEvent(
                 trade_request=exit_trade_request,
                 article_id=entry_trade_request.article_id,
-                requested_at=datetime.now()
+                requested_at=datetime.now(timezone.utc)
             )
             
             await self.event_bus.publish(DomainEventType.TRADE_REQUESTED, exit_domain_event.model_dump())

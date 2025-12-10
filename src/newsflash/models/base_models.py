@@ -104,7 +104,7 @@ class TradeRequest(BaseModel):
     """Model for trade requests."""
 
     ticker: str = Field(..., description="Stock ticker symbol")
-    amount_usd: float = Field(..., description="Approximate notional value for logging")
+    amount_usd: Optional[float] = Field(None, description="Approximate notional value (only used if no leverage)")
     action: str = Field(default="BUY", description="Trade action (BUY/SELL)")
     shares: Optional[float] = Field(default=None, description="Units to trade (supports fractional shares for stocks)")
     instrument: TradeInstrument = Field(default=TradeInstrument.STOCK, description="Instrument type for the trade")
@@ -115,6 +115,7 @@ class TradeRequest(BaseModel):
     leverage: Optional[float] = Field(
         default=None, description="Leverage multiplier applied to the trade (e.g., 2.0 for 2x margin)."
     )
+    article_id: Optional[str] = Field(default=None, description="Associated article ID if triggered by news")
     close_all_positions: bool = Field(
         default=False,
         description="When true, remove all tracked positions for the ticker after a successful SELL",

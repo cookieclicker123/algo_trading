@@ -34,7 +34,7 @@ class TradeRequestFactory:
     @staticmethod
     def create_from_article(
         article: Article,
-        amount_usd: Decimal,
+        amount_usd: Optional[Decimal] = None,
         leverage: Optional[Decimal] = None,
         action: TradeAction = TradeAction.BUY
     ) -> Optional[TradeRequest]:
@@ -43,12 +43,16 @@ class TradeRequestFactory:
         
         Business rules:
         - Article must have exactly one ticker
-        - Amount must be positive
+        - Amount must be positive (required by model, but ignored when leverage is used)
         - Leverage max 2x (validated in model)
+        
+        NOTE: When leverage is used, amount_usd is stored but completely ignored in calculations.
+        The leverage calculation uses: pay for 1 share, leverage provides the second.
+        Capital = price of 1 share (not the amount_usd setting).
         
         Args:
             article: Domain Article model
-            amount_usd: Notional value in USD
+            amount_usd: Notional value in USD (only used if no leverage; ignored when leverage is used)
             leverage: Optional leverage multiplier (max 2x)
             action: Trade action (default: BUY)
             
@@ -71,10 +75,11 @@ class TradeRequestFactory:
                     article_id=article.id
                 )
             
-            # Validate amount
-            if amount_usd <= 0:
-                logger.warning(f"Cannot create trade request: invalid amount: {amount_usd}")
-                return None
+            # Validate amount (only required if no leverage)
+            if leverage is None or leverage <= 1.0:
+                if not amount_usd or amount_usd <= 0:
+                    logger.warning(f"Cannot create trade request: amount_usd required when no leverage: {amount_usd}")
+                    return None
             
             # Validate leverage if provided
             if leverage is not None:

@@ -80,7 +80,7 @@ class TradeRequestMapper:
         """
         return InfrastructureTradeRequestData(
             ticker=domain_request.ticker,
-            amount_usd=float(domain_request.amount_usd),
+            amount_usd=float(domain_request.amount_usd) if domain_request.amount_usd else None,
             action=domain_request.action.value,
             shares=domain_request.shares,
             leverage=float(domain_request.leverage) if domain_request.leverage else None,
@@ -134,7 +134,7 @@ class TradeRequestMapper:
             domain_data = {
                 "ticker": data.get("ticker", ""),
                 "action": data.get("action", "BUY"),
-                "amount_usd": data.get("amount_usd", 0),
+                "amount_usd": data.get("amount_usd"),  # Can be None with leverage
                 "shares": data.get("shares"),
                 "leverage": data.get("leverage"),
                 "instrument": data.get("instrument", "stock"),

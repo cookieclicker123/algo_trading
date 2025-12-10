@@ -124,8 +124,9 @@ class StorageQueryService:
         
         # FAST PATH: Try direct repository query first (articles persist in ~8ms, classification takes ~300ms)
         # By the time we fetch, article should already be stored
+        # However, there can be a race condition where classification completes before storage finishes
         try:
-            logger.info("StorageQueryService: Attempting direct repository query", article_id=article_id)
+            logger.info("🔍 StorageQueryService: Attempting direct repository query", article_id=article_id)
             article_data = await self.article_repository.fetch_article(article_id)
             if article_data:
                 # Convert dict to StoredArticle domain model
@@ -149,8 +150,11 @@ class StorageQueryService:
                     logger.info("StorageQueryService: Article data found but failed to convert to StoredArticle", 
                                article_id=article_id)
             else:
-                logger.info("StorageQueryService: Article not found in repository (returned None), falling back to event-driven fetch",
-                           article_id=article_id)
+                logger.info(
+                    "⏭️ StorageQueryService: Article not found in repository (returned None), falling back to event-driven fetch",
+                    article_id=article_id,
+                    note="This may indicate a race condition - article may be stored but not yet queryable"
+                )
         except Exception as e:
             logger.info("StorageQueryService: Direct repository query failed with exception, falling back to event-driven fetch", 
                         article_id=article_id, error=str(e), exc_info=True)
@@ -182,6 +186,11 @@ class StorageQueryService:
         
         # Wait for the Event to be set (when ArticleFetched arrives)
         try:
+            logger.info(
+                "⏳ StorageQueryService: Waiting for event-driven fetch response",
+                article_id=article_id,
+                timeout_seconds=timeout
+            )
             await asyncio.wait_for(fetch_event_obj.wait(), timeout=timeout)
             
             # Event was set - get the result
@@ -201,11 +210,19 @@ class StorageQueryService:
                     )
                 return domain_article
             else:
-                logger.info("StorageQueryService: Article not found via event-driven fetch", article_id=article_id)
+                logger.warning(
+                    "⚠️ StorageQueryService: Article not found via event-driven fetch (event returned None)",
+                    article_id=article_id
+                )
                 return None
                 
         except asyncio.TimeoutError:
-            logger.warning("StorageQueryService: Fetch timeout", article_id=article_id, timeout=timeout)
+            logger.warning(
+                "⏱️ StorageQueryService: Event-driven fetch timeout",
+                article_id=article_id,
+                timeout_seconds=timeout,
+                note="Article may not be stored yet or event propagation is slow"
+            )
             return None
     
     async def _handle_article_fetched(
@@ -220,6 +237,14 @@ class StorageQueryService:
         """
         try:
             article_id = domain_event.article_id
+            stored_article = domain_event.article
+            
+            logger.info(
+                "📬 StorageQueryService: Received ArticleFetched event",
+                article_id=article_id,
+                found=stored_article is not None,
+                has_pending_fetches=article_id in self._pending_fetches
+            )
             
             async with self._fetch_lock:
                 if article_id in self._pending_fetches:
@@ -235,10 +260,11 @@ class StorageQueryService:
                     # Set the Event - all waiters will be notified
                     fetch_event.set()
                     
-                    logger.debug(
-                        "StorageQueryService: Notified waiters for article fetch",
+                    logger.info(
+                        "✅ StorageQueryService: Notified waiters for article fetch",
                         article_id=article_id,
-                        found=domain_event.article is not None
+                        found=stored_article is not None,
+                        has_tickers=len(stored_article.tickers) > 0 if stored_article and stored_article.tickers else False
                     )
                     
                     # Clean up after a short delay (allows waiters to read result)

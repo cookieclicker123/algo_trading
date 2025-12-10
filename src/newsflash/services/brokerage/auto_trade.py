@@ -51,8 +51,8 @@ def should_process_classification(result: ClassificationResult, enabled: bool) -
 async def fetch_article_for_trade(
     storage_service: StorageQueryService,
     article_id: str,
-    max_retries: int = 3,
-    initial_delay: float = 0.5
+    max_retries: int = 5,  # Increased from 3 to handle race conditions better
+    initial_delay: float = 0.3  # Reduced initial delay, exponential backoff will handle longer waits
 ) -> Optional[Article]:
     """
     Fetch an article from storage for trade processing with retry logic.
@@ -70,13 +70,6 @@ async def fetch_article_for_trade(
     """
     import asyncio
     
-    if not storage_service:
-        logger.warning(
-            "AutoTradeService: Storage query service not available",
-            article_id=article_id
-        )
-        return None
-    
     # Try fetching with exponential backoff retry
     for attempt in range(max_retries):
         domain_article = await storage_service.fetch_article(article_id)
@@ -92,13 +85,14 @@ async def fetch_article_for_trade(
         
         # If not found and we have retries left, wait before retrying
         if attempt < max_retries - 1:
-            delay = initial_delay * (2 ** attempt)  # Exponential backoff
+            delay = initial_delay * (2 ** attempt)  # Exponential backoff: 0.3s, 0.6s, 1.2s, 2.4s, 4.8s
             logger.info(
-                "AutoTradeService: Article not found, retrying",
+                "⏳ AutoTradeService: Article not found, retrying",
                 article_id=article_id,
                 attempt=attempt + 1,
                 max_retries=max_retries,
-                delay_seconds=delay
+                delay_seconds=delay,
+                total_wait_so_far=sum(initial_delay * (2 ** i) for i in range(attempt + 1))
             )
             await asyncio.sleep(delay)
     
@@ -111,20 +105,22 @@ async def fetch_article_for_trade(
     return None
 
 
-def build_trade_request_for_article(article: Article, trade_amount_usd: Decimal) -> Optional[TradeRequest]:
+def build_trade_request_for_article(article: Article) -> Optional[TradeRequest]:
     """
-    Build a trade request from an article using provided trade amount.
+    Build a trade request from an article with 2x leverage.
+    
+    Business rule: Pay for 1 share, leverage the second.
+    No amount_usd needed - capital is always price of 1 share.
     
     Args:
         article: Domain Article model
-        trade_amount_usd: Trade amount in USD
         
     Returns:
         Domain TradeRequest model, or None if invalid
     """
     trade_request = build_trade_request_from_article(
         article=article,
-        amount_usd=trade_amount_usd,
+        amount_usd=None,  # Not used with leverage - capital is price of 1 share
         leverage=Decimal("2.0"),
         action=TradeAction.BUY
     )
@@ -171,8 +167,7 @@ async def process_imminent_article(
     event_bus: AsyncEventBus,
     storage_service: StorageQueryService,
     classification_result: ClassificationResult,
-    enabled: bool,
-    trade_amount_usd: Decimal
+    enabled: bool
 ) -> None:
     """
     Process an IMMINENT classification result and publish trade request if valid.
@@ -221,8 +216,8 @@ async def process_imminent_article(
             ticker_count=len(tickers_list)
         )
         
-        # Build trade request
-        trade_request = build_trade_request_for_article(domain_article, trade_amount_usd)
+        # Build trade request (with 2x leverage - pay for 1 share, leverage the second)
+        trade_request = build_trade_request_for_article(domain_article)
         
         if not trade_request:
             return
@@ -264,8 +259,7 @@ class AutoTradeService:
         self,
         event_bus: AsyncEventBus,
         storage_query_service: StorageQueryService,
-        enabled: bool,
-        trade_amount_usd: Decimal
+        enabled: bool
     ):
         """
         Initialize auto-trade service.
@@ -274,10 +268,8 @@ class AutoTradeService:
             event_bus: Event bus instance for publishing/subscribing to events
             storage_query_service: Storage query service for fetching articles
             enabled: Whether auto-trading is enabled (injected via DI)
-            trade_amount_usd: Trade amount in USD (injected via DI)
         """
         self.is_enabled = enabled
-        self.trade_amount_usd = trade_amount_usd
         self.event_bus = event_bus
         self.storage_query_service = storage_query_service
         
@@ -315,8 +307,7 @@ class AutoTradeService:
             self.event_bus,
             self.storage_query_service,
             domain_event.result,
-            self.is_enabled,
-            self.trade_amount_usd
+            self.is_enabled
         )
     
     async def start(self) -> None:

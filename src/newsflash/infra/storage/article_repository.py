@@ -59,7 +59,10 @@ class ArticleRepository:
         """
         Store an article.
         
-        Uses file locking to prevent race conditions when multiple articles are stored concurrently.
+        CRITICAL: Uses file locking to prevent race conditions:
+        - Multiple concurrent store_article() calls wait for each other
+        - fetch_article() calls wait for store_article() to complete (and vice versa)
+        - This ensures fetch_article() always sees articles immediately after they're stored
         
         Args:
             article_id: Unique article identifier
@@ -69,7 +72,7 @@ class ArticleRepository:
             Tuple of (file_path, is_archived)
         """
         # CRITICAL: Use lock to serialize file operations and prevent race conditions
-        # Multiple concurrent store_article calls will wait for each other
+        # This ensures fetch_article() waits for store_article() to complete before reading
         async with self._file_lock:
             # Load existing articles
             existing_articles = await self._load_articles()
@@ -98,48 +101,55 @@ class ArticleRepository:
         """
         Fetch an article by ID.
         
+        CRITICAL: Uses _file_lock to prevent race conditions with concurrent store_article() calls.
+        This ensures we don't read the file while it's being written, or read stale data.
+        
         Args:
             article_id: Article ID to fetch
             
         Returns:
             Article data if found, None otherwise
         """
-        # First check rolling window
-        articles = await self._load_articles()
-        logger.debug("Repository: Checking rolling window articles", 
-                    article_id=article_id, articles_count=len(articles))
-        for article in articles:
-            # Try different ID formats
-            if self._get_article_id_from_data(article) == article_id:
-                logger.debug("Repository: Article found in rolling window", article_id=article_id)
-                return article
-        
-        # Then check archives (recent dates first)
-        current_date = datetime.now(timezone.utc)
-        logger.debug("Repository: Article not in rolling window, checking archives", article_id=article_id)
-        for days_back in range(7):  # Check last 7 days
-            check_date = current_date - timedelta(days=days_back)
-            archive_path = self._get_archive_path(check_date)
+        # CRITICAL: Acquire lock to prevent reading while store_article() is writing
+        # This ensures we see the article immediately after it's stored
+        async with self._file_lock:
+            # First check rolling window
+            articles = await self._load_articles()
+            logger.debug("Repository: Checking rolling window articles", 
+                        article_id=article_id, articles_count=len(articles))
+            for article in articles:
+                # Try different ID formats
+                if self._get_article_id_from_data(article) == article_id:
+                    logger.debug("Repository: Article found in rolling window", article_id=article_id)
+                    return article
             
-            if archive_path.exists():
-                try:
-                    async with aiofiles.open(archive_path, 'r') as f:
-                        content = await f.read()
-                        archived_articles = json.loads(content) if content.strip() else []
-                    
-                    logger.debug("Repository: Checking archive file", 
-                                article_id=article_id, archive_path=str(archive_path), 
-                                archived_articles_count=len(archived_articles))
-                    for article in archived_articles:
-                        if self._get_article_id_from_data(article) == article_id:
-                            logger.debug("Repository: Article found in archive", 
-                                        article_id=article_id, archive_path=str(archive_path))
-                            return article
-                except Exception as e:
-                    logger.warning("Failed to read archive file", path=str(archive_path), error=str(e))
-        
-        logger.debug("Repository: Article not found in rolling window or archives", article_id=article_id)
-        return None
+            # Then check archives (recent dates first)
+            # Note: Archives are read-only, so no lock needed for archive reads
+            current_date = datetime.now(timezone.utc)
+            logger.debug("Repository: Article not in rolling window, checking archives", article_id=article_id)
+            for days_back in range(7):  # Check last 7 days
+                check_date = current_date - timedelta(days=days_back)
+                archive_path = self._get_archive_path(check_date)
+                
+                if archive_path.exists():
+                    try:
+                        async with aiofiles.open(archive_path, 'r') as f:
+                            content = await f.read()
+                            archived_articles = json.loads(content) if content.strip() else []
+                        
+                        logger.debug("Repository: Checking archive file", 
+                                    article_id=article_id, archive_path=str(archive_path), 
+                                    archived_articles_count=len(archived_articles))
+                        for article in archived_articles:
+                            if self._get_article_id_from_data(article) == article_id:
+                                logger.debug("Repository: Article found in archive", 
+                                            article_id=article_id, archive_path=str(archive_path))
+                                return article
+                    except Exception as e:
+                        logger.warning("Failed to read archive file", path=str(archive_path), error=str(e))
+            
+            logger.debug("Repository: Article not found in rolling window or archives", article_id=article_id)
+            return None
     
     def _get_article_id_from_data(self, article_data: Dict[str, Any]) -> str:
         """Extract article ID from article data dict."""
@@ -192,10 +202,16 @@ class ArticleRepository:
             return []
     
     async def _save_articles(self, articles: List[Dict[str, Any]]):
-        """Save articles to rolling window JSON file."""
+        """
+        Save articles to rolling window JSON file.
+        
+        CRITICAL: This is called while holding _file_lock, ensuring fetch_article() waits.
+        We explicitly flush to ensure data is written to disk before lock is released.
+        """
         try:
             async with aiofiles.open(self.json_file, 'w') as f:
                 await f.write(json.dumps(articles, indent=2, default=str))
+                await f.flush()  # Ensure data is flushed to disk before lock is released
         except Exception as e:
             logger.error("Failed to save articles", error=str(e))
             raise

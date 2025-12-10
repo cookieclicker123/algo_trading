@@ -51,7 +51,7 @@ def select_ticker(article: Article) -> Optional[str]:
 def build_trade_request(
     ticker: str,
     article: Article,
-    amount_usd: Decimal,
+    amount_usd: Optional[Decimal] = None,
     leverage: Optional[Decimal] = None,
     action: TradeAction = TradeAction.BUY,
 ) -> Optional[TradeRequest]:
@@ -63,7 +63,7 @@ def build_trade_request(
     Args:
         ticker: Stock ticker symbol
         article: Domain Article model
-        amount_usd: Trade notional in USD
+        amount_usd: Trade notional in USD (only needed if no leverage; not used when leverage is used)
         leverage: Leverage multiplier (defaults to None, max 2x)
         action: Trade action (default: BUY)
         
@@ -92,16 +92,19 @@ def build_trade_request(
 
 def build_trade_request_from_article(
     article: Article,
-    amount_usd: Decimal,
+    amount_usd: Optional[Decimal] = None,
     leverage: Optional[Decimal] = None,
     action: TradeAction = TradeAction.BUY,
 ) -> Optional[TradeRequest]:
     """
     Build a domain TradeRequest directly from a domain Article.
     
+    NOTE: When leverage is used, amount_usd is not needed. The leverage calculation
+    uses the price of 1 share as capital. Business rule: Pay for 1 share, leverage the second.
+    
     Args:
         article: Domain Article model with tickers
-        amount_usd: Trade notional in USD (required, injected via DI)
+        amount_usd: Trade notional in USD (only used if no leverage; not needed when leverage is used)
         leverage: Leverage multiplier (defaults to None, max 2x)
         action: Trade action (default: BUY)
         
@@ -130,22 +133,22 @@ def validate_trade_request(trade_request: TradeRequest) -> bool:
     return TradeRequestValidator.is_valid_domain_trade_request(trade_request)
 
 
-def create_default_trade_request(article: Article, trade_amount_usd: Decimal) -> Optional[TradeRequest]:
+def create_default_trade_request(article: Article) -> Optional[TradeRequest]:
     """
-    Create a trade request with default settings.
+    Create a trade request with default settings (2x leverage).
     
-    Uses provided trade_amount_usd and 2x leverage by default.
+    Business rule: Pay for 1 share, leverage the second.
+    No amount_usd needed - capital is always price of 1 share.
     
     Args:
         article: Domain Article model
-        trade_amount_usd: Trade amount in USD (injected via DI)
         
     Returns:
         Domain TradeRequest model, or None if invalid
     """
     return build_trade_request_from_article(
         article=article,
-        amount_usd=trade_amount_usd,
+        amount_usd=None,  # Not needed with leverage - capital is price of 1 share
         leverage=Decimal("2.0"),
         action=TradeAction.BUY
     )

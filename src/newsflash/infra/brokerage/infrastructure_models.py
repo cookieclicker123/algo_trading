@@ -16,7 +16,7 @@ class InfrastructureTradeRequestData(BaseModel):
     Infrastructure's own representation - can change without affecting domain.
     """
     ticker: str
-    amount_usd: float
+    amount_usd: Optional[float] = None  # Only used if no leverage; not needed with leverage
     action: str  # "BUY" or "SELL"
     shares: Optional[float] = None  # Supports fractional shares
     leverage: Optional[float] = None

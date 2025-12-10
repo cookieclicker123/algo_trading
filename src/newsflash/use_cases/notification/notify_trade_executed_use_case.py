@@ -6,7 +6,7 @@ USE CASES ORCHESTRATE SERVICES:
 - Use cases work with domain models (they orchestrate domain workflows)
 - Use cases publish domain events to trigger workflows
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Final
 
 from ...utils.logging_config import get_logger
@@ -36,7 +36,7 @@ def format_trade_execution_message(trade_result: TradeResult, article_title: str
         Formatted message string
     """
     trade_request = trade_result.get_trade_request()
-    notification_time = datetime.now()
+    notification_time = datetime.now(timezone.utc)
     
     # Determine order type from session
     # Market hours uses market orders, extended hours uses ladder limit orders
@@ -49,10 +49,12 @@ def format_trade_execution_message(trade_result: TradeResult, article_title: str
         order_type = "LIMIT ORDER"
     
     # Calculate capital vs actual shares
-    # With leverage: we put up capital for 1 share, but buy leverage × shares
-    actual_cost = float(trade_result.total_cost) if trade_result.total_cost else float(trade_result.fill_price) * trade_result.shares
+    # With leverage: 2x leverage on one share = buy 2 shares for the price of one
+    # Capital required = price of 1 share
+    # Quantity = leverage (e.g., 2.0 for 2x leverage)
     leverage = float(trade_request.leverage) if trade_request.leverage else 1.0
-    # Capital required = cost of 1 share, but we bought leverage × shares
+    actual_cost = float(trade_result.total_cost) if trade_result.total_cost else float(trade_result.fill_price) * trade_result.shares
+    # Capital required = price of 1 share (what we leverage from)
     capital_required = float(trade_result.fill_price) if trade_result.fill_price else actual_cost / leverage
     
     message_parts = [
@@ -65,11 +67,11 @@ def format_trade_execution_message(trade_result: TradeResult, article_title: str
         f"💸 Total Cost: ${trade_result.total_cost:.2f}",
     ]
     
-    # Add leverage information showing capital vs actual shares
+    # Add leverage information: 2x leverage on one share = buy 2 shares for the price of one
     if trade_request.leverage and leverage > 1.0:
         message_parts.append(f"📊 Leverage: {trade_request.leverage}x")
-        message_parts.append(f"💰 Capital Required: ${capital_required:.2f} (for 1 share)")
-        message_parts.append(f"📈 Actual Shares: {trade_result.shares:.4f} (profit/loss based on {trade_result.shares:.2f}x)")
+        message_parts.append(f"💰 Capital Required: ${capital_required:.2f} (price of 1 share)")
+        message_parts.append(f"📈 Shares Purchased: {trade_result.shares:.4f} (leverage × 1 share)")
     
     message_parts.extend([
         f"📋 Order Type: {order_type}",
@@ -165,38 +167,56 @@ class NotifyTradeExecutedUseCase:
         """
         Handle Domain.TradeExecuted event and send notification.
         
+        CRITICAL WORKFLOW POINT:
+        - This handler is called by subscribe_typed wrapper when TradeExecutedDomainEvent is published
+        - If this handler isn't called, check for "Error in subscriber for event Domain.TradeExecuted" in logs
+        - If handler is called but no notification published, check for errors below
+        
         Use cases work with domain models - they orchestrate domain workflows.
         """
         try:
             trade_result = domain_event.trade_result
             
+            logger.info(
+                "🎯 NOTIFY TRADE EXECUTED: Handler called",
+                ticker=trade_result.get_ticker(),
+                success=trade_result.success,
+                status=trade_result.status.value,
+                article_id=trade_result.trade_request.get("article_id")
+            )
+            
             # Only notify for successful trades
             if not trade_result.is_successful():
-                logger.debug(
-                    "NotifyTradeExecutedUseCase: Skipping notification for failed trade",
-                    ticker=trade_result.get_ticker()
+                logger.info(
+                    "⏭️  NotifyTradeExecutedUseCase: Skipping notification for failed trade",
+                    ticker=trade_result.get_ticker(),
+                    success=trade_result.success,
+                    status=trade_result.status.value
                 )
                 return
             
             # Skip SELL trades (exits) - those are handled by NotifyExitTradeUseCase
             trade_request = trade_result.get_trade_request()
             if trade_request.is_sell():
-                logger.debug(
-                    "NotifyTradeExecutedUseCase: Skipping notification for SELL trade (exit handled by NotifyExitTradeUseCase)",
+                logger.info(
+                    "⏭️  NotifyTradeExecutedUseCase: Skipping notification for SELL trade (exit handled by NotifyExitTradeUseCase)",
                     ticker=trade_result.get_ticker()
                 )
                 return
+            
+            trade_request = trade_result.get_trade_request()
+            article_id = trade_request.article_id
             
             logger.info(
                 "🎯 NOTIFY TRADE EXECUTED: Orchestrating notification request",
                 ticker=trade_result.get_ticker(),
                 shares=trade_result.shares,
-                fill_price=trade_result.fill_price
+                fill_price=trade_result.fill_price,
+                article_id=article_id
             )
             
             # Fetch article from storage to get publication time and title
-            trade_request = trade_result.get_trade_request()
-            article_id = trade_request.article_id
+            # Note: We still send the trade notification even if article fetch fails
             article = None
             publication_time = None
             article_title = None
@@ -207,11 +227,24 @@ class NotifyTradeExecutedUseCase:
                     if article:
                         publication_time = article.published_at
                         article_title = article.title
+                        logger.debug(
+                            "NotifyTradeExecutedUseCase: Successfully fetched article for notification",
+                            article_id=article_id,
+                            title=article_title[:50] if article_title else None
+                        )
+                    else:
+                        logger.warning(
+                            "NotifyTradeExecutedUseCase: Article not found in storage",
+                            article_id=article_id,
+                            note="Trade notification will still be sent without article details"
+                        )
                 except Exception as e:
-                    logger.warning(
-                        "NotifyTradeExecutedUseCase: Could not fetch article for notification",
+                    logger.error(
+                        "NotifyTradeExecutedUseCase: Error fetching article for notification",
                         article_id=article_id,
-                        error=str(e)
+                        error=str(e),
+                        exc_info=True,
+                        note="Trade notification will still be sent without article details"
                     )
             
             # Get spread_info from trade_request dict metadata (stored by mapper)
@@ -236,13 +269,13 @@ class NotifyTradeExecutedUseCase:
                 reasoning="",
                 body=trade_message,
                 channels=frozenset([NotificationChannel.TELEGRAM]),
-                created_at=datetime.now()
+                created_at=datetime.now(timezone.utc)
             )
             
             # Publish typed domain event
             domain_notification_event = NotificationRequestedDomainEvent(
                 message=notification_message,
-                requested_at=datetime.now()
+                requested_at=datetime.now(timezone.utc)
             )
             
             await self.event_bus.publish(DomainEventType.NOTIFICATION_REQUESTED, domain_notification_event.model_dump())
@@ -250,6 +283,10 @@ class NotifyTradeExecutedUseCase:
             logger.info(
                 "✅ NOTIFY TRADE EXECUTED: Published notification request",
                 ticker=trade_result.get_ticker(),
+                shares=trade_result.shares,
+                fill_price=trade_result.fill_price,
+                article_id=article_id,
+                has_article_details=article is not None,
                 channels=[c.value for c in notification_message.channels]
             )
             

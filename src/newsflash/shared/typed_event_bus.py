@@ -32,8 +32,21 @@ def subscribe_typed(
         The wrapper function that was subscribed (for unsubscribing later)
     """
     async def _wrapper(raw_event_type: str, event_data: dict) -> None:
-        event = model(**event_data)
-        await handler(event)
+        """
+        Wrapper function that reconstructs typed event from dict and calls handler.
+        
+        CRITICAL: If this fails, the handler is NEVER called and error is logged by event bus.
+        Check logs for "Error in subscriber for event {event_type}" to see reconstruction failures.
+        """
+        try:
+            # Reconstruct typed event from dict (Pydantic validates here)
+            event = model(**event_data)
+            # Call the actual handler with typed event
+            await handler(event)
+        except Exception as e:
+            # Re-raise with context for better error messages
+            # Event bus will catch this and log it, but handler won't be called
+            raise ValueError(f"Error in typed event handler for {event_type}: {e}") from e
 
     event_bus.subscribe(event_type, _wrapper)
     return _wrapper

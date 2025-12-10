@@ -6,7 +6,7 @@ USE CASES ORCHESTRATE SERVICES:
 - Use cases work with domain models (they orchestrate domain workflows)
 - Use cases publish domain events to trigger workflows
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Final, Optional
 from decimal import Decimal
 
@@ -37,7 +37,7 @@ def format_exit_trade_message(
         Formatted message string
     """
     exit_request = exit_trade_result.get_trade_request()
-    notification_time = datetime.now()
+    notification_time = datetime.now(timezone.utc)
     
     message_parts = [
         "🚪 EXIT TRADE EXECUTED",
@@ -155,12 +155,15 @@ class NotifyExitTradeUseCase:
             trade_request = trade_result.get_trade_request()
             ticker = trade_request.ticker
             
-            # Track entry trades (BUY)
+            # Track entry trades (BUY) for P/L calculation on exit
             if trade_request.is_buy():
                 self._entry_trades[ticker] = trade_result
-                logger.debug(
-                    "NotifyExitTradeUseCase: Tracked entry trade",
-                    ticker=ticker
+                logger.info(
+                    "✅ NOTIFY EXIT TRADE: Tracked entry trade for future exit P/L calculation",
+                    ticker=ticker,
+                    shares=trade_result.shares,
+                    entry_price=trade_result.fill_price,
+                    article_id=trade_request.article_id
                 )
                 return  # Don't notify for entry trades (handled by NotifyTradeExecutedUseCase)
             
@@ -178,6 +181,15 @@ class NotifyExitTradeUseCase:
             # Get entry trade for P/L calculation
             entry_trade = self._entry_trades.get(ticker)
             
+            if not entry_trade:
+                logger.warning(
+                    "⚠️ NOTIFY EXIT TRADE: No entry trade found in memory for P/L calculation",
+                    ticker=ticker,
+                    exit_shares=trade_result.shares,
+                    exit_price=trade_result.fill_price,
+                    note="This can happen if service restarted between entry and exit, or if entry trade notification wasn't tracked"
+                )
+            
             # Format exit trade message
             exit_message = format_exit_trade_message(
                 exit_trade_result=trade_result,
@@ -194,13 +206,13 @@ class NotifyExitTradeUseCase:
                 reasoning="",
                 body=exit_message,
                 channels=frozenset([NotificationChannel.TELEGRAM]),
-                created_at=datetime.now()
+                created_at=datetime.now(timezone.utc)
             )
             
             # Publish typed domain event
             domain_notification_event = NotificationRequestedDomainEvent(
                 message=notification_message,
-                requested_at=datetime.now()
+                requested_at=datetime.now(timezone.utc)
             )
             
             await self.event_bus.publish(DomainEventType.NOTIFICATION_REQUESTED, domain_notification_event.model_dump())

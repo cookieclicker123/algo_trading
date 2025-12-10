@@ -22,6 +22,7 @@ from ...domain.notification.listener import NotificationDomainListener
 from ...use_cases.notification import NotifyImminentArticleUseCase
 from ...use_cases.notification.notify_trade_executed_use_case import NotifyTradeExecutedUseCase
 from ...use_cases.notification.notify_exit_trade_use_case import NotifyExitTradeUseCase
+from ...use_cases.notification.notify_trade_failed_use_case import NotifyTradeFailedUseCase
 
 logger = get_logger(__name__)
 
@@ -41,6 +42,7 @@ class NotificationMicroservice:
     use_case: Optional[NotifyImminentArticleUseCase]  # Will be created in composition root after dependencies wired
     notify_trade_executed_use_case: Optional[NotifyTradeExecutedUseCase] = None  # Will be created in composition root
     notify_exit_trade_use_case: Optional[NotifyExitTradeUseCase] = None  # Will be created in composition root
+    notify_trade_failed_use_case: Optional[NotifyTradeFailedUseCase] = None  # Will be created in composition root
     
     async def start(self) -> None:
         """Start all notification microservice components."""
@@ -67,6 +69,10 @@ class NotificationMicroservice:
             await self.notify_exit_trade_use_case.start()
             logger.info("Notify exit trade use case started")
         
+        if self.notify_trade_failed_use_case:
+            await self.notify_trade_failed_use_case.start()
+            logger.info("Notify trade failed use case started")
+        
         logger.info("Notification microservice started")
     
     async def stop(self) -> None:
@@ -74,6 +80,9 @@ class NotificationMicroservice:
         logger.info("Stopping notification microservice...")
         
         # Stop use cases first
+        if self.notify_trade_failed_use_case:
+            await self.notify_trade_failed_use_case.stop()
+        
         if self.notify_exit_trade_use_case:
             await self.notify_exit_trade_use_case.stop()
         

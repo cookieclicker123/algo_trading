@@ -49,20 +49,28 @@ class TradeRequestValidator:
                 logger.debug(f"Trade request validation failed: ticker contains invalid characters: {ticker}")
                 return False
             
-            # Validate amount
+            # Validate amount (only required if no leverage AND no explicit shares)
+            leverage = data.get("leverage")
             amount = data.get("amount_usd")
-            if amount is None:
-                logger.debug("Trade request validation failed: missing amount_usd")
-                return False
+            shares = data.get("shares")
             
-            try:
-                amount_decimal = Decimal(str(amount))
-                if amount_decimal <= 0:
-                    logger.debug(f"Trade request validation failed: amount must be positive: {amount}")
-                    return False
-            except (ValueError, TypeError):
-                logger.debug(f"Trade request validation failed: invalid amount format: {amount}")
-                return False
+            if leverage is None or leverage <= 1.0:
+                # No leverage: need either amount_usd or explicit shares
+                if shares is None:
+                    # No explicit shares: amount_usd is required
+                    if amount is None:
+                        logger.debug("Trade request validation failed: missing amount_usd (required when no leverage and no explicit shares)")
+                        return False
+                    
+                    try:
+                        amount_decimal = Decimal(str(amount))
+                        if amount_decimal <= 0:
+                            logger.debug(f"Trade request validation failed: amount must be positive: {amount}")
+                            return False
+                    except (ValueError, TypeError):
+                        logger.debug(f"Trade request validation failed: invalid amount format: {amount}")
+                        return False
+            # With leverage: amount_usd is optional (we use price of 1 share as capital)
             
             # Validate action
             action = data.get("action", "BUY").upper()
@@ -70,8 +78,7 @@ class TradeRequestValidator:
                 logger.debug(f"Trade request validation failed: invalid action: {action}")
                 return False
             
-            # Validate leverage (if specified)
-            leverage = data.get("leverage")
+            # Validate leverage (if specified) - already extracted above
             if leverage is not None:
                 try:
                     leverage_decimal = Decimal(str(leverage))
@@ -114,9 +121,14 @@ class TradeRequestValidator:
             if not trade_request.ticker or len(trade_request.ticker) > 5:
                 return False
             
-            # Validate amount
-            if trade_request.amount_usd <= 0:
-                return False
+            # Validate amount (only required if no leverage AND no explicit shares)
+            if trade_request.leverage is None or trade_request.leverage <= 1.0:
+                # No leverage: need either amount_usd or explicit shares
+                if trade_request.shares is None:
+                    # No explicit shares: amount_usd is required
+                    if not trade_request.amount_usd or trade_request.amount_usd <= 0:
+                        return False
+            # With leverage: amount_usd is optional (we use price of 1 share as capital)
             
             # Validate action
             if trade_request.action not in [TradeAction.BUY, TradeAction.SELL]:
