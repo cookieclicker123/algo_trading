@@ -5,7 +5,7 @@ This is the ONLY place that knows about cross-microservice dependencies.
 All microservices initialize themselves independently, but dependencies are
 provided via the DI container.
 """
-from typing import Tuple
+from typing import Tuple, Any
 from dependency_injector import providers
 
 from ..utils.logging_config import get_logger
@@ -46,7 +46,7 @@ def _create_trade_handler_if_enabled(
     return None
 
 
-async def initialize_services() -> Tuple[Services, ApplicationContainer]:
+async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, Any]:
     """
     Composition Root - wires microservices together using DI container.
     
@@ -223,6 +223,23 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer]:
     # Get event bus from container (needed for Services container)
     event_bus = container.event_bus()
     
+    # Step 7: Initialize statistics engines (runs alongside main trading system)
+    # Use DI container factories - all dependencies injected via container
+    statistics_repository = container.statistics_repository()
+    logger.info("StatisticsRepository initialized via DI container")
+    
+    # Create recall engine via DI container factory (quote_fetcher passed as dependency)
+    recall_engine = container.recall_stats_engine(
+        quote_fetcher=brokerage.quote_fetcher  # Use property (not .infra directly)
+    )
+    await recall_engine.start()
+    logger.info("RecallStatsEngine started - tracking missed opportunities")
+    
+    # Create signal engine via DI container factory
+    signal_engine = container.signal_stats_engine()
+    await signal_engine.start()
+    logger.info("SignalStatsEngine started - tracking trade executions")
+    
     logger.info("All services initialized via DI container")
     
     services = Services(
@@ -237,5 +254,7 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer]:
         event_bus=event_bus,
     )
     
-    return services, container
+    # Store statistics engines for shutdown (not in Services container - they're background services)
+    # They'll be stopped in lifespan shutdown handler
+    return services, container, recall_engine, signal_engine
 

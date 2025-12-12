@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from newsflash.services.composition_root import initialize_services
 from newsflash.services.service_initialization import start_services, stop_services
+from newsflash.utils.logging_config import get_logger
 from newsflash.utils.logging_config import setup_logging, get_logger
 
 # Setup logging
@@ -32,7 +33,14 @@ class NewsFlashStandalone:
         
         try:
             # Initialize services (async for future database connections)
-            self.services = await initialize_services()
+            result = await initialize_services()
+            if len(result) == 4:
+                self.services, self.container, self.recall_engine, self.signal_engine = result
+            else:
+                # Backward compatibility
+                self.services, self.container = result
+                self.recall_engine = None
+                self.signal_engine = None
             
             # Start all services
             await start_services(self.services)
@@ -44,6 +52,21 @@ class NewsFlashStandalone:
             logger.error("Error in standalone system", error=str(e))
             raise
         finally:
+            # Stop statistics engines
+            if hasattr(self, 'recall_engine') and self.recall_engine:
+                try:
+                    await self.recall_engine.stop()
+                    logger.info("RecallStatsEngine stopped")
+                except Exception as e:
+                    logger.error("Error stopping RecallStatsEngine", error=str(e))
+            
+            if hasattr(self, 'signal_engine') and self.signal_engine:
+                try:
+                    await self.signal_engine.stop()
+                    logger.info("SignalStatsEngine stopped")
+                except Exception as e:
+                    logger.error("Error stopping SignalStatsEngine", error=str(e))
+            
             if self.services:
                 await stop_services(self.services)
             logger.info("NewsFlash standalone system stopped")

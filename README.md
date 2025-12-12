@@ -1,28 +1,5 @@
 # NewsFlash Trading System
 
-A high-frequency news trading system that polls Polygon.io's Benzinga news API every 50ms to capture market-moving news in real-time.
-
-## Features
-
-- **Multi-Source News Feeds**: Supports multiple news sources simultaneously
-  - **Benzinga**: Polygon.io HTTP polling (50ms intervals, 20 requests/second)
-  - **Finlight.me**: Real-time WebSocket streaming
-- **Standardized Data Format**: Unified article processing across all sources
-- **Delta-based Deduplication**: Only processes new articles using ID-based filtering
-- **Rolling Window Storage**: Maintains last hour of articles for immediate access
-- **24-Hour Archiving**: Organizes historical data by date (year/month/week/date.json)
-- **Source Identification**: Track which source provided each article for performance analysis
-- **FastAPI Server**: REST API with health checks and statistics
-- **Robust Error Handling**: Exponential backoff and automatic reconnection
-- **Structured Logging**: Comprehensive logging for monitoring and debugging
-
-## Prerequisites
-
-- Python 3.9+
-- Polygon.io API key with Benzinga add-on subscription
-- Finlight.me API key (optional, for additional news source)
-- `uv` package manager (recommended) or `pip`
-
 ## Quick Setup
 
 ### 1. Clone and Navigate
@@ -61,17 +38,6 @@ cp .env.example .env
 nano .env
 ```
 
-Add your API keys:
-```env
-POLYGON_API_KEY=your_polygon_api_key_here
-FINLIGHT_API_KEY=your_finlight_api_key_here
-
-# Optional: Telegram notifications (Phase 1 - all articles, no filtering yet)
-TELEGRAM_ENABLED=false
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
-TELEGRAM_CHAT_ID=your_telegram_chat_id_here
-```
-
 ### 5. Optional: Configure Telegram Notifications
 
 To receive news alerts on Telegram:
@@ -94,50 +60,6 @@ To receive news alerts on Telegram:
    TELEGRAM_CHAT_ID=123456789
    ```
 
-4. **Test Connection** (Optional):
-   ```bash
-   python -m tests.test_telegram_bot_connection
-   ```
-   
-   This will send test messages to verify your bot is working correctly.
-
-**Note**: Phase 1 sends ALL articles to Telegram without filtering. Phase 2 will add AI classification to only send high-signal news.
-
-### 6. Verify Installation
-```bash
-# Run tests to verify everything works
-pytest tests/ -v
-```
-
-### Daily Trade Summary
-
-To review daily performance and liquidity stats from the classification audit trail:
-
-```bash
-uv run python scripts/daily_trade_summary.py --date YYYY-MM-DD
-```
-
-The command prints aggregate PnL, sector totals, market-cap buckets, and volume medians for the selected day. Use it at the end of each trading session to track progress and spot patterns quickly.
-
-## Usage
-
-### Standalone Multi-Source System
-Run the standalone multi-source news system:
-
-```bash
-# Make sure virtual environment is activated
-source .venv/bin/activate
-
-# Run standalone multi-source polling
-python -m src.main
-```
-
-This will:
-- Start Benzinga HTTP polling (50ms intervals)
-- Start Finlight WebSocket streaming
-- Store new articles from both sources in `tmp/articles.json`
-- Archive articles older than 1 hour to dated files
-- Log all activity to console with source identification
 
 ### FastAPI Server
 Run the FastAPI server with integrated polling:
@@ -145,9 +67,6 @@ Run the FastAPI server with integrated polling:
 **Important**: Make sure to activate your virtual environment first!
 
 ```bash
-# Activate virtual environment
-source .venv/bin/activate
-
 # Run server (using python -m to ensure correct environment)
 python -m uvicorn src.server:app --host 127.0.0.1 --port 8000 --reload
 
@@ -155,88 +74,27 @@ python -m uvicorn src.server:app --host 127.0.0.1 --port 8000 --reload
 .venv/bin/uvicorn src.server:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-The server provides these endpoints:
-- `GET /` - Service status
-- `GET /health` - Health check
-- `GET /stats` - System statistics
-- `GET /recent-articles?hours=1` - Recent articles
-- `GET /archived-articles/{date}` - Archived articles (YYYY-MM-DD)
-- `GET /archive-stats` - Archive statistics
-- `POST /start-polling` - Start polling manually
-- `POST /stop-polling` - Stop polling manually
-
-## Data Storage
-
-### Current Articles (`tmp/articles.json`)
-- Contains articles from the last hour
-- Updated in real-time as new articles arrive
-- Used for immediate analysis and processing
-
-### Archived Articles (`tmp/archive/`)
-Organized by date structure:
-```
-tmp/archive/
-├── 2025/
-│   ├── 01/
-│   │   ├── week_01/
-│   │   │   ├── 2025-01-01.json
-│   │   │   ├── 2025-01-02.json
-│   │   │   └── 2025-01-03.json
-│   │   └── week_02/
-│   │       └── 2025-01-04.json
-│   └── 02/
-│       └── ...
-```
-
-### Article Data Structure
-```json
-{
-  "benzinga_id": 48032646,
-  "author": "mohd haider",
-  "published": "2025-10-05T02:04:27+00:00",
-  "last_updated": "2025-10-05T02:04:28+00:00",
-  "title": "Federal Judge Temporarily Blocks Trump's Deployment...",
-  "teaser": "Judge Immergut grants temporary restraining order...",
-  "body": "<p>Full article content in HTML...</p>",
-  "url": "https://www.benzinga.com/news/politics/25/10/48032646/...",
-  "images": ["https://..."],
-  "channels": ["news", "politics"],
-  "tickers": [],
-  "tags": []
-}
-```
 
 ## Testing
 
-### Run All Tests
+### unit tests
+
+#### Statistics
 ```bash
-pytest tests/ -v
+python -m pytest tests/unit/statistics/test_repository.py -v
+python -m pytest tests/unit/statistics/test_recall_engine.py -v
+python -m pytest tests/unit/statistics/test_signal_engine.py -v
 ```
 
-### Run Specific Tests
+
+### integration tests
+
+#### Statistics
 ```bash
-# Test API connectivity
-pytest tests/test_api_connection.py -v
-
-# Test with coverage
-pytest tests/ --cov=src/newsflash --cov-report=html
+python -m pytest tests/integration/statistics/test_repository_integration.py -v
+python -m pytest tests/integration/statistics/test_recall_engine_integration.py -v
+python -m pytest tests/integration/statistics/test_signal_engine_integration.py -v
 ```
-
-### Test API Connection
-```bash
-python -c "
-import asyncio
-from src.newsflash.services.news_poller import test_api_connection
-
-async def test():
-    result = await test_api_connection()
-    print(f'API Connection: {result}')
-
-asyncio.run(test())
-"
-```
-
-## Development
 
 ### Code Formatting
 ```bash
@@ -250,112 +108,63 @@ isort src/ tests/
 mypy src/
 ```
 
-### Project Structure
-```
-newsflash/
-├── src/newsflash/
-│   ├── api/              # FastAPI application
-│   ├── config/           # Configuration management
-│   ├── models/           # Pydantic data models
-│   ├── services/         # Core business logic
-│   └── utils/            # Utility functions
-├── tests/                # Test suite
-├── tmp/                  # Data storage (git-ignored)
-├── .env                  # Environment variables (git-ignored)
-├── pyproject.toml        # Project configuration
-└── README.md            # This file
-```
+### Test Environment Issues
 
-## Configuration
-
-### Environment Variables
-- `POLYGON_API_KEY` - Your Polygon.io API key (required)
-- `LOG_LEVEL` - Logging level (default: INFO)
-- `POLLING_INTERVAL_MS` - Polling interval in milliseconds (default: 50)
-
-### Storage Configuration
-- Rolling window: 1 hour (configurable)
-- Archive window: 24 hours (configurable)
-- Archive structure: year/month/week/date.json
-
-## Monitoring
-
-### Health Checks
-```bash
-# Check if service is running
-curl http://localhost:8000/health
-
-# Get system statistics
-curl http://localhost:8000/stats
-```
-
-### Logs
-The system provides structured logging with:
-- Article processing events
-- Error handling and retries
-- Performance metrics
-- Archive operations
-
-## Troubleshooting
-
-### Common Issues
-
-1. **API Key Not Found**
+4. **Tests Using Wrong Python Environment**
    ```
-   ValueError: POLYGON_API_KEY not set
+   ModuleNotFoundError: No module named 'pytz'
    ```
-   Solution: Ensure `.env` file exists with valid API key
-
-2. **Import Errors**
+   Or pytest shows system Python path instead of venv:
    ```
-   ModuleNotFoundError: No module named 'structlog'
+   /Library/Frameworks/Python.framework/Versions/3.11/bin/python3.11
    ```
-   Solution: 
-   - Make sure you're in the activated virtual environment: `source .venv/bin/activate`
-   - Install dependencies: `uv pip install -e .`
-   - Use `python -m uvicorn` instead of just `uvicorn` to ensure correct Python environment
-
-3. **Permission Errors**
+   
+   **Solution:**
+   ```bash
+   # 1. Deactivate current environment
+   deactivate
+   
+   # 2. Remove old venv
+   rm -rf .venv
+   
+   # 3. Create fresh venv with uv
+   uv venv .venv
+   
+   # 4. Activate it
+   source .venv/bin/activate
+   
+   # 5. Install dependencies (including dev)
+   uv pip install -e ".[dev]"
+   
+   # 6. Verify you're using venv Python
+   which python
+   # Should show: /path/to/newsflash/.venv/bin/python
+   
+   # 7. Run tests with python -m pytest (not just pytest)
+   python -m pytest tests/unit/statistics/ -v
    ```
-   PermissionError: [Errno 13] Permission denied: 'tmp/'
+
+5. **Async Fixture Errors in Tests**
    ```
-   Solution: Ensure write permissions for `tmp/` directory
+   pytest.PytestRemovedIn9Warning: 'test_name' requested an async fixture 'test_tmp_dir'
+   ```
+   
+   **Solution:** This happens when sync tests use async fixtures. The fixture should be sync:
+   - Use `@pytest.fixture` (not `@pytest.fixture async`)
+   - Use `time.sleep()` instead of `await asyncio.sleep()` in fixtures
+   - Only use `async def` for fixtures that are actually async operations
 
-### Performance Tuning
-
-- **Polling Interval**: Reduce for faster updates (minimum ~50ms due to API limits)
-- **Archive Window**: Adjust based on storage requirements
-- **Log Level**: Set to WARNING for production to reduce log volume
-
-## API Rate Limits
-
-- Polygon.io allows up to 100 requests/second
-- System polls at 20 requests/second (50ms intervals)
-- Built-in exponential backoff for rate limit handling
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Support
-
-For issues and questions:
-1. Check the troubleshooting section above
-2. Review the logs for error details
-3. Ensure your Polygon.io subscription includes Benzinga add-on
-4. Verify API key permissions
-
----
-
-**Note**: This system is designed for educational and research purposes. Always comply with your data provider's terms of service and applicable regulations when using for trading purposes.
-
-./kill_server.sh
+6. **Pytest Not Found in Venv**
+   ```
+   which pytest
+   # Shows: /Library/Frameworks/Python.framework/.../pytest (system path)
+   ```
+   
+   **Solution:**
+   ```bash
+   # Install pytest in venv
+   uv pip install -e ".[dev]"
+   
+   # Always use python -m pytest instead of just pytest
+   python -m pytest tests/ -v
+   ```

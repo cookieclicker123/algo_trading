@@ -43,6 +43,11 @@ class BrokerageMicroservice:
     auto_trade_service: Optional[AutoTradeService]  # Will be created in composition root after dependencies wired
     exit_trade_use_case: Optional[ExitTradeUseCase] = None  # Will be created in composition root
     
+    @property
+    def quote_fetcher(self):
+        """Expose quote_fetcher for dependency injection (avoids accessing .infra directly)."""
+        return self.infra.quote_fetcher
+    
     async def start(self) -> None:
         """Start all brokerage microservice components."""
         logger.info("Starting brokerage microservice...")

@@ -93,7 +93,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     
     try:
         # Initialize services (async for future database connections)
-        services, container = await initialize_services()
+        result = await initialize_services()
+        if len(result) == 4:
+            services, container, recall_engine, signal_engine = result
+        else:
+            # Backward compatibility if return signature changes
+            services, container = result
+            recall_engine = None
+            signal_engine = None
         
         # Get lifecycle manager from DI container
         lifecycle_manager = container.lifecycle_manager()
@@ -101,9 +108,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         # Start all services via lifecycle manager (DI-managed)
         await lifecycle_manager.start_services(services)
         
-        # Store services and container in app.state for access in endpoints
+        # Store services, container, and statistics engines in app.state
         app.state.services = services
         app.state.container = container
+        app.state.recall_engine = recall_engine
+        app.state.signal_engine = signal_engine
         
         logger.info("API server startup completed successfully")
         
@@ -121,6 +130,23 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         # Get services and container from app.state
         services = getattr(app.state, "services", None)
         container = getattr(app.state, "container", None)
+        recall_engine = getattr(app.state, "recall_engine", None)
+        signal_engine = getattr(app.state, "signal_engine", None)
+        
+        # Stop statistics engines first (they have background monitoring tasks)
+        if recall_engine:
+            try:
+                await recall_engine.stop()
+                logger.info("RecallStatsEngine stopped")
+            except Exception as e:
+                logger.error("Error stopping RecallStatsEngine", error=str(e))
+        
+        if signal_engine:
+            try:
+                await signal_engine.stop()
+                logger.info("SignalStatsEngine stopped")
+            except Exception as e:
+                logger.error("Error stopping SignalStatsEngine", error=str(e))
         
         if services and container:
             # Get lifecycle manager from DI container

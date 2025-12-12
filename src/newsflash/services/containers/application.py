@@ -31,6 +31,12 @@ from ..brokerage.auto_trade import AutoTradeService
 from ..lifecycle_manager import LifecycleManager
 from ..websocket.feed_manager import FeedManager
 from ..websocket.feed_health_monitor import FeedHealthMonitor
+
+# Import statistics engines
+from ...infra.statistics.repository import StatisticsRepository
+from ...shared.statistics.recall_engine import RecallStatsEngine
+from ...shared.statistics.signal_engine import SignalStatsEngine
+from pathlib import Path
 class ApplicationContainer(containers.DeclarativeContainer):
     """
     Main application container - manages all dependencies via DI.
@@ -233,4 +239,29 @@ class ApplicationContainer(containers.DeclarativeContainer):
         LifecycleManager,
         telegram_config_1=telegram_config_1,
         telegram_config_2=telegram_config_2,
+    )
+    
+    # Statistics engines - factories for dependency injection
+    # StatisticsRepository - needs tmp_dir from storage_config
+    statistics_repository = providers.Factory(
+        StatisticsRepository,
+        tmp_dir=providers.Callable(
+            lambda storage_config: Path(storage_config["tmp_dir"]),
+            storage_config=config.storage_config,
+        ),
+    )
+    
+    # RecallStatsEngine - needs event_bus, repository, and quote_fetcher (passed when called)
+    recall_stats_engine = providers.Factory(
+        RecallStatsEngine,
+        event_bus=shared.event_bus,
+        repository=statistics_repository,
+        # quote_fetcher will be passed when recall_stats_engine is called in composition_root
+    )
+    
+    # SignalStatsEngine - needs event_bus and repository
+    signal_stats_engine = providers.Factory(
+        SignalStatsEngine,
+        event_bus=shared.event_bus,
+        repository=statistics_repository,
     )

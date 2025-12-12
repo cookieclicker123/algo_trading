@@ -72,6 +72,40 @@ def get_next_premarket_time() -> datetime:
     return tomorrow_premarket
 
 
+def get_market_session_from_timestamp(timestamp: datetime) -> Tuple[str, bool]:
+    """
+    Determine market session from a specific timestamp (not current time).
+    
+    Args:
+        timestamp: Datetime to determine session for (can be timezone-aware or naive)
+        
+    Returns:
+        Tuple of (session_name, is_extended_hours)
+        - session_name: "market_hours" | "premarket" | "postmarket" | "closed"
+        - is_extended_hours: True if premarket/postmarket, False if market_hours/closed
+    """
+    et_tz = pytz.timezone("US/Eastern")
+    # Convert to ET if timezone-aware, otherwise assume it's already ET
+    if timestamp.tzinfo:
+        timestamp_et = timestamp.astimezone(et_tz)
+    else:
+        timestamp_et = et_tz.localize(timestamp)
+    
+    market_open = timestamp_et.replace(hour=9, minute=30, second=0, microsecond=0)
+    market_close = timestamp_et.replace(hour=16, minute=0, second=0, microsecond=0)
+    premarket_start = timestamp_et.replace(hour=4, minute=0, second=0, microsecond=0)
+    postmarket_end = timestamp_et.replace(hour=20, minute=0, second=0, microsecond=0)
+    
+    if market_open <= timestamp_et < market_close:
+        return "market_hours", False
+    if premarket_start <= timestamp_et < market_open:
+        return "premarket", True
+    if market_close <= timestamp_et < postmarket_end:
+        return "postmarket", True
+    
+    return "closed", True
+
+
 def seconds_until_next_premarket() -> float:
     """
     Calculate seconds until next premarket opening.

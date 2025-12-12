@@ -1,7 +1,6 @@
 """
 Configuration container - provides configuration values.
 """
-from decimal import Decimal
 from dependency_injector import containers, providers
 
 from ...config import settings
