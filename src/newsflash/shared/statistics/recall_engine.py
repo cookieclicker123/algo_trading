@@ -260,7 +260,8 @@ class RecallStatsEngine:
                     volume_analysis = await analyze_volume_around_event(
                         client=self.market_data_client,
                         symbol=tradable_tickers[0],  # Use first ticker
-                        event_time=article.published_at
+                        event_time=article.published_at,
+                        received_at=received_at  # For precise published_at → received_at window
                     )
                     if volume_analysis:
                         volume_stats_dict = volume_analysis.to_dict()

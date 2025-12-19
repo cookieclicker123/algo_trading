@@ -18,7 +18,7 @@ from typing import Optional, Dict, Any, List
 import pytz
 
 from alpaca.data.historical import StockHistoricalDataClient
-from alpaca.data.requests import StockBarsRequest, StockQuotesRequest
+from alpaca.data.requests import StockBarsRequest, StockQuotesRequest, StockTradesRequest
 from alpaca.data.timeframe import TimeFrame
 from alpaca.data.enums import DataFeed
 
@@ -88,6 +88,76 @@ class VolumeSurgeAnalysis:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return asdict(self)
+
+
+def _fetch_trades_in_window(
+    client: StockHistoricalDataClient,
+    symbol: str,
+    window_start: datetime,
+    window_end: datetime,
+) -> Optional[Dict[str, Any]]:
+    """
+    Fetch all trades in a time window and aggregate volume.
+    
+    This is used for real-time volume calculation when minute bars
+    haven't completed yet. Returns total volume and trade count.
+    
+    Args:
+        client: Alpaca market data client
+        symbol: Ticker symbol
+        window_start: Start of the window
+        window_end: End of the window
+        
+    Returns:
+        Dict with volume, trade_count, and window_seconds, or None if no data
+    """
+    try:
+        # Ensure UTC
+        if window_start.tzinfo is None:
+            window_start = window_start.replace(tzinfo=timezone.utc)
+        if window_end.tzinfo is None:
+            window_end = window_end.replace(tzinfo=timezone.utc)
+        
+        request = StockTradesRequest(
+            symbol_or_symbols=[symbol],
+            start=window_start,
+            end=window_end,
+            feed=DataFeed.SIP
+        )
+        
+        trades = client.get_stock_trades(request)
+        
+        if symbol not in trades.data:
+            return None
+        
+        trade_list = list(trades[symbol])
+        if not trade_list:
+            return None
+        
+        # Aggregate volume and count trades
+        total_volume = sum(t.size for t in trade_list)
+        trade_count = len(trade_list)
+        
+        # Calculate window duration in seconds
+        window_seconds = (window_end - window_start).total_seconds()
+        
+        # Calculate volume per second for normalization
+        vol_per_second = total_volume / window_seconds if window_seconds > 0 else 0
+        
+        # Normalize to 60-second equivalent (for comparison with minute bars)
+        normalized_minute_volume = vol_per_second * 60
+        
+        return {
+            "raw_volume": int(total_volume),
+            "trade_count": int(trade_count),
+            "window_seconds": round(window_seconds, 2),
+            "vol_per_second": round(vol_per_second, 2),
+            "normalized_minute_volume": round(normalized_minute_volume, 0),
+        }
+        
+    except Exception as e:
+        logger.debug(f"Error fetching trades for {symbol} in window: {e}")
+        return None
 
 
 def _fetch_minute_bar(
@@ -164,8 +234,9 @@ def _fetch_quote_at_time(
         if target_time.tzinfo is None:
             target_time = target_time.replace(tzinfo=timezone.utc)
         
-        # Fetch quotes in a small window around target time
-        start = target_time - timedelta(seconds=10)
+        # Fetch quotes in a window around target time
+        # Use 60 seconds for illiquid stocks that may not have frequent quotes
+        start = target_time - timedelta(seconds=60)
         end = target_time + timedelta(seconds=5)
         
         request = StockQuotesRequest(
@@ -226,6 +297,8 @@ def _get_stats_at_time(
     client: StockHistoricalDataClient,
     symbol: str,
     target_time: datetime,
+    use_realtime_window: bool = False,
+    window_end: datetime = None,
 ) -> Optional[VolumeStats]:
     """
     Get combined volume and quote stats at a specific time.
@@ -233,14 +306,42 @@ def _get_stats_at_time(
     Args:
         client: Alpaca market data client
         symbol: Ticker symbol
-        target_time: Target timestamp
+        target_time: Target timestamp (window start for real-time mode)
+        use_realtime_window: If True, fetch trades in a window instead of minute bar
+        window_end: End of window for real-time mode (e.g., received_at)
         
     Returns:
         VolumeStats or None if no data
     """
-    # Get minute bar for this minute
-    minute_start = target_time.replace(second=0, microsecond=0)
-    bar_data = _fetch_minute_bar(client, symbol, minute_start)
+    bar_data = None
+    
+    if use_realtime_window:
+        # For stats_at_event: use real-time trades in a precise window
+        # Use window_end if provided (published_at → received_at), else fallback to +5s
+        if window_end is None:
+            window_end = target_time + timedelta(seconds=5)
+        
+        # Ensure window_end is UTC
+        if window_end.tzinfo is None:
+            window_end = window_end.replace(tzinfo=timezone.utc)
+        if target_time.tzinfo is None:
+            target_time = target_time.replace(tzinfo=timezone.utc)
+        
+        trades_data = _fetch_trades_in_window(client, symbol, target_time, window_end)
+        
+        if trades_data:
+            bar_data = {
+                "volume": trades_data.get("raw_volume"),
+                "trade_count": trades_data.get("trade_count"),
+                # Store normalized volume for fair comparison with prior minute bars
+                "normalized_minute_volume": trades_data.get("normalized_minute_volume"),
+                "window_seconds": trades_data.get("window_seconds"),
+                "vol_per_second": trades_data.get("vol_per_second"),
+            }
+    else:
+        # Get minute bar for this minute
+        minute_start = target_time.replace(second=0, microsecond=0)
+        bar_data = _fetch_minute_bar(client, symbol, minute_start)
     
     # Get quote at this time
     quote_data = _fetch_quote_at_time(client, symbol, target_time)
@@ -268,6 +369,7 @@ async def analyze_volume_around_event(
     client: StockHistoricalDataClient,
     symbol: str,
     event_time: datetime,
+    received_at: datetime = None,
 ) -> VolumeSurgeAnalysis:
     """
     Analyze volume and quotes at key intervals around an event.
@@ -278,7 +380,8 @@ async def analyze_volume_around_event(
     Args:
         client: Alpaca StockHistoricalDataClient (injected)
         symbol: Ticker symbol to analyze
-        event_time: When the event occurred (e.g., article received)
+        event_time: When the event occurred (e.g., article published_at)
+        received_at: When we received the event (optional, for precise window)
         
     Returns:
         VolumeSurgeAnalysis with raw stats and computed metrics
@@ -303,12 +406,18 @@ async def analyze_volume_around_event(
             "at_event": event_time,
         }
         
-        # Fetch stats for each interval
+        # Fetch stats for each interval (use minute bars for prior intervals)
         stats_3min = _get_stats_at_time(client, symbol, intervals["3min_before"])
         stats_2min = _get_stats_at_time(client, symbol, intervals["2min_before"])
         stats_1min = _get_stats_at_time(client, symbol, intervals["1min_before"])
         stats_30sec = _get_stats_at_time(client, symbol, intervals["30sec_before"])
-        stats_now = _get_stats_at_time(client, symbol, intervals["at_event"])
+        
+        # For stats_at_event, use real-time trade window: published_at → received_at
+        stats_now = _get_stats_at_time(
+            client, symbol, intervals["at_event"], 
+            use_realtime_window=True, 
+            window_end=received_at  # Precise window from publication to receipt
+        )
         
         # Calculate prior average volume (from 3/2/1 min before)
         prior_volumes = []
@@ -322,9 +431,13 @@ async def analyze_volume_around_event(
         # Determine surge type and score
         had_prior = len(prior_volumes) > 0 and any(v > 0 for v in prior_volumes)
         
-        if current_vol is None:
+        if current_vol is None and not had_prior:
             surge_type = "NO_DATA"
             surge_score = None
+        elif current_vol is None and had_prior:
+            # Have prior data but no current - use prior avg as indicator
+            surge_type = "PRIOR_ONLY"
+            surge_score = round(prior_avg, 0) if prior_avg else None
         elif not had_prior or prior_avg == 0 or prior_avg is None:
             # No prior activity - this is NEW_ACTIVITY pattern (like WYFI)
             surge_type = "NEW_ACTIVITY"
@@ -400,6 +513,9 @@ def format_volume_stats_for_notification(analysis: VolumeSurgeAnalysis) -> List[
     elif analysis.surge_type == "MULTIPLIER":
         score_str = f"{analysis.surge_score:.1f}x" if analysis.surge_score else "N/A"
         lines.append(f"   📈 SURGE: {score_str} prior avg volume")
+    elif analysis.surge_type == "PRIOR_ONLY":
+        avg_str = f"{analysis.surge_score:,.0f}" if analysis.surge_score else "N/A"
+        lines.append(f"   📊 Prior Avg Vol: {avg_str} (current minute incomplete)")
     elif analysis.surge_type == "NO_DATA":
         lines.append("   ⚠️ No volume data available")
     elif analysis.surge_type == "ERROR":
