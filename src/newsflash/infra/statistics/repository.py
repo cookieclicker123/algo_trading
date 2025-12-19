@@ -14,8 +14,10 @@ from ...utils.logging_config import get_logger
 from ...shared.statistics.models import (
     RecallSessionFile,
     SignalSessionFile,
+    FailedTradeSessionFile,
     RecallRecord,
     SignalRecord,
+    FailedTradeRecord,
 )
 from ...domain.brokerage.models import MarketSession
 
@@ -53,7 +55,7 @@ class StatisticsRepository:
     
     def _get_session_file_path(
         self,
-        engine_type: str,  # "recall" or "signal"
+        engine_type: str,  # "recall", "signal", or "failed_trades"
         session: str,  # "premarket", "market_hours", "postmarket"
         date: datetime
     ) -> Path:
@@ -249,6 +251,12 @@ class StatisticsRepository:
                                     if reason not in existing_reasons:
                                         existing_reasons.append(reason)
                                 setattr(record, key, existing_reasons)
+                            # Special handling for ticker_metadata - merge dictionaries (for multiple tickers)
+                            elif key == "ticker_metadata" and isinstance(value, dict):
+                                existing_metadata = record.ticker_metadata.copy() if record.ticker_metadata else {}
+                                # Merge new metadata into existing (don't overwrite, just add/update)
+                                existing_metadata.update(value)
+                                setattr(record, key, existing_metadata)
                             else:
                                 setattr(record, key, value)
                     
@@ -548,6 +556,222 @@ class StatisticsRepository:
     
     async def _save_signal_file(self, file_path: Path, session_file: SignalSessionFile) -> None:
         """Save signal session file."""
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        async with aiofiles.open(file_path, 'w', encoding='utf-8') as f:
+            json_str = json.dumps(
+                session_file.model_dump(mode='json'),
+                indent=2,
+                ensure_ascii=False,
+                default=str
+            )
+            await f.write(json_str)
+    
+    # ===== Failed Trades Methods =====
+    
+    async def append_failed_trade_record(
+        self,
+        record: FailedTradeRecord,
+        session: str,
+        date: datetime
+    ) -> None:
+        """
+        Append a failed trade record to the session file and update summary.
+        
+        Real-time operation: Loads file, appends record, updates summary, saves.
+        
+        Args:
+            record: FailedTradeRecord to append
+            session: Session name (from session_detector)
+            date: Date for file path calculation
+        """
+        async with self._file_lock:
+            file_path = self._get_session_file_path("failed_trades", session, date)
+            
+            # Load existing file or create new
+            session_file = await self._load_failed_trade_file(file_path, session, date)
+            
+            # Append record
+            session_file.records.append(record)
+            
+            # Update summary
+            session_file.summary["total_failed_trades"] = len(session_file.records)
+            
+            # Update failure reasons breakdown
+            reason = record.failure_reason
+            session_file.summary["failure_reasons_breakdown"][reason] = \
+                session_file.summary["failure_reasons_breakdown"].get(reason, 0) + 1
+            
+            # Update ticker breakdown
+            session_file.summary["ticker_breakdown"][record.ticker] = \
+                session_file.summary["ticker_breakdown"].get(record.ticker, 0) + 1
+            
+            # Update time of day breakdown (by hour)
+            hour_key = f"{record.hour:02d}:00"
+            session_file.summary["time_of_day_breakdown"][hour_key] = \
+                session_file.summary["time_of_day_breakdown"].get(hour_key, 0) + 1
+            
+            # Update session breakdown
+            session_str = record.session.value if hasattr(record.session, 'value') else str(record.session)
+            session_file.summary["session_breakdown"][session_str] = \
+                session_file.summary["session_breakdown"].get(session_str, 0) + 1
+            
+            # Update average spread, bid_size, ask_size at failure
+            if record.failure_nbbo:
+                spreads = [
+                    r.failure_nbbo.get("spread")
+                    for r in session_file.records
+                    if r.failure_nbbo and r.failure_nbbo.get("spread") is not None
+                ]
+                bid_sizes = [
+                    r.failure_nbbo.get("bid_size")
+                    for r in session_file.records
+                    if r.failure_nbbo and r.failure_nbbo.get("bid_size") is not None
+                ]
+                ask_sizes = [
+                    r.failure_nbbo.get("ask_size")
+                    for r in session_file.records
+                    if r.failure_nbbo and r.failure_nbbo.get("ask_size") is not None
+                ]
+                
+                if spreads:
+                    session_file.summary["avg_spread_at_failure"] = sum(spreads) / len(spreads)
+                if bid_sizes:
+                    session_file.summary["avg_bid_size_at_failure"] = sum(bid_sizes) / len(bid_sizes)
+                if ask_sizes:
+                    session_file.summary["avg_ask_size_at_failure"] = sum(ask_sizes) / len(ask_sizes)
+            
+            # Update last_updated_at
+            session_file.last_updated_at = datetime.now()
+            
+            # Save file
+            await self._save_failed_trade_file(file_path, session_file)
+            
+            logger.debug(
+                "Appended failed trade record",
+                trade_id=record.trade_id,
+                file_path=str(file_path)
+            )
+    
+    async def update_failed_trade_record(
+        self,
+        trade_id: str,
+        updates: Dict[str, Any],
+        session: str,
+        date: datetime
+    ) -> None:
+        """
+        Update an existing failed trade record in the session file.
+        
+        Args:
+            trade_id: Trade ID to update
+            updates: Dictionary of fields to update
+            session: Session name
+            date: Date for file path calculation
+        """
+        async with self._file_lock:
+            file_path = self._get_session_file_path("failed_trades", session, date)
+            
+            # Load existing file
+            session_file = await self._load_failed_trade_file(file_path, session, date)
+            
+            # Find and update record
+            for record in session_file.records:
+                if record.trade_id == trade_id:
+                    # Update fields
+                    for key, value in updates.items():
+                        if hasattr(record, key):
+                            setattr(record, key, value)
+                    
+                    # Update industry/sector breakdown if metadata was updated
+                    if "ticker_metadata" in updates:
+                        new_metadata = updates["ticker_metadata"]
+                        if new_metadata:
+                            # Recalculate breakdowns (simplified - just update counts)
+                            # In practice, we'd need to track old vs new, but for now just ensure it's counted
+                            pass  # Breakdowns are updated on append, not on metadata update
+                    
+                    break
+            
+            # Update last_updated_at
+            session_file.last_updated_at = datetime.now()
+            
+            # Save file
+            await self._save_failed_trade_file(file_path, session_file)
+            
+            logger.debug(
+                "Updated failed trade record",
+                trade_id=trade_id,
+                file_path=str(file_path)
+            )
+    
+    async def _load_failed_trade_file(
+        self,
+        file_path: Path,
+        session: str,
+        date: datetime
+    ) -> FailedTradeSessionFile:
+        """Load failed trade session file or create new if doesn't exist."""
+        if file_path.exists():
+            try:
+                async with aiofiles.open(file_path, 'r', encoding='utf-8') as f:
+                    content = await f.read()
+                    data = json.loads(content)
+                    
+                    # Convert records to FailedTradeRecord models
+                    records = [FailedTradeRecord(**r) for r in data.get("records", [])]
+                    
+                    # Map session string to MarketSession enum
+                    session_str = data.get("session")
+                    if isinstance(session_str, str):
+                        session_enum_map = {
+                            "MARKET": MarketSession.MARKET,
+                            "PREMARKET": MarketSession.PREMARKET,
+                            "POSTMARKET": MarketSession.POSTMARKET,
+                        }
+                        session_enum = session_enum_map.get(session_str, MarketSession.MARKET)
+                    else:
+                        session_enum = MarketSession.MARKET
+                    
+                    return FailedTradeSessionFile(
+                        session=session_enum,
+                        date=data.get("date", date.strftime("%Y-%m-%d")),
+                        session_start=datetime.fromisoformat(data.get("session_start", datetime.now().isoformat())),
+                        session_end=datetime.fromisoformat(data.get("session_end", datetime.now().isoformat())),
+                        file_created_at=datetime.fromisoformat(data.get("file_created_at", datetime.now().isoformat())),
+                        last_updated_at=datetime.fromisoformat(data.get("last_updated_at", datetime.now().isoformat())),
+                        summary=data.get("summary", {}),
+                        records=records
+                    )
+            except Exception as e:
+                logger.warning(
+                    "Error loading failed trade file, creating new",
+                    file_path=str(file_path),
+                    error=str(e)
+                )
+        
+        # Create new file
+        et_tz = pytz.timezone("US/Eastern")
+        date_et = date.astimezone(et_tz) if date.tzinfo else et_tz.localize(date)
+        
+        # Map session string to MarketSession enum
+        session_enum_map = {
+            "premarket": MarketSession.PREMARKET,
+            "market_hours": MarketSession.MARKET,
+            "postmarket": MarketSession.POSTMARKET
+        }
+        session_enum = session_enum_map.get(session, MarketSession.MARKET)
+        
+        return FailedTradeSessionFile(
+            session=session_enum,
+            date=date_et.strftime("%Y-%m-%d"),
+            session_start=date_et,
+            session_end=date_et,
+            records=[]
+        )
+    
+    async def _save_failed_trade_file(self, file_path: Path, session_file: FailedTradeSessionFile) -> None:
+        """Save failed trade session file."""
         file_path.parent.mkdir(parents=True, exist_ok=True)
         
         async with aiofiles.open(file_path, 'w', encoding='utf-8') as f:

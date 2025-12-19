@@ -34,13 +34,17 @@ class NewsFlashStandalone:
         try:
             # Initialize services (async for future database connections)
             result = await initialize_services()
-            if len(result) == 4:
+            if len(result) == 5:
+                self.services, self.container, self.recall_engine, self.signal_engine, self.failed_trades_engine = result
+            elif len(result) == 4:
                 self.services, self.container, self.recall_engine, self.signal_engine = result
+                self.failed_trades_engine = None
             else:
                 # Backward compatibility
                 self.services, self.container = result
                 self.recall_engine = None
                 self.signal_engine = None
+                self.failed_trades_engine = None
             
             # Start all services
             await start_services(self.services)

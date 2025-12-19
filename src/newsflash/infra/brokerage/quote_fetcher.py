@@ -55,8 +55,20 @@ class AlpacaQuoteFetcher:
         """
         try:
             # Get latest quote using market data client
-            request = StockLatestQuoteRequest(symbol_or_symbols=[symbol])
-            quotes = self.market_data_client.get_stock_latest_quote(request)
+            # Use SIP feed for true NBBO (requires Algo Trader Plus subscription)
+            # Falls back to IEX if SIP unavailable (for testing/development)
+            try:
+                request = StockLatestQuoteRequest(symbol_or_symbols=[symbol], feed="sip")
+                quotes = self.market_data_client.get_stock_latest_quote(request)
+            except Exception as sip_error:
+                # Fall back to IEX if SIP fails (no subscription or error)
+                logger.debug(
+                    "NBBO: SIP feed unavailable, falling back to IEX",
+                    symbol=symbol,
+                    error=str(sip_error)
+                )
+                request = StockLatestQuoteRequest(symbol_or_symbols=[symbol], feed="iex")
+                quotes = self.market_data_client.get_stock_latest_quote(request)
             
             if quotes and symbol in quotes:
                 quote = quotes[symbol]
@@ -82,8 +94,31 @@ class AlpacaQuoteFetcher:
         """
         try:
             # Get latest quote using market data client
-            request = StockLatestQuoteRequest(symbol_or_symbols=[symbol])
-            quotes = self.market_data_client.get_stock_latest_quote(request)
+            # Use SIP feed for true NBBO (requires Algo Trader Plus subscription)
+            # Falls back to IEX if SIP unavailable (for testing/development)
+            sip_feed_used = False
+            try:
+                request = StockLatestQuoteRequest(symbol_or_symbols=[symbol], feed="sip")
+                quotes = self.market_data_client.get_stock_latest_quote(request)
+                sip_feed_used = True
+            except Exception as sip_error:
+                # Fall back to IEX if SIP fails (no subscription or error)
+                error_msg = str(sip_error)
+                # Check if it's a subscription error (most common)
+                if "subscription" in error_msg.lower() or "not permitted" in error_msg.lower():
+                    logger.warning(
+                        "⚠️ NBBO: SIP feed requires Algo Trader Plus subscription, falling back to IEX",
+                        symbol=symbol,
+                        error=error_msg
+                    )
+                else:
+                    logger.debug(
+                        "NBBO: SIP feed unavailable, falling back to IEX",
+                        symbol=symbol,
+                        error=error_msg
+                    )
+                request = StockLatestQuoteRequest(symbol_or_symbols=[symbol], feed="iex")
+                quotes = self.market_data_client.get_stock_latest_quote(request)
             
             # Detailed logging for failure diagnosis
             if not quotes:
@@ -108,6 +143,8 @@ class AlpacaQuoteFetcher:
             quote = quotes[symbol]
             bid = float(quote.bid_price) if quote.bid_price and quote.bid_price > 0 else None
             ask = float(quote.ask_price) if quote.ask_price and quote.ask_price > 0 else None
+            bid_size = int(quote.bid_size) if hasattr(quote, 'bid_size') and quote.bid_size else None
+            ask_size = int(quote.ask_size) if hasattr(quote, 'ask_size') and quote.ask_size else None
             
             # Detailed logging for missing bid/ask
             if bid is None:
@@ -140,6 +177,8 @@ class AlpacaQuoteFetcher:
                 "ask": ask,
                 "spread": spread,
                 "mid": mid,
+                "bid_size": bid_size,
+                "ask_size": ask_size,
             }
             
             logger.debug(
@@ -148,7 +187,8 @@ class AlpacaQuoteFetcher:
                 bid=bid,
                 ask=ask,
                 spread=spread,
-                mid=mid
+                mid=mid,
+                feed="sip" if sip_feed_used else "iex"
             )
             
             # Publish quote event
@@ -157,15 +197,30 @@ class AlpacaQuoteFetcher:
             return result
             
         except Exception as e:
-            logger.error(
-                "❌ NBBO FETCH FAILED: Exception during API call",
-                symbol=symbol,
-                reason="api_exception",
-                error_type=type(e).__name__,
-                error_message=str(e),
-                diagnostic="Alpaca API call raised exception (network issue, rate limit, or API error)",
-                exc_info=True
-            )
+            # Check if this is an expected failure (invalid symbol = non-US exchange)
+            error_msg = str(e)
+            is_invalid_symbol = "invalid symbol" in error_msg.lower()
+            
+            # For invalid symbols (e.g., TSX:*, CSE:*), log at debug level (expected)
+            # For other errors, log at error level (unexpected)
+            if is_invalid_symbol:
+                logger.debug(
+                    "NBBO: Invalid symbol (likely non-US exchange)",
+                    symbol=symbol,
+                    reason="invalid_symbol",
+                    error_message=error_msg,
+                    diagnostic="Symbol not supported by Alpaca (likely Canadian or other non-US exchange)"
+                )
+            else:
+                logger.error(
+                    "❌ NBBO FETCH FAILED: Exception during API call",
+                    symbol=symbol,
+                    reason="api_exception",
+                    error_type=type(e).__name__,
+                    error_message=error_msg,
+                    diagnostic="Alpaca API call raised exception (network issue, rate limit, or API error)",
+                    exc_info=True
+                )
             return None
     
     async def _publish_quote_event(self, symbol: str, bid: float, ask: float, spread: float) -> None:

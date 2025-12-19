@@ -119,6 +119,84 @@ class SignalRecord(BaseModel):
     model_config = {"frozen": False}  # Allow updates for exit data
 
 
+# ===== Failed Trades Engine Models =====
+
+class FailedTradeRecord(BaseModel):
+    """Record of a failed trade attempt."""
+    
+    trade_id: str = Field(..., description="Trade/order identifier")
+    article_id: Optional[str] = Field(None, description="Associated article ID if triggered by news")
+    ticker: str = Field(..., description="Ticker symbol that failed to trade")
+    session: MarketSession = Field(..., description="Market session when trade failed")
+    failed_at: datetime = Field(..., description="When trade failed")
+    
+    # Failure details
+    failure_reason: str = Field(..., description="Error message/reason for failure")
+    ladder_attempts: Optional[int] = Field(None, description="Number of ladder attempts made (for extended hours)")
+    ladder_attempts_detail: Optional[List[Dict[str, Any]]] = Field(
+        None,
+        description="Detailed ladder attempts with prices and timestamps"
+    )
+    
+    # NBBO at failure time (with bid/ask sizes)
+    failure_nbbo: Optional[Dict[str, Any]] = Field(
+        None,
+        description="NBBO at failure: bid, ask, spread, mid, bid_size, ask_size"
+    )
+    
+    # Time of day metrics
+    hour: int = Field(..., description="Hour of day (0-23) when trade failed")
+    minute: int = Field(..., description="Minute of hour (0-59) when trade failed")
+    time_of_day: str = Field(..., description="Time of day string (HH:MM format)")
+    
+    # Ticker metadata (fetched via yfinance)
+    ticker_metadata: Optional[Dict[str, Any]] = Field(
+        None,
+        description="{industry, sector, market_cap_millions, price, exchange}"
+    )
+    
+    # Trade request details
+    requested_shares: Optional[int] = Field(None, description="Number of shares requested")
+    requested_price: Optional[float] = Field(None, description="Requested price (if limit order)")
+    order_type: Optional[str] = Field(None, description="Order type (market, limit, etc.)")
+    
+    # Tracking metadata
+    recorded_at: datetime = Field(default_factory=datetime.now, description="When record was created")
+    
+    model_config = {"frozen": False}  # Allow updates
+
+
+class FailedTradeSessionFile(BaseModel):
+    """JSON file structure for a failed trades session."""
+    
+    session: MarketSession = Field(..., description="Market session")
+    date: str = Field(..., description="Date in YYYY-MM-DD format")
+    session_start: datetime = Field(..., description="Session start time")
+    session_end: datetime = Field(..., description="Session end time")
+    file_created_at: datetime = Field(default_factory=datetime.now, description="When file was created")
+    last_updated_at: datetime = Field(default_factory=datetime.now, description="Last update timestamp")
+    
+    # Real-time summary (updated on each append)
+    summary: Dict[str, Any] = Field(
+        default_factory=lambda: {
+            "total_failed_trades": 0,
+            "failure_reasons_breakdown": {},
+            "ticker_breakdown": {},
+            "time_of_day_breakdown": {},  # Hour -> count
+            "session_breakdown": {},  # Session -> count
+            "avg_spread_at_failure": 0.0,
+            "avg_bid_size_at_failure": 0.0,
+            "avg_ask_size_at_failure": 0.0,
+        },
+        description="Summary statistics updated in real-time"
+    )
+    
+    # List of records (appended in real-time)
+    records: List[FailedTradeRecord] = Field(default_factory=list, description="List of failed trade records")
+    
+    model_config = {"frozen": False}  # Allow updates
+
+
 class SignalSessionFile(BaseModel):
     """JSON file structure for a signal session."""
     

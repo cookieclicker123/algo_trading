@@ -46,7 +46,7 @@ def _create_trade_handler_if_enabled(
     return None
 
 
-async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, Any]:
+async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, Any, Any]:
     """
     Composition Root - wires microservices together using DI container.
     
@@ -240,6 +240,13 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
     await signal_engine.start()
     logger.info("SignalStatsEngine started - tracking trade executions")
     
+    # Create failed trades engine via DI container factory (quote_fetcher passed as dependency)
+    failed_trades_engine = container.failed_trade_stats_engine(
+        quote_fetcher=brokerage.quote_fetcher  # Use property (not .infra directly)
+    )
+    await failed_trades_engine.start()
+    logger.info("FailedTradeStatsEngine started - tracking failed trades")
+    
     logger.info("All services initialized via DI container")
     
     services = Services(
@@ -256,5 +263,5 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
     
     # Store statistics engines for shutdown (not in Services container - they're background services)
     # They'll be stopped in lifespan shutdown handler
-    return services, container, recall_engine, signal_engine
+    return services, container, recall_engine, signal_engine, failed_trades_engine
 

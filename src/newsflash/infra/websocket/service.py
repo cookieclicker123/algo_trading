@@ -425,7 +425,14 @@ class BenzingaWebSocketMicroservice:
                 self._reconnect_attempts = 0
                 self._reconnect_delay = 5.0
                 self._force_reconnect = False
+                # Set startup time on every connection (including reconnections)
+                # This ensures old articles are filtered after long downtimes
+                self._startup_time = datetime.now()
             # ✅ is_connected tracked via WEBSOCKET_CONNECTED event (MetricsService)
+            
+            logger.info(
+                f"WebSocket startup time recorded - will skip articles older than {self._startup_skip_old_minutes} minutes during startup"
+            )
             
             # Start ping thread after connection is open
             if self._ping_thread and not self._ping_thread.is_alive():
@@ -566,8 +573,9 @@ class BenzingaWebSocketMicroservice:
         if not self._startup_time:
             return False
         
-        # Check if we're still in startup period (first 5 minutes after startup)
-        startup_period_end = self._startup_time + timedelta(minutes=5)
+        # Check if we're still in startup period (use same threshold as skip threshold)
+        # This ensures we filter old articles for the entire startup period
+        startup_period_end = self._startup_time + timedelta(minutes=self._startup_skip_old_minutes)
         if datetime.now() > startup_period_end:
             # Startup period expired, process all articles
             return False

@@ -36,6 +36,8 @@ from ..websocket.feed_health_monitor import FeedHealthMonitor
 from ...infra.statistics.repository import StatisticsRepository
 from ...shared.statistics.recall_engine import RecallStatsEngine
 from ...shared.statistics.signal_engine import SignalStatsEngine
+from ...shared.statistics.failed_trades_engine import FailedTradeStatsEngine
+from ...shared.statistics.yfinance_coordinator import YFinanceCoordinator
 from pathlib import Path
 class ApplicationContainer(containers.DeclarativeContainer):
     """
@@ -251,17 +253,33 @@ class ApplicationContainer(containers.DeclarativeContainer):
         ),
     )
     
-    # RecallStatsEngine - needs event_bus, repository, and quote_fetcher (passed when called)
+    # YFinanceCoordinator - shared singleton for both engines
+    yfinance_coordinator = providers.Singleton(
+        YFinanceCoordinator,
+    )
+    
+    # RecallStatsEngine - needs event_bus, repository, quote_fetcher, and yfinance_coordinator
     recall_stats_engine = providers.Factory(
         RecallStatsEngine,
         event_bus=shared.event_bus,
         repository=statistics_repository,
+        yfinance_coordinator=yfinance_coordinator,
         # quote_fetcher will be passed when recall_stats_engine is called in composition_root
     )
     
-    # SignalStatsEngine - needs event_bus and repository
+    # SignalStatsEngine - needs event_bus, repository, and yfinance_coordinator
     signal_stats_engine = providers.Factory(
         SignalStatsEngine,
         event_bus=shared.event_bus,
         repository=statistics_repository,
+        yfinance_coordinator=yfinance_coordinator,
+    )
+    
+    # FailedTradeStatsEngine - needs event_bus, repository, quote_fetcher, and yfinance_coordinator
+    failed_trade_stats_engine = providers.Factory(
+        FailedTradeStatsEngine,
+        event_bus=shared.event_bus,
+        repository=statistics_repository,
+        yfinance_coordinator=yfinance_coordinator,
+        # quote_fetcher will be passed when failed_trade_stats_engine is called in composition_root
     )

@@ -1,35 +1,35 @@
 """
-Signal statistics engine - tracks actual trade executions.
+Failed trades statistics engine - tracks trade execution failures.
 Event-driven, stateless, runs alongside main trading system.
 """
 import asyncio
 from datetime import datetime
 from typing import Optional, Dict, Any
-from decimal import Decimal
 
 from ...utils.logging_config import get_logger
 from ...shared.event_bus import AsyncEventBus
 from ...shared.typed_event_bus import subscribe_typed
 from ...shared.event_types import DomainEventType
-from ...shared.statistics.models import SignalRecord
+from ...shared.statistics.models import FailedTradeRecord
 from ...infra.statistics.repository import StatisticsRepository
-from ...utils.brokerage.session_detector import get_market_session, get_market_session_from_timestamp
-from ...domain.brokerage.events import TradeExecutedDomainEvent
+from ...infra.brokerage.quote_fetcher import AlpacaQuoteFetcher
+from ...utils.brokerage.session_detector import get_market_session_from_timestamp
+from ...domain.brokerage.events import TradeFailedDomainEvent
 from ...domain.brokerage.models import MarketSession
 from .yfinance_coordinator import YFinanceCoordinator
 
 logger = get_logger(__name__)
 
 
-class SignalStatsEngine:
+class FailedTradeStatsEngine:
     """
-    Signal statistics engine - tracks actual trade executions.
+    Failed trades statistics engine - tracks trade execution failures.
     
     Responsibilities:
-    - Subscribe to Domain.TradeExecuted events
-    - Extract trade details (price, spread, ticker metadata)
+    - Subscribe to Domain.TradeFailed events
+    - Extract failure details (reason, ladder attempts, NBBO at failure)
     - Append records to JSON files in real-time
-    - Track profit/loss when trades exit (future enhancement)
+    - Track patterns in failures (time of day, spread, liquidity)
     
     Stateless: All state in repository (files), no in-memory storage.
     """
@@ -38,21 +38,24 @@ class SignalStatsEngine:
         self,
         event_bus: AsyncEventBus,
         repository: StatisticsRepository,
+        quote_fetcher: AlpacaQuoteFetcher,
         yfinance_coordinator: YFinanceCoordinator
     ):
         """
-        Initialize signal statistics engine.
-
+        Initialize failed trades statistics engine.
+        
         Args:
             event_bus: Event bus for subscribing to events
             repository: Statistics repository for file I/O
+            quote_fetcher: Quote fetcher for NBBO snapshots at failure time
             yfinance_coordinator: Shared yfinance API coordinator
         """
         self.event_bus = event_bus
         self.repository = repository
+        self.quote_fetcher = quote_fetcher
         self.yfinance_coordinator = yfinance_coordinator
         
-        # Track pending metadata fetches (trade_id -> (ticker, session, executed_at, task))
+        # Track pending metadata fetches (trade_id -> (ticker, session, failed_at, task))
         self._pending_metadata: Dict[str, tuple[str, str, datetime, asyncio.Task]] = {}
         self._metadata_lock = asyncio.Lock()
         
@@ -60,18 +63,18 @@ class SignalStatsEngine:
         self._finalization_task: Optional[asyncio.Task] = None
         
         # Store wrappers for unsubscribe
-        self._trade_executed_wrapper: Optional[Any] = None
+        self._trade_failed_wrapper: Optional[Any] = None
         
-        logger.info("SignalStatsEngine initialized")
+        logger.info("FailedTradeStatsEngine initialized")
     
     async def start(self) -> None:
         """Start engine - subscribe to events."""
         # Subscribe to typed events using subscribe_typed helper
-        self._trade_executed_wrapper = subscribe_typed(
+        self._trade_failed_wrapper = subscribe_typed(
             self.event_bus,
-            DomainEventType.TRADE_EXECUTED,
-            TradeExecutedDomainEvent,
-            self._handle_trade_executed,
+            DomainEventType.TRADE_FAILED,
+            TradeFailedDomainEvent,
+            self._handle_trade_failed,
         )
         
         # Start finalization task (runs every 5 minutes to ensure metadata is populated)
@@ -80,7 +83,7 @@ class SignalStatsEngine:
         # Ensure yfinance coordinator is started
         await self.yfinance_coordinator.start()
         
-        logger.info("SignalStatsEngine started - subscribed to events")
+        logger.info("FailedTradeStatsEngine started - subscribed to events")
     
     async def stop(self) -> None:
         """Stop engine and finalize metadata."""
@@ -98,64 +101,40 @@ class SignalStatsEngine:
         # Stop yfinance coordinator
         await self.yfinance_coordinator.stop()
         
-        logger.info("SignalStatsEngine stopped")
+        logger.info("FailedTradeStatsEngine stopped")
     
-    async def _handle_trade_executed(
+    async def _handle_trade_failed(
         self,
-        event: TradeExecutedDomainEvent,
+        event: TradeFailedDomainEvent,
     ) -> None:
-        """Handle Domain.TradeExecuted event."""
+        """Handle Domain.TradeFailed event."""
         try:
-            trade_result = event.trade_result
-            
-            # Only track successful trades
-            if not trade_result.success or trade_result.status.value != "executed":
-                logger.debug(
-                    "Signal: Skipping non-executed trade",
-                    success=trade_result.success,
-                    status=trade_result.status.value
-                )
-                return
-            
-            # Get session from trade_result (it has the correct session)
-            session_enum = trade_result.session
-            # Map MarketSession enum to string format used by repository
-            if session_enum == MarketSession.MARKET:
-                session = "market_hours"
-            elif session_enum == MarketSession.PREMARKET:
-                session = "premarket"
-            elif session_enum == MarketSession.POSTMARKET:
-                session = "postmarket"
-            else:
-                # Fallback: try to get from current market session
-                current_session, _ = get_market_session()
-                if current_session == "closed":
-                    session = "market_hours"  # Default fallback
-                else:
-                    session = current_session
-            
-            # Extract entry details from TradeResult
-            entry_price = float(trade_result.fill_price) if trade_result.fill_price else 0.0
-            entry_shares = int(trade_result.shares) if trade_result.shares else 0
-            entry_amount_usd = float(trade_result.total_cost) if trade_result.total_cost else 0.0
-            
-            # Extract NBBO from trade_request dict (stored by mapper as _spread_info)
-            trade_request_dict = trade_result.trade_request
-            entry_nbbo = trade_request_dict.get("_spread_info", {})
-            if not entry_nbbo:
-                # Try alternative location
-                entry_nbbo = trade_request_dict.get("spread_info", {})
+            trade_request = event.trade_request
             
             # Get ticker and article_id
-            ticker = trade_result.get_ticker()
-            article_id = trade_request_dict.get("article_id")
+            ticker = trade_request.ticker if hasattr(trade_request, 'ticker') else None
+            if not ticker:
+                # Try to get from dict
+                trade_request_dict = trade_request if isinstance(trade_request, dict) else trade_request.model_dump() if hasattr(trade_request, 'model_dump') else {}
+                ticker = trade_request_dict.get("ticker")
             
-            # Generate trade_id (use order_id if available, otherwise generate)
-            trade_id = trade_request_dict.get("order_id") or trade_request_dict.get("_order_id")
-            if not trade_id:
-                trade_id = f"trade_{int(event.executed_at.timestamp() * 1000)}"
+            if not ticker:
+                logger.warning("FailedTrade: No ticker in trade request", trade_request=str(trade_request))
+                return
             
-            # Map session string back to MarketSession enum for record
+            # Get article_id
+            article_id = trade_request.article_id if hasattr(trade_request, 'article_id') else None
+            if not article_id:
+                trade_request_dict = trade_request if isinstance(trade_request, dict) else trade_request.model_dump() if hasattr(trade_request, 'model_dump') else {}
+                article_id = trade_request_dict.get("article_id")
+            
+            # Get session from failed_at timestamp
+            session, _ = get_market_session_from_timestamp(event.failed_at)
+            if session == "closed":
+                # Fallback: try to infer from trade_request if available
+                session = "market_hours"  # Default fallback
+            
+            # Map session string to MarketSession enum
             if session == "market_hours":
                 session_enum = MarketSession.MARKET
             elif session == "premarket":
@@ -165,60 +144,88 @@ class SignalStatsEngine:
             else:
                 session_enum = MarketSession.MARKET  # Default fallback
             
-            # Create signal record (metadata will be added later)
-            record = SignalRecord(
+            # Get NBBO at failure time (with bid/ask sizes)
+            failure_nbbo = await self.quote_fetcher.get_nbbo_snapshot(ticker)
+            
+            # Extract time of day
+            hour = event.failed_at.hour
+            minute = event.failed_at.minute
+            time_of_day = f"{hour:02d}:{minute:02d}"
+            
+            # Generate trade_id
+            trade_id = f"failed_{int(event.failed_at.timestamp() * 1000)}"
+            if hasattr(trade_request, 'order_id') and trade_request.order_id:
+                trade_id = trade_request.order_id
+            elif isinstance(trade_request, dict) and trade_request.get("order_id"):
+                trade_id = trade_request["order_id"]
+            
+            # Extract trade request details
+            requested_shares = None
+            requested_price = None
+            order_type = None
+            if hasattr(trade_request, 'shares'):
+                requested_shares = int(trade_request.shares) if trade_request.shares else None
+            elif isinstance(trade_request, dict):
+                requested_shares = trade_request.get("shares")
+                requested_price = trade_request.get("limit_price")
+                order_type = trade_request.get("order_type", "market")
+            
+            # Create failed trade record
+            record = FailedTradeRecord(
                 trade_id=trade_id,
                 article_id=article_id,
                 ticker=ticker,
                 session=session_enum,
-                executed_at=event.executed_at,
-                entry_price=entry_price,
-                entry_shares=entry_shares,
-                entry_amount_usd=entry_amount_usd,
-                entry_nbbo=entry_nbbo if entry_nbbo else None
+                failed_at=event.failed_at,
+                failure_reason=event.error,
+                ladder_attempts=event.ladder_attempts,
+                ladder_attempts_detail=event.ladder_attempts_detail,
+                failure_nbbo=failure_nbbo,
+                hour=hour,
+                minute=minute,
+                time_of_day=time_of_day,
+                requested_shares=requested_shares,
+                requested_price=requested_price,
+                order_type=order_type
             )
             
-            # Append record immediately (before metadata fetch)
-            await self.repository.append_signal_record(
-                record=record,
-                session=session,
-                date=event.executed_at
+            # Append record to repository
+            await self.repository.append_failed_trade_record(record, session, event.failed_at)
+            
+            logger.info(
+                "FailedTrade: Recorded failed trade",
+                trade_id=trade_id,
+                ticker=ticker,
+                reason=event.error,
+                session=session
             )
             
             # Fetch ticker metadata asynchronously (tracked for finalization)
-            # Pass executed_at so we can determine session from timestamp (stateless)
             metadata_task = asyncio.create_task(
-                self._fetch_and_update_metadata(record, event.executed_at)
+                self._fetch_and_update_metadata(record, event.failed_at)
             )
             
             # Track pending metadata fetch
             async with self._metadata_lock:
-                self._pending_metadata[record.trade_id] = (record.ticker, session, event.executed_at, metadata_task)
-            
-            logger.debug(
-                "Signal: Recorded trade execution",
-                trade_id=trade_id,
-                ticker=ticker,
-                article_id=article_id
-            )
+                self._pending_metadata[trade_id] = (ticker, session, event.failed_at, metadata_task)
             
         except Exception as e:
             logger.error(
-                "Error handling trade executed for signal",
+                "Error handling trade failed for statistics",
                 error=str(e),
                 exc_info=True
             )
     
     async def _fetch_and_update_metadata(
         self,
-        record: SignalRecord,
-        executed_at: datetime
+        record: FailedTradeRecord,
+        failed_at: datetime
     ) -> None:
         """
         Fetch ticker metadata and update record.
         
         Fire-and-forget background task with retry logic.
-        Uses executed_at timestamp to determine session (stateless).
+        Uses failed_at timestamp to determine session (stateless).
         
         CRITICAL: Ensures metadata is populated even if initial fetch fails.
         """
@@ -230,8 +237,8 @@ class SignalStatsEngine:
                 # Use coordinator (handles caching, rate limiting, queueing)
                 metadata = await self.yfinance_coordinator.fetch_metadata(record.ticker, timeout=30.0)
                 if metadata:
-                    # Determine session from executed_at timestamp (stateless)
-                    session, _ = get_market_session_from_timestamp(executed_at)
+                    # Determine session from failed_at timestamp (stateless)
+                    session, _ = get_market_session_from_timestamp(failed_at)
                     if session == "closed":
                         # Fallback: use session from record
                         session_enum = record.session
@@ -245,15 +252,15 @@ class SignalStatsEngine:
                             session = "market_hours"  # Default fallback
                     
                     # Update record in repository
-                    await self.repository.update_signal_record(
+                    await self.repository.update_failed_trade_record(
                         trade_id=record.trade_id,
                         updates={"ticker_metadata": metadata},
                         session=session,
-                        date=executed_at
+                        date=failed_at
                     )
                     
                     logger.info(
-                        "Signal: Updated record with metadata",
+                        "FailedTrade: Updated record with metadata",
                         trade_id=record.trade_id,
                         ticker=record.ticker,
                         attempt=attempt + 1 if attempt > 0 else None
@@ -266,7 +273,7 @@ class SignalStatsEngine:
                     # Metadata fetch failed
                     if attempt < max_retries - 1:
                         logger.warning(
-                            "Signal: Metadata fetch failed, retrying",
+                            "FailedTrade: Metadata fetch failed, retrying",
                             trade_id=record.trade_id,
                             ticker=record.ticker,
                             attempt=attempt + 1,
@@ -277,7 +284,7 @@ class SignalStatsEngine:
                     else:
                         # Last attempt failed
                         logger.error(
-                            "Signal: CRITICAL - Failed to fetch metadata after all retries",
+                            "FailedTrade: CRITICAL - Failed to fetch metadata after all retries",
                             trade_id=record.trade_id,
                             ticker=record.ticker,
                             attempts=max_retries
@@ -297,12 +304,11 @@ class SignalStatsEngine:
                     retry_delay *= 2
                 else:
                     logger.error(
-                        "Signal: CRITICAL - Failed to update metadata after all retries",
+                        "FailedTrade: CRITICAL - Failed to update metadata after all retries",
                         trade_id=record.trade_id,
                         ticker=record.ticker,
                         error=str(e)
                     )
-    
     
     async def _finalization_loop(self) -> None:
         """
@@ -336,11 +342,11 @@ class SignalStatsEngine:
             return
         
         logger.info(
-            "Signal: Finalizing metadata for pending records",
+            "FailedTrade: Finalizing metadata for pending records",
             count=len(pending_items)
         )
         
-        for trade_id, (ticker, session, executed_at, task) in pending_items:
+        for trade_id, (ticker, session, failed_at, task) in pending_items:
             # Check if task is still running
             if not task.done():
                 # Task still running - wait a bit and check result
@@ -349,17 +355,17 @@ class SignalStatsEngine:
                 except (asyncio.TimeoutError, asyncio.CancelledError):
                     # Task timed out or was cancelled - retry
                     logger.warning(
-                        "Signal: Metadata task timed out, retrying",
+                        "FailedTrade: Metadata task timed out, retrying",
                         trade_id=trade_id,
                         ticker=ticker
                     )
-                    await self._retry_metadata_fetch(trade_id, ticker, session, executed_at)
+                    await self._retry_metadata_fetch(trade_id, ticker, session, failed_at)
             else:
                 # Task completed - verify metadata was populated
                 try:
                     # Check if record has metadata by loading file
-                    file_path = self.repository._get_session_file_path("signal", session, executed_at)
-                    session_file = await self.repository._load_signal_file(file_path, session, executed_at)
+                    file_path = self.repository._get_session_file_path("failed_trades", session, failed_at)
+                    session_file = await self.repository._load_failed_trade_file(file_path, session, failed_at)
                     
                     record = None
                     for r in session_file.records:
@@ -371,11 +377,11 @@ class SignalStatsEngine:
                         # Check if metadata is None or empty
                         if record.ticker_metadata is None:
                             logger.warning(
-                                "Signal: Record has null metadata, retrying",
+                                "FailedTrade: Record has null metadata, retrying",
                                 trade_id=trade_id,
                                 ticker=ticker
                             )
-                            await self._retry_metadata_fetch(trade_id, ticker, session, executed_at)
+                            await self._retry_metadata_fetch(trade_id, ticker, session, failed_at)
                         else:
                             # Metadata populated - remove from pending
                             async with self._metadata_lock:
@@ -392,19 +398,19 @@ class SignalStatsEngine:
         trade_id: str,
         ticker: str,
         session: str,
-        executed_at: datetime
+        failed_at: datetime
     ) -> None:
-        """Retry metadata fetch for a specific trade."""
+        """Retry metadata fetch for a specific failed trade."""
         try:
             # Use coordinator (handles caching, rate limiting, queueing)
             metadata = await self.yfinance_coordinator.fetch_metadata(ticker, timeout=30.0)
             if metadata:
                 # Update record in repository
-                await self.repository.update_signal_record(
+                await self.repository.update_failed_trade_record(
                     trade_id=trade_id,
                     updates={"ticker_metadata": metadata},
                     session=session,
-                    date=executed_at
+                    date=failed_at
                 )
         except Exception as e:
             logger.error(
