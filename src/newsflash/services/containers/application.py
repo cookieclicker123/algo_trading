@@ -216,11 +216,13 @@ class ApplicationContainer(containers.DeclarativeContainer):
         event_bus=shared.event_bus,
     )
     
-    # Notify trade executed use case - needs event_bus and storage_query_service
+    # Notify trade executed use case - needs event_bus, storage_query_service, and market_data_client
+    # market_data_client will be passed when notify_trade_executed_use_case is called in composition_root
     notify_trade_executed_use_case = providers.Factory(
         NotifyTradeExecutedUseCase,
         event_bus=shared.event_bus,
         storage_query_service=storage_query_service,
+        # market_data_client will be provided when called in composition_root
     )
     
     # Notify exit trade use case - only needs event_bus

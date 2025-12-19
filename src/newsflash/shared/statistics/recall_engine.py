@@ -6,12 +6,17 @@ import asyncio
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, Set
 
+try:
+    from alpaca.data import StockHistoricalDataClient
+except ImportError:
+    StockHistoricalDataClient = None
 
 from ...utils.logging_config import get_logger
 from ...shared.event_bus import AsyncEventBus
 from ...shared.typed_event_bus import subscribe_typed
 from ...shared.event_types import DomainEventType, InfrastructureEventType
 from ...shared.statistics.models import RecallRecord
+from ...shared.statistics.volume_analyzer import analyze_volume_around_event
 from ...infra.statistics.repository import StatisticsRepository
 from ...infra.brokerage.quote_fetcher import AlpacaQuoteFetcher
 from ...utils.brokerage.session_detector import get_market_session, get_market_session_from_timestamp
@@ -44,7 +49,8 @@ class RecallStatsEngine:
         event_bus: AsyncEventBus,
         repository: StatisticsRepository,
         quote_fetcher: AlpacaQuoteFetcher,
-        yfinance_coordinator: YFinanceCoordinator
+        yfinance_coordinator: YFinanceCoordinator,
+        market_data_client: Optional["StockHistoricalDataClient"] = None
     ):
         """
         Initialize recall statistics engine.
@@ -54,11 +60,13 @@ class RecallStatsEngine:
             repository: Statistics repository for file I/O
             quote_fetcher: Quote fetcher for NBBO snapshots
             yfinance_coordinator: Shared yfinance API coordinator
+            market_data_client: Optional Alpaca market data client for volume stats
         """
         self.event_bus = event_bus
         self.repository = repository
         self.quote_fetcher = quote_fetcher
         self.yfinance_coordinator = yfinance_coordinator
+        self.market_data_client = market_data_client
         
         # Track active monitoring tasks (article_id -> task)
         self._monitoring_tasks: Dict[str, asyncio.Task] = {}
@@ -245,6 +253,30 @@ class RecallStatsEngine:
             }
             session_enum = session_enum_map.get(session, MarketSession.MARKET)
             
+            # Fetch volume stats around publication time (NO FILTERING - just data collection)
+            volume_stats_dict = None
+            if self.market_data_client and article.published_at and tradable_tickers:
+                try:
+                    volume_analysis = await analyze_volume_around_event(
+                        client=self.market_data_client,
+                        symbol=tradable_tickers[0],  # Use first ticker
+                        event_time=article.published_at
+                    )
+                    if volume_analysis:
+                        volume_stats_dict = volume_analysis.to_dict()
+                        logger.debug(
+                            "Recall: Fetched volume stats",
+                            article_id=article.id,
+                            ticker=tradable_tickers[0],
+                            surge_type=volume_analysis.surge_type
+                        )
+                except Exception as vol_error:
+                    logger.warning(
+                        "Recall: Failed to fetch volume stats (continuing without)",
+                        article_id=article.id,
+                        error=str(vol_error)
+                    )
+            
             # Create recall record
             # Use first ticker's NBBO as the initial_nbbo (we'll track all tickers)
             record = RecallRecord(
@@ -255,7 +287,8 @@ class RecallStatsEngine:
                 published_at=article.published_at,
                 received_at=received_at,
                 initial_nbbo=initial_nbbos.get(tradable_tickers[0]) if tradable_tickers else None,
-                filter_reasons=[]  # Will be populated later if needed
+                filter_reasons=[],  # Will be populated later if needed
+                volume_stats=volume_stats_dict
             )
             
             # Append record immediately (with initial NBBO)

@@ -7,12 +7,19 @@ USE CASES ORCHESTRATE SERVICES:
 - Use cases publish domain events to trigger workflows
 """
 from datetime import datetime, timezone
-from typing import Final
+from typing import Final, Optional, List
+
+from alpaca.data.historical import StockHistoricalDataClient
 
 from ...utils.logging_config import get_logger
 from ...shared.event_bus import AsyncEventBus
 from ...shared.typed_event_bus import subscribe_typed
 from ...shared.event_types import DomainEventType
+from ...shared.statistics.volume_analyzer import (
+    analyze_volume_around_event,
+    format_volume_stats_for_notification,
+    VolumeSurgeAnalysis
+)
 from ...domain.brokerage.events import TradeExecutedDomainEvent
 from ...domain.brokerage.models import TradeResult
 from ...domain.notification.events import NotificationRequestedDomainEvent
@@ -23,7 +30,14 @@ from ...services.storage import StorageQueryService
 logger = get_logger(__name__)
 
 
-def format_trade_execution_message(trade_result: TradeResult, article_title: str = None, publication_time: datetime = None, spread_info: dict = None, instrument_details: dict = None) -> str:
+def format_trade_execution_message(
+    trade_result: TradeResult,
+    article_title: str = None,
+    publication_time: datetime = None,
+    spread_info: dict = None,
+    instrument_details: dict = None,
+    volume_stats: VolumeSurgeAnalysis = None
+) -> str:
     """
     Format trade execution notification message with all details.
     
@@ -31,6 +45,7 @@ def format_trade_execution_message(trade_result: TradeResult, article_title: str
         trade_result: Trade execution result
         article_title: Optional article title
         publication_time: Optional article publication time
+        volume_stats: Optional volume surge analysis
         
     Returns:
         Formatted message string
@@ -108,6 +123,11 @@ def format_trade_execution_message(trade_result: TradeResult, article_title: str
     if trade_result.commission and trade_result.commission > 0:
         message_parts.append(f"💳 Commission: ${trade_result.commission:.2f}")
     
+    # Add volume analysis if available (NO FILTERING - just data for future research)
+    if volume_stats:
+        volume_lines = format_volume_stats_for_notification(volume_stats)
+        message_parts.extend(volume_lines)
+    
     message_parts.extend([
         "",
         f"⏰ Executed At: {trade_result.executed_at.strftime('%Y-%m-%d %H:%M:%S UTC')}",
@@ -138,21 +158,29 @@ class NotifyTradeExecutedUseCase:
     Responsibilities:
     - Subscribe to Domain.TradeExecuted events
     - Fetch article from storage (for publication time and title)
+    - Fetch volume stats around article publication (for data collection)
     - Format trade execution notification
     - Publish Domain.NotificationRequested event
     """
     
-    def __init__(self, event_bus: AsyncEventBus, storage_query_service: StorageQueryService):
+    def __init__(
+        self,
+        event_bus: AsyncEventBus,
+        storage_query_service: StorageQueryService,
+        market_data_client: Optional[StockHistoricalDataClient] = None
+    ):
         """
         Initialize notify trade executed use case.
         
         Args:
             event_bus: Event bus instance for publishing/subscribing to events
             storage_query_service: Storage query service for fetching articles
+            market_data_client: Alpaca market data client for volume analysis (optional)
         """
         self.event_bus: Final[AsyncEventBus] = event_bus
         self.notification_factory = NotificationMessageFactory()
         self.storage_query_service: Final[StorageQueryService] = storage_query_service
+        self.market_data_client: Final[Optional[StockHistoricalDataClient]] = market_data_client
         
         # Subscribe to typed Domain.TradeExecuted events
         # Store wrapper for unsubscribe
@@ -166,6 +194,7 @@ class NotifyTradeExecutedUseCase:
         logger.info(
             "NotifyTradeExecutedUseCase initialized - subscribes to Domain.TradeExecuted events",
             has_storage_query=self.storage_query_service is not None,
+            has_market_data_client=self.market_data_client is not None,
         )
     
     async def start(self) -> None:
@@ -269,13 +298,36 @@ class NotifyTradeExecutedUseCase:
             spread_info = trade_request_dict.get("_spread_info", {})
             instrument_details = trade_request_dict.get("_instrument_details", {})
             
+            # Fetch volume stats around article publication time (NO FILTERING - just data collection)
+            volume_stats = None
+            if publication_time and self.market_data_client:
+                try:
+                    volume_stats = await analyze_volume_around_event(
+                        client=self.market_data_client,
+                        symbol=trade_result.get_ticker(),
+                        event_time=publication_time
+                    )
+                    logger.info(
+                        "📊 VOLUME STATS: Fetched volume analysis",
+                        ticker=trade_result.get_ticker(),
+                        surge_type=volume_stats.surge_type if volume_stats else None,
+                        surge_score=volume_stats.surge_score if volume_stats else None
+                    )
+                except Exception as e:
+                    logger.warning(
+                        "📊 VOLUME STATS: Failed to fetch volume analysis (notification will still be sent)",
+                        ticker=trade_result.get_ticker(),
+                        error=str(e)
+                    )
+            
             # Format trade execution message
             trade_message = format_trade_execution_message(
                 trade_result=trade_result,
                 article_title=article_title,
                 publication_time=publication_time,
                 spread_info=spread_info,
-                instrument_details=instrument_details
+                instrument_details=instrument_details,
+                volume_stats=volume_stats
             )
             
             # Create notification message

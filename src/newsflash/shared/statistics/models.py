@@ -44,6 +44,12 @@ class RecallRecord(BaseModel):
         description="e.g., ['not_classified_imminent', 'no_nbbo_available', 'ticker_not_tradeable_extended_hours']"
     )
     
+    # Volume analysis at article receive time (for future filtering research)
+    volume_stats: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Volume surge analysis: surge_type, surge_score, prior_avg_volume, current_volume, stats at intervals"
+    )
+    
     # Tracking metadata
     tracked_at: datetime = Field(default_factory=datetime.now, description="When tracking started")
     price_checked_at: Optional[datetime] = Field(None, description="When 5-minute price check completed")
@@ -113,6 +119,12 @@ class SignalRecord(BaseModel):
     profit_loss_usd: Optional[float] = Field(None, description="Profit/loss in USD")
     profit_loss_percent: Optional[float] = Field(None, description="Profit/loss percentage")
     
+    # Volume analysis at article publish time (for future filtering research)
+    volume_stats: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Volume surge analysis: surge_type, surge_score, prior_avg_volume, current_volume, stats at intervals"
+    )
+    
     # Tracking metadata
     recorded_at: datetime = Field(default_factory=datetime.now, description="When record was created")
     
@@ -159,6 +171,12 @@ class FailedTradeRecord(BaseModel):
     requested_shares: Optional[int] = Field(None, description="Number of shares requested")
     requested_price: Optional[float] = Field(None, description="Requested price (if limit order)")
     order_type: Optional[str] = Field(None, description="Order type (market, limit, etc.)")
+    
+    # Volume analysis at failure time (for future filtering research)
+    volume_stats: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Volume surge analysis: surge_type, surge_score, prior_avg_volume, current_volume, stats at intervals"
+    )
     
     # Tracking metadata
     recorded_at: datetime = Field(default_factory=datetime.now, description="When record was created")

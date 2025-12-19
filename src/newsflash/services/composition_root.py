@@ -203,10 +203,13 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
     logger.info("Exit trade use case created and started via DI container")
     
     # Notify trade executed use case - sends notifications when trades execute
-    notify_trade_executed_use_case = container.notify_trade_executed_use_case()
+    # Pass market_data_client for volume stats analysis
+    notify_trade_executed_use_case = container.notify_trade_executed_use_case(
+        market_data_client=brokerage.infra.connection_manager.market_data_client if brokerage else None
+    )
     notification.notify_trade_executed_use_case = notify_trade_executed_use_case
     await notify_trade_executed_use_case.start()
-    logger.info("Notify trade executed use case created and started via DI container")
+    logger.info("Notify trade executed use case created and started via DI container (with volume stats)")
     
     # Notify exit trade use case - sends notifications when exit trades execute
     notify_exit_trade_use_case = container.notify_exit_trade_use_case()
@@ -228,12 +231,13 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
     statistics_repository = container.statistics_repository()
     logger.info("StatisticsRepository initialized via DI container")
     
-    # Create recall engine via DI container factory (quote_fetcher passed as dependency)
+    # Create recall engine via DI container factory (quote_fetcher and market_data_client passed as dependencies)
     recall_engine = container.recall_stats_engine(
-        quote_fetcher=brokerage.quote_fetcher  # Use property (not .infra directly)
+        quote_fetcher=brokerage.quote_fetcher,  # Use property (not .infra directly)
+        market_data_client=brokerage.infra.connection_manager.market_data_client if brokerage else None
     )
     await recall_engine.start()
-    logger.info("RecallStatsEngine started - tracking missed opportunities")
+    logger.info("RecallStatsEngine started - tracking missed opportunities (with volume stats)")
     
     # Create signal engine via DI container factory
     signal_engine = container.signal_stats_engine()
