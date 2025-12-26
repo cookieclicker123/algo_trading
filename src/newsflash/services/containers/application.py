@@ -38,6 +38,7 @@ from ...shared.statistics.recall_engine import RecallStatsEngine
 from ...shared.statistics.signal_engine import SignalStatsEngine
 from ...shared.statistics.failed_trades_engine import FailedTradeStatsEngine
 from ...shared.statistics.finnhub_coordinator import FinnhubCoordinator
+from ...shared.statistics.yahoo_finance_coordinator import YahooFinanceCoordinator
 from pathlib import Path
 class ApplicationContainer(containers.DeclarativeContainer):
     """
@@ -255,11 +256,14 @@ class ApplicationContainer(containers.DeclarativeContainer):
         ),
     )
     
-    # FinnhubCoordinator - shared singleton for all engines
-    # Uses FINNHUB_API_KEY from environment
-    finnhub_coordinator = providers.Singleton(
-        FinnhubCoordinator,
+    # YahooFinanceCoordinator - shared singleton for all engines (replaces Finnhub)
+    # Uses yfinance to fetch industry, sector, market_cap (no API key needed)
+    yahoo_finance_coordinator = providers.Singleton(
+        YahooFinanceCoordinator,
     )
+    
+    # Keep finnhub_coordinator alias for backward compatibility
+    finnhub_coordinator = yahoo_finance_coordinator
     
     # RecallStatsEngine - needs event_bus, repository, quote_fetcher, finnhub_coordinator, market_data_client, trading_client
     recall_stats_engine = providers.Factory(

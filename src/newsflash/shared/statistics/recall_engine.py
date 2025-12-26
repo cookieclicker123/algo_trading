@@ -485,6 +485,9 @@ class RecallStatsEngine:
         Handle Domain.ArticleClassified event - update filter reasons.
         
         If article wasn't classified as IMMINENT, add filter reason.
+        
+        RACE CONDITION FIX: Always store to pending first, then attempt update.
+        This ensures the reason is captured even if record doesn't exist yet.
         """
         try:
             # Check if classification is IMMINENT
@@ -494,22 +497,34 @@ class RecallStatsEngine:
                 filter_reason = f"ai_classified_{classification_value}"
                 
                 # Determine session and date from classified_at timestamp
-                # Classification usually happens within seconds of article received, so same session/day
                 session, _ = get_market_session_from_timestamp(event.classified_at)
                 if session == "closed":
                     return
                 
-                # Update record with filter reason IMMEDIATELY
-                # Use classified_at as the date (for file path calculation)
+                # STEP 1: Always store to pending first (eliminates race condition)
+                # This ensures if record is created after this event, it will pick up the reason
+                async with self._filter_reasons_lock:
+                    self._pending_filter_reasons[event.article_id] = filter_reason
+                
+                logger.debug(
+                    "Recall: Stored filter reason to pending",
+                    article_id=event.article_id,
+                    filter_reason=filter_reason
+                )
+                
+                # STEP 2: Attempt immediate update (if record exists, update it now)
+                # This handles the case where record was created before this event
                 try:
                     await self.repository.update_recall_record(
                         article_id=event.article_id,
-                        updates={
-                            "filter_reason": filter_reason  # Singular - one reason per article
-                        },
+                        updates={"filter_reason": filter_reason},
                         session=session,
                         date=event.classified_at
                     )
+                    
+                    # Success - remove from pending
+                    async with self._filter_reasons_lock:
+                        self._pending_filter_reasons.pop(event.article_id, None)
                     
                     logger.info(
                         "Recall: Updated record with filter reason (immediate)",
@@ -518,16 +533,12 @@ class RecallStatsEngine:
                         filter_reason=filter_reason
                     )
                 except Exception as update_error:
-                    # If update fails (record might not exist yet), store for retry
-                    logger.warning(
-                        "Recall: Failed to update filter reason, storing for retry",
+                    # Record doesn't exist yet - that's fine, pending will be picked up on creation
+                    logger.debug(
+                        "Recall: Record not found for immediate update, will be applied on creation",
                         article_id=event.article_id,
-                        filter_reason=filter_reason,
-                        error=str(update_error)
+                        filter_reason=filter_reason
                     )
-                    async with self._filter_reasons_lock:
-                        # Store as single reason (not list)
-                        self._pending_filter_reasons[event.article_id] = filter_reason
                 
         except Exception as e:
             logger.error(
@@ -634,6 +645,9 @@ class RecallStatsEngine:
         - not_tradeable_exchange: Tickers not tradeable on NASDAQ/NYSE
         - low_market_cap: Market cap below threshold
         - low_price: Price below threshold
+        - nbbo_unavailable: No active bid/ask in current session
+        
+        RACE CONDITION FIX: Always store to pending first, then attempt update.
         """
         try:
             article_id = event.request_data.article_id
@@ -644,16 +658,28 @@ class RecallStatsEngine:
             if session == "closed":
                 return
             
-            # Update record with filter reason IMMEDIATELY
+            # STEP 1: Always store to pending first (eliminates race condition)
+            async with self._filter_reasons_lock:
+                self._pending_filter_reasons[article_id] = filter_reason
+            
+            logger.debug(
+                "Recall: Stored prefilter reason to pending",
+                article_id=article_id,
+                filter_reason=filter_reason
+            )
+            
+            # STEP 2: Attempt immediate update (if record exists)
             try:
                 await self.repository.update_recall_record(
                     article_id=article_id,
-                    updates={
-                        "filter_reason": filter_reason  # Singular - one reason per article
-                    },
+                    updates={"filter_reason": filter_reason},
                     session=session,
                     date=event.skipped_at
                 )
+                
+                # Success - remove from pending
+                async with self._filter_reasons_lock:
+                    self._pending_filter_reasons.pop(article_id, None)
                 
                 logger.info(
                     "Recall: Updated record with prefilter reason (immediate)",
@@ -662,16 +688,12 @@ class RecallStatsEngine:
                     filter_reason=filter_reason
                 )
             except Exception as update_error:
-                # If update fails (record might not exist yet), store for retry
-                logger.warning(
-                    "Recall: Failed to update prefilter reason, storing for retry",
+                # Record doesn't exist yet - that's fine, pending will be picked up on creation
+                logger.debug(
+                    "Recall: Record not found for immediate update, will be applied on creation",
                     article_id=article_id,
-                    filter_reason=filter_reason,
-                    error=str(update_error)
+                    filter_reason=filter_reason
                 )
-                async with self._filter_reasons_lock:
-                    # Store as single reason (not list)
-                    self._pending_filter_reasons[article_id] = filter_reason
                         
         except Exception as e:
             logger.error(

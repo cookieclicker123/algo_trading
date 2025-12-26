@@ -82,12 +82,28 @@ def mock_quote_fetcher():
 
 
 @pytest.fixture
-def recall_engine(event_bus, repository, mock_quote_fetcher):
+def mock_finnhub_coordinator():
+    """Create mocked Finnhub coordinator."""
+    coordinator = MagicMock()
+    coordinator.fetch_metadata = AsyncMock(return_value={
+        "industry": "Technology",
+        "sector": "Information Technology",
+        "market_cap_millions": 3000.0
+    })
+    coordinator.start = AsyncMock()
+    coordinator.stop = AsyncMock()
+    coordinator._worker_task = None  # Simulate not started
+    return coordinator
+
+
+@pytest.fixture
+def recall_engine(event_bus, repository, mock_quote_fetcher, mock_finnhub_coordinator):
     """Create recall engine instance for tests."""
     return RecallStatsEngine(
         event_bus=event_bus,
         repository=repository,
-        quote_fetcher=mock_quote_fetcher
+        quote_fetcher=mock_quote_fetcher,
+        finnhub_coordinator=mock_finnhub_coordinator
     )
 
 
