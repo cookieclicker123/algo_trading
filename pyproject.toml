@@ -16,7 +16,7 @@ dependencies = [
     "websocket-client>=1.6.0", # WebSocket client for Benzinga direct feed
     "dependency-injector>=4.41.0", # Dependency injection framework
     "alpaca-py>=0.1.0", # Alpaca Trading API Python SDK
-    "yfinance>=0.2.0", # Yahoo Finance API for market cap data
+    "finnhub-python>=2.4.0", # Finnhub API for industry, sector, market cap, shares outstanding
 ]
 
 [project.optional-dependencies]

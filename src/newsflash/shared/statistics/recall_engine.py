@@ -8,8 +8,10 @@ from typing import Optional, Dict, Any, Set
 
 try:
     from alpaca.data import StockHistoricalDataClient
+    from alpaca.trading.client import TradingClient
 except ImportError:
     StockHistoricalDataClient = None
+    TradingClient = None
 
 from ...utils.logging_config import get_logger
 from ...shared.event_bus import AsyncEventBus
@@ -20,7 +22,7 @@ from ...shared.statistics.volume_analyzer import analyze_volume_around_event
 from ...infra.statistics.repository import StatisticsRepository
 from ...infra.brokerage.quote_fetcher import AlpacaQuoteFetcher
 from ...utils.brokerage.session_detector import get_market_session, get_market_session_from_timestamp
-from .yfinance_coordinator import YFinanceCoordinator
+from .finnhub_coordinator import FinnhubCoordinator
 from ...domain.websocket.events import ArticleReceivedDomainEvent
 from ...domain.classification.events import ArticleClassifiedDomainEvent
 from ...domain.brokerage.events import TradeExecutedDomainEvent, TradeFailedDomainEvent
@@ -49,8 +51,9 @@ class RecallStatsEngine:
         event_bus: AsyncEventBus,
         repository: StatisticsRepository,
         quote_fetcher: AlpacaQuoteFetcher,
-        yfinance_coordinator: YFinanceCoordinator,
-        market_data_client: Optional["StockHistoricalDataClient"] = None
+        finnhub_coordinator: FinnhubCoordinator,
+        market_data_client: Optional["StockHistoricalDataClient"] = None,
+        trading_client: Optional["TradingClient"] = None
     ):
         """
         Initialize recall statistics engine.
@@ -59,14 +62,16 @@ class RecallStatsEngine:
             event_bus: Event bus for subscribing to events
             repository: Statistics repository for file I/O
             quote_fetcher: Quote fetcher for NBBO snapshots
-            yfinance_coordinator: Shared yfinance API coordinator
+            finnhub_coordinator: Shared Finnhub API coordinator (for industry/sector/market_cap)
             market_data_client: Optional Alpaca market data client for volume stats
+            trading_client: Optional Alpaca trading client for exchange info
         """
         self.event_bus = event_bus
         self.repository = repository
         self.quote_fetcher = quote_fetcher
-        self.yfinance_coordinator = yfinance_coordinator
+        self.finnhub_coordinator = finnhub_coordinator
         self.market_data_client = market_data_client
+        self.trading_client = trading_client
         
         # Track active monitoring tasks (article_id -> task)
         self._monitoring_tasks: Dict[str, asyncio.Task] = {}
@@ -80,8 +85,9 @@ class RecallStatsEngine:
         self._pending_metadata: Dict[str, tuple[list[str], str, datetime, asyncio.Task]] = {}
         self._metadata_lock = asyncio.Lock()
         
-        # Track pending filter_reasons updates (article_id -> filter_reason)
-        self._pending_filter_reasons: Dict[str, list[str]] = {}
+        # Track pending filter_reason updates (article_id -> filter_reason string)
+        # SINGULAR: one reason per article
+        self._pending_filter_reasons: Dict[str, str] = {}
         self._filter_reasons_lock = asyncio.Lock()
         
         # Store wrappers for unsubscribe
@@ -139,8 +145,9 @@ class RecallStatsEngine:
         # Start finalization task (runs every 5 minutes to ensure metadata is populated)
         self._finalization_task = asyncio.create_task(self._finalization_loop())
         
-        # Ensure yfinance coordinator is started
-        await self.yfinance_coordinator.start()
+        # Ensure Finnhub coordinator is started (may already be started by MarketDataValidator)
+        if not self.finnhub_coordinator._worker_task or self.finnhub_coordinator._worker_task.done():
+            await self.finnhub_coordinator.start()
         
         logger.info("RecallStatsEngine started - subscribed to events")
     
@@ -157,8 +164,8 @@ class RecallStatsEngine:
         # Finalize all pending metadata before stopping
         await self._finalize_all_metadata()
         
-        # Stop yfinance coordinator
-        await self.yfinance_coordinator.stop()
+        # Stop Finnhub coordinator
+        await self.finnhub_coordinator.stop()
         
         # Cancel monitoring tasks
         async with self._monitoring_lock:
@@ -272,14 +279,48 @@ class RecallStatsEngine:
                             surge_type=volume_analysis.surge_type
                         )
                 except Exception as vol_error:
-                    logger.warning(
-                        "Recall: Failed to fetch volume stats (continuing without)",
-                        article_id=article.id,
-                        error=str(vol_error)
+                    error_type = type(vol_error).__name__
+                    error_msg = str(vol_error)
+                    # Distinguish between API errors and illiquidity (no data available)
+                    is_illiquidity = (
+                        "no data" in error_msg.lower() or
+                        "not found" in error_msg.lower() or
+                        "no bars" in error_msg.lower() or
+                        error_type == "ValueError"
                     )
+                    
+                    logger.warning(
+                        "Recall: Failed to fetch volume stats",
+                        article_id=article.id,
+                        ticker=tradable_tickers[0] if tradable_tickers else None,
+                        error=error_msg,
+                        error_type=error_type,
+                        likely_illiquidity=is_illiquidity
+                    )
+                    
+                    # Store error info in volume_stats for analysis
+                    volume_stats_dict = {
+                        "error": error_msg,
+                        "error_type": error_type,
+                        "likely_illiquidity": is_illiquidity
+                    }
+            
+            # DOUBLE-CHECK: Make sure article wasn't traded between initial check and now (race condition protection)
+            async with self._traded_lock:
+                if article.id in self._traded_articles:
+                    logger.debug(
+                        "Recall: Article was traded between check and record creation (skipping)",
+                        article_id=article.id
+                    )
+                    return  # Skip - we traded this
             
             # Create recall record
             # Use first ticker's NBBO as the initial_nbbo (we'll track all tickers)
+            # Check if we already have a pending filter reason (from prefilter events that fire before record creation)
+            initial_filter_reason = None
+            async with self._filter_reasons_lock:
+                initial_filter_reason = self._pending_filter_reasons.pop(article.id, None)
+            
             record = RecallRecord(
                 article_id=article.id,
                 title=article.title,
@@ -288,7 +329,7 @@ class RecallStatsEngine:
                 published_at=article.published_at,
                 received_at=received_at,
                 initial_nbbo=initial_nbbos.get(tradable_tickers[0]) if tradable_tickers else None,
-                filter_reasons=[],  # Will be populated later if needed
+                filter_reason=initial_filter_reason,  # Set immediately if known (from prefilter events)
                 volume_stats=volume_stats_dict
             )
             
@@ -448,8 +489,9 @@ class RecallStatsEngine:
         try:
             # Check if classification is IMMINENT
             if event.result.classification.value != "IMMINENT":
-                # Article was filtered - add filter reason
-                filter_reason = f"not_classified_{event.result.classification.value.lower()}"
+                # Article was filtered - set filter reason (clear naming: ai_classified_ignore, ai_classified_watch, etc.)
+                classification_value = event.result.classification.value.lower()
+                filter_reason = f"ai_classified_{classification_value}"
                 
                 # Determine session and date from classified_at timestamp
                 # Classification usually happens within seconds of article received, so same session/day
@@ -457,21 +499,20 @@ class RecallStatsEngine:
                 if session == "closed":
                     return
                 
-                # Update record with filter reason
+                # Update record with filter reason IMMEDIATELY
                 # Use classified_at as the date (for file path calculation)
-                # The repository's update_recall_record will find the record if it exists
                 try:
                     await self.repository.update_recall_record(
                         article_id=event.article_id,
                         updates={
-                            "filter_reasons": [filter_reason]  # Will be appended to existing list in update logic
+                            "filter_reason": filter_reason  # Singular - one reason per article
                         },
                         session=session,
                         date=event.classified_at
                     )
                     
-                    logger.debug(
-                        "Recall: Updated record with filter reason",
+                    logger.info(
+                        "Recall: Updated record with filter reason (immediate)",
                         article_id=event.article_id,
                         classification=event.result.classification.value,
                         filter_reason=filter_reason
@@ -485,10 +526,8 @@ class RecallStatsEngine:
                         error=str(update_error)
                     )
                     async with self._filter_reasons_lock:
-                        if event.article_id not in self._pending_filter_reasons:
-                            self._pending_filter_reasons[event.article_id] = []
-                        if filter_reason not in self._pending_filter_reasons[event.article_id]:
-                            self._pending_filter_reasons[event.article_id].append(filter_reason)
+                        # Store as single reason (not list)
+                        self._pending_filter_reasons[event.article_id] = filter_reason
                 
         except Exception as e:
             logger.error(
@@ -555,8 +594,24 @@ class RecallStatsEngine:
                     if task:
                         task.cancel()
                 
+                # CRITICAL: Remove recall record if it exists (failed trade = attempted, not missed)
+                # This handles race condition where ArticleReceived fires before TradeFailed
+                try:
+                    # Determine session from failed_at timestamp
+                    session, _ = get_market_session_from_timestamp(event.failed_at)
+                    if session != "closed":
+                        # Try to remove the record from the file (if it exists)
+                        # This is best-effort - if file doesn't exist or record doesn't exist, that's fine
+                        await self.repository.remove_recall_record(article_id, session, event.failed_at)
+                except Exception as remove_error:
+                    logger.debug(
+                        "Recall: Could not remove record for failed trade (may not exist)",
+                        article_id=article_id,
+                        error=str(remove_error)
+                    )
+                
                 logger.debug(
-                    "Recall: Marked article as traded (failed)",
+                    "Recall: Marked article as traded (failed) and removed from recall if present",
                     article_id=article_id,
                     error=event.error
                 )
@@ -589,19 +644,19 @@ class RecallStatsEngine:
             if session == "closed":
                 return
             
-            # Update record with filter reason
+            # Update record with filter reason IMMEDIATELY
             try:
                 await self.repository.update_recall_record(
                     article_id=article_id,
                     updates={
-                        "filter_reasons": [filter_reason]  # Will be appended to existing list
+                        "filter_reason": filter_reason  # Singular - one reason per article
                     },
                     session=session,
                     date=event.skipped_at
                 )
                 
-                logger.debug(
-                    "Recall: Updated record with prefilter reason",
+                logger.info(
+                    "Recall: Updated record with prefilter reason (immediate)",
                     article_id=article_id,
                     reason=event.reason,
                     filter_reason=filter_reason
@@ -615,10 +670,8 @@ class RecallStatsEngine:
                     error=str(update_error)
                 )
                 async with self._filter_reasons_lock:
-                    if article_id not in self._pending_filter_reasons:
-                        self._pending_filter_reasons[article_id] = []
-                    if filter_reason not in self._pending_filter_reasons[article_id]:
-                        self._pending_filter_reasons[article_id].append(filter_reason)
+                    # Store as single reason (not list)
+                    self._pending_filter_reasons[article_id] = filter_reason
                         
         except Exception as e:
             logger.error(
@@ -651,13 +704,91 @@ class RecallStatsEngine:
                 metadata_dict = {}
                 failed_tickers = []
                 
+                metadata_errors = {}
                 for ticker in tickers:
-                    # Use coordinator (handles caching, rate limiting, queueing)
-                    ticker_meta = await self.yfinance_coordinator.fetch_metadata(ticker, timeout=30.0)
-                    if ticker_meta:
-                        metadata_dict[ticker] = ticker_meta
-                    else:
-                        failed_tickers.append(ticker)
+                    # Get price from NBBO (Alpaca - instant, no rate limits)
+                    price = None
+                    try:
+                        nbbo = await self.quote_fetcher.get_nbbo_snapshot(ticker)
+                        if nbbo:
+                            price = nbbo.get("mid") or nbbo.get("ask") or nbbo.get("bid")
+                    except Exception as price_error:
+                        logger.debug(
+                            "Recall: Failed to get price from NBBO",
+                            ticker=ticker,
+                            error=str(price_error)
+                        )
+                    
+                    # Get exchange from Alpaca asset info (instant, no rate limits)
+                    exchange = None
+                    if self.trading_client:
+                        try:
+                            asset = self.trading_client.get_asset(ticker)
+                            if asset:
+                                exchange = asset.exchange
+                        except Exception as exchange_error:
+                            logger.debug(
+                                "Recall: Failed to get exchange from Alpaca",
+                                ticker=ticker,
+                                error=str(exchange_error)
+                            )
+                    
+                    # Get industry, sector, market_cap from Finnhub (rate-limited, 60/min)
+                    try:
+                        ticker_meta = await self.finnhub_coordinator.fetch_metadata(ticker, timeout=30.0)
+                        if ticker_meta:
+                            # Add price and exchange from Alpaca
+                            if price is not None:
+                                ticker_meta["price"] = price
+                            if exchange:
+                                ticker_meta["exchange"] = exchange
+                            metadata_dict[ticker] = ticker_meta
+                        else:
+                            # Finnhub returned None - but we might still have price/exchange from Alpaca
+                            if price is not None or exchange:
+                                metadata_dict[ticker] = {
+                                    "industry": None,
+                                    "sector": None,
+                                    "market_cap_millions": None,
+                                    "price": price,
+                                    "exchange": exchange
+                                }
+                            else:
+                                failed_tickers.append(ticker)
+                                metadata_errors[ticker] = "no_data_available"
+                    except asyncio.TimeoutError:
+                        # Finnhub timeout - but we might still have price/exchange from Alpaca
+                        if price is not None or exchange:
+                            metadata_dict[ticker] = {
+                                "industry": None,
+                                "sector": None,
+                                "market_cap_millions": None,
+                                "price": price,
+                                "exchange": exchange
+                            }
+                            metadata_errors[ticker] = "finnhub_timeout"
+                        else:
+                            failed_tickers.append(ticker)
+                            metadata_errors[ticker] = "api_timeout"
+                    except Exception as meta_error:
+                        # Finnhub error - but we might still have price/exchange from Alpaca
+                        if price is not None or exchange:
+                            metadata_dict[ticker] = {
+                                "industry": None,
+                                "sector": None,
+                                "market_cap_millions": None,
+                                "price": price,
+                                "exchange": exchange
+                            }
+                        error_type = type(meta_error).__name__
+                        metadata_errors[ticker] = f"finnhub_error_{error_type.lower()}"
+                        logger.debug(
+                            "Recall: Finnhub metadata fetch error (but have price/exchange from Alpaca)",
+                            article_id=article_id,
+                            ticker=ticker,
+                            error=str(meta_error),
+                            error_type=error_type
+                        )
                 
                 # Update record even if only partial metadata (better than nothing)
                 if metadata_dict or attempt == max_retries - 1:
@@ -669,10 +800,14 @@ class RecallStatsEngine:
                     else:
                         session = session_from_timestamp
                     
-                    # Update record in repository
+                    # Update record in repository (include errors for failed tickers)
+                    updates = {"ticker_metadata": metadata_dict}
+                    if metadata_errors:
+                        updates["metadata_errors"] = metadata_errors
+                    
                     await self.repository.update_recall_record(
                         article_id=article_id,
-                        updates={"ticker_metadata": metadata_dict},
+                        updates=updates,
                         session=session,
                         date=received_at
                     )
@@ -825,9 +960,43 @@ class RecallStatsEngine:
             # Use coordinator (handles caching, rate limiting, queueing)
             metadata_dict = {}
             for ticker in tickers:
-                ticker_meta = await self.yfinance_coordinator.fetch_metadata(ticker, timeout=30.0)
+                # Get price from NBBO (Alpaca - instant)
+                price = None
+                try:
+                    nbbo = await self.quote_fetcher.get_nbbo_snapshot(ticker)
+                    if nbbo:
+                        price = nbbo.get("mid") or nbbo.get("ask") or nbbo.get("bid")
+                except Exception:
+                    pass
+                
+                # Get exchange from Alpaca (instant)
+                exchange = None
+                if self.trading_client:
+                    try:
+                        asset = self.trading_client.get_asset(ticker)
+                        if asset:
+                            exchange = asset.exchange
+                    except Exception:
+                        pass
+                
+                # Get industry, sector, market_cap from Finnhub
+                ticker_meta = await self.finnhub_coordinator.fetch_metadata(ticker, timeout=30.0)
                 if ticker_meta:
+                    # Add price and exchange from Alpaca
+                    if price is not None:
+                        ticker_meta["price"] = price
+                    if exchange:
+                        ticker_meta["exchange"] = exchange
                     metadata_dict[ticker] = ticker_meta
+                elif price is not None or exchange:
+                    # Finnhub failed but we have price/exchange from Alpaca
+                    metadata_dict[ticker] = {
+                        "industry": None,
+                        "sector": None,
+                        "market_cap_millions": None,
+                        "price": price,
+                        "exchange": exchange
+                    }
             
             if metadata_dict:
                 # Determine session from received_at timestamp (stateless)
@@ -850,12 +1019,12 @@ class RecallStatsEngine:
             )
     
     async def _retry_pending_filter_reasons(self) -> None:
-        """Retry pending filter_reasons updates."""
+        """Retry pending filter_reason updates (singular - one reason per article)."""
         async with self._filter_reasons_lock:
             pending = dict(self._pending_filter_reasons)
             self._pending_filter_reasons.clear()
         
-        for article_id, filter_reasons in pending.items():
+        for article_id, filter_reason in pending.items():
             try:
                 # Try to find the record's session and date
                 # We'll need to search recent sessions
@@ -868,14 +1037,14 @@ class RecallStatsEngine:
                     try:
                         await self.repository.update_recall_record(
                             article_id=article_id,
-                            updates={"filter_reasons": filter_reasons},
+                            updates={"filter_reason": filter_reason},  # Singular
                             session=session,
                             date=current_time
                         )
                         logger.info(
-                            "Recall: Retried filter_reasons update",
+                            "Recall: Retried filter_reason update",
                             article_id=article_id,
-                            filter_reasons=filter_reasons
+                            filter_reason=filter_reason
                         )
                         continue
                     except Exception:
@@ -889,14 +1058,14 @@ class RecallStatsEngine:
                         try:
                             await self.repository.update_recall_record(
                                 article_id=article_id,
-                                updates={"filter_reasons": filter_reasons},
+                                updates={"filter_reason": filter_reason},  # Singular
                                 session=session,
                                 date=past_time
                             )
                             logger.info(
-                                "Recall: Retried filter_reasons update (found in past session)",
+                                "Recall: Retried filter_reason update (found in past session)",
                                 article_id=article_id,
-                                filter_reasons=filter_reasons,
+                                filter_reason=filter_reason,
                                 hours_ago=hours_ago
                             )
                             break
@@ -904,7 +1073,7 @@ class RecallStatsEngine:
                             continue
             except Exception as e:
                     logger.error(
-                        "Error retrying filter_reasons update",
+                        "Error retrying filter_reason update",
                         article_id=article_id,
                         error=str(e)
                     )

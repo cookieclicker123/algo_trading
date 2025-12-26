@@ -16,7 +16,7 @@ from ...infra.brokerage.quote_fetcher import AlpacaQuoteFetcher
 from ...utils.brokerage.session_detector import get_market_session_from_timestamp
 from ...domain.brokerage.events import TradeFailedDomainEvent
 from ...domain.brokerage.models import MarketSession
-from .yfinance_coordinator import YFinanceCoordinator
+from .finnhub_coordinator import FinnhubCoordinator
 
 logger = get_logger(__name__)
 
@@ -39,7 +39,8 @@ class FailedTradeStatsEngine:
         event_bus: AsyncEventBus,
         repository: StatisticsRepository,
         quote_fetcher: AlpacaQuoteFetcher,
-        yfinance_coordinator: YFinanceCoordinator
+        finnhub_coordinator: FinnhubCoordinator,
+        trading_client: Optional["TradingClient"] = None
     ):
         """
         Initialize failed trades statistics engine.
@@ -48,12 +49,14 @@ class FailedTradeStatsEngine:
             event_bus: Event bus for subscribing to events
             repository: Statistics repository for file I/O
             quote_fetcher: Quote fetcher for NBBO snapshots at failure time
-            yfinance_coordinator: Shared yfinance API coordinator
+            finnhub_coordinator: Shared Finnhub API coordinator (for industry/sector/market_cap)
+            trading_client: Optional trading client for exchange info
         """
         self.event_bus = event_bus
         self.repository = repository
         self.quote_fetcher = quote_fetcher
-        self.yfinance_coordinator = yfinance_coordinator
+        self.finnhub_coordinator = finnhub_coordinator
+        self.trading_client = trading_client
         
         # Track pending metadata fetches (trade_id -> (ticker, session, failed_at, task))
         self._pending_metadata: Dict[str, tuple[str, str, datetime, asyncio.Task]] = {}
@@ -80,8 +83,9 @@ class FailedTradeStatsEngine:
         # Start finalization task (runs every 5 minutes to ensure metadata is populated)
         self._finalization_task = asyncio.create_task(self._finalization_loop())
         
-        # Ensure yfinance coordinator is started
-        await self.yfinance_coordinator.start()
+        # Ensure Finnhub coordinator is started (may already be started by MarketDataValidator)
+        if not self.finnhub_coordinator._worker_task or self.finnhub_coordinator._worker_task.done():
+            await self.finnhub_coordinator.start()
         
         logger.info("FailedTradeStatsEngine started - subscribed to events")
     
@@ -98,8 +102,8 @@ class FailedTradeStatsEngine:
         # Finalize all pending metadata before stopping
         await self._finalize_all_metadata()
         
-        # Stop yfinance coordinator
-        await self.yfinance_coordinator.stop()
+        # Stop Finnhub coordinator
+        await self.finnhub_coordinator.stop()
         
         logger.info("FailedTradeStatsEngine stopped")
     
@@ -128,11 +132,33 @@ class FailedTradeStatsEngine:
                 trade_request_dict = trade_request if isinstance(trade_request, dict) else trade_request.model_dump() if hasattr(trade_request, 'model_dump') else {}
                 article_id = trade_request_dict.get("article_id")
             
-            # Get session from failed_at timestamp
+            # Get session from failed_at timestamp (same logic as signal/recall engines)
             session, _ = get_market_session_from_timestamp(event.failed_at)
+            
+            # If session detection fails, try to infer from trade_request.session if available
             if session == "closed":
-                # Fallback: try to infer from trade_request if available
-                session = "market_hours"  # Default fallback
+                trade_request_dict = trade_request if isinstance(trade_request, dict) else trade_request.model_dump() if hasattr(trade_request, 'model_dump') else {}
+                trade_session = trade_request_dict.get("session")
+                if trade_session:
+                    # Map MarketSession enum to string
+                    if isinstance(trade_session, MarketSession):
+                        if trade_session == MarketSession.PREMARKET:
+                            session = "premarket"
+                        elif trade_session == MarketSession.POSTMARKET:
+                            session = "postmarket"
+                        elif trade_session == MarketSession.MARKET:
+                            session = "market_hours"
+                    elif isinstance(trade_session, str):
+                        session = trade_session
+                else:
+                    # Last resort: infer from hour (4am-9:30am = premarket, 4pm-8pm = postmarket)
+                    hour = event.failed_at.hour
+                    if 4 <= hour < 9 or (hour == 9 and event.failed_at.minute < 30):
+                        session = "premarket"
+                    elif 16 <= hour < 20:
+                        session = "postmarket"
+                    else:
+                        session = "market_hours"  # Default fallback
             
             # Map session string to MarketSession enum
             if session == "market_hours":
@@ -235,8 +261,33 @@ class FailedTradeStatsEngine:
         for attempt in range(max_retries):
             try:
                 # Use coordinator (handles caching, rate limiting, queueing)
-                metadata = await self.yfinance_coordinator.fetch_metadata(record.ticker, timeout=30.0)
+                # Get price from NBBO (Alpaca - instant)
+                price = None
+                try:
+                    nbbo = await self.quote_fetcher.get_nbbo_snapshot(record.ticker)
+                    if nbbo:
+                        price = nbbo.get("mid") or nbbo.get("ask") or nbbo.get("bid")
+                except Exception:
+                    pass
+                
+                # Get exchange from Alpaca (instant)
+                exchange = None
+                if self.trading_client:
+                    try:
+                        asset = self.trading_client.get_asset(record.ticker)
+                        if asset:
+                            exchange = asset.exchange
+                    except Exception:
+                        pass
+                
+                # Get industry, sector, market_cap from Finnhub (rate-limited, 60/min)
+                metadata = await self.finnhub_coordinator.fetch_metadata(record.ticker, timeout=30.0)
                 if metadata:
+                    # Add price and exchange from Alpaca
+                    if price is not None:
+                        metadata["price"] = price
+                    if exchange:
+                        metadata["exchange"] = exchange
                     # Determine session from failed_at timestamp (stateless)
                     session, _ = get_market_session_from_timestamp(failed_at)
                     if session == "closed":
@@ -403,8 +454,34 @@ class FailedTradeStatsEngine:
         """Retry metadata fetch for a specific failed trade."""
         try:
             # Use coordinator (handles caching, rate limiting, queueing)
-            metadata = await self.yfinance_coordinator.fetch_metadata(ticker, timeout=30.0)
+            # Get price from NBBO (Alpaca - instant)
+            price = None
+            try:
+                nbbo = await self.quote_fetcher.get_nbbo_snapshot(ticker)
+                if nbbo:
+                    price = nbbo.get("mid") or nbbo.get("ask") or nbbo.get("bid")
+            except Exception:
+                pass
+            
+            # Get exchange from Alpaca (instant)
+            exchange = None
+            if self.trading_client:
+                try:
+                    asset = self.trading_client.get_asset(ticker)
+                    if asset:
+                        exchange = asset.exchange
+                except Exception:
+                    pass
+            
+            # Get industry, sector, market_cap from Finnhub (rate-limited, 60/min)
+            metadata = await self.finnhub_coordinator.fetch_metadata(ticker, timeout=30.0)
             if metadata:
+                # Add price and exchange from Alpaca
+                if price is not None:
+                    metadata["price"] = price
+                if exchange:
+                    metadata["exchange"] = exchange
+                
                 # Update record in repository
                 await self.repository.update_failed_trade_record(
                     trade_id=trade_id,

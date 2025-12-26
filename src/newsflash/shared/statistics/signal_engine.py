@@ -16,7 +16,13 @@ from ...infra.statistics.repository import StatisticsRepository
 from ...utils.brokerage.session_detector import get_market_session, get_market_session_from_timestamp
 from ...domain.brokerage.events import TradeExecutedDomainEvent
 from ...domain.brokerage.models import MarketSession
-from .yfinance_coordinator import YFinanceCoordinator
+from ...infra.brokerage.quote_fetcher import AlpacaQuoteFetcher
+from .finnhub_coordinator import FinnhubCoordinator
+
+try:
+    from alpaca.trading.client import TradingClient
+except ImportError:
+    TradingClient = None
 
 logger = get_logger(__name__)
 
@@ -38,7 +44,9 @@ class SignalStatsEngine:
         self,
         event_bus: AsyncEventBus,
         repository: StatisticsRepository,
-        yfinance_coordinator: YFinanceCoordinator
+        finnhub_coordinator: FinnhubCoordinator,
+        quote_fetcher: Optional[AlpacaQuoteFetcher] = None,
+        trading_client: Optional["TradingClient"] = None
     ):
         """
         Initialize signal statistics engine.
@@ -46,11 +54,15 @@ class SignalStatsEngine:
         Args:
             event_bus: Event bus for subscribing to events
             repository: Statistics repository for file I/O
-            yfinance_coordinator: Shared yfinance API coordinator
+            finnhub_coordinator: Shared Finnhub API coordinator (for industry/sector/market_cap)
+            quote_fetcher: Optional quote fetcher for price from NBBO
+            trading_client: Optional trading client for exchange info
         """
         self.event_bus = event_bus
         self.repository = repository
-        self.yfinance_coordinator = yfinance_coordinator
+        self.finnhub_coordinator = finnhub_coordinator
+        self.quote_fetcher = quote_fetcher
+        self.trading_client = trading_client
         
         # Track pending metadata fetches (trade_id -> (ticker, session, executed_at, task))
         self._pending_metadata: Dict[str, tuple[str, str, datetime, asyncio.Task]] = {}
@@ -77,8 +89,10 @@ class SignalStatsEngine:
         # Start finalization task (runs every 5 minutes to ensure metadata is populated)
         self._finalization_task = asyncio.create_task(self._finalization_loop())
         
-        # Ensure yfinance coordinator is started
-        await self.yfinance_coordinator.start()
+        # Ensure Finnhub coordinator is started (may already be started by MarketDataValidator)
+        # Ensure Finnhub coordinator is started (may already be started by MarketDataValidator)
+        if not self.finnhub_coordinator._worker_task or self.finnhub_coordinator._worker_task.done():
+            await self.finnhub_coordinator.start()
         
         logger.info("SignalStatsEngine started - subscribed to events")
     
@@ -95,8 +109,8 @@ class SignalStatsEngine:
         # Finalize all pending metadata before stopping
         await self._finalize_all_metadata()
         
-        # Stop yfinance coordinator
-        await self.yfinance_coordinator.stop()
+        # Stop Finnhub coordinator
+        await self.finnhub_coordinator.stop()
         
         logger.info("SignalStatsEngine stopped")
     
@@ -227,9 +241,34 @@ class SignalStatsEngine:
         
         for attempt in range(max_retries):
             try:
-                # Use coordinator (handles caching, rate limiting, queueing)
-                metadata = await self.yfinance_coordinator.fetch_metadata(record.ticker, timeout=30.0)
+                # Get price from NBBO (Alpaca - instant)
+                price = None
+                if self.quote_fetcher:
+                    try:
+                        nbbo = await self.quote_fetcher.get_nbbo_snapshot(record.ticker)
+                        if nbbo:
+                            price = nbbo.get("mid") or nbbo.get("ask") or nbbo.get("bid")
+                    except Exception:
+                        pass
+                
+                # Get exchange from Alpaca (instant)
+                exchange = None
+                if self.trading_client:
+                    try:
+                        asset = self.trading_client.get_asset(record.ticker)
+                        if asset:
+                            exchange = asset.exchange
+                    except Exception:
+                        pass
+                
+                # Get industry, sector, market_cap from Finnhub (rate-limited, 60/min)
+                metadata = await self.finnhub_coordinator.fetch_metadata(record.ticker, timeout=30.0)
                 if metadata:
+                    # Add price and exchange from Alpaca
+                    if price is not None:
+                        metadata["price"] = price
+                    if exchange:
+                        metadata["exchange"] = exchange
                     # Determine session from executed_at timestamp (stateless)
                     session, _ = get_market_session_from_timestamp(executed_at)
                     if session == "closed":
@@ -397,8 +436,35 @@ class SignalStatsEngine:
         """Retry metadata fetch for a specific trade."""
         try:
             # Use coordinator (handles caching, rate limiting, queueing)
-            metadata = await self.yfinance_coordinator.fetch_metadata(ticker, timeout=30.0)
+            # Get price from NBBO (Alpaca - instant)
+            price = None
+            if self.quote_fetcher:
+                try:
+                    nbbo = await self.quote_fetcher.get_nbbo_snapshot(ticker)
+                    if nbbo:
+                        price = nbbo.get("mid") or nbbo.get("ask") or nbbo.get("bid")
+                except Exception:
+                    pass
+            
+            # Get exchange from Alpaca (instant)
+            exchange = None
+            if self.trading_client:
+                try:
+                    asset = self.trading_client.get_asset(ticker)
+                    if asset:
+                        exchange = asset.exchange
+                except Exception:
+                    pass
+            
+            # Get industry, sector, market_cap from Finnhub (rate-limited, 60/min)
+            metadata = await self.finnhub_coordinator.fetch_metadata(ticker, timeout=30.0)
             if metadata:
+                # Add price and exchange from Alpaca
+                if price is not None:
+                    metadata["price"] = price
+                if exchange:
+                    metadata["exchange"] = exchange
+                
                 # Update record in repository
                 await self.repository.update_signal_record(
                     trade_id=trade_id,

@@ -69,9 +69,19 @@ def repository(test_tmp_dir):
 @pytest.fixture
 def signal_engine(event_bus, repository):
     """Create signal engine instance for tests."""
+    from newsflash.shared.statistics.finnhub_coordinator import FinnhubCoordinator
+    from unittest.mock import MagicMock
+    
+    # Create a mock FinnhubCoordinator
+    mock_coordinator = MagicMock(spec=FinnhubCoordinator)
+    mock_coordinator._worker_task = None
+    mock_coordinator.start = asyncio.coroutine(lambda: None)
+    mock_coordinator.stop = asyncio.coroutine(lambda: None)
+    
     return SignalStatsEngine(
         event_bus=event_bus,
-        repository=repository
+        repository=repository,
+        finnhub_coordinator=mock_coordinator
     )
 
 
@@ -489,7 +499,7 @@ class TestSessionMapping:
 
 
 class TestMetadataFetching:
-    """Test yfinance metadata fetching functionality."""
+    """Test FinnhubCoordinator metadata fetching functionality."""
     
     @pytest.mark.asyncio
     async def test_metadata_fetch_task_created(
@@ -503,28 +513,30 @@ class TestMetadataFetching:
             executed_at=datetime.now()
         )
         
-        with patch('newsflash.shared.statistics.signal_engine.yf') as mock_yf:
-            mock_ticker = MagicMock()
-            mock_ticker.info = {
-                'industry': 'Consumer Electronics',
-                'sector': 'Technology',
-                'marketCap': 2800000000000,
-                'currentPrice': 175.50,
-                'exchange': 'NASDAQ'
-            }
-            mock_yf.Ticker.return_value = mock_ticker
-            
-            await signal_engine.event_bus.publish(
-                DomainEventType.TRADE_EXECUTED,
-                event.model_dump()
-            )
-            
-            # Wait for initial record and metadata task
-            await asyncio.sleep(0.3)
-            
-            # Verify record was created (metadata update happens asynchronously)
-            file_path = repository._get_session_file_path("signal", "premarket", event.executed_at)
-            assert file_path.exists()
+        # Mock FinnhubCoordinator.fetch_metadata
+        mock_metadata = {
+            'industry': 'Consumer Electronics',
+            'sector': 'Technology',
+            'market_cap_millions': 2800000.0,
+            'shares_outstanding': 16000000000.0
+        }
+        
+        async def mock_fetch_metadata(ticker, timeout=30.0):
+            return mock_metadata
+        
+        signal_engine.finnhub_coordinator.fetch_metadata = mock_fetch_metadata
+        
+        await signal_engine.event_bus.publish(
+            DomainEventType.TRADE_EXECUTED,
+            event.model_dump()
+        )
+        
+        # Wait for initial record and metadata task
+        await asyncio.sleep(0.3)
+        
+        # Verify record was created (metadata update happens asynchronously)
+        file_path = repository._get_session_file_path("signal", "premarket", event.executed_at)
+        assert file_path.exists()
     
     @pytest.mark.asyncio
     async def test_metadata_fetch_handles_errors_gracefully(
@@ -538,14 +550,16 @@ class TestMetadataFetching:
             executed_at=datetime.now()
         )
         
-        with patch('newsflash.shared.statistics.signal_engine.yf') as mock_yf:
-            # Make yfinance raise an error
-            mock_yf.Ticker.side_effect = Exception("API Error")
-            
-            await signal_engine.event_bus.publish(
-                DomainEventType.TRADE_EXECUTED,
-                event.model_dump()
-            )
+        # Mock FinnhubCoordinator to raise an error
+        async def mock_fetch_metadata(ticker, timeout=30.0):
+            raise Exception("API Error")
+        
+        signal_engine.finnhub_coordinator.fetch_metadata = mock_fetch_metadata
+        
+        await signal_engine.event_bus.publish(
+            DomainEventType.TRADE_EXECUTED,
+            event.model_dump()
+        )
             
             # Wait for processing
             await asyncio.sleep(0.3)

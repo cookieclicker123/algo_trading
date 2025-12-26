@@ -1,0 +1,364 @@
+"""
+Market Hours Scheduler - Manages service lifecycle based on market sessions.
+
+Shuts down heavy services (websocket) during off-hours to prevent rate limits
+and restarts them before market opens.
+
+Schedule:
+- Shutdown: 1:00 AM ET (after postmarket, before dead hours)
+- Startup: 3:55 AM ET (5 minutes before premarket at 4:00 AM ET)
+"""
+import asyncio
+from datetime import datetime, timedelta
+from typing import Optional
+import pytz
+
+from ...utils.logging_config import get_logger
+from ...utils.brokerage.session_detector import get_market_session
+from ..service_initialization import Services
+
+logger = get_logger(__name__)
+
+
+class MarketHoursScheduler:
+    """
+    Scheduler that manages service lifecycle based on market hours.
+    
+    Responsibilities:
+    - Shutdown websocket at 1:00 AM ET (off-hours)
+    - Restart websocket at 3:55 AM ET (5 min before premarket)
+    - Monitor market session to determine shutdown/startup times
+    - Handle graceful shutdown and startup
+    
+    Stateless: Uses session_detector for time calculations.
+    """
+    
+    def __init__(
+        self,
+        services: Services,
+        shutdown_hour: int = 20,  # 8:00 PM ET (postmarket ends)
+        shutdown_minute: int = 0,  # Exactly 8:00 PM
+        startup_hour: int = 3,  # 3:55 AM ET
+        startup_minute: int = 55  # 5 minutes before premarket at 4:00 AM
+    ):
+        """
+        Initialize market hours scheduler.
+        
+        Args:
+            services: Services container with websocket and other services
+            shutdown_hour: Hour to shutdown (ET, default 20 = 8:00 PM, right after postmarket ends)
+            shutdown_minute: Minute to shutdown (default 0 = exactly 8:00 PM)
+            startup_hour: Hour to startup (ET, default 3 = 3:55 AM)
+            startup_minute: Minute to startup (default 55 = 5 minutes before premarket)
+        """
+        self.services = services
+        self.shutdown_hour = shutdown_hour
+        self.shutdown_minute = shutdown_minute
+        self.startup_hour = startup_hour
+        self.startup_minute = startup_minute
+        
+        # Track scheduler state
+        self._scheduler_task: Optional[asyncio.Task] = None
+        self._is_running = False
+        self._websocket_shutdown = False  # Track if websocket was manually shut down
+        
+        logger.info(
+            "MarketHoursScheduler initialized",
+            shutdown_time=f"{shutdown_hour:02d}:{shutdown_minute:02d} ET",
+            startup_time=f"{startup_hour:02d}:{startup_minute:02d} ET",
+            dead_period_hours="8:00 PM - 3:55 AM ET (8 hours)"
+        )
+    
+    async def start(self) -> None:
+        """Start the scheduler loop."""
+        if self._is_running:
+            logger.debug("MarketHoursScheduler already running")
+            return
+        
+        # Check current state - if we're in a trading session, websocket should be running
+        # BUT: If it's weekend, websocket should be down regardless
+        et_tz = pytz.timezone("US/Eastern")
+        now_et = datetime.now(et_tz)
+        is_weekend = now_et.weekday() >= 5  # Saturday = 5, Sunday = 6
+        
+        if is_weekend:
+            # It's weekend - websocket should be down
+            self._websocket_shutdown = True
+            logger.info(
+                "MarketHoursScheduler: Detected weekend - websocket should be down",
+                day=now_et.strftime("%A")
+            )
+        else:
+            # Check market session
+            session, _ = get_market_session()
+            if session in ["premarket", "market_hours", "postmarket"]:
+                # We're in a trading session - websocket should be running
+                if self.services.websocket and self.services.websocket.infra:
+                    if self.services.websocket.infra._threads_should_run:
+                        self._websocket_shutdown = False
+                        logger.info(
+                            "MarketHoursScheduler: Detected trading session, websocket is running",
+                            session=session
+                        )
+                    else:
+                        logger.warning(
+                            "MarketHoursScheduler: Detected trading session but websocket is not running",
+                            session=session
+                        )
+            else:
+                # We're in closed hours - websocket should be shut down
+                self._websocket_shutdown = True
+                logger.info(
+                    "MarketHoursScheduler: Detected closed hours, websocket should be down",
+                    session=session
+                )
+        
+        self._is_running = True
+        self._scheduler_task = asyncio.create_task(self._scheduler_loop())
+        logger.info("MarketHoursScheduler started")
+    
+    async def stop(self) -> None:
+        """Stop the scheduler loop."""
+        if not self._is_running:
+            return
+        
+        self._is_running = False
+        if self._scheduler_task:
+            self._scheduler_task.cancel()
+            try:
+                await self._scheduler_task
+            except asyncio.CancelledError:
+                pass
+        
+        logger.info("MarketHoursScheduler stopped")
+    
+    async def _scheduler_loop(self) -> None:
+        """
+        Main scheduler loop - checks time and manages service lifecycle.
+        
+        Runs every minute to check if it's time to shutdown/startup.
+        """
+        logger.info("MarketHoursScheduler loop started")
+        
+        while self._is_running:
+            try:
+                et_tz = pytz.timezone("US/Eastern")
+                now_et = datetime.now(et_tz)
+                current_hour = now_et.hour
+                current_minute = now_et.minute
+                
+                # Determine day type
+                weekday = now_et.weekday()  # Monday=0, Tuesday=1, ..., Friday=4, Saturday=5, Sunday=6
+                is_friday = weekday == 4
+                is_monday = weekday == 0
+                is_weekday = weekday < 5  # Monday-Friday = 0-4
+                is_weekend = weekday >= 5  # Saturday=5, Sunday=6
+                
+                # Check if it's Friday and shutdown time (8:00 PM ET) - weekend shutdown
+                if is_friday and current_hour == self.shutdown_hour and current_minute == self.shutdown_minute:
+                    await self._handle_shutdown_time(now_et, is_weekend_shutdown=True)
+                
+                # Check if it's Monday and startup time (3:55 AM ET) - weekend startup
+                elif is_monday and current_hour == self.startup_hour and current_minute == self.startup_minute:
+                    await self._handle_startup_time(now_et, is_weekend_startup=True)
+                
+                # Check if it's a weekday (Mon-Thu) and shutdown time (8:00 PM ET) - daily shutdown
+                elif is_weekday and not is_friday and current_hour == self.shutdown_hour and current_minute == self.shutdown_minute:
+                    await self._handle_shutdown_time(now_et, is_weekend_shutdown=False)
+                
+                # Check if it's a weekday (Tue-Fri) and startup time (3:55 AM ET) - daily startup
+                elif is_weekday and not is_monday and current_hour == self.startup_hour and current_minute == self.startup_minute:
+                    await self._handle_startup_time(now_et, is_weekend_startup=False)
+                
+                # Safety check: If it's Saturday or Sunday and websocket is running, shut it down
+                is_weekend = now_et.weekday() >= 5  # Saturday = 5, Sunday = 6
+                if is_weekend and not self._websocket_shutdown:
+                    logger.warning(
+                        "MarketHoursScheduler: Detected weekend but websocket is running - shutting down",
+                        day=now_et.strftime("%A")
+                    )
+                    await self._handle_shutdown_time(now_et, is_weekend_shutdown=True)
+                
+                # Check if we're in a trading session and websocket is down (shouldn't happen, but recover)
+                # BUT: Skip this check on weekends
+                is_weekend = now_et.weekday() >= 5  # Saturday = 5, Sunday = 6
+                if not is_weekend:
+                    session, _ = get_market_session()
+                    if session in ["premarket", "market_hours", "postmarket"]:
+                        if self._websocket_shutdown:
+                            logger.warning(
+                                "MarketHoursScheduler: Detected trading session but websocket is down - restarting",
+                                session=session
+                            )
+                            await self._startup_websocket()
+                
+                # Sleep for 60 seconds before next check
+                await asyncio.sleep(60)
+                
+            except asyncio.CancelledError:
+                logger.info("MarketHoursScheduler loop cancelled")
+                break
+            except Exception as e:
+                logger.error(
+                    "MarketHoursScheduler: Error in scheduler loop",
+                    error=str(e),
+                    exc_info=True
+                )
+                await asyncio.sleep(60)  # Continue after error
+    
+    async def _handle_shutdown_time(self, now_et: datetime, is_weekend_shutdown: bool = False) -> None:
+        """
+        Handle shutdown time - gracefully stop websocket after postmarket ends.
+        
+        Args:
+            now_et: Current time in ET
+            is_weekend_shutdown: True if this is Friday shutdown (weekend), False if daily shutdown
+        """
+        if self._websocket_shutdown:
+            logger.debug("MarketHoursScheduler: Websocket already shut down, skipping")
+            return
+        
+        if is_weekend_shutdown:
+            logger.info(
+                "MarketHoursScheduler: Friday postmarket ended - shutting down websocket for weekend",
+                time=now_et.strftime("%Y-%m-%d %H:%M:%S %Z"),
+                next_startup="Monday 3:55 AM ET"
+            )
+        else:
+            logger.info(
+                "MarketHoursScheduler: Postmarket ended - shutting down websocket for off-hours",
+                time=now_et.strftime("%Y-%m-%d %H:%M:%S %Z"),
+                next_startup=f"{self.startup_hour:02d}:{self.startup_minute:02d} ET"
+            )
+        
+        try:
+            # Gracefully stop websocket
+            if self.services.websocket:
+                await self.services.websocket.stop()
+                self._websocket_shutdown = True
+                logger.info("MarketHoursScheduler: Websocket stopped for off-hours")
+        except Exception as e:
+            logger.error(
+                "MarketHoursScheduler: Error stopping websocket",
+                error=str(e),
+                exc_info=True
+            )
+    
+    async def _handle_startup_time(self, now_et: datetime, is_weekend_startup: bool = False) -> None:
+        """
+        Handle startup time - restart websocket before premarket.
+        
+        Args:
+            now_et: Current time in ET
+            is_weekend_startup: True if this is Monday startup (after weekend), False if daily startup
+        """
+        if not self._websocket_shutdown:
+            logger.debug("MarketHoursScheduler: Websocket already running, skipping")
+            return
+        
+        if is_weekend_startup:
+            logger.info(
+                "MarketHoursScheduler: Monday premarket approaching - restarting websocket after weekend",
+                time=now_et.strftime("%Y-%m-%d %H:%M:%S %Z"),
+                premarket_starts_in="5 minutes",
+                weekend_downtime="~64 hours (Friday 8pm - Monday 3:55am)"
+            )
+        else:
+            logger.info(
+                "MarketHoursScheduler: Startup time reached - restarting websocket",
+                time=now_et.strftime("%Y-%m-%d %H:%M:%S %Z"),
+                premarket_starts_in="5 minutes"
+            )
+        
+        try:
+            await self._startup_websocket()
+        except Exception as e:
+            logger.error(
+                "MarketHoursScheduler: Error starting websocket",
+                error=str(e),
+                exc_info=True
+            )
+    
+    async def _startup_websocket(self) -> None:
+        """Startup websocket service."""
+        if self.services.websocket:
+            # Check if websocket infrastructure is already running
+            # (it might have been started manually or by another process)
+            if self.services.websocket.infra and self.services.websocket.infra._threads_should_run:
+                logger.debug("MarketHoursScheduler: Websocket already running, skipping startup")
+                self._websocket_shutdown = False
+                return
+            
+            await self.services.websocket.start()
+            self._websocket_shutdown = False
+            logger.info("MarketHoursScheduler: Websocket restarted for premarket")
+    
+    def get_next_shutdown_time(self) -> Optional[datetime]:
+        """
+        Get the next shutdown time (8:00 PM ET).
+        
+        Returns:
+            Next shutdown datetime in ET, or None if unable to calculate
+        """
+        try:
+            et_tz = pytz.timezone("US/Eastern")
+            now_et = datetime.now(et_tz)
+            
+            # Today's shutdown time
+            today_shutdown = now_et.replace(
+                hour=self.shutdown_hour,
+                minute=self.shutdown_minute,
+                second=0,
+                microsecond=0
+            )
+            
+            # If we're before today's shutdown, return today's
+            if now_et < today_shutdown:
+                return today_shutdown
+            
+            # Otherwise, return tomorrow's shutdown
+            tomorrow_shutdown = today_shutdown + timedelta(days=1)
+            
+            # Handle weekends - skip to Monday
+            while tomorrow_shutdown.weekday() >= 5:  # Saturday = 5, Sunday = 6
+                tomorrow_shutdown += timedelta(days=1)
+            
+            return tomorrow_shutdown
+        except Exception as e:
+            logger.error("Failed to calculate next shutdown time", error=str(e))
+            return None
+    
+    def get_next_startup_time(self) -> Optional[datetime]:
+        """
+        Get the next startup time (3:55 AM ET).
+        
+        Returns:
+            Next startup datetime in ET, or None if unable to calculate
+        """
+        try:
+            et_tz = pytz.timezone("US/Eastern")
+            now_et = datetime.now(et_tz)
+            
+            # Today's startup time
+            today_startup = now_et.replace(
+                hour=self.startup_hour,
+                minute=self.startup_minute,
+                second=0,
+                microsecond=0
+            )
+            
+            # If we're before today's startup, return today's
+            if now_et < today_startup:
+                return today_startup
+            
+            # Otherwise, return tomorrow's startup
+            tomorrow_startup = today_startup + timedelta(days=1)
+            
+            # Handle weekends - skip to Monday
+            while tomorrow_startup.weekday() >= 5:  # Saturday = 5, Sunday = 6
+                tomorrow_startup += timedelta(days=1)
+            
+            return tomorrow_startup
+        except Exception as e:
+            logger.error("Failed to calculate next startup time", error=str(e))
+            return None

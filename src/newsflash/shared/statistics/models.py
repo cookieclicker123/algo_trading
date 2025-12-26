@@ -32,16 +32,22 @@ class RecallRecord(BaseModel):
         description="5-minute price check: final_mid, percent_change, moved_1_percent"
     )
     
-    # Ticker metadata (fetched via yfinance)
+    # Ticker metadata (fetched via FinnhubCoordinator - shared across all services)
     ticker_metadata: Dict[str, Dict[str, Any]] = Field(
         default_factory=dict,
         description="ticker -> {industry, sector, market_cap_millions, price, exchange}"
     )
     
-    # Filter reasons (why wasn't it traded?)
-    filter_reasons: List[str] = Field(
-        default_factory=list,
-        description="e.g., ['not_classified_imminent', 'no_nbbo_available', 'ticker_not_tradeable_extended_hours']"
+    # Metadata fetch errors (why metadata couldn't be collected)
+    metadata_errors: Dict[str, str] = Field(
+        default_factory=dict,
+        description="ticker -> error_reason: 'api_timeout', 'api_error', 'no_data_available', 'rate_limited', etc."
+    )
+    
+    # Filter reason (why wasn't it traded?) - SINGULAR: one reason per article
+    filter_reason: Optional[str] = Field(
+        None,
+        description="Single filter reason: 'ai_classified_ignore', 'prefilter_no_tickers', 'prefilter_low_market_cap', etc. Set immediately from events."
     )
     
     # Volume analysis at article receive time (for future filtering research)
@@ -106,7 +112,7 @@ class SignalRecord(BaseModel):
         description="NBBO at entry: bid, ask, spread, mid"
     )
     
-    # Ticker metadata (fetched via yfinance)
+    # Ticker metadata (fetched via FinnhubCoordinator - shared across all services)
     ticker_metadata: Optional[Dict[str, Any]] = Field(
         None,
         description="{industry, sector, market_cap_millions, price, exchange}"
@@ -161,7 +167,7 @@ class FailedTradeRecord(BaseModel):
     minute: int = Field(..., description="Minute of hour (0-59) when trade failed")
     time_of_day: str = Field(..., description="Time of day string (HH:MM format)")
     
-    # Ticker metadata (fetched via yfinance)
+    # Ticker metadata (fetched via FinnhubCoordinator - shared across all services)
     ticker_metadata: Optional[Dict[str, Any]] = Field(
         None,
         description="{industry, sector, market_cap_millions, price, exchange}"

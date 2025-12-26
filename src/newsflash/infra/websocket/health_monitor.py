@@ -154,9 +154,9 @@ class WebSocketHealthMonitor:
                 if isinstance(last_pong_received, str):
                     last_pong_received = datetime.fromisoformat(last_pong_received.replace('Z', '+00:00'))
                 
-                # Check if pong is recent (within last 2 ping intervals = 60s)
+                # Check if pong is recent (within last 2 ping intervals = 180s for 90s ping interval)
                 time_since_pong = (datetime.now(last_pong_received.tzinfo) - last_pong_received).total_seconds()
-                if time_since_pong < 60:  # Pong within last 60 seconds = healthy
+                if time_since_pong < 180:  # Pong within last 180 seconds (2 ping intervals) = healthy
                     # Connection is alive via ping/pong - that's what matters
                     # Don't check message frequency - weekends/low news periods are normal
                     return {
@@ -180,18 +180,47 @@ class WebSocketHealthMonitor:
                 }
             
             # Check if ping was sent but no pong received (timeout)
+            # BUT: Also check if messages are being received (Benzinga might not respond to JSON pings)
+            messages_received = stats.get("messages_received", 0)
+            last_message_time = stats.get("last_message_time")  # From MetricsService
+            
             if last_ping_sent:
                 if isinstance(last_ping_sent, str):
                     last_ping_sent = datetime.fromisoformat(last_ping_sent.replace('Z', '+00:00'))
                 
                 time_since_ping = (datetime.now(last_ping_sent.tzinfo) - last_ping_sent).total_seconds()
-                if time_since_ping > 35:  # More than 30 seconds + buffer
+                # Zombie threshold: 2x ping_interval (allows for network delay + processing time)
+                # Get ping_interval from websocket service (defaults to 90s if not available)
+                ping_interval = getattr(self.websocket_service, 'ping_interval', 90.0)
+                zombie_threshold = ping_interval * 2  # 90s * 2 = 180s
+                
+                # Check if messages are recent (within last 5 minutes) - if so, connection is alive
+                has_recent_messages = False
+                if last_message_time:
+                    if isinstance(last_message_time, str):
+                        last_message_time = datetime.fromisoformat(last_message_time.replace('Z', '+00:00'))
+                    time_since_message = (datetime.now(last_message_time.tzinfo) - last_message_time).total_seconds()
+                    has_recent_messages = time_since_message < 300  # 5 minutes
+                
+                # Only mark as zombie if:
+                # 1. No pong received AND
+                # 2. No recent messages AND
+                # 3. Time since ping exceeds threshold
+                if time_since_ping > zombie_threshold:
                     if not last_pong_received or (isinstance(last_pong_received, datetime) and last_pong_received < last_ping_sent):
-                        return {
-                            "healthy": False,
-                            "reason": f"Zombie connection: no pong for {time_since_ping:.1f}s",
-                            "status": "zombie"
-                        }
+                        if not has_recent_messages:
+                            return {
+                                "healthy": False,
+                                "reason": f"Zombie connection: no pong for {time_since_ping:.1f}s and no recent messages",
+                                "status": "zombie"
+                            }
+                        else:
+                            # Connection is alive (receiving messages) even if no pong
+                            logger.debug(
+                                "No pong received but messages are flowing - connection is alive",
+                                time_since_ping=time_since_ping,
+                                time_since_last_message=time_since_message
+                            )
             
             # If no ping/pong yet, check messages
             last_message_time = stats.get("last_message_time")

@@ -1,8 +1,8 @@
 """
 Market data validator - validates market cap and price thresholds.
 
-Pure infrastructure - uses Alpaca API for prices and yfinance for market cap.
-Fetches data on-demand (no caching) - prices change frequently, always fresh data.
+Pure infrastructure - uses Alpaca API for prices and FinnhubCoordinator for market cap.
+Shares FinnhubCoordinator with stats engines for efficient single API call per ticker.
 """
 from typing import Optional, Tuple
 
@@ -11,7 +11,6 @@ from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockLatestQuoteRequest
 
 from ...utils.logging_config import get_logger
-import yfinance as yf
 
 logger = get_logger(__name__)
 
@@ -21,7 +20,7 @@ class MarketDataValidator:
     Validates market cap and price thresholds for tickers.
     
     Responsibilities:
-    - Fetch market cap and price data on-demand from Alpaca API and yfinance
+    - Fetch market cap and price data on-demand from Alpaca API and FinnhubCoordinator (shared with stats engines)
     - No caching - always fresh data (prices change frequently)
     - Handle API failures gracefully
     
@@ -34,7 +33,8 @@ class MarketDataValidator:
     def __init__(
         self,
         trading_client: TradingClient,
-        market_data_client: StockHistoricalDataClient
+        market_data_client: StockHistoricalDataClient,
+        finnhub_coordinator=None  # Optional - will be injected from DI container
     ):
         """
         Initialize market data validator.
@@ -42,11 +42,16 @@ class MarketDataValidator:
         Args:
             trading_client: Alpaca TradingClient instance for fetching asset info
             market_data_client: Alpaca StockHistoricalDataClient for fetching prices
+            finnhub_coordinator: Shared FinnhubCoordinator instance (for market cap, shared with stats engines)
         """
         self.trading_client = trading_client
         self.market_data_client = market_data_client
+        self.finnhub_coordinator = finnhub_coordinator
         
-        logger.info("MarketDataValidator initialized (on-demand fetching, no cache)")
+        logger.info(
+            "MarketDataValidator initialized",
+            has_finnhub_coordinator=finnhub_coordinator is not None
+        )
     
     async def start(self) -> None:
         """
@@ -124,25 +129,20 @@ class MarketDataValidator:
                     error=str(e)
                 )
             
-            # Fetch market cap from yfinance (run in executor to avoid blocking event loop)
+            # Fetch market cap from FinnhubCoordinator (shared with stats engines - single API call per ticker)
             market_cap_millions = None
-            if price:  # Only fetch market cap if we have price
+            if price and self.finnhub_coordinator:  # Only fetch market cap if we have price and coordinator is available
                 try:
-                    import asyncio
-                    logger.debug("MarketDataValidator: Fetching market cap from yfinance", ticker=ticker)
-                    loop = asyncio.get_event_loop()
-                    # Run yfinance in executor to avoid blocking event loop
-                    stock = await loop.run_in_executor(None, lambda: yf.Ticker(ticker))
-                    info = await loop.run_in_executor(None, lambda: stock.info)
+                    logger.debug("MarketDataValidator: Fetching market cap from FinnhubCoordinator", ticker=ticker)
+                    # Use shared coordinator - will cache and share with stats engines
+                    metadata = await self.finnhub_coordinator.fetch_metadata(ticker, timeout=30.0)
                     
-                    # Get market cap from yfinance (in USD)
-                    market_cap_raw = info.get('marketCap')
-                    if market_cap_raw:
-                        # Convert to millions
-                        market_cap_millions = market_cap_raw / 1_000_000
+                    if metadata:
+                        # Extract market cap from metadata (already in millions)
+                        market_cap_millions = metadata.get('market_cap_millions')
                 except Exception as e:
                     logger.debug(
-                        "MarketDataValidator: Failed to fetch market cap from yfinance",
+                        "MarketDataValidator: Failed to fetch market cap from FinnhubCoordinator",
                         ticker=ticker,
                         error=str(e)
                     )

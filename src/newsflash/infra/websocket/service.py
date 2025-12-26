@@ -91,7 +91,9 @@ class BenzingaWebSocketMicroservice:
         }
         
         # Configuration
-        self.ping_interval = 30.0
+        # Ping every 90 seconds (reduced from 30s to minimize API load while keeping connection alive)
+        # 90s is still very frequent for keepalive - most websockets use 30-60s, but we're being conservative
+        self.ping_interval = 90.0
         self.ping_timeout = 30.0
         self.connection_check_interval = 30.0
         
@@ -785,7 +787,17 @@ class BenzingaWebSocketMicroservice:
                     last_pong_received = stats.get("last_pong_received")
                     missed_pongs = stats.get("missed_pongs", 0)
                     
-                    # Detect zombie connection: connected but no pong response
+                    # Check if messages are being received (Benzinga might not respond to JSON pings)
+                    messages_received = stats.get("messages_received", 0)
+                    last_message_time = stats.get("last_message_time")  # From MetricsService
+                    has_recent_messages = False
+                    if last_message_time:
+                        if isinstance(last_message_time, str):
+                            last_message_time = datetime.fromisoformat(last_message_time.replace('Z', '+00:00'))
+                        time_since_message = (datetime.now(last_message_time.tzinfo) - last_message_time).total_seconds()
+                        has_recent_messages = time_since_message < 300  # 5 minutes
+                    
+                    # Detect zombie connection: connected but no pong response AND no messages
                     if is_connected and self.websocket:
                         if last_ping_sent:
                             if isinstance(last_ping_sent, str):
@@ -793,26 +805,42 @@ class BenzingaWebSocketMicroservice:
                             
                             time_since_ping = (datetime.now(last_ping_sent.tzinfo) - last_ping_sent).total_seconds()
                             
-                            # If ping sent more than 60s ago and no pong received, it's a zombie
-                            if time_since_ping > 60:
+                            # Zombie threshold: 2x ping_interval (allows for network delay + processing time)
+                            # With 90s ping interval, threshold is 180s
+                            zombie_threshold = self.ping_interval * 2
+                            
+                            # If ping sent more than 2x ping_interval ago and no pong received, it's a zombie
+                            # BUT: Only if no recent messages (messages = connection is alive)
+                            if time_since_ping > zombie_threshold:
                                 if not last_pong_received or (
                                     isinstance(last_pong_received, datetime) and last_pong_received < last_ping_sent
                                 ):
-                                    logger.warning(
-                                        "Connection monitor detected zombie connection - triggering reconnection",
-                                        time_since_ping=time_since_ping,
-                                        missed_pongs=missed_pongs
-                                    )
-                                    
-                                    with self._lock:
-                                        self._force_reconnect = True
-                                    
-                                    # Close zombie connection to trigger reconnection
-                                    try:
-                                        if self.websocket:
-                                            self.websocket.close()
-                                    except Exception as e:
-                                        logger.error("Error closing zombie connection", error=str(e))
+                                    if not has_recent_messages:
+                                        logger.warning(
+                                            "Connection monitor detected zombie connection - triggering reconnection",
+                                            time_since_ping=time_since_ping,
+                                            zombie_threshold=zombie_threshold,
+                                            ping_interval=self.ping_interval,
+                                            missed_pongs=missed_pongs,
+                                            messages_received=messages_received
+                                        )
+                                        
+                                        with self._lock:
+                                            self._force_reconnect = True
+                                        
+                                        # Close zombie connection to trigger reconnection
+                                        try:
+                                            if self.websocket:
+                                                self.websocket.close()
+                                        except Exception as e:
+                                            logger.error("Error closing zombie connection", error=str(e))
+                                    else:
+                                        # Connection is alive (receiving messages) even if no pong
+                                        logger.debug(
+                                            "No pong received but messages are flowing - connection is alive",
+                                            time_since_ping=time_since_ping,
+                                            time_since_last_message=time_since_message if last_message_time else None
+                                        )
                         
                         # Also check missed pongs count
                         if missed_pongs >= 2:

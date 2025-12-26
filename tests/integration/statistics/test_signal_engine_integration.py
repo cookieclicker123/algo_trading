@@ -10,16 +10,16 @@ External Dependencies (REAL):
 - Repository: Real StatisticsRepository to test actual file I/O operations
 
 External Dependencies (MOCKED):
-- yfinance: Mocked to avoid real API calls (tests should be fast)
+- FinnhubCoordinator: Mocked to avoid real API calls (tests should be fast)
 
 What These Tests Prove:
 - Events flow correctly through the system
 - Records are created and updated in files correctly
-- Metadata fetching works (with mocked yfinance)
+- Metadata fetching works (with mocked FinnhubCoordinator)
 - Summary statistics are calculated correctly
 - Session mapping works correctly
 
-Note: We mock yfinance to avoid real API calls. The actual metadata fetching
+Note: We mock FinnhubCoordinator to avoid real API calls. The actual metadata fetching
 behavior is tested in unit tests with proper mocking.
 """
 import asyncio
@@ -88,9 +88,19 @@ def repository(test_tmp_dir):
 @pytest.fixture
 def signal_engine(event_bus, repository):
     """Create signal engine instance for tests."""
+    from newsflash.shared.statistics.finnhub_coordinator import FinnhubCoordinator
+    from unittest.mock import MagicMock
+    
+    # Create a mock FinnhubCoordinator
+    mock_coordinator = MagicMock(spec=FinnhubCoordinator)
+    mock_coordinator._worker_task = None
+    mock_coordinator.start = asyncio.coroutine(lambda: None)
+    mock_coordinator.stop = asyncio.coroutine(lambda: None)
+    
     return SignalStatsEngine(
         event_bus=event_bus,
-        repository=repository
+        repository=repository,
+        finnhub_coordinator=mock_coordinator
     )
 
 
@@ -134,7 +144,7 @@ class TestEndToEndSignalWorkflow:
         External dependencies:
         - Real event bus (test event flow)
         - Real repository (test file I/O)
-        - Mocked yfinance (no real API calls)
+        - Mocked FinnhubCoordinator (no real API calls)
         """
         await signal_engine.start()
         
@@ -144,23 +154,21 @@ class TestEndToEndSignalWorkflow:
             executed_at=executed_at
         )
         
-        # Mock yfinance to match real yfinance behavior
-        # Real yfinance structure verified:
-        #   - yf.Ticker("AAPL") returns Ticker object
-        #   - ticker.info returns dict with keys: industry, sector, marketCap (int), currentPrice, exchange
-        #   - marketCap is in raw USD (will be converted to millions in _fetch_ticker_metadata)
-        mock_ticker = MagicMock()
-        mock_ticker.info = {
+        # Mock FinnhubCoordinator to return metadata
+        # FinnhubCoordinator.fetch_metadata returns dict with:
+        #   - industry, sector, market_cap_millions (already in millions)
+        mock_metadata = {
             'industry': 'Consumer Electronics',
             'sector': 'Technology',
-            'marketCap': 2800000000000,  # Raw USD (int) - matches real yfinance
-            'currentPrice': 175.50,
-            'exchange': 'NASDAQ'
+            'market_cap_millions': 2800000.0,  # Already in millions
+            'shares_outstanding': 16000000000.0
         }
         
-        with patch('newsflash.shared.statistics.signal_engine.yf') as mock_yf:
-            # When yf.Ticker(ticker) is called, return our mock
-            mock_yf.Ticker.return_value = mock_ticker
+        # Mock FinnhubCoordinator.fetch_metadata to return our mock data
+        async def mock_fetch_metadata(ticker, timeout=30.0):
+            return mock_metadata
+        
+        signal_engine.finnhub_coordinator.fetch_metadata = mock_fetch_metadata
             
             # Step 1: Publish trade executed event
             await signal_engine.event_bus.publish(
@@ -417,7 +425,7 @@ class TestEndToEndSignalWorkflow:
             executed_at=executed_at
         )
         
-        # Mock yfinance
+        # Mock FinnhubCoordinator
         mock_ticker = MagicMock()
         mock_ticker.info = {
             'industry': 'Test Industry',
@@ -430,7 +438,15 @@ class TestEndToEndSignalWorkflow:
         with patch('newsflash.shared.statistics.signal_engine.yf') as mock_yf, \
              patch('newsflash.shared.statistics.signal_engine.get_market_session_from_timestamp') as mock_session_from_ts:
             
-            mock_yf.Ticker.return_value = mock_ticker
+            # Mock FinnhubCoordinator.fetch_metadata
+            async def mock_fetch_metadata(ticker, timeout=30.0):
+                return {
+                    'industry': 'Consumer Electronics',
+                    'sector': 'Technology',
+                    'market_cap_millions': 2800000.0,
+                    'shares_outstanding': 16000000000.0
+                }
+            signal_engine.finnhub_coordinator.fetch_metadata = mock_fetch_metadata
             mock_session_from_ts.return_value = ("premarket", True)
             
             await signal_engine.event_bus.publish(

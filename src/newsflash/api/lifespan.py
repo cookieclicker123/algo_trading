@@ -94,17 +94,22 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     try:
         # Initialize services (async for future database connections)
         result = await initialize_services()
-        if len(result) == 5:
+        if len(result) == 6:
+            services, container, recall_engine, signal_engine, failed_trades_engine, scheduler = result
+        elif len(result) == 5:
             services, container, recall_engine, signal_engine, failed_trades_engine = result
+            scheduler = None
         elif len(result) == 4:
             services, container, recall_engine, signal_engine = result
             failed_trades_engine = None
+            scheduler = None
         else:
             # Backward compatibility if return signature changes
             services, container = result
             recall_engine = None
             signal_engine = None
             failed_trades_engine = None
+            scheduler = None
         
         # Get lifecycle manager from DI container
         lifecycle_manager = container.lifecycle_manager()
@@ -112,12 +117,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         # Start all services via lifecycle manager (DI-managed)
         await lifecycle_manager.start_services(services)
         
-        # Store services, container, and statistics engines in app.state
+        # Store services, container, statistics engines, and scheduler in app.state
         app.state.services = services
         app.state.container = container
         app.state.recall_engine = recall_engine
         app.state.signal_engine = signal_engine
         app.state.failed_trades_engine = failed_trades_engine
+        app.state.scheduler = scheduler
         
         logger.info("API server startup completed successfully")
         
@@ -138,8 +144,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         recall_engine = getattr(app.state, "recall_engine", None)
         signal_engine = getattr(app.state, "signal_engine", None)
         failed_trades_engine = getattr(app.state, "failed_trades_engine", None)
+        scheduler = getattr(app.state, "scheduler", None)
         
-        # Stop statistics engines first (they have background monitoring tasks)
+        # Stop scheduler first (it manages websocket lifecycle)
+        if scheduler:
+            try:
+                await scheduler.stop()
+                logger.info("MarketHoursScheduler stopped")
+            except Exception as e:
+                logger.error("Error stopping MarketHoursScheduler", error=str(e))
+        
+        # Stop statistics engines (they have background monitoring tasks)
         if recall_engine:
             try:
                 await recall_engine.stop()

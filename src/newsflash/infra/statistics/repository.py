@@ -184,14 +184,14 @@ class StatisticsRepository:
             # Update 1% move count if price check completed
             if record.price_check_5min and record.price_check_5min.get("moved_1_percent"):
                 session_file.summary["articles_with_1_percent_move"] += 1
-                # If filtered (has filter_reasons), it's a missed opportunity
-                if record.filter_reasons:
+                # If filtered (has filter_reason), it's a missed opportunity
+                if record.filter_reason:
                     session_file.summary["missed_opportunities"] += 1
-            
+
             # Update filter breakdown
-            for reason in record.filter_reasons:
-                session_file.summary["filter_breakdown"][reason] = \
-                    session_file.summary["filter_breakdown"].get(reason, 0) + 1
+            if record.filter_reason:
+                session_file.summary["filter_breakdown"][record.filter_reason] = \
+                    session_file.summary["filter_breakdown"].get(record.filter_reason, 0) + 1
             
             # Update ticker breakdown
             for ticker in record.tickers:
@@ -209,6 +209,59 @@ class StatisticsRepository:
                 article_id=record.article_id,
                 file_path=str(file_path)
             )
+    
+    async def remove_recall_record(
+        self,
+        article_id: str,
+        session: str,
+        date: datetime
+    ) -> bool:
+        """
+        Remove a recall record by article_id (best-effort).
+        
+        Used when a trade attempt is made (even if failed) - removes from recall.
+        
+        Returns:
+            True if record was found and removed, False otherwise
+        """
+        try:
+            file_path = self._get_session_file_path("recall", session, date)
+            
+            if not file_path.exists():
+                return False
+            
+            async with self._file_lock:
+                # Load file (need session and date for _load_recall_file signature)
+                session_file = await self._load_recall_file(file_path, session, date)
+                
+                # Find and remove record
+                original_count = len(session_file.records)
+                session_file.records = [
+                    r for r in session_file.records
+                    if r.article_id != article_id
+                ]
+                
+                if len(session_file.records) < original_count:
+                    # Record was removed - recalculate summary
+                    session_file.summary = self._calculate_recall_summary(session_file.records)
+                    
+                    # Save file
+                    await self._save_recall_file(file_path, session_file)
+                    logger.debug(
+                        "Recall: Removed record for attempted trade",
+                        article_id=article_id,
+                        session=session
+                    )
+                    return True
+                
+                return False
+        except Exception as e:
+            logger.debug(
+                "Recall: Error removing record (may not exist)",
+                article_id=article_id,
+                error=str(e)
+            )
+            return False
     
     async def update_recall_record(
         self,
@@ -238,25 +291,35 @@ class StatisticsRepository:
                     # Store old values BEFORE updating (for summary recalculation)
                     old_price_check = record.price_check_5min
                     old_was_counted = old_price_check and old_price_check.get("moved_1_percent")
-                    old_filter_reasons = record.filter_reasons.copy() if record.filter_reasons else []
+                    old_filter_reason = record.filter_reason
                     
                     # Update fields
                     for key, value in updates.items():
                         if hasattr(record, key):
-                            # Special handling for filter_reasons - append to existing list
-                            if key == "filter_reasons" and isinstance(value, list):
-                                existing_reasons = record.filter_reasons.copy() if record.filter_reasons else []
-                                # Add new reasons that aren't already present
-                                for reason in value:
-                                    if reason not in existing_reasons:
-                                        existing_reasons.append(reason)
-                                setattr(record, key, existing_reasons)
+                            # Special handling for filter_reason - set directly (singular, one reason per article)
+                            if key == "filter_reason":
+                                # Only set if not already set (first reason wins, or explicit override)
+                                if not record.filter_reason or value is None:
+                                    setattr(record, key, value)
+                                # If updating with a new reason, log it but keep first one (unless explicitly overriding)
+                                elif value and value != record.filter_reason:
+                                    logger.warning(
+                                        "Recall: Filter reason already set, keeping original",
+                                        article_id=article_id,
+                                        existing_reason=record.filter_reason,
+                                        new_reason=value
+                                    )
                             # Special handling for ticker_metadata - merge dictionaries (for multiple tickers)
                             elif key == "ticker_metadata" and isinstance(value, dict):
                                 existing_metadata = record.ticker_metadata.copy() if record.ticker_metadata else {}
                                 # Merge new metadata into existing (don't overwrite, just add/update)
                                 existing_metadata.update(value)
                                 setattr(record, key, existing_metadata)
+                            # Special handling for metadata_errors - merge dictionaries
+                            elif key == "metadata_errors" and isinstance(value, dict):
+                                existing_errors = record.metadata_errors.copy() if record.metadata_errors else {}
+                                existing_errors.update(value)
+                                setattr(record, key, existing_errors)
                             else:
                                 setattr(record, key, value)
                     
@@ -268,25 +331,23 @@ class StatisticsRepository:
                         # If transitioning from not counted to counted
                         if new_was_counted and not old_was_counted:
                             session_file.summary["articles_with_1_percent_move"] += 1
-                            if record.filter_reasons:
+                            if record.filter_reason:
                                 session_file.summary["missed_opportunities"] += 1
                         # If transitioning from counted to not counted
                         elif old_was_counted and not new_was_counted:
                             session_file.summary["articles_with_1_percent_move"] = max(0, session_file.summary["articles_with_1_percent_move"] - 1)
-                            if old_filter_reasons:
+                            if old_filter_reason:
                                 session_file.summary["missed_opportunities"] = max(0, session_file.summary["missed_opportunities"] - 1)
                     
-                    # Update filter breakdown if filter_reasons were updated
-                    if "filter_reasons" in updates:
-                        # Recalculate filter breakdown for this record
-                        # Remove old reasons from breakdown
-                        for old_reason in old_filter_reasons:
-                            if old_reason in session_file.summary["filter_breakdown"]:
-                                session_file.summary["filter_breakdown"][old_reason] = max(0, session_file.summary["filter_breakdown"][old_reason] - 1)
-                        # Add new reasons to breakdown
-                        for reason in record.filter_reasons:
-                            session_file.summary["filter_breakdown"][reason] = \
-                                session_file.summary["filter_breakdown"].get(reason, 0) + 1
+                    # Update filter breakdown if filter_reason was updated
+                    if "filter_reason" in updates:
+                        # Remove old reason from breakdown
+                        if old_filter_reason and old_filter_reason in session_file.summary["filter_breakdown"]:
+                            session_file.summary["filter_breakdown"][old_filter_reason] = max(0, session_file.summary["filter_breakdown"][old_filter_reason] - 1)
+                        # Add new reason to breakdown
+                        if record.filter_reason:
+                            session_file.summary["filter_breakdown"][record.filter_reason] = \
+                                session_file.summary["filter_breakdown"].get(record.filter_reason, 0) + 1
                     
                     break
             
