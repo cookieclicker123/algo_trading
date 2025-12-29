@@ -85,11 +85,12 @@ def get_market_session_from_timestamp(timestamp: datetime) -> Tuple[str, bool]:
         - is_extended_hours: True if premarket/postmarket, False if market_hours/closed
     """
     et_tz = pytz.timezone("US/Eastern")
-    # Convert to ET if timezone-aware, otherwise assume it's already ET
+    # Convert to ET if timezone-aware, otherwise assume it's UTC and convert
     if timestamp.tzinfo:
         timestamp_et = timestamp.astimezone(et_tz)
     else:
-        timestamp_et = et_tz.localize(timestamp)
+        # Assume naive timestamps are UTC (standard practice in this app)
+        timestamp_et = pytz.utc.localize(timestamp).astimezone(et_tz)
     
     market_open = timestamp_et.replace(hour=9, minute=30, second=0, microsecond=0)
     market_close = timestamp_et.replace(hour=16, minute=0, second=0, microsecond=0)

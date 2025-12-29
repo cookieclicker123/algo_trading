@@ -94,12 +94,17 @@ class RecallStatsEngine:
         self._pending_classifications: Dict[str, str] = {}
         self._classification_lock = asyncio.Lock()
         
-        # Store wrappers for unsubscribe
+        # Track wrapper for unsubscribe
         self._article_received_wrapper: Optional[Any] = None
         self._article_classified_wrapper: Optional[Any] = None
         self._trade_executed_wrapper: Optional[Any] = None
         self._trade_failed_wrapper: Optional[Any] = None
         self._classification_skipped_wrapper: Optional[Any] = None
+        
+        # Track record locations (article_id -> (session, date))
+        # This prevents "record not found" errors when updates happen across session boundaries
+        # (e.g., created in premarket, updated in market_hours because event timestamp drifted)
+        self._record_locations: Dict[str, tuple[str, datetime]] = {}
         
         # Background task for finalization (ensures metadata is populated)
         self._finalization_task: Optional[asyncio.Task] = None
@@ -229,6 +234,10 @@ class RecallStatsEngine:
                 if article.id in self._traded_articles:
                     return  # Skip - we traded this
             
+            # TRACK LOCATION EARLY: Prevent race condition with ClassificationSkipped
+            # Store where we INTEND to put this record (if created)
+            self._record_locations[article.id] = (session, received_at)
+            
             # Check each ticker for tradability
             tradable_tickers = []
             initial_nbbos = {}
@@ -345,6 +354,9 @@ class RecallStatsEngine:
             # Append record immediately (with initial NBBO)
             await self.repository.append_recall_record(record, session, received_at)
             
+            # TRACK LOCATION: Already done early to prevent race condition
+            # self._record_locations[article.id] = (session, received_at)
+            
             # Start 5-minute monitoring task (fire and forget)
             monitoring_task = asyncio.create_task(
                 self._monitor_ticker_price(article.id, tradable_tickers, initial_nbbos, session, received_at)
@@ -452,7 +464,7 @@ class RecallStatsEngine:
                 price_check = final_nbbos[best_ticker]
                 
                 # Update record in repository
-                await self.repository.update_recall_record(
+                updated = await self.repository.update_recall_record(
                     article_id=article_id,
                     updates={
                         "price_check_5min": price_check,
@@ -462,15 +474,21 @@ class RecallStatsEngine:
                     date=received_at
                 )
                 
-                logger.info(
-                    "Recall: 5-minute price check completed",
-                    article_id=article_id,
-                    best_ticker=best_ticker,
-                    actual_pnl=price_check.get("actual_pnl"),
-                    mid_price_change=price_check.get("mid_price_change"),
-                    percent_change=best_move,
-                    moved_1_percent=price_check.get("moved_1_percent")
-                )
+                if updated:
+                    logger.info(
+                        "Recall: 5-minute price check completed",
+                        article_id=article_id,
+                        best_ticker=best_ticker,
+                        actual_pnl=price_check.get("actual_pnl"),
+                        mid_price_change=price_check.get("mid_price_change"),
+                        percent_change=best_move,
+                        moved_1_percent=price_check.get("moved_1_percent")
+                    )
+                else:
+                    logger.warning(
+                        "Recall: Failed to update record with price check (record not found)",
+                        article_id=article_id
+                    )
             
         except asyncio.CancelledError:
             logger.debug("Recall: Monitoring task cancelled", article_id=article_id)
@@ -531,25 +549,37 @@ class RecallStatsEngine:
             
             # Attempt immediate update (if record exists)
             try:
-                await self.repository.update_recall_record(
+                # Use stored location if available (prevents session mismatch errors)
+                record_loc = self._record_locations.get(article_id)
+                target_session = record_loc[0] if record_loc else session
+                target_date = record_loc[1] if record_loc else event.classified_at
+                
+                updated = await self.repository.update_recall_record(
                     article_id=article_id,
                     updates=updates,
-                    session=session,
-                    date=event.classified_at
+                    session=target_session,
+                    date=target_date
                 )
                 
-                # Success - remove from pending
+                # Success - remove from pending (even if record not found, we tried)
                 async with self._filter_reasons_lock:
                     self._pending_filter_reasons.pop(article_id, None)
                 async with self._classification_lock:
                     self._pending_classifications.pop(article_id, None)
                 
-                logger.info(
-                    "Recall: Updated record with AI classification",
-                    article_id=article_id,
-                    classification=classification_value,
-                    filter_reason=updates.get("filter_reason")
-                )
+                if updated:
+                    logger.info(
+                        "Recall: Updated record with AI classification",
+                        article_id=article_id,
+                        classification=classification_value,
+                        filter_reason=updates.get("filter_reason")
+                    )
+                else:
+                    # Record doesn't exist yet - pending will be picked up on creation
+                    logger.debug(
+                        "Recall: Record not found for immediate update (AI class), will be applied on creation",
+                        article_id=article_id
+                    )
             except Exception as update_error:
                 # Record doesn't exist yet - pending will be picked up on creation
                 logger.debug(
@@ -688,23 +718,36 @@ class RecallStatsEngine:
             
             # STEP 2: Attempt immediate update (if record exists)
             try:
-                await self.repository.update_recall_record(
+                # Use stored location if available (prevents session mismatch errors)
+                record_loc = self._record_locations.get(article_id)
+                target_session = record_loc[0] if record_loc else session
+                target_date = record_loc[1] if record_loc else event.skipped_at
+                
+                updated = await self.repository.update_recall_record(
                     article_id=article_id,
                     updates={"filter_reason": filter_reason},
-                    session=session,
-                    date=event.skipped_at
+                    session=target_session,
+                    date=target_date
                 )
                 
                 # Success - remove from pending
                 async with self._filter_reasons_lock:
                     self._pending_filter_reasons.pop(article_id, None)
                 
-                logger.info(
-                    "Recall: Updated record with prefilter reason (immediate)",
-                    article_id=article_id,
-                    reason=event.reason,
-                    filter_reason=filter_reason
-                )
+                if updated:
+                    logger.info(
+                        "Recall: Updated record with prefilter reason (immediate)",
+                        article_id=article_id,
+                        reason=event.reason,
+                        filter_reason=filter_reason
+                    )
+                else:
+                    # Record doesn't exist yet - that's fine, pending will be picked up on creation
+                    logger.debug(
+                        "Recall: Record not found for immediate update (prefilter), will be applied on creation",
+                        article_id=article_id,
+                        filter_reason=filter_reason
+                    )
             except Exception as update_error:
                 # Record doesn't exist yet - that's fine, pending will be picked up on creation
                 logger.debug(
@@ -832,20 +875,16 @@ class RecallStatsEngine:
                 
                 # Update record even if only partial metadata (better than nothing)
                 if metadata_dict or attempt == max_retries - 1:
-                    # Determine session from received_at timestamp (stateless)
-                    session_from_timestamp, _ = get_market_session_from_timestamp(received_at)
-                    if session_from_timestamp == "closed":
-                        # Fallback: use session parameter
-                        pass  # Use session parameter
-                    else:
-                        session = session_from_timestamp
+                    # Use passed session - do NOT recalculate from timestamp
+                    # (Prevent incorrectly switching sessions due to boundary/timezone bugs)
+                    pass
                     
                     # Update record in repository (include errors for failed tickers)
                     updates = {"ticker_metadata": metadata_dict}
                     if metadata_errors:
                         updates["metadata_errors"] = metadata_errors
                     
-                    await self.repository.update_recall_record(
+                    updated = await self.repository.update_recall_record(
                         article_id=article_id,
                         updates=updates,
                         session=session,
@@ -853,13 +892,21 @@ class RecallStatsEngine:
                     )
                     
                     if metadata_dict:
-                        logger.info(
-                            "Recall: Updated record with metadata",
-                            article_id=article_id,
-                            tickers=list(metadata_dict.keys()),
-                            failed_tickers=failed_tickers if failed_tickers else None,
-                            attempt=attempt + 1
-                        )
+                        if updated:
+                            logger.info(
+                                "Recall: Updated record with metadata",
+                                article_id=article_id,
+                                tickers=list(metadata_dict.keys()),
+                                failed_tickers=failed_tickers if failed_tickers else None,
+                                attempt=attempt + 1
+                            )
+                        else:
+                            logger.warning(
+                                "Recall: Failed to update record with metadata (record not found)",
+                                article_id=article_id,
+                                session=session,
+                                received_at=received_at.isoformat()
+                            )
                         # Remove from pending if we got at least some metadata
                         async with self._metadata_lock:
                             self._pending_metadata.pop(article_id, None)

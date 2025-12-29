@@ -121,6 +121,21 @@ class VolumeSurgeAnalysis:
     ask_size_change_pct: Optional[float] = None  # % change in ask_size
     liquidity_ratio: Optional[float] = None  # (bid_size + ask_size) / spread (higher = more liquid)
     
+    # Momentum Metrics (Price action velocity)
+    momentum_3min_to_1min_pct: Optional[float] = None  # % change in mid price
+    momentum_1min_to_event_pct: Optional[float] = None # % change in mid price
+    momentum_3min_to_event_pct: Optional[float] = None # % change in mid price
+    
+    # Volume Acceleration (Rate of change of volume)
+    volume_accel_3min_to_1min_pct: Optional[float] = None # % change in volume rate
+    volume_accel_prior_to_event_pct: Optional[float] = None # % change from prior avg to current event volume
+    
+    # Order Flow / Trade Imbalance (Requires trade data)
+    # Estimated from trade aggressor side (Buy vs Sell volume)
+    order_flow_buy_volume: Optional[int] = None 
+    order_flow_sell_volume: Optional[int] = None
+    order_flow_imbalance_ratio: Optional[float] = None  # (Buy - Sell) / (Buy + Sell). Range [-1, 1].
+    
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return asdict(self)
@@ -692,6 +707,42 @@ async def analyze_volume_around_event(
                 total_size = (stats_now.bid_size or 0) + (stats_now.ask_size or 0)
                 liquidity_ratio = round(total_size / stats_now.spread, 2) if total_size > 0 else None
         
+        # --- Momentum Metrics ---
+        mom_3m_1m = None
+        mom_1m_evt = None
+        mom_3m_evt = None
+        
+        mid_3m = stats_3min.mid if stats_3min else None
+        mid_1m = stats_1min.mid if stats_1min else None
+        mid_now = stats_now.mid if stats_now else None
+        
+        if mid_3m and mid_1m and mid_3m > 0:
+             mom_3m_1m = round(((mid_1m - mid_3m) / mid_3m), 6) # Use 4-6 decimal places for pct
+             
+        if mid_1m and mid_now and mid_1m > 0:
+             mom_1m_evt = round(((mid_now - mid_1m) / mid_1m), 6)
+             
+        if mid_3m and mid_now and mid_3m > 0:
+             mom_3m_evt = round(((mid_now - mid_3m) / mid_3m), 6)
+             
+        # --- Volume Acceleration ---
+        # We need volume rates (shares per second or normalized minute volume)
+        # stats_now has normalized_minute_volume.
+        # stats_3min/1min are full minute bars, so their volume IS the normalized minute volume.
+        
+        vol_accel_3m_1m = None
+        vol_accel_prior_evt = None
+        
+        vol_3m = stats_3min.volume if stats_3min else None
+        vol_1m = stats_1min.volume if stats_1min else None
+        vol_now_norm = stats_now.normalized_minute_volume if stats_now else None
+        
+        if vol_3m is not None and vol_1m is not None and vol_3m > 0:
+            vol_accel_3m_1m = round(((vol_1m - vol_3m) / vol_3m) * 100, 2) # As percentage
+            
+        if prior_avg and prior_avg > 0 and vol_now_norm is not None:
+            vol_accel_prior_evt = round(((vol_now_norm - prior_avg) / prior_avg) * 100, 2) # As percentage
+
         result = VolumeSurgeAnalysis(
             symbol=symbol,
             event_time=event_time.isoformat(),
@@ -721,6 +772,17 @@ async def analyze_volume_around_event(
             bid_size_change_pct=bid_size_change_pct,
             ask_size_change_pct=ask_size_change_pct,
             liquidity_ratio=liquidity_ratio,
+            # Momentum
+            momentum_3min_to_1min_pct=mom_3m_1m,
+            momentum_1min_to_event_pct=mom_1m_evt,
+            momentum_3min_to_event_pct=mom_3m_evt,
+            # Volume Acceleration
+            volume_accel_3min_to_1min_pct=vol_accel_3m_1m,
+            volume_accel_prior_to_event_pct=vol_accel_prior_evt,
+            # Order Flow (Placeholder for now)
+            order_flow_buy_volume=None,
+            order_flow_sell_volume=None,
+            order_flow_imbalance_ratio=None,
         )
         
         logger.info(

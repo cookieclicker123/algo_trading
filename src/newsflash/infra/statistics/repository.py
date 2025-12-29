@@ -269,7 +269,7 @@ class StatisticsRepository:
         updates: dict,
         session: str,
         date: datetime
-    ) -> None:
+    ) -> bool:
         """
         Update an existing recall record (e.g., after 5-minute price check).
         
@@ -278,6 +278,9 @@ class StatisticsRepository:
             updates: Dictionary of fields to update
             session: Session name
             date: Date for file path calculation
+            
+        Returns:
+            True if record found and updated, False otherwise
         """
         async with self._file_lock:
             file_path = self._get_session_file_path("recall", session, date)
@@ -285,9 +288,11 @@ class StatisticsRepository:
             # Load existing file
             session_file = await self._load_recall_file(file_path, session, date)
             
+            record_found = False
             # Find and update record
             for record in session_file.records:
                 if record.article_id == article_id:
+                    record_found = True
                     # Store old values BEFORE updating (for summary recalculation)
                     old_price_check = record.price_check_5min
                     old_was_counted = old_price_check and old_price_check.get("moved_1_percent")
@@ -351,17 +356,28 @@ class StatisticsRepository:
                     
                     break
             
-            # Update last_updated_at
-            session_file.last_updated_at = datetime.now()
-            
-            # Save file
-            await self._save_recall_file(file_path, session_file)
-            
-            logger.debug(
-                "Updated recall record",
-                article_id=article_id,
-                file_path=str(file_path)
-            )
+            if record_found:
+                # Update last_updated_at
+                session_file.last_updated_at = datetime.now()
+                
+                # Save file
+                await self._save_recall_file(file_path, session_file)
+                
+                logger.debug(
+                    "Updated recall record",
+                    article_id=article_id,
+                    file_path=str(file_path)
+                )
+                return True
+            else:
+                logger.warning(
+                    "Recall: Record not found for update",
+                    article_id=article_id,
+                    file_path=str(file_path),
+                    session=session,
+                    date_iso=date.isoformat()
+                )
+                return False
     
     async def update_signal_record(
         self,
