@@ -90,6 +90,10 @@ class RecallStatsEngine:
         self._pending_filter_reasons: Dict[str, str] = {}
         self._filter_reasons_lock = asyncio.Lock()
         
+        # Track pending ai_classification updates (article_id -> classification value)
+        self._pending_classifications: Dict[str, str] = {}
+        self._classification_lock = asyncio.Lock()
+        
         # Store wrappers for unsubscribe
         self._article_received_wrapper: Optional[Any] = None
         self._article_classified_wrapper: Optional[Any] = None
@@ -316,10 +320,14 @@ class RecallStatsEngine:
             
             # Create recall record
             # Use first ticker's NBBO as the initial_nbbo (we'll track all tickers)
-            # Check if we already have a pending filter reason (from prefilter events that fire before record creation)
+            # Check if we already have pending filter reason or classification (from events that fire before record creation)
             initial_filter_reason = None
             async with self._filter_reasons_lock:
                 initial_filter_reason = self._pending_filter_reasons.pop(article.id, None)
+            
+            initial_classification = None
+            async with self._classification_lock:
+                initial_classification = self._pending_classifications.pop(article.id, None)
             
             record = RecallRecord(
                 article_id=article.id,
@@ -330,6 +338,7 @@ class RecallStatsEngine:
                 received_at=received_at,
                 initial_nbbo=initial_nbbos.get(tradable_tickers[0]) if tradable_tickers else None,
                 filter_reason=initial_filter_reason,  # Set immediately if known (from prefilter events)
+                ai_classification=initial_classification,  # Set immediately if known (from classification events)
                 volume_stats=volume_stats_dict
             )
             
@@ -482,63 +491,72 @@ class RecallStatsEngine:
         event: ArticleClassifiedDomainEvent,
     ) -> None:
         """
-        Handle Domain.ArticleClassified event - update filter reasons.
+        Handle Domain.ArticleClassified event - update classification and filter reasons.
         
-        If article wasn't classified as IMMINENT, add filter reason.
+        ALWAYS stores ai_classification (IMMINENT, SPECULATIVE, ROUTINE, IGNORE).
+        If not IMMINENT, also sets filter_reason.
         
         RACE CONDITION FIX: Always store to pending first, then attempt update.
-        This ensures the reason is captured even if record doesn't exist yet.
         """
         try:
-            # Check if classification is IMMINENT
-            if event.result.classification.value != "IMMINENT":
-                # Article was filtered - set filter reason (clear naming: ai_classified_ignore, ai_classified_watch, etc.)
-                classification_value = event.result.classification.value.lower()
-                filter_reason = f"ai_classified_{classification_value}"
+            classification_value = event.result.classification.value
+            article_id = event.article_id
+            
+            # Determine session and date from classified_at timestamp
+            session, _ = get_market_session_from_timestamp(event.classified_at)
+            if session == "closed":
+                return
+            
+            # Build updates dict - ALWAYS include ai_classification
+            updates = {"ai_classification": classification_value}
+            
+            # If not IMMINENT, also set filter reason
+            if classification_value != "IMMINENT":
+                filter_reason = f"ai_classified_{classification_value.lower()}"
+                updates["filter_reason"] = filter_reason
                 
-                # Determine session and date from classified_at timestamp
-                session, _ = get_market_session_from_timestamp(event.classified_at)
-                if session == "closed":
-                    return
-                
-                # STEP 1: Always store to pending first (eliminates race condition)
-                # This ensures if record is created after this event, it will pick up the reason
+                # Store to pending for race condition handling
                 async with self._filter_reasons_lock:
-                    self._pending_filter_reasons[event.article_id] = filter_reason
-                
-                logger.debug(
-                    "Recall: Stored filter reason to pending",
-                    article_id=event.article_id,
-                    filter_reason=filter_reason
+                    self._pending_filter_reasons[article_id] = filter_reason
+            
+            # Store ai_classification to pending too (for race condition)
+            async with self._classification_lock:
+                self._pending_classifications[article_id] = classification_value
+            
+            logger.debug(
+                "Recall: Stored classification to pending",
+                article_id=article_id,
+                classification=classification_value
+            )
+            
+            # Attempt immediate update (if record exists)
+            try:
+                await self.repository.update_recall_record(
+                    article_id=article_id,
+                    updates=updates,
+                    session=session,
+                    date=event.classified_at
                 )
                 
-                # STEP 2: Attempt immediate update (if record exists, update it now)
-                # This handles the case where record was created before this event
-                try:
-                    await self.repository.update_recall_record(
-                        article_id=event.article_id,
-                        updates={"filter_reason": filter_reason},
-                        session=session,
-                        date=event.classified_at
-                    )
-                    
-                    # Success - remove from pending
-                    async with self._filter_reasons_lock:
-                        self._pending_filter_reasons.pop(event.article_id, None)
-                    
-                    logger.info(
-                        "Recall: Updated record with filter reason (immediate)",
-                        article_id=event.article_id,
-                        classification=event.result.classification.value,
-                        filter_reason=filter_reason
-                    )
-                except Exception as update_error:
-                    # Record doesn't exist yet - that's fine, pending will be picked up on creation
-                    logger.debug(
-                        "Recall: Record not found for immediate update, will be applied on creation",
-                        article_id=event.article_id,
-                        filter_reason=filter_reason
-                    )
+                # Success - remove from pending
+                async with self._filter_reasons_lock:
+                    self._pending_filter_reasons.pop(article_id, None)
+                async with self._classification_lock:
+                    self._pending_classifications.pop(article_id, None)
+                
+                logger.info(
+                    "Recall: Updated record with AI classification",
+                    article_id=article_id,
+                    classification=classification_value,
+                    filter_reason=updates.get("filter_reason")
+                )
+            except Exception as update_error:
+                # Record doesn't exist yet - pending will be picked up on creation
+                logger.debug(
+                    "Recall: Record not found for immediate update, will be applied on creation",
+                    article_id=article_id,
+                    classification=classification_value
+                )
                 
         except Exception as e:
             logger.error(

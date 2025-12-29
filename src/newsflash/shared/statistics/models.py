@@ -50,6 +50,12 @@ class RecallRecord(BaseModel):
         description="Single filter reason: 'ai_classified_ignore', 'prefilter_no_tickers', 'prefilter_low_market_cap', etc. Set immediately from events."
     )
     
+    # AI classification result (what did AI say about this article?)
+    ai_classification: Optional[str] = Field(
+        None,
+        description="AI classification: 'IMMINENT', 'SPECULATIVE', 'ROUTINE', 'IGNORE'. Always populated so we know why wasn't traded."
+    )
+    
     # Volume analysis at article receive time (for future filtering research)
     volume_stats: Optional[Dict[str, Any]] = Field(
         None,

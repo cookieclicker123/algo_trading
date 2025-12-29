@@ -342,6 +342,15 @@ class TelegramNotifier:
         
         logger.info("Telegram notification service stopped")
     
+    async def send_system_message(self, message: str) -> None:
+        """
+        Send a system message to all enabled bots.
+        
+        Args:
+            message: Message text to send
+        """
+        await self._send_message_to_all_bots(message)
+    
     async def _send_message_to_all_bots(self, message: str) -> None:
         """
         Send a plain text message to all enabled bots.

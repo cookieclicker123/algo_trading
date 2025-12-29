@@ -283,10 +283,11 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
     )
     
     # Initialize Market Hours Scheduler (manages websocket shutdown/startup during off-hours)
+    # NOTE: Don't start yet - start after lifecycle_manager starts websocket
     from ..services.scheduler import MarketHoursScheduler
-    scheduler = MarketHoursScheduler(services=services)
-    await scheduler.start()
-    logger.info("MarketHoursScheduler started - will shutdown websocket at 8:00 PM ET (postmarket end), restart at 3:55 AM ET (5 min before premarket)")
+    scheduler = MarketHoursScheduler(services=services, telegram_notifier=telegram)
+    # scheduler.start() is called by lifespan after lifecycle_manager.start_services()
+    logger.info("MarketHoursScheduler initialized (will start after websocket)")
     
     # Store statistics engines and scheduler for shutdown (not in Services container - they're background services)
     # They'll be stopped in lifespan shutdown handler

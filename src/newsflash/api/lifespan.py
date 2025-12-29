@@ -117,6 +117,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         # Start all services via lifecycle manager (DI-managed)
         await lifecycle_manager.start_services(services)
         
+        # Start scheduler AFTER websocket is running so it can check trading hours
+        # and shut down websocket if we're outside trading hours (weekend/overnight)
+        if scheduler:
+            await scheduler.start()
+            logger.info("MarketHoursScheduler started - managing websocket lifecycle")
+        
         # Store services, container, statistics engines, and scheduler in app.state
         app.state.services = services
         app.state.container = container
