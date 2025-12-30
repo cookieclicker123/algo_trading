@@ -214,7 +214,7 @@ Summary: {summary}"""
         
         Three-step pre-filtering process:
         1. Check if article has tickers (Python logic)
-        2. Check if tickers are tradeable on NASDAQ/NYSE (TickerValidator)
+        2. Check if tickers are tradeable on NASDAQ/NYSE/AMEX (TickerValidator)
         3. Only if both pass → Call Groq API
         
         Args:
@@ -244,59 +244,18 @@ Summary: {summary}"""
                 await self._publish_skipped_event(infra_event, "no_tickers")
                 return
             
-            # Step 2: Check if tickers are tradeable on NASDAQ/NYSE (TickerValidator - cached lookup)
+            # Step 2: Check if tickers are tradeable on NASDAQ/NYSE/AMEX (TickerValidator - cached lookup)
             if not self.ticker_validator or not self.ticker_validator.are_tradeable(request_data.article_tickers):
                 logger.info(
-                    "⏭️ CLASSIFY INFRA: Skipping classification - tickers not tradeable on NASDAQ/NYSE",
+                    "⏭️ CLASSIFY INFRA: Skipping classification - tickers not tradeable on NASDAQ/NYSE/AMEX",
                     article_id=request_data.article_id,
                     tickers=request_data.article_tickers
                 )
                 await self._publish_skipped_event(infra_event, "not_tradeable_exchange")
                 return
             
-            # Step 3: Check market cap and price thresholds (MarketDataValidator)
-            # Use first ticker for validation (same as trade request factory)
+            # Step 3: Check NBBO availability (before expensive Groq API call)
             primary_ticker = request_data.article_tickers[0] if request_data.article_tickers else None
-            
-            if self.market_data_validator and primary_ticker:
-                logger.debug(
-                    "CLASSIFY INFRA: Checking market cap and price thresholds",
-                    article_id=request_data.article_id,
-                    ticker=primary_ticker
-                )
-                market_cap_millions, price = await self.market_data_validator.get_market_cap_and_price(primary_ticker)
-                
-                logger.debug(
-                    "CLASSIFY INFRA: Market data fetched",
-                    article_id=request_data.article_id,
-                    ticker=primary_ticker,
-                    market_cap_millions=market_cap_millions,
-                    price=price
-                )
-                
-                # Filter 3a: Market cap < $500M
-                if market_cap_millions is not None and market_cap_millions < 500:
-                    logger.info(
-                        "⏭️ CLASSIFY INFRA: Skipping classification - market cap below $500M",
-                        article_id=request_data.article_id,
-                        ticker=primary_ticker,
-                        market_cap_millions=market_cap_millions
-                    )
-                    await self._publish_skipped_event(infra_event, "low_market_cap")
-                    return
-                
-                # Filter 3b: Price < $5
-                if price is not None and price < 5.0:
-                    logger.info(
-                        "⏭️ CLASSIFY INFRA: Skipping classification - price below $5",
-                        article_id=request_data.article_id,
-                        ticker=primary_ticker,
-                        price=price
-                    )
-                    await self._publish_skipped_event(infra_event, "low_price")
-                    return
-            
-            # Step 4: Check NBBO availability (before expensive Groq API call)
             if self.quote_fetcher and primary_ticker:
                 logger.debug(
                     "CLASSIFY INFRA: Checking NBBO availability",
@@ -315,8 +274,30 @@ Summary: {summary}"""
                     )
                     await self._publish_skipped_event(infra_event, "nbbo_unavailable")
                     return
+                
+                # Filter 3b: Volume check - ensure there is any activity after publication (Save AI costs)
+                if self.market_data_validator and request_data.article_published_at_iso:
+                    try:
+                        pub_time = datetime.fromisoformat(request_data.article_published_at_iso)
+                        if pub_time.tzinfo is None:
+                            from datetime import timezone
+                            pub_time = pub_time.replace(tzinfo=timezone.utc)
+                            
+                        has_vol = await self.market_data_validator.has_recent_volume(primary_ticker, pub_time)
+                        if not has_vol:
+                            logger.info(
+                                "⏭️ CLASSIFY INFRA: Skipping classification - ZERO volume since publication (Save API costs)",
+                                article_id=request_data.article_id,
+                                ticker=primary_ticker,
+                                pub_time=pub_time.isoformat()
+                            )
+                            await self._publish_skipped_event(infra_event, "no_volume_since_publication")
+                            return
+                    except Exception as vol_err:
+                        logger.error(f"CLASSIFY INFRA: Error in volume pre-filter: {vol_err}")
+                        # Continue to Groq if volume check fails to be safe
             
-            # Step 5: All checks passed - proceed to Groq API classification
+            # Step 4: All checks passed - proceed to Groq API classification
             logger.info(
                 "✅ CLASSIFY INFRA: Pre-filters passed, proceeding to Groq API",
                 article_id=request_data.article_id,

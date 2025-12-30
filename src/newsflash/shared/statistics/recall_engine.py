@@ -281,7 +281,8 @@ class RecallStatsEngine:
                         client=self.market_data_client,
                         symbol=tradable_tickers[0],  # Use first ticker
                         event_time=article.published_at,
-                        received_at=received_at  # For precise published_at → received_at window
+                        received_at=received_at,  # For precise published_at → received_at window
+                        reference_nbbo=initial_nbbos.get(tradable_tickers[0])  # Pass real-time quote for order flow analysis
                     )
                     if volume_analysis:
                         volume_stats_dict = volume_analysis.to_dict()
@@ -289,7 +290,7 @@ class RecallStatsEngine:
                             "Recall: Fetched volume stats",
                             article_id=article.id,
                             ticker=tradable_tickers[0],
-                            surge_type=volume_analysis.surge_type
+                            move_type=volume_analysis.move_type
                         )
                 except Exception as vol_error:
                     error_type = type(vol_error).__name__
@@ -406,10 +407,11 @@ class RecallStatsEngine:
             # Wait 5 minutes
             await asyncio.sleep(300)  # 300 seconds = 5 minutes
             
-            # Check if article was traded (skip if yes)
-            async with self._traded_lock:
-                if article_id in self._traded_articles:
-                    return  # We traded this, don't count as missed
+            # Check if article was traded (OPTIONAL: skip if yes? User wants to track everything)
+            # async with self._traded_lock:
+            #     if article_id in self._traded_articles:
+            #         return  # We traded this, don't count as missed
+            pass
             
             # Get final NBBO for each ticker
             final_nbbos = {}
@@ -561,13 +563,13 @@ class RecallStatsEngine:
                     date=target_date
                 )
                 
-                # Success - remove from pending (even if record not found, we tried)
-                async with self._filter_reasons_lock:
-                    self._pending_filter_reasons.pop(article_id, None)
-                async with self._classification_lock:
-                    self._pending_classifications.pop(article_id, None)
-                
                 if updated:
+                    # Success - remove from pending
+                    async with self._filter_reasons_lock:
+                        self._pending_filter_reasons.pop(article_id, None)
+                    async with self._classification_lock:
+                        self._pending_classifications.pop(article_id, None)
+                        
                     logger.info(
                         "Recall: Updated record with AI classification",
                         article_id=article_id,
@@ -575,10 +577,11 @@ class RecallStatsEngine:
                         filter_reason=updates.get("filter_reason")
                     )
                 else:
-                    # Record doesn't exist yet - pending will be picked up on creation
+                    # Record doesn't exist yet - keep in pending for creation or finalization
                     logger.debug(
-                        "Recall: Record not found for immediate update (AI class), will be applied on creation",
-                        article_id=article_id
+                        "Recall: Record not found for immediate update (AI class), keeping in pending",
+                        article_id=article_id,
+                        classification=classification_value
                     )
             except Exception as update_error:
                 # Record doesn't exist yet - pending will be picked up on creation
@@ -611,11 +614,32 @@ class RecallStatsEngine:
                 async with self._traded_lock:
                     self._traded_articles.add(article_id)
                 
-                # Cancel monitoring task if exists
-                async with self._monitoring_lock:
-                    task = self._monitoring_tasks.pop(article_id, None)
-                    if task:
-                        task.cancel()
+                # DO NOT cancel monitoring task - we want to track 5-min result for training data
+                # async with self._monitoring_lock:
+                #     task = self._monitoring_tasks.pop(article_id, None)
+                #     if task:
+                #         task.cancel()
+                
+                # Update recall record to link with trade
+                try:
+                    trade_request_dict = trade_result.trade_request
+                    # Generate trade_id (use order_id if available, otherwise generate)
+                    trade_id = trade_request_dict.get("order_id") or trade_request_dict.get("_order_id")
+                    if not trade_id:
+                        trade_id = f"trade_{int(event.executed_at.timestamp() * 1000)}"
+
+                    session, _ = get_market_session_from_timestamp(event.executed_at)
+                    await self.repository.update_recall_record(
+                        article_id=article_id,
+                        updates={
+                            "is_traded": True,
+                            "trade_id": trade_id
+                        },
+                        session=session,
+                        date=event.executed_at
+                    )
+                except Exception as update_err:
+                    logger.debug(f"Recall: Could not link trade to recall record: {update_err}")
                 
                 logger.debug(
                     "Recall: Marked article as traded (executed)",
@@ -647,27 +671,26 @@ class RecallStatsEngine:
                 async with self._traded_lock:
                     self._traded_articles.add(article_id)
                 
-                # Cancel monitoring task if exists
-                async with self._monitoring_lock:
-                    task = self._monitoring_tasks.pop(article_id, None)
-                    if task:
-                        task.cancel()
+                # DO NOT cancel monitoring task - we want to track 5-min result for training data
+                # async with self._monitoring_lock:
+                #     task = self._monitoring_tasks.pop(article_id, None)
+                #     if task:
+                #         task.cancel()
                 
-                # CRITICAL: Remove recall record if it exists (failed trade = attempted, not missed)
-                # This handles race condition where ArticleReceived fires before TradeFailed
-                try:
-                    # Determine session from failed_at timestamp
-                    session, _ = get_market_session_from_timestamp(event.failed_at)
-                    if session != "closed":
-                        # Try to remove the record from the file (if it exists)
-                        # This is best-effort - if file doesn't exist or record doesn't exist, that's fine
-                        await self.repository.remove_recall_record(article_id, session, event.failed_at)
-                except Exception as remove_error:
-                    logger.debug(
-                        "Recall: Could not remove record for failed trade (may not exist)",
-                        article_id=article_id,
-                        error=str(remove_error)
-                    )
+                # DO NOT remove record. We want everything in the dataset.
+                # try:
+                #     # Determine session from failed_at timestamp
+                #     session, _ = get_market_session_from_timestamp(event.failed_at)
+                #     if session != "closed":
+                #         # Try to remove the record from the file (if it exists)
+                #         # This is best-effort - if file doesn't exist or record doesn't exist, that's fine
+                #         await self.repository.remove_recall_record(article_id, session, event.failed_at)
+                # except Exception as remove_error:
+                #     logger.debug(
+                #         "Recall: Could not remove record for failed trade (may not exist)",
+                #         article_id=article_id,
+                #         error=str(remove_error)
+                #     )
                 
                 logger.debug(
                     "Recall: Marked article as traded (failed) and removed from recall if present",
@@ -730,11 +753,11 @@ class RecallStatsEngine:
                     date=target_date
                 )
                 
-                # Success - remove from pending
-                async with self._filter_reasons_lock:
-                    self._pending_filter_reasons.pop(article_id, None)
-                
                 if updated:
+                    # Success - remove from pending
+                    async with self._filter_reasons_lock:
+                        self._pending_filter_reasons.pop(article_id, None)
+                        
                     logger.info(
                         "Recall: Updated record with prefilter reason (immediate)",
                         article_id=article_id,
@@ -742,9 +765,9 @@ class RecallStatsEngine:
                         filter_reason=filter_reason
                     )
                 else:
-                    # Record doesn't exist yet - that's fine, pending will be picked up on creation
+                    # Record doesn't exist yet - keep in pending
                     logger.debug(
-                        "Recall: Record not found for immediate update (prefilter), will be applied on creation",
+                        "Recall: Record not found for immediate update (prefilter), keeping in pending",
                         article_id=article_id,
                         filter_reason=filter_reason
                     )
@@ -1032,8 +1055,9 @@ class RecallStatsEngine:
                         error=str(e)
                     )
         
-        # Retry pending filter_reasons
+        # Retry pending filter_reasons and classifications
         await self._retry_pending_filter_reasons()
+        await self._retry_pending_classifications()
     
     async def _retry_metadata_fetch(
         self,
@@ -1106,62 +1130,82 @@ class RecallStatsEngine:
             )
     
     async def _retry_pending_filter_reasons(self) -> None:
-        """Retry pending filter_reason updates (singular - one reason per article)."""
+        """Retry pending filter_reason updates."""
         async with self._filter_reasons_lock:
             pending = dict(self._pending_filter_reasons)
-            self._pending_filter_reasons.clear()
         
         for article_id, filter_reason in pending.items():
             try:
-                # Try to find the record's session and date
-                # We'll need to search recent sessions
-                from datetime import timedelta
-                current_time = datetime.now()
-                
-                # Try current session first
-                session, _ = get_market_session()
-                if session != "closed":
-                    try:
-                        await self.repository.update_recall_record(
-                            article_id=article_id,
-                            updates={"filter_reason": filter_reason},  # Singular
-                            session=session,
-                            date=current_time
-                        )
-                        logger.info(
-                            "Recall: Retried filter_reason update",
-                            article_id=article_id,
-                            filter_reason=filter_reason
-                        )
-                        continue
-                    except Exception:
-                        pass
-                
-                # Try previous sessions (within last 24 hours)
-                for hours_ago in [1, 2, 4, 8, 12, 24]:
-                    past_time = current_time - timedelta(hours=hours_ago)
-                    session, _ = get_market_session_from_timestamp(past_time)
-                    if session != "closed":
-                        try:
-                            await self.repository.update_recall_record(
+                # Use stored location if available
+                record_loc = self._record_locations.get(article_id)
+                if record_loc:
+                    updated = await self.repository.update_recall_record(
+                        article_id=article_id,
+                        updates={"filter_reason": filter_reason},
+                        session=record_loc[0],
+                        date=record_loc[1]
+                    )
+                    if updated:
+                        async with self._filter_reasons_lock:
+                            self._pending_filter_reasons.pop(article_id, None)
+                        logger.info("Recall: Finalization retried and updated filter_reason", article_id=article_id)
+                else:
+                    # Search recent sessions (fallback)
+                    current_time = datetime.now()
+                    for hours_ago in [0, 1, 2]:
+                        past_time = current_time - timedelta(hours=hours_ago)
+                        session_name, _ = get_market_session_from_timestamp(past_time)
+                        if session_name != "closed":
+                            updated = await self.repository.update_recall_record(
                                 article_id=article_id,
-                                updates={"filter_reason": filter_reason},  # Singular
-                                session=session,
+                                updates={"filter_reason": filter_reason},
+                                session=session_name,
                                 date=past_time
                             )
-                            logger.info(
-                                "Recall: Retried filter_reason update (found in past session)",
-                                article_id=article_id,
-                                filter_reason=filter_reason,
-                                hours_ago=hours_ago
-                            )
-                            break
-                        except Exception:
-                            continue
+                            if updated:
+                                async with self._filter_reasons_lock:
+                                    self._pending_filter_reasons.pop(article_id, None)
+                                break
             except Exception as e:
-                    logger.error(
-                        "Error retrying filter_reason update",
+                logger.error("Error retrying filter_reason update", article_id=article_id, error=str(e))
+
+    async def _retry_pending_classifications(self) -> None:
+        """Retry pending ai_classification updates."""
+        async with self._classification_lock:
+            pending = dict(self._pending_classifications)
+        
+        for article_id, classification in pending.items():
+            try:
+                # Use stored location if available
+                record_loc = self._record_locations.get(article_id)
+                if record_loc:
+                    updated = await self.repository.update_recall_record(
                         article_id=article_id,
-                        error=str(e)
+                        updates={"ai_classification": classification},
+                        session=record_loc[0],
+                        date=record_loc[1]
                     )
+                    if updated:
+                        async with self._classification_lock:
+                            self._pending_classifications.pop(article_id, None)
+                        logger.info("Recall: Finalization retried and updated classification", article_id=article_id)
+                else:
+                    # Fallback search
+                    current_time = datetime.now()
+                    for hours_ago in [0, 1, 2]:
+                        past_time = current_time - timedelta(hours=hours_ago)
+                        session_name, _ = get_market_session_from_timestamp(past_time)
+                        if session_name != "closed":
+                            updated = await self.repository.update_recall_record(
+                                article_id=article_id,
+                                updates={"ai_classification": classification},
+                                session=session_name,
+                                date=past_time
+                            )
+                            if updated:
+                                async with self._classification_lock:
+                                    self._pending_classifications.pop(article_id, None)
+                                break
+            except Exception as e:
+                logger.error("Error retrying classification update", article_id=article_id, error=str(e))
     

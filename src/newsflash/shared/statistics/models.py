@@ -59,12 +59,16 @@ class RecallRecord(BaseModel):
     # Volume analysis at article receive time (for future filtering research)
     volume_stats: Optional[Dict[str, Any]] = Field(
         None,
-        description="Volume surge analysis: surge_type, surge_score, prior_avg_volume, current_volume, stats at intervals"
+        description="Volume microstructures: move_type, surge_multiplier, trade_count_multiplier, max_excursion_pct, etc."
     )
     
     # Tracking metadata
     tracked_at: datetime = Field(default_factory=datetime.now, description="When tracking started")
     price_checked_at: Optional[datetime] = Field(None, description="When 5-minute price check completed")
+    
+    # Trade linkage (did we actually trade this?)
+    is_traded: bool = Field(False, description="Whether this article resulted in a trade execution")
+    trade_id: Optional[str] = Field(None, description="Trade ID if executed")
     
     model_config = {"frozen": False}  # Allow updates for price_check_5min
 
@@ -134,7 +138,7 @@ class SignalRecord(BaseModel):
     # Volume analysis at article publish time (for future filtering research)
     volume_stats: Optional[Dict[str, Any]] = Field(
         None,
-        description="Volume surge analysis: surge_type, surge_score, prior_avg_volume, current_volume, stats at intervals"
+        description="Volume microstructures: move_type, surge_multiplier, trade_count_multiplier, max_excursion_pct, etc."
     )
     
     # Tracking metadata
@@ -187,7 +191,7 @@ class FailedTradeRecord(BaseModel):
     # Volume analysis at failure time (for future filtering research)
     volume_stats: Optional[Dict[str, Any]] = Field(
         None,
-        description="Volume surge analysis: surge_type, surge_score, prior_avg_volume, current_volume, stats at intervals"
+        description="Volume microstructures: move_type, surge_multiplier, trade_count_multiplier, max_excursion_pct, etc."
     )
     
     # Tracking metadata

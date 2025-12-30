@@ -198,10 +198,12 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
     await notification_use_case.start()
     logger.info("Notification use case created and started via DI container")
     
-    auto_trade_service = container.auto_trade_service()
+    auto_trade_service = container.auto_trade_service(
+        market_data_client=brokerage.infra.connection_manager.market_data_client if brokerage else None
+    )
     brokerage.auto_trade_service = auto_trade_service
     await auto_trade_service.start()
-    logger.info("Auto-trade service created and started via DI container")
+    logger.info("Auto-trade service created and started via DI container (with Volume Gate)")
     
     exit_trade_use_case = container.exit_trade_use_case()
     brokerage.exit_trade_use_case = exit_trade_use_case

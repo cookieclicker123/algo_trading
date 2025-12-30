@@ -19,6 +19,15 @@ from ...domain.websocket.models import Article
 from ...services.storage import StorageQueryService
 from .trade_builder import build_trade_request_from_article
 
+try:
+    from alpaca.data.historical import StockHistoricalDataClient
+    from alpaca.data.requests import StockTradesRequest
+    from alpaca.data.enums import DataFeed
+except ImportError:
+    StockHistoricalDataClient = None
+    StockTradesRequest = None
+    DataFeed = None
+
 logger = get_logger(__name__)
 
 
@@ -167,7 +176,8 @@ async def process_imminent_article(
     event_bus: AsyncEventBus,
     storage_service: StorageQueryService,
     classification_result: ClassificationResult,
-    enabled: bool
+    enabled: bool,
+    market_data_client: Optional["StockHistoricalDataClient"] = None
 ) -> None:
     """
     Process an IMMINENT classification result and publish trade request if valid.
@@ -222,6 +232,45 @@ async def process_imminent_article(
         if not trade_request:
             return
         
+        # 🚀 MICROSTRUCTURE CHECK: Ensure there is actually trading activity
+        # "Truly big moves always have volume." - User
+        if market_data_client and StockTradesRequest:
+            try:
+                # Check for any trades since publication
+                trades_start = domain_article.published_at
+                trades_end = datetime.now()
+                
+                trades = market_data_client.get_stock_trades(StockTradesRequest(
+                    symbol_or_symbols=trade_request.ticker,
+                    start=trades_start,
+                    end=trades_end,
+                    feed=DataFeed.SIP
+                ))
+                
+                total_vol = 0
+                if trades and trades.data and trade_request.ticker in trades.data:
+                    total_vol = sum(t.size for t in trades.data[trade_request.ticker])
+                
+                if total_vol == 0:
+                    logger.info(
+                        "⏭️ AUTO-TRADE SKIPPED: Zero volume since publication (Dead Market)",
+                        ticker=trade_request.ticker,
+                        article_id=domain_article.id,
+                        latency_seconds=round((trades_end - trades_start).total_seconds(), 2)
+                    )
+                    return
+                
+                logger.info(
+                    "📊 MICROSTRUCTURE VERIFIED: Volume detected since publication",
+                    ticker=trade_request.ticker,
+                    volume=total_vol,
+                    article_id=domain_article.id
+                )
+            except Exception as e:
+                logger.error(f"Error checking volume for auto-trade gate: {e}")
+                # Optional: continue anyway or skip? Let's be safe and trade if error (no gate)
+                pass
+
         # Publish trade request
         logger.info(
             "🚀 AUTO-TRADING: Publishing trade request domain event",
@@ -259,7 +308,8 @@ class AutoTradeService:
         self,
         event_bus: AsyncEventBus,
         storage_query_service: StorageQueryService,
-        enabled: bool
+        enabled: bool,
+        market_data_client: Optional["StockHistoricalDataClient"] = None
     ):
         """
         Initialize auto-trade service.
@@ -268,10 +318,12 @@ class AutoTradeService:
             event_bus: Event bus instance for publishing/subscribing to events
             storage_query_service: Storage query service for fetching articles
             enabled: Whether auto-trading is enabled (injected via DI)
+            market_data_client: Optional Alpaca market data client for volume checks
         """
         self.is_enabled = enabled
         self.event_bus = event_bus
         self.storage_query_service = storage_query_service
+        self.market_data_client = market_data_client
         
         # Subscribe to typed Domain.ArticleClassified events
         # Store wrapper for unsubscribe
@@ -307,7 +359,8 @@ class AutoTradeService:
             self.event_bus,
             self.storage_query_service,
             domain_event.result,
-            self.is_enabled
+            self.is_enabled,
+            self.market_data_client
         )
     
     async def start(self) -> None:

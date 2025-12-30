@@ -238,9 +238,13 @@ class FeedHealthMonitor:
             
             logger.info("Domain WebSocket connected event received", connected_at=domain_event.connected_at)
             
-            # Mark as healthy
-            self.previous_state["benzinga_websocket"]["healthy"] = True
-            self.previous_state["benzinga_websocket"]["consecutive_failures"] = 0
+            # Trigger health check to ensure "Recovered" alert is sent if previously unhealthy
+            health_status = {
+                "healthy": True,
+                "reason": "WebSocket connection established",
+                "connected_at": domain_event.connected_at
+            }
+            await self._process_health_check("benzinga_websocket", health_status)
         
         except Exception as e:
             logger.error("Error handling domain WebSocketConnected event", error=str(e), exc_info=True)

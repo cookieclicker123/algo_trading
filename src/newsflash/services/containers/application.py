@@ -209,6 +209,7 @@ class ApplicationContainer(containers.DeclarativeContainer):
         event_bus=shared.event_bus,
         storage_query_service=storage_query_service,
         enabled=config.auto_trading_enabled,
+        # market_data_client will be provided when called in composition_root
     )
     
     # Exit trade use case - only needs event_bus (no storage dependency)

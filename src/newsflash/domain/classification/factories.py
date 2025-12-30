@@ -59,6 +59,7 @@ class ClassificationRequestFactory:
                 article_title=article.title,
                 article_tickers=article.tickers if article.tickers else frozenset(),
                 article_summary=article.summary or article.content or "",
+                article_published_at=article.published_at,
                 requested_at=datetime.now()
             )
             

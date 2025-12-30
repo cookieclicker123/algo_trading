@@ -6,7 +6,7 @@ Infrastructure owns these completely.
 """
 from pydantic import BaseModel, Field
 from datetime import datetime
-
+from typing import Optional
 
 class InfrastructureClassificationRequestData(BaseModel):
     """
@@ -18,6 +18,7 @@ class InfrastructureClassificationRequestData(BaseModel):
     article_title: str = Field(..., description="Article title/headline")
     article_tickers: list[str] = Field(default_factory=list, description="Stock tickers")
     article_summary: str = Field(default="", description="Article summary/content")
+    article_published_at_iso: Optional[str] = Field(None, description="ISO publication timestamp for pre-filtering")
     # Infrastructure-specific fields can be added here
 
 
@@ -74,13 +75,13 @@ class ClassificationSkippedInfrastructureEvent(BaseModel):
     
     Published when article doesn't meet pre-classification criteria:
     - No tickers
-    - Tickers not tradeable on NASDAQ/NYSE
+    - Tickers not tradeable on NASDAQ/NYSE/AMEX
     - Market cap below $500M
     - Price below $5
     """
     request_data: InfrastructureClassificationRequestData = Field(..., description="Original request data")
     skipped_at: datetime = Field(..., description="When classification was skipped")
-    reason: str = Field(..., description="Skip reason: 'no_tickers', 'not_tradeable_exchange', 'low_market_cap', or 'low_price'")
+    reason: str = Field(..., description="Skip reason: 'no_tickers', 'not_tradeable_exchange', 'nbbo_unavailable', or 'no_volume_since_publication'")
     source: str = Field(default="classification_infrastructure", description="Event source")
     
     model_config = {"frozen": False}

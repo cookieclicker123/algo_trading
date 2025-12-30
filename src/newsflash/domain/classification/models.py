@@ -3,7 +3,7 @@ Domain models for classification - pure business logic, immutable value objects.
 """
 from datetime import datetime
 from enum import Enum
-from typing import FrozenSet
+from typing import FrozenSet, Optional
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -38,6 +38,7 @@ class ClassificationRequest(BaseModel):
     article_title: str = Field(..., min_length=1, description="Article title/headline")
     article_tickers: FrozenSet[str] = Field(default_factory=frozenset, description="Stock tickers (immutable)")
     article_summary: str = Field(default="", description="Article summary/content")
+    article_published_at: Optional[datetime] = Field(None, description="When article was originally published")
     requested_at: datetime = Field(default_factory=datetime.now, description="When classification was requested")
     
     model_config = {"frozen": True, "validate_assignment": False}  # Immutable

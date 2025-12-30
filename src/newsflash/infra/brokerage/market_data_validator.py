@@ -5,10 +5,12 @@ Pure infrastructure - uses Alpaca API for prices and FinnhubCoordinator for mark
 Shares FinnhubCoordinator with stats engines for efficient single API call per ticker.
 """
 from typing import Optional, Tuple
+from datetime import datetime
 
 from alpaca.trading.client import TradingClient
 from alpaca.data.historical import StockHistoricalDataClient
-from alpaca.data.requests import StockLatestQuoteRequest
+from alpaca.data.requests import StockLatestQuoteRequest, StockTradesRequest
+from alpaca.data.enums import DataFeed
 
 from ...utils.logging_config import get_logger
 
@@ -90,6 +92,45 @@ class MarketDataValidator:
         market_cap_millions, price = await self._fetch_market_data(ticker_upper)
         
         return market_cap_millions, price
+
+    async def has_recent_volume(
+        self,
+        ticker: str,
+        start_time: datetime
+    ) -> bool:
+        """
+        Check if there has been any trading volume since start_time.
+        
+        Args:
+            ticker: Ticker symbol (uppercase)
+            start_time: When to start checking for trades
+            
+        Returns:
+            True if at least one trade was found, False otherwise (dead market)
+        """
+        try:
+            from datetime import datetime
+            end_time = datetime.now()
+            
+            # Fetch trades in window
+            request = StockTradesRequest(
+                symbol_or_symbols=ticker,
+                start=start_time,
+                end=end_time,
+                feed=DataFeed.SIP
+            )
+            
+            trades = self.market_data_client.get_stock_trades(request)
+            
+            if trades and trades.data and ticker in trades.data:
+                # Any data at all means there was news-driven activity
+                return len(trades.data[ticker]) > 0
+            
+            return False
+        except Exception as e:
+            logger.debug(f"MarketDataValidator: Error checking recent volume for {ticker}: {e}")
+            # On error, assume volume exists to avoid false positives in pre-filtering
+            return True
     
     async def _fetch_market_data(
         self,

@@ -12,10 +12,10 @@ The analysis captures:
 NO FILTERING IS PERFORMED HERE - this is purely data collection.
 Thresholds will be derived from 30+ days of statistics.
 """
+import asyncio
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List
-import pytz
 
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockBarsRequest, StockQuotesRequest, StockTradesRequest
@@ -33,20 +33,27 @@ class VolumeStats:
     timestamp: str  # ISO format for serialization
     volume: Optional[int] = None
     trade_count: Optional[int] = None
-    close: Optional[float] = None
-    vwap: Optional[float] = None
+    range: Optional[float] = None
     bid: Optional[float] = None
     ask: Optional[float] = None
     mid: Optional[float] = None
     spread: Optional[float] = None
-    spread_pct: Optional[float] = None
-    # For real-time windows (publication → reception)
-    window_seconds: Optional[float] = None  # Actual window duration
-    vol_per_second: Optional[float] = None  # Volume per second in window
-    normalized_minute_volume: Optional[float] = None  # Volume normalized to 60s for comparison
-    # Bid/Ask sizes (for microstructure analysis)
     bid_size: Optional[int] = None
     ask_size: Optional[int] = None
+    normalized_minute_volume: Optional[float] = None
+    normalized_minute_range: Optional[float] = None
+    window_seconds: Optional[float] = None
+    # Order Flow (only for trade windows)
+    buy_volume: Optional[int] = None
+    sell_volume: Optional[int] = None
+    imbalance_ratio: Optional[float] = None
+    max_price: Optional[float] = None  # Highest price hit in window
+    
+    # Shadow Tracking
+    total_dollar_volume: Optional[float] = None
+    block_trade_pct: Optional[float] = None
+    tape_acceleration_pct: Optional[float] = None
+    first_trade_ts: Optional[datetime] = None
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
@@ -56,86 +63,55 @@ class VolumeStats:
 @dataclass
 class VolumeSurgeAnalysis:
     """
-    Complete volume surge analysis result.
-    
-    Contains raw data at each interval plus computed metrics.
-    NO FILTERING - just data for collection and future analysis.
+    Lean Four-Pillar Confluence Model for Trade Entry.
+    Focuses strictly on identifying sudden, high-quality surges.
     """
-    # Ticker analyzed
     symbol: str
+    event_time: str  # ISO format (published_at)
+    move_type: str = "NORMAL_ACTIVITY"  # Classification result
     
-    # Event time (when article was received)
-    event_time: str  # ISO format
+    # 1. PILLAR: SIZE (Volume)
+    window_volume: int = 0
+    prior_avg_10min_volume: float = 0.0
+    surge_multiplier: float = 0.0
+    window_volume_normalised: Optional[float] = None
+    volume_accel_pct: Optional[float] = None
     
-    # Raw stats at each interval (None if no data)
-    stats_3min_before: Optional[Dict[str, Any]] = None
-    stats_2min_before: Optional[Dict[str, Any]] = None
-    stats_1min_before: Optional[Dict[str, Any]] = None
-    stats_30sec_before: Optional[Dict[str, Any]] = None  # Same minute as event, captured for completeness
-    stats_at_event: Optional[Dict[str, Any]] = None
+    # 2. PILLAR: FREQUENCY (Trade Count)
+    trade_count: int = 0
+    trade_count_normalised: Optional[float] = None
+    prior_avg_10min_trade_count: Optional[float] = None
+    trade_count_multiplier: Optional[float] = None
     
-    # Computed metrics (for future filtering - NO ACTION TAKEN ON THESE NOW)
-    prior_avg_volume: Optional[float] = None  # Average of 3/2/1 min before
-    current_volume: Optional[int] = None  # Volume at event time
+    # 3. PILLAR: MOMENTUM (Price Action)
+    max_excursion_pct: Optional[float] = None  # Peak move in window vs Pub Ask
+    spread_compression_pct: Optional[float] = None # How much the spread narrowed
+    pub_price: Optional[float] = None # Price @ Publication time (Ask)
+    recv_price: Optional[float] = None # Price @ Reception time (Ask)
+    ask_change_pct: Optional[float] = None 
     
-    # Surge type: "NEW_ACTIVITY" (was 0, now > 0) | "MULTIPLIER" (X times prior) | "NO_DATA"
-    surge_type: str = "NO_DATA"
+    # 4. PILLAR: CONVICTION (Order Flow)
+    buy_volume: Optional[int] = None
+    sell_volume: Optional[int] = None
+    imbalance_ratio: Optional[float] = None  # -1.0 to 1.0 (Buying Pressure)
+
+    # 5. PILLAR: SHADOW TRACKING (Alpha Research)
+    block_trade_pct: Optional[float] = None
+    price_impact_bps: Optional[float] = None
+    tape_acceleration_pct: Optional[float] = None
+    latency_to_first_trade: Optional[float] = None
+    post_trade_bid_ratio: Optional[float] = None
     
-    # Surge score: 
-    #   For NEW_ACTIVITY: current_volume (raw)
-    #   For MULTIPLIER: current_volume / prior_avg_volume
-    surge_score: Optional[float] = None
-    
-    # Did we have trading activity before the event?
-    had_prior_activity: bool = False
-    
-    # Error information if fetch failed
+    # METADATA & LEGACY
+    pub_to_recv_seconds: float = 0.0
+    volatility_surge_ratio: Optional[float] = None
+    prior_avg_minute_range: Optional[float] = None
+    prior_avg_10min_spread: Optional[float] = None
+    pub_to_recv_range: Optional[float] = None
+    pub_ask: Optional[float] = None # Legacy
+    recv_ask: Optional[float] = None # Legacy
     error: Optional[str] = None
-    
-    # Last reportable volume (even when current is NO_DATA)
-    # This helps understand if ticker is illiquid or if it's an API limitation
-    last_reportable_volume: Optional[int] = None
-    last_reportable_volume_timestamp: Optional[str] = None  # ISO format
-    
-    # Average daily volume (20 trading days) - for market hours context
-    avg_daily_volume_20d: Optional[int] = None
-    
-    # Session-specific average volume (for pre/post market context)
-    # Average volume for this session type over last 20 trading days
-    avg_session_volume: Optional[int] = None
-    
-    # Current session volume so far (real-time context)
-    # Volume accumulated in current session up to event_time
-    current_session_volume: Optional[int] = None
-    
-    # Publication → Reception window metrics (CRITICAL for detecting news-driven activity)
-    pub_to_recv_seconds: Optional[float] = None  # Time between published_at and received_at
-    pub_to_recv_volume: Optional[int] = None  # Actual volume in that window
-    pub_to_recv_normalized_minute_volume: Optional[float] = None  # Normalized to 60s for comparison
-    pub_to_recv_vol_per_second: Optional[float] = None  # Volume per second in window
-    pub_to_recv_trade_count: Optional[int] = None  # Number of trades in window
-    
-    # Microstructure changes (spread tightening, bid/ask size changes)
-    spread_tightening_pct: Optional[float] = None  # % change in spread from 3min before to at_event
-    bid_size_change_pct: Optional[float] = None  # % change in bid_size
-    ask_size_change_pct: Optional[float] = None  # % change in ask_size
-    liquidity_ratio: Optional[float] = None  # (bid_size + ask_size) / spread (higher = more liquid)
-    
-    # Momentum Metrics (Price action velocity)
-    momentum_3min_to_1min_pct: Optional[float] = None  # % change in mid price
-    momentum_1min_to_event_pct: Optional[float] = None # % change in mid price
-    momentum_3min_to_event_pct: Optional[float] = None # % change in mid price
-    
-    # Volume Acceleration (Rate of change of volume)
-    volume_accel_3min_to_1min_pct: Optional[float] = None # % change in volume rate
-    volume_accel_prior_to_event_pct: Optional[float] = None # % change from prior avg to current event volume
-    
-    # Order Flow / Trade Imbalance (Requires trade data)
-    # Estimated from trade aggressor side (Buy vs Sell volume)
-    order_flow_buy_volume: Optional[int] = None 
-    order_flow_sell_volume: Optional[int] = None
-    order_flow_imbalance_ratio: Optional[float] = None  # (Buy - Sell) / (Buy + Sell). Range [-1, 1].
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return asdict(self)
@@ -146,21 +122,12 @@ def _fetch_trades_in_window(
     symbol: str,
     window_start: datetime,
     window_end: datetime,
+    reference_nbbo: Optional[Dict[str, Any]] = None
 ) -> Optional[Dict[str, Any]]:
     """
-    Fetch all trades in a time window and aggregate volume.
+    Fetch all trades in a time window and aggregate volume + order flow.
     
-    This is used for real-time volume calculation when minute bars
-    haven't completed yet. Returns total volume and trade count.
-    
-    Args:
-        client: Alpaca market data client
-        symbol: Ticker symbol
-        window_start: Start of the window
-        window_end: End of the window
-        
-    Returns:
-        Dict with volume, trade_count, and window_seconds, or None if no data
+    Uses high-precision tick data to separate Buy volume from Sell volume.
     """
     try:
         # Ensure UTC
@@ -169,45 +136,191 @@ def _fetch_trades_in_window(
         if window_end.tzinfo is None:
             window_end = window_end.replace(tzinfo=timezone.utc)
         
-        request = StockTradesRequest(
+        # 1. Fetch trades for the window
+        trade_request = StockTradesRequest(
             symbol_or_symbols=[symbol],
             start=window_start,
             end=window_end,
             feed=DataFeed.SIP
         )
-        
-        trades = client.get_stock_trades(request)
-        
-        if symbol not in trades.data:
+        trades = client.get_stock_trades(trade_request)
+        if symbol not in trades.data or not trades[symbol]:
             return None
-        
         trade_list = list(trades[symbol])
-        if not trade_list:
-            return None
+
+        # 2. Fetch all quotes in this window to build a 'Moving Ruler'
+        quote_request = StockQuotesRequest(
+            symbol_or_symbols=[symbol],
+            start=window_start,
+            end=window_end,
+            feed=DataFeed.SIP
+        )
+        quotes_data = client.get_stock_quotes(quote_request)
+        quote_list = list(quotes_data[symbol]) if symbol in quotes_data.data else []
         
-        # Aggregate volume and count trades
-        total_volume = sum(t.size for t in trade_list)
-        trade_count = len(trade_list)
+        # Aggregate volume and balance
+        total_volume = 0
+        total_dollar_volume = 0
+        trade_count = 0
+        buy_vol = 0
+        sell_vol = 0
         
-        # Calculate window duration in seconds
+        # Block participation tracking ($10k+)
+        block_volume = 0
+        
+        # Tape Rhythm tracking (Splitting 4s into 2s chunks)
+        mid_time = window_start + (window_end - window_start) / 2
+        trades_first_half = 0
+        trades_second_half = 0
+        
+        prices = [t.price for t in trade_list]
+        max_p = max(prices) if prices else 0
+        min_p = min(prices) if prices else 0
+        range_p = round(max_p - min_p, 4)
+        
+        # Latency to first trade
+        first_trade_ts = trade_list[0].timestamp if trade_list else None
+        
+        quote_idx = 0
+        prev_price = None
+        
+        for t in trade_list:
+            size = t.size
+            price = t.price
+            trade_dollar_vol = size * price
+            
+            total_volume += size
+            total_dollar_volume += trade_dollar_vol
+            trade_count += 1
+            
+            # Block Tracking
+            if trade_dollar_vol >= 10000:
+                block_volume += size
+            
+            # Tape Rhythm
+            if t.timestamp < mid_time:
+                trades_first_half += 1
+            else:
+                trades_second_half += 1
+            
+            # Find the quote active at this trade's timestamp
+            active_quote = None
+            while quote_idx < len(quote_list) and quote_list[quote_idx].timestamp <= t.timestamp:
+                active_quote = quote_list[quote_idx]
+                quote_idx += 1
+            
+            # If we found a quote, use Lee-Ready (Quote Test)
+            if active_quote and active_quote.bid_price and active_quote.ask_price:
+                mid = (float(active_quote.bid_price) + float(active_quote.ask_price)) / 2
+                if price > mid:
+                    buy_vol += size
+                elif price < mid:
+                    sell_vol += size
+                else:
+                    # Mid-point tie: Fallback to Tick Test
+                    if prev_price is not None:
+                        if price > prev_price: buy_vol += size
+                        elif price < prev_price: sell_vol += size
+                        else:
+                            buy_vol += size / 2
+                            sell_vol += size / 2
+                    else:
+                        buy_vol += size / 2
+                        sell_vol += size / 2
+            else:
+                # No quote found or dead premarket: Use Tick Test
+                if prev_price is not None:
+                    if price > prev_price: buy_vol += size
+                    elif price < prev_price: sell_vol += size
+                    else:
+                        buy_vol += size / 2
+                        sell_vol += size / 2
+                else:
+                    # First trade with no quote: Split
+                    buy_vol += size / 2
+                    sell_vol += size / 2
+            
+            prev_price = price
+        
+        imbalance = 0.0
+        if total_volume > 0:
+            imbalance = round((buy_vol - sell_vol) / total_volume, 3)
+        
+        # Calculate Block Participation %
+        block_pct = round((block_volume / total_volume) * 100, 1) if total_volume > 0 else 0
+        
+        # Calculate Tape Acceleration
+        # (Trades in 2nd half / Trades in 1st half) - 1
+        tape_accel = 0.0
+        if trades_first_half > 0:
+            tape_accel = round(((trades_second_half / trades_first_half) - 1) * 100, 1)
+        elif trades_second_half > 0:
+            tape_accel = 100.0 # From 0 to something
+            
         window_seconds = (window_end - window_start).total_seconds()
         
-        # Calculate volume per second for normalization
-        vol_per_second = total_volume / window_seconds if window_seconds > 0 else 0
+        # Normalization factor (e.g. if window is 3s, multiplier is 20x to reach a minute)
+        norm_factor = 60 / window_seconds if window_seconds > 0 else 0
         
-        # Normalize to 60-second equivalent (for comparison with minute bars)
-        normalized_minute_volume = vol_per_second * 60
+        normalized_minute_volume = total_volume * norm_factor
+        normalized_minute_range = range_p * norm_factor
         
         return {
             "raw_volume": int(total_volume),
             "trade_count": int(trade_count),
+            "buy_volume": int(buy_vol),
+            "sell_volume": int(sell_vol),
+            "imbalance_ratio": imbalance,
+            "range": range_p,
+            "normalized_minute_range": round(normalized_minute_range, 4),
             "window_seconds": round(window_seconds, 2),
-            "vol_per_second": round(vol_per_second, 2),
             "normalized_minute_volume": round(normalized_minute_volume, 0),
+            "max_price": float(max_p),
+            "total_dollar_volume": total_dollar_volume,
+            "block_trade_pct": block_pct,
+            "tape_acceleration_pct": tape_accel,
+            "first_trade_ts": first_trade_ts
         }
-        
     except Exception as e:
         logger.debug(f"Error fetching trades for {symbol} in window: {e}")
+        return None
+        
+def _fetch_prior_history_stats(
+    client: StockHistoricalDataClient,
+    symbol: str,
+    event_time: datetime,
+    lookback_minutes: int = 10
+) -> Optional[Dict[str, Any]]:
+    """Fetch 10-minute baseline stats for volume and volatility."""
+    try:
+        start = event_time - timedelta(minutes=lookback_minutes)
+        request = StockBarsRequest(
+            symbol_or_symbols=[symbol],
+            timeframe=TimeFrame.Minute,
+            start=start,
+            end=event_time,
+            feed=DataFeed.SIP
+        )
+        bars = client.get_stock_bars(request)
+        if symbol not in bars.data or not bars[symbol]:
+            return None
+            
+        bar_list = list(bars[symbol])
+        volumes = [int(b.volume) for b in bar_list if b.volume]
+        ranges = [float(b.high - b.low) for b in bar_list if b.high and b.low]
+        trades = [int(b.trade_count) for b in bar_list if hasattr(b, 'trade_count') and b.trade_count]
+        
+        # Calculate avg spread over 10 mins (if quotes are available at minute boundaries)
+        # For simplicity, we'll just return the basics for now, but we'll fetch a baseline spread below.
+        
+        return {
+            "avg_volume": sum(volumes) / len(volumes) if volumes else 0,
+            "avg_range": sum(ranges) / len(ranges) if ranges else 0,
+            "avg_trade_count": sum(trades) / len(trades) if trades else 0,
+            "has_data": len(volumes) > 0
+        }
+    except Exception as e:
+        logger.debug(f"Error fetching prior history for {symbol}: {e}")
         return None
 
 
@@ -354,6 +467,7 @@ def _get_stats_at_time(
     target_time: datetime,
     use_realtime_window: bool = False,
     window_end: datetime = None,
+    reference_nbbo: Optional[Dict[str, Any]] = None,
 ) -> Optional[VolumeStats]:
     """
     Get combined volume and quote stats at a specific time.
@@ -382,24 +496,59 @@ def _get_stats_at_time(
         if target_time.tzinfo is None:
             target_time = target_time.replace(tzinfo=timezone.utc)
         
-        trades_data = _fetch_trades_in_window(client, symbol, target_time, window_end)
+        trades_data = _fetch_trades_in_window(client, symbol, target_time, window_end, reference_nbbo=reference_nbbo)
         
         if trades_data:
             bar_data = {
                 "volume": trades_data.get("raw_volume"),
                 "trade_count": trades_data.get("trade_count"),
-                # Store normalized volume for fair comparison with prior minute bars
+                "buy_volume": trades_data.get("buy_volume"),
+                "sell_volume": trades_data.get("sell_volume"),
+                "imbalance_ratio": trades_data.get("imbalance_ratio"),
+                "range": trades_data.get("range"),
+                "normalized_minute_range": trades_data.get("normalized_minute_range"),
                 "normalized_minute_volume": trades_data.get("normalized_minute_volume"),
                 "window_seconds": trades_data.get("window_seconds"),
-                "vol_per_second": trades_data.get("vol_per_second"),
+                "max_price": trades_data.get("max_price"),
+                "total_dollar_volume": trades_data.get("total_dollar_volume"),
+                "block_trade_pct": trades_data.get("block_trade_pct"),
+                "tape_acceleration_pct": trades_data.get("tape_acceleration_pct"),
+                "first_trade_ts": trades_data.get("first_trade_ts"),
             }
     else:
         # Get minute bar for this minute
         minute_start = target_time.replace(second=0, microsecond=0)
         bar_data = _fetch_minute_bar(client, symbol, minute_start)
     
-    # Get quote at this time
-    quote_data = _fetch_quote_at_time(client, symbol, target_time)
+    # Get quote at Publication time (Widen window for dead stocks)
+    # Search up to 5 minutes back to find the last valid Ask price before news
+    start_lookup = target_time - timedelta(minutes=5)
+    end_lookup = target_time # Strictly before or at news time
+    
+    quote_data = None
+    try:
+        request = StockQuotesRequest(
+            symbol_or_symbols=[symbol],
+            start=start_lookup,
+            end=end_lookup,
+            feed=DataFeed.SIP
+        )
+        quotes = client.get_stock_quotes(request)
+        if symbol in quotes.data and quotes[symbol]:
+            closest_quote = list(quotes[symbol])[-1] # Take the most recent quote before/at target
+            quote_data = {
+                "bid": float(closest_quote.bid_price),
+                "ask": float(closest_quote.ask_price),
+                "mid": round((float(closest_quote.bid_price) + float(closest_quote.ask_price)) / 2, 4),
+                "spread": round(float(closest_quote.ask_price) - float(closest_quote.bid_price), 4),
+                "bid_size": int(closest_quote.bid_size) if hasattr(closest_quote, 'bid_size') else None,
+                "ask_size": int(closest_quote.ask_size) if hasattr(closest_quote, 'ask_size') else None
+            }
+    except: pass
+    
+    # If historical lookup failed, use injected reference NBBO
+    if quote_data is None and use_realtime_window and reference_nbbo:
+        quote_data = reference_nbbo
     
     if bar_data is None and quote_data is None:
         return None
@@ -408,20 +557,24 @@ def _get_stats_at_time(
         timestamp=target_time.isoformat(),
         volume=bar_data.get("volume") if bar_data else None,
         trade_count=bar_data.get("trade_count") if bar_data else None,
-        close=bar_data.get("close") if bar_data else None,
-        vwap=bar_data.get("vwap") if bar_data else None,
+        buy_volume=bar_data.get("buy_volume") if bar_data else None,
+        sell_volume=bar_data.get("sell_volume") if bar_data else None,
+        imbalance_ratio=bar_data.get("imbalance_ratio") if bar_data else None,
+        range=bar_data.get("range") if bar_data else None,
         bid=quote_data.get("bid") if quote_data else None,
         ask=quote_data.get("ask") if quote_data else None,
         mid=quote_data.get("mid") if quote_data else None,
         spread=quote_data.get("spread") if quote_data else None,
-        spread_pct=quote_data.get("spread_pct") if quote_data else None,
-        # Real-time window metrics (for publication → reception window)
-        window_seconds=bar_data.get("window_seconds") if bar_data else None,
-        vol_per_second=bar_data.get("vol_per_second") if bar_data else None,
-        normalized_minute_volume=bar_data.get("normalized_minute_volume") if bar_data else None,
-        # Bid/Ask sizes (for microstructure analysis)
         bid_size=quote_data.get("bid_size") if quote_data else None,
         ask_size=quote_data.get("ask_size") if quote_data else None,
+        normalized_minute_volume=bar_data.get("normalized_minute_volume") if bar_data else None,
+        normalized_minute_range=bar_data.get("normalized_minute_range") if bar_data else None,
+        window_seconds=bar_data.get("window_seconds") if bar_data else None,
+        max_price=bar_data.get("max_price") if bar_data else None,
+        total_dollar_volume=bar_data.get("total_dollar_volume") if bar_data else None,
+        block_trade_pct=bar_data.get("block_trade_pct") if bar_data else None,
+        tape_acceleration_pct=bar_data.get("tape_acceleration_pct") if bar_data else None,
+        first_trade_ts=bar_data.get("first_trade_ts") if bar_data else None
     )
     
     return stats
@@ -432,431 +585,263 @@ async def analyze_volume_around_event(
     symbol: str,
     event_time: datetime,
     received_at: datetime = None,
+    reference_nbbo: Optional[Dict[str, Any]] = None
 ) -> VolumeSurgeAnalysis:
     """
     Analyze volume and quotes at key intervals around an event.
     
-    STATELESS FUNCTION - all dependencies passed as parameters.
-    NO FILTERING - just data collection for future threshold derivation.
-    
-    Args:
-        client: Alpaca StockHistoricalDataClient (injected)
-        symbol: Ticker symbol to analyze
-        event_time: When the event occurred (e.g., article published_at)
-        received_at: When we received the event (optional, for precise window)
-        
-    Returns:
-        VolumeSurgeAnalysis with raw stats and computed metrics
+    Focuses on the "Third Confluence":
+    1. News (AI)
+    2. Volume Acceleration
+    3. Order Flow (Buying Pressure)
+    4. Price Action (Execution Cost)
     """
-    # Ensure event_time is UTC
     if event_time.tzinfo is None:
         event_time = event_time.replace(tzinfo=timezone.utc)
     
-    logger.debug(
-        "Analyzing volume around event",
-        symbol=symbol,
-        event_time=event_time.isoformat()
-    )
+    logger.debug("Analyzing volume around event", symbol=symbol, event_time=event_time.isoformat())
     
     try:
-        # Define intervals
-        intervals = {
-            "3min_before": event_time - timedelta(minutes=3),
-            "2min_before": event_time - timedelta(minutes=2),
-            "1min_before": event_time - timedelta(minutes=1),
-            "30sec_before": event_time - timedelta(seconds=30),
-            "at_event": event_time,
-        }
+        # 🚀 THE SHOCK WINDOW PRINCIPLE:
+        # We always analyze the FIRST 4 SECONDS of the move for classification and pillars.
+        # This prevents dilution of intensity (Momentum/Pressure) caused by latency windows.
+        shock_window_seconds = 4.0
+        shock_end_time = event_time + timedelta(seconds=shock_window_seconds)
         
-        # Fetch stats for each interval (use minute bars for prior intervals)
-        stats_3min = _get_stats_at_time(client, symbol, intervals["3min_before"])
-        stats_2min = _get_stats_at_time(client, symbol, intervals["2min_before"])
-        stats_1min = _get_stats_at_time(client, symbol, intervals["1min_before"])
-        stats_30sec = _get_stats_at_time(client, symbol, intervals["30sec_before"])
+        # Determine real-world reception latency for metadata
+        real_window_seconds = 0
+        if received_at:
+            received_at_utc = received_at.replace(tzinfo=timezone.utc)
+            real_window_seconds = (received_at_utc - event_time).total_seconds()
         
-        # For stats_at_event, use real-time trade window: published_at → received_at
-        stats_now = _get_stats_at_time(
-            client, symbol, intervals["at_event"], 
-            use_realtime_window=True, 
-            window_end=received_at  # Precise window from publication to receipt
-        )
-        
-        # Calculate prior average volume (from 3/2/1 min before)
-        prior_volumes = []
-        for stats in [stats_3min, stats_2min, stats_1min]:
-            if stats and stats.volume is not None:
-                prior_volumes.append(stats.volume)
-        
-        prior_avg = sum(prior_volumes) / len(prior_volumes) if prior_volumes else None
-        current_vol = stats_now.volume if stats_now else None
-        
-        # Determine surge type and score
-        had_prior = len(prior_volumes) > 0 and any(v > 0 for v in prior_volumes)
-        
-        # Find last reportable volume (even when current is NO_DATA)
-        # This helps distinguish between "illiquid ticker" vs "API limitation"
-        last_reportable_volume = None
-        last_reportable_timestamp = None
-        
-        # Check all stats in reverse order (most recent first)
-        for stats, label, timestamp in [
-            (stats_now, "at_event", intervals["at_event"]),
-            (stats_30sec, "30sec_before", intervals["30sec_before"]),
-            (stats_1min, "1min_before", intervals["1min_before"]),
-            (stats_2min, "2min_before", intervals["2min_before"]),
-            (stats_3min, "3min_before", intervals["3min_before"]),
-        ]:
-            if stats and stats.volume is not None and stats.volume > 0:
-                last_reportable_volume = stats.volume
-                last_reportable_timestamp = timestamp.isoformat()
-                break
-        
-        # Calculate session-specific average volumes using minute bars
-        # This gives context on whether ticker is normally liquid in this session
-        avg_daily_volume_20d = None
-        avg_session_volume = None
-        current_session_volume = None
-        
-        # Determine current session from event_time
-        from ...utils.brokerage.session_detector import get_market_session_from_timestamp
-        session_name, _ = get_market_session_from_timestamp(event_time)
-        
-        if session_name != "closed":
-            try:
-                # Calculate session-specific averages using minute bars
-                # Fetch minute bars for last 30 days (to ensure we get 20 trading days)
-                et_tz = pytz.timezone("US/Eastern")
-                event_et = event_time.astimezone(et_tz) if event_time.tzinfo else et_tz.localize(event_time)
-                
-                end_date = event_et.date()
-                start_date = end_date - timedelta(days=30)  # 30 days to ensure we get 20 trading days
-                
-                # Fetch minute bars for the entire period
-                minute_bars_request = StockBarsRequest(
-                    symbol_or_symbols=[symbol],
-                    timeframe=TimeFrame.Minute,
-                    start=datetime.combine(start_date, datetime.min.time()).replace(tzinfo=et_tz),
-                    end=datetime.combine(end_date, datetime.max.time()).replace(tzinfo=et_tz),
-                    feed=DataFeed.SIP
-                )
-                minute_bars = client.get_stock_bars(minute_bars_request)
-                
-                if symbol in minute_bars.data:
-                    bars = list(minute_bars[symbol])
-                    
-                    # Define session boundaries (ET timezone)
-                    # Premarket: 4:00 AM - 9:30 AM (330 minutes)
-                    # Market: 9:30 AM - 4:00 PM (390 minutes)
-                    # Postmarket: 4:00 PM - 8:00 PM (240 minutes)
-                    
-                    session_volumes = []  # List of session totals for last 20 days
-                    
-                    # Group bars by date and session
-                    bars_by_date = {}
-                    for bar in bars:
-                        bar_et = bar.timestamp.astimezone(et_tz) if bar.timestamp.tzinfo else et_tz.localize(bar.timestamp)
-                        date_key = bar_et.date()
-                        if date_key not in bars_by_date:
-                            bars_by_date[date_key] = []
-                        bars_by_date[date_key].append((bar_et, bar))
-                    
-                    # Process last 20 trading days (most recent first)
-                    sorted_dates = sorted(bars_by_date.keys(), reverse=True)[:20]
-                    
-                    for date_key in sorted_dates:
-                        date_bars = bars_by_date[date_key]
-                        
-                        # Calculate volume for each session on this date
-                        premarket_vol = 0
-                        market_vol = 0
-                        postmarket_vol = 0
-                        
-                        for bar_et, bar in date_bars:
-                            hour = bar_et.hour
-                            minute = bar_et.minute
-                            
-                            # Premarket: 4:00 - 9:30
-                            if 4 <= hour < 9 or (hour == 9 and minute < 30):
-                                premarket_vol += int(bar.volume) if bar.volume else 0
-                            # Market: 9:30 - 16:00
-                            elif (hour == 9 and minute >= 30) or (10 <= hour < 16):
-                                market_vol += int(bar.volume) if bar.volume else 0
-                            # Postmarket: 16:00 - 20:00
-                            elif 16 <= hour < 20:
-                                postmarket_vol += int(bar.volume) if bar.volume else 0
-                        
-                        # Store session volume for the session we're currently in
-                        if session_name == "premarket" and premarket_vol > 0:
-                            session_volumes.append(premarket_vol)
-                        elif session_name == "market_hours" and market_vol > 0:
-                            session_volumes.append(market_vol)
-                        elif session_name == "postmarket" and postmarket_vol > 0:
-                            session_volumes.append(postmarket_vol)
-                    
-                    # Calculate average session volume (last 20 days)
-                    if session_volumes:
-                        avg_session_volume = int(sum(session_volumes) / len(session_volumes))
-                    
-                    # Calculate current session volume so far (for real-time context)
-                    # Sum up minute bars from session start until event_time
-                    current_date = event_et.date()
-                    if current_date in bars_by_date:
-                        for bar_et, bar in bars_by_date[current_date]:
-                            # Only count bars up to event_time
-                            if bar_et <= event_et:
-                                hour = bar_et.hour
-                                minute = bar_et.minute
-                                
-                                # Check if bar is in current session
-                                in_session = False
-                                if session_name == "premarket" and (4 <= hour < 9 or (hour == 9 and minute < 30)):
-                                    in_session = True
-                                elif session_name == "market_hours" and ((hour == 9 and minute >= 30) or (10 <= hour < 16)):
-                                    in_session = True
-                                elif session_name == "postmarket" and (16 <= hour < 20):
-                                    in_session = True
-                                
-                                if in_session:
-                                    current_session_volume = (current_session_volume or 0) + (int(bar.volume) if bar.volume else 0)
-                    
-                    # For market hours, also calculate 20-day daily average (all sessions combined)
-                    if session_name == "market_hours":
-                        daily_volumes = []
-                        for date_key in sorted_dates:
-                            date_bars = bars_by_date[date_key]
-                            daily_total = sum(int(bar.volume) if bar.volume else 0 for _, bar in date_bars)
-                            if daily_total > 0:
-                                daily_volumes.append(daily_total)
-                        if daily_volumes:
-                            avg_daily_volume_20d = int(sum(daily_volumes) / len(daily_volumes))
-                    
-            except Exception as avg_error:
-                logger.debug(
-                    "Failed to fetch session-specific average volume",
-                    symbol=symbol,
-                    session=session_name,
-                    error=str(avg_error)
-                )
-        
-        if current_vol is None and not had_prior:
-            surge_type = "NO_DATA"
-            surge_score = None
-        elif current_vol is None and had_prior:
-            # Have prior data but no current - use prior avg as indicator
-            surge_type = "PRIOR_ONLY"
-            surge_score = round(prior_avg, 0) if prior_avg else None
-        elif not had_prior or prior_avg == 0 or prior_avg is None:
-            # No prior activity - this is NEW_ACTIVITY pattern (like WYFI)
-            surge_type = "NEW_ACTIVITY"
-            surge_score = float(current_vol) if current_vol else None
-        else:
-            # Had prior activity - calculate multiplier
-            surge_type = "MULTIPLIER"
-            surge_score = round(current_vol / prior_avg, 2) if prior_avg > 0 else None
-        
-        # Calculate publication → reception window metrics (CRITICAL for news-driven activity detection)
-        pub_to_recv_seconds = None
-        pub_to_recv_volume = None
-        pub_to_recv_normalized_minute_volume = None
-        pub_to_recv_vol_per_second = None
-        pub_to_recv_trade_count = None
-        
-        if received_at and stats_now:
-            # Calculate time window
-            # received_at should already be a datetime, but handle string case
-            if isinstance(received_at, str):
-                received_at = datetime.fromisoformat(received_at.replace('Z', '+00:00'))
-            if received_at.tzinfo is None:
-                received_at = received_at.replace(tzinfo=timezone.utc)
-            
-            pub_to_recv_seconds = (received_at - event_time).total_seconds()
-            
-            # Extract window metrics from stats_at_event (if it was a real-time window)
-            if stats_now.window_seconds is not None:
-                pub_to_recv_volume = stats_now.volume
-                pub_to_recv_normalized_minute_volume = stats_now.normalized_minute_volume
-                pub_to_recv_vol_per_second = stats_now.vol_per_second
-                pub_to_recv_trade_count = stats_now.trade_count
-        
-        # Calculate microstructure changes (spread tightening, bid/ask size changes)
-        spread_tightening_pct = None
-        bid_size_change_pct = None
-        ask_size_change_pct = None
-        liquidity_ratio = None
-        
-        if stats_3min and stats_now:
-            # Spread tightening: % change in spread from 3min before to at_event
-            spread_3min = stats_3min.spread
-            spread_now = stats_now.spread
-            if spread_3min and spread_now and spread_3min > 0:
-                spread_tightening_pct = round(((spread_3min - spread_now) / spread_3min) * 100, 2)
-            
-            # Bid/Ask size changes
-            bid_size_3min = stats_3min.bid_size
-            ask_size_3min = stats_3min.ask_size
-            bid_size_now = stats_now.bid_size
-            ask_size_now = stats_now.ask_size
-            
-            if bid_size_3min and bid_size_now and bid_size_3min > 0:
-                bid_size_change_pct = round(((bid_size_now - bid_size_3min) / bid_size_3min) * 100, 2)
-            if ask_size_3min and ask_size_now and ask_size_3min > 0:
-                ask_size_change_pct = round(((ask_size_now - ask_size_3min) / ask_size_3min) * 100, 2)
-            
-            # Liquidity ratio: (bid_size + ask_size) / spread (higher = more liquid)
-            if stats_now.bid_size and stats_now.ask_size and stats_now.spread and stats_now.spread > 0:
-                total_size = (stats_now.bid_size or 0) + (stats_now.ask_size or 0)
-                liquidity_ratio = round(total_size / stats_now.spread, 2) if total_size > 0 else None
-        
-        # --- Momentum Metrics ---
-        mom_3m_1m = None
-        mom_1m_evt = None
-        mom_3m_evt = None
-        
-        mid_3m = stats_3min.mid if stats_3min else None
-        mid_1m = stats_1min.mid if stats_1min else None
-        mid_now = stats_now.mid if stats_now else None
-        
-        if mid_3m and mid_1m and mid_3m > 0:
-             mom_3m_1m = round(((mid_1m - mid_3m) / mid_3m), 6) # Use 4-6 decimal places for pct
-             
-        if mid_1m and mid_now and mid_1m > 0:
-             mom_1m_evt = round(((mid_now - mid_1m) / mid_1m), 6)
-             
-        if mid_3m and mid_now and mid_3m > 0:
-             mom_3m_evt = round(((mid_now - mid_3m) / mid_3m), 6)
-             
-        # --- Volume Acceleration ---
-        # We need volume rates (shares per second or normalized minute volume)
-        # stats_now has normalized_minute_volume.
-        # stats_3min/1min are full minute bars, so their volume IS the normalized minute volume.
-        
-        vol_accel_3m_1m = None
-        vol_accel_prior_evt = None
-        
-        vol_3m = stats_3min.volume if stats_3min else None
-        vol_1m = stats_1min.volume if stats_1min else None
-        vol_now_norm = stats_now.normalized_minute_volume if stats_now else None
-        
-        if vol_3m is not None and vol_1m is not None and vol_3m > 0:
-            vol_accel_3m_1m = round(((vol_1m - vol_3m) / vol_3m) * 100, 2) # As percentage
-            
-        if prior_avg and prior_avg > 0 and vol_now_norm is not None:
-            vol_accel_prior_evt = round(((vol_now_norm - prior_avg) / prior_avg) * 100, 2) # As percentage
+        # If we are faster than the shock window, wait to get enough 'Tape'
+        now = datetime.now(timezone.utc)
+        if now < shock_end_time:
+            wait_time = (shock_end_time - now).total_seconds()
+            if wait_time > 0:
+                logger.debug(f"Waiting {round(wait_time, 2)}s for Shock Window", symbol=symbol)
+                await asyncio.sleep(wait_time)
 
-        result = VolumeSurgeAnalysis(
-            symbol=symbol,
-            event_time=event_time.isoformat(),
-            stats_3min_before=stats_3min.to_dict() if stats_3min else None,
-            stats_2min_before=stats_2min.to_dict() if stats_2min else None,
-            stats_1min_before=stats_1min.to_dict() if stats_1min else None,
-            stats_30sec_before=stats_30sec.to_dict() if stats_30sec else None,
-            stats_at_event=stats_now.to_dict() if stats_now else None,
-            prior_avg_volume=round(prior_avg, 2) if prior_avg else None,
-            current_volume=current_vol,
-            surge_type=surge_type,
-            surge_score=surge_score,
-            had_prior_activity=had_prior,
-            last_reportable_volume=last_reportable_volume,
-            last_reportable_volume_timestamp=last_reportable_timestamp,
-            avg_daily_volume_20d=avg_daily_volume_20d,
-            avg_session_volume=avg_session_volume,
-            current_session_volume=current_session_volume,
-            # Publication → Reception window metrics
-            pub_to_recv_seconds=round(pub_to_recv_seconds, 3) if pub_to_recv_seconds else None,
-            pub_to_recv_volume=pub_to_recv_volume,
-            pub_to_recv_normalized_minute_volume=round(pub_to_recv_normalized_minute_volume, 2) if pub_to_recv_normalized_minute_volume else None,
-            pub_to_recv_vol_per_second=round(pub_to_recv_vol_per_second, 2) if pub_to_recv_vol_per_second else None,
-            pub_to_recv_trade_count=pub_to_recv_trade_count,
-            # Microstructure changes
-            spread_tightening_pct=spread_tightening_pct,
-            bid_size_change_pct=bid_size_change_pct,
-            ask_size_change_pct=ask_size_change_pct,
-            liquidity_ratio=liquidity_ratio,
-            # Momentum
-            momentum_3min_to_1min_pct=mom_3m_1m,
-            momentum_1min_to_event_pct=mom_1m_evt,
-            momentum_3min_to_event_pct=mom_3m_evt,
-            # Volume Acceleration
-            volume_accel_3min_to_1min_pct=vol_accel_3m_1m,
-            volume_accel_prior_to_event_pct=vol_accel_prior_evt,
-            # Order Flow (Placeholder for now)
-            order_flow_buy_volume=None,
-            order_flow_sell_volume=None,
-            order_flow_imbalance_ratio=None,
+        # Fetch 10-minute prior history baseline
+        prior_history = _fetch_prior_history_stats(client, symbol, event_time, lookback_minutes=10)
+        prior_avg_vol = prior_history.get("avg_volume", 0) if prior_history else 0
+        prior_avg_range = prior_history.get("avg_range", 0) if prior_history else 0
+        prior_avg_trades = prior_history.get("avg_trade_count", 0) if prior_history else 0
+        
+        # 🎯 FETCH SHOCK STATS (Strict 4s window)
+        stats_now = _get_stats_at_time(
+            client=client, 
+            symbol=symbol, 
+            target_time=event_time, 
+            use_realtime_window=True, 
+            window_end=shock_end_time, 
+            reference_nbbo=reference_nbbo
         )
         
-        logger.info(
-            "Volume analysis complete",
-            symbol=symbol,
-            surge_type=surge_type,
-            surge_score=surge_score,
-            current_volume=current_vol,
-            prior_avg=prior_avg,
-            had_prior=had_prior
-        )
+        current_vol = stats_now.volume if stats_now else None
+        norm_vol = stats_now.normalized_minute_volume if stats_now else None
         
-        return result
+        # 1. PILLAR: SIZE (Volume Multiplier)
+        surge_score = 0.0
+        if prior_avg_vol > 0 and norm_vol is not None:
+            surge_score = round(norm_vol / prior_avg_vol, 2)
+        elif norm_vol is not None:
+            surge_score = round(norm_vol, 0)
+
+        # 2. PILLAR: FREQUENCY (Trade Count Multiplier)
+        trade_count_multiplier = 0.0
+        norm_factor = (60 / shock_window_seconds)
+        norm_trades = ((stats_now.trade_count or 0) * norm_factor) if stats_now else 0
+        if prior_avg_trades > 0:
+            trade_count_multiplier = round(norm_trades / prior_avg_trades, 2)
+        else:
+            trade_count_multiplier = round(norm_trades, 1)
+
+        # 3. PILLAR: MOMENTUM (Max Excursion)
+        # We check the Peak price touched in the window vs Publication Ask
+        pub_ask = stats_now.ask if stats_now else None 
+        max_seen = stats_now.max_price if stats_now else None
+        max_excursion = 0.0
+        if pub_ask and max_seen and pub_ask > 0:
+            max_excursion = round(((max_seen - pub_ask) / pub_ask) * 100, 3)
+
+        # 4. PILLAR: CONVICTION (Buying Pressure)
+        imbalance = stats_now.imbalance_ratio if stats_now else 0
+        pressure_pct = (imbalance + 1) / 2 * 100 if imbalance is not None else 50.0
+
+        # 5. SPREAD COMPRESSION (Liquidity Tracking - SHADOW ONLY)
+        prior_avg_spread = 0.0
+        try:
+            spread_start = event_time - timedelta(minutes=10)
+            spread_req = StockQuotesRequest(symbol_or_symbols=[symbol], start=spread_start, end=event_time, feed=DataFeed.SIP)
+            spread_quotes = client.get_stock_quotes(spread_req)
+            if symbol in spread_quotes.data and spread_quotes[symbol]:
+                all_spreads = [(float(q.ask_price) - float(q.bid_price)) for q in spread_quotes[symbol] if q.ask_price and q.bid_price]
+                prior_avg_spread = sum(all_spreads) / len(all_spreads) if all_spreads else 0.0
+        except: pass
         
-    except Exception as e:
-        logger.error(
-            "Error analyzing volume",
-            symbol=symbol,
-            error=str(e),
-            exc_info=True
-        )
+        current_spread = stats_now.spread if stats_now else 0.0
+        spread_compression = 0.0
+        if prior_avg_spread > 0 and current_spread is not None:
+            spread_compression = round((1 - (current_spread / prior_avg_spread)) * 100, 1)
+
+        # --- PILLAR 6: ADVANCED SHADOW TRACKING (ALPHA RESEARCH) ---
+        block_trade_pct = getattr(stats_now, 'block_trade_pct', 0.0) or 0.0
+        tape_accel = getattr(stats_now, 'tape_acceleration_pct', 0.0) or 0.0
+        
+        # Latency to First Print
+        latency_to_print = None
+        first_trade_ts = getattr(stats_now, 'first_trade_ts', None)
+        if stats_now and first_trade_ts:
+            latency_to_print = round((first_trade_ts - event_time).total_seconds(), 3)
+            
+        # Price Impact bps / $100k
+        price_impact_bps = 0.0
+        total_usd_vol = getattr(stats_now, 'total_dollar_volume', 0.0) or 0.0
+        if stats_now and total_usd_vol > 0 and stats_now.mid:
+            # mid price at event reception vs mid price after surge
+            ref_mid = reference_nbbo.get("mid") if reference_nbbo else stats_now.ask
+            if ref_mid and ref_mid > 0:
+                price_move_pct = abs(stats_now.mid - ref_mid) / ref_mid
+                # bps per $100k
+                price_impact_bps = round((price_move_pct * 10000) / (total_usd_vol / 100000), 2)
+
+        # Support Velocity (Post-Surge Bid/Ask Ratio)
+        post_trade_bid_ratio = 0.0
+        bid_sz = getattr(stats_now, 'bid_size', 0.0) or 0.0
+        ask_sz = getattr(stats_now, 'ask_size', 0.0) or 0.0
+        if stats_now and bid_sz and ask_sz:
+            post_trade_bid_ratio = round(bid_sz / ask_sz, 2)
+
+        # --- MOVE TYPE CLASSIFICATION (The Four-Pillar Gate) ---
+        if current_vol is None or current_vol == 0:
+            move_type = "INACTIVE"
+        elif prior_avg_vol == 0:
+            move_type = "NEW_ACTIVITY"
+        else:
+            # Check for SURGE Confluence (The USER-Defined Four-Pillar Gate)
+            # "Size, trade count, momentum excursion and buying pressure"
+            is_size_ok = surge_score >= 3.0
+            is_freq_ok = trade_count_multiplier >= 2.0
+            is_mom_ok = max_excursion >= 0.5
+            is_conv_ok = pressure_pct >= 80.0
+            
+            if is_size_ok and is_freq_ok and is_mom_ok and is_conv_ok:
+                move_type = "SURGE"
+            elif surge_score >= 1.5:
+                # High volume but missing a core pillar
+                move_type = "STRENGTH"
+            elif surge_score >= 1.0:
+                move_type = "NORMAL_ACTIVITY"
+            else:
+                move_type = "LOW_ACTIVITY"
+
+        vol_accel = None
+        if norm_vol is not None and prior_avg_vol > 0:
+            vol_accel = round(((norm_vol - prior_avg_vol) / prior_avg_vol) * 100, 1)
+
+        # 2. PRICE CLIP / SLIPPAGE (Use real received_at for speed monitoring)
+        recv_ask = reference_nbbo.get("ask") if reference_nbbo else None
+        ask_change = None
+        if pub_ask is not None and recv_ask is not None and pub_ask > 0:
+            ask_change = round(((recv_ask - pub_ask) / pub_ask) * 100, 3)
+
+        # 3. VOLATILITY SURGE (Normalized to 1 minute)
+        window_range = stats_now.range if stats_now and stats_now.range is not None else 0
+        norm_range = stats_now.normalized_minute_range if stats_now and stats_now.normalized_minute_range is not None else 0
+        vol_surge_ratio = None
+        if norm_range is not None and prior_avg_range > 0:
+            vol_surge_ratio = round(norm_range / prior_avg_range, 2)
+
         return VolumeSurgeAnalysis(
             symbol=symbol,
             event_time=event_time.isoformat(),
-            surge_type="ERROR",
-            error=str(e)
+            move_type=move_type,
+            window_volume=current_vol if current_vol is not None else 0,
+            prior_avg_10min_volume=round(prior_avg_vol, 1),
+            surge_multiplier=surge_score,
+            window_volume_normalised=norm_vol,
+            volume_accel_pct=vol_accel,
+            trade_count=stats_now.trade_count if stats_now else 0,
+            trade_count_normalised=round(norm_trades, 1),
+            prior_avg_10min_trade_count=round(prior_avg_trades, 1),
+            trade_count_multiplier=trade_count_multiplier,
+            max_excursion_pct=max_excursion,
+            spread_compression_pct=spread_compression,
+            pub_price=pub_ask,
+            recv_price=recv_ask,
+            ask_change_pct=ask_change,
+            buy_volume=stats_now.buy_volume if stats_now else None,
+            sell_volume=stats_now.sell_volume if stats_now else None,
+            imbalance_ratio=imbalance,
+            block_trade_pct=block_trade_pct,
+            price_impact_bps=price_impact_bps,
+            tape_acceleration_pct=tape_accel,
+            latency_to_first_trade=latency_to_print,
+            post_trade_bid_ratio=post_trade_bid_ratio,
+            pub_to_recv_seconds=round(real_window_seconds, 3),
+            volatility_surge_ratio=vol_surge_ratio,
+            prior_avg_minute_range=round(prior_avg_range, 4),
+            prior_avg_10min_spread=round(prior_avg_spread, 4),
+            pub_to_recv_range=window_range,
+            pub_ask=pub_ask,
+            recv_ask=recv_ask,
+            error=None
         )
-
+        
+    except Exception as e:
+        logger.error("Error analyzing volume", symbol=symbol, error=str(e), exc_info=True)
+        return VolumeSurgeAnalysis(symbol=symbol, event_time=event_time.isoformat(), move_type="ERROR", error=str(e), prior_avg_10min_volume=0, window_volume=0, surge_multiplier=0)
+    
 
 def format_volume_stats_for_notification(analysis: VolumeSurgeAnalysis) -> List[str]:
-    """
-    Format volume analysis for inclusion in Telegram notification.
+    """Format the Four-Pillar Confluence for Telegram."""
+    if not analysis or getattr(analysis, 'move_type', None) == "ERROR":
+        err_msg = analysis.error if analysis else 'Unknown'
+        return [f"   ⚠️ Analysis failed: {err_msg}"]
     
-    NO FILTERING - just formats the collected data for display.
+    move_type = analysis.move_type
+    lines = ["", "📊 **FOUR-PILLAR CONFLUENCE:**"]
     
-    Args:
-        analysis: VolumeSurgeAnalysis result
+    # 1. VOLUME (Size)
+    if move_type == "INACTIVE":
+        lines.append(f"   💤 **Vol:** INACTIVE (No trades tracked)")
+    elif move_type == "NEW_ACTIVITY":
+        lines.append(f"   🚀 **Vol:** NEW ACTIVITY ({analysis.window_volume:,} shares)")
+    else:
+        # Determine emoji and Label for Size
+        if move_type == "SURGE": label, emj = "SURGE", "🔥"
+        elif move_type == "STRENGTH": label, emj = "STRENGTH", "📈"
+        elif move_type == "NORMAL_ACTIVITY": label, emj = "NORMAL", "📊"
+        else: label, emj = "LOW", "📉"
         
-    Returns:
-        List of formatted message lines
-    """
-    if not analysis:
-        return []
+        lines.append(f"   {emj} **Size:** {analysis.surge_multiplier}x Vol ({analysis.window_volume:,} vs {analysis.prior_avg_10min_volume:,} avg)")
+
+    # 2. FREQUENCY (Trades)
+    if move_type not in ["INACTIVE", "NEW_ACTIVITY"]:
+        lines.append(f"   🎟 **Freq:** {analysis.trade_count_multiplier}x Trades ({analysis.trade_count_normalised:.1f}/min vs {analysis.prior_avg_10min_trade_count:,}/min avg)")
+
+    # 3. MOMENTUM (Max Excursion)
+    if analysis.max_excursion_pct is not None:
+        mom_emj = "⚡️" if analysis.max_excursion_pct >= 0.5 else "➡️"
+        mom_line = f"   {mom_emj} **Mom:** {analysis.max_excursion_pct:+.2f}% Max Peak (vs Pub Ask)"
+        lines.append(mom_line)
+
+    # 4. CONVICTION (Buying Pressure)
+    if analysis.imbalance_ratio is not None:
+        pressure_pct = (analysis.imbalance_ratio + 1) / 2 * 100
+        conv_emj = "🟢" if pressure_pct >= 80 else "🟡" if pressure_pct >= 50 else "🔴"
+        lines.append(f"   {conv_emj} **Convict:** {pressure_pct:.1f}% BUY ({analysis.buy_volume:,} shares)")
+
+    return lines
     
-    lines = ["", "📊 VOLUME ANALYSIS:"]
-    
-    # Surge summary
-    if analysis.surge_type == "NEW_ACTIVITY":
-        vol_str = f"{analysis.surge_score:,.0f}" if analysis.surge_score else "N/A"
-        lines.append(f"   🚀 NEW ACTIVITY: {vol_str} shares (no prior trades)")
-    elif analysis.surge_type == "MULTIPLIER":
-        score_str = f"{analysis.surge_score:.1f}x" if analysis.surge_score else "N/A"
-        lines.append(f"   📈 SURGE: {score_str} prior avg volume")
-    elif analysis.surge_type == "PRIOR_ONLY":
-        avg_str = f"{analysis.surge_score:,.0f}" if analysis.surge_score else "N/A"
-        lines.append(f"   📊 Prior Avg Vol: {avg_str} (current minute incomplete)")
-    elif analysis.surge_type == "NO_DATA":
-        lines.append("   ⚠️ No volume data available")
-    elif analysis.surge_type == "ERROR":
-        lines.append(f"   ⚠️ Error: {analysis.error or 'Unknown'}")
-    
-    # Current volume
-    if analysis.current_volume is not None:
-        lines.append(f"   📊 Current Vol: {analysis.current_volume:,}")
-    
-    if analysis.prior_avg_volume is not None:
-        lines.append(f"   📉 Prior Avg: {analysis.prior_avg_volume:,.0f}")
-    
-    # NBBO at event time
-    now_stats = analysis.stats_at_event
-    if now_stats:
-        if now_stats.get("spread") is not None:
-            lines.append(f"   💱 Spread: ${now_stats['spread']:.3f} ({now_stats.get('spread_pct', 0):.2f}%)")
-        if now_stats.get("bid") is not None and now_stats.get("ask") is not None:
-            lines.append(f"   📊 Bid: ${now_stats['bid']:.2f} | Ask: ${now_stats['ask']:.2f}")
-    
+    # 3. Volatility Surge
+    if analysis.volatility_surge_ratio is not None:
+        v_emoji = "⚡" if analysis.volatility_surge_ratio > 2 else "📊"
+        lines.append(f"   {v_emoji} **Vol Spike:** {analysis.volatility_surge_ratio}x range vs 10m avg")
+
+    # 4. Entry Clip (Slippage)
+    if analysis.ask_change_pct is not None:
+        lines.append(f"   💸 **Entry Clip:** +{analysis.ask_change_pct}% on Ask (in {analysis.pub_to_recv_seconds}s)")
+
     return lines

@@ -336,14 +336,26 @@ class StatisticsRepository:
                         # If transitioning from not counted to counted
                         if new_was_counted and not old_was_counted:
                             session_file.summary["articles_with_1_percent_move"] += 1
-                            if record.filter_reason:
+                            # A missed opportunity is a 1%+ move that WAS filtered and NOT traded
+                            if record.filter_reason and not record.is_traded:
                                 session_file.summary["missed_opportunities"] += 1
                         # If transitioning from counted to not counted
                         elif old_was_counted and not new_was_counted:
                             session_file.summary["articles_with_1_percent_move"] = max(0, session_file.summary["articles_with_1_percent_move"] - 1)
-                            if old_filter_reason:
+                            if old_filter_reason and not record.is_traded:
                                 session_file.summary["missed_opportunities"] = max(0, session_file.summary["missed_opportunities"] - 1)
                     
+                    # Update traded count if is_traded was updated
+                    if "is_traded" in updates:
+                        if updates["is_traded"] and not record.is_traded: # Transition to traded
+                            session_file.summary["articles_traded"] += 1
+                            # If it already had a 1% move, it's no longer a "missed" opportunity
+                            if record.price_check_5min and record.price_check_5min.get("moved_1_percent"):
+                                if record.filter_reason:
+                                    session_file.summary["missed_opportunities"] = max(0, session_file.summary["missed_opportunities"] - 1)
+                        elif not updates["is_traded"] and record.is_traded: # Transition from traded
+                            session_file.summary["articles_traded"] = max(0, session_file.summary["articles_traded"] - 1)
+
                     # Update filter breakdown if filter_reason was updated
                     if "filter_reason" in updates:
                         # Remove old reason from breakdown

@@ -302,16 +302,20 @@ class NotifyTradeExecutedUseCase:
             volume_stats = None
             if publication_time and self.market_data_client:
                 try:
+                    # Determine received_at from article if available, or use notification time
+                    received_at = article.received_at if article and hasattr(article, 'received_at') else notification_time
+                    
                     volume_stats = await analyze_volume_around_event(
                         client=self.market_data_client,
                         symbol=trade_result.get_ticker(),
-                        event_time=publication_time
+                        event_time=publication_time,
+                        received_at=received_at
                     )
                     logger.info(
                         "📊 VOLUME STATS: Fetched volume analysis",
                         ticker=trade_result.get_ticker(),
-                        surge_type=volume_stats.surge_type if volume_stats else None,
-                        surge_score=volume_stats.surge_score if volume_stats else None
+                        move_type=volume_stats.move_type if volume_stats else None,
+                        surge_multiplier=volume_stats.surge_multiplier if volume_stats else None
                     )
                 except Exception as e:
                     logger.warning(

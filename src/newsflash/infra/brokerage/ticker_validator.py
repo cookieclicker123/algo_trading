@@ -1,5 +1,5 @@
 """
-Ticker validator - validates tickers are tradeable on NASDAQ/NYSE.
+Ticker validator - validates tickers are tradeable on NASDAQ/NYSE/AMEX.
 
 Pure infrastructure - uses Alpaca API to fetch tradeable tickers.
 Operational state (cache) - necessary for system operation, not business state.
@@ -19,7 +19,7 @@ logger = get_logger(__name__)
 
 class TickerValidator:
     """
-    Validates tickers are tradeable on NASDAQ/NYSE exchanges.
+    Validates tickers are tradeable on NASDAQ/NYSE/AMEX exchanges.
     
     Responsibilities:
     - Fetch tradeable tickers from Alpaca API
@@ -114,7 +114,7 @@ class TickerValidator:
     
     async def _fetch_from_alpaca(self) -> Set[str]:
         """
-        Fetch tradeable NASDAQ and NYSE tickers from Alpaca API.
+        Fetch tradeable NASDAQ, NYSE, and AMEX tickers from Alpaca API.
         
         Returns:
             Set of tradeable ticker symbols (uppercase)
@@ -128,17 +128,17 @@ class TickerValidator:
             )
             assets = self.trading_client.get_all_assets(filter=filter_request)
             
-            # Filter for NASDAQ and NYSE exchanges and extract tradeable ticker symbols
+            # Filter for NASDAQ, NYSE, and AMEX exchanges and extract tradeable ticker symbols
             tradeable_tickers = {
                 asset.symbol.upper()
                 for asset in assets
-                if asset.tradable and asset.exchange in ['NASDAQ', 'NYSE']
+                if asset.tradable and asset.exchange in ['NASDAQ', 'NYSE', 'AMEX']
             }
             
             logger.info(
                 "TickerValidator: Fetched tradeable tickers from Alpaca",
                 count=len(tradeable_tickers),
-                exchanges=["NASDAQ", "NYSE"]
+                exchanges=["NASDAQ", "NYSE", "AMEX"]
             )
             
             return tradeable_tickers
@@ -225,7 +225,7 @@ class TickerValidator:
             ticker: Ticker symbol to check
             
         Returns:
-            True if ticker is tradeable on NASDAQ/NYSE, False otherwise
+            True if ticker is tradeable on NASDAQ/NYSE/AMEX, False otherwise
         """
         return ticker.upper() in self._tradeable_tickers
     
