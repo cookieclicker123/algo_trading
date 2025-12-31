@@ -255,6 +255,60 @@ class TickerValidator:
         tickers_upper = {t.upper() for t in tickers}
         return bool(tickers_upper & self._tradeable_tickers)  # Set intersection
     
+    def get_validation_reason(self, ticker: str) -> Optional[str]:
+        """
+        Get detailed reason why a ticker is not tradeable.
+        
+        Distinguishes between:
+        - 'invalid_exchange': Exchange is not NASDAQ/NYSE/AMEX
+        - 'broker_not_tradeable': Exchange is valid but ticker not tradeable on broker
+        - None: Ticker is tradeable (should not be called if tradeable)
+        
+        Args:
+            ticker: Ticker symbol to check
+            
+        Returns:
+            'invalid_exchange', 'broker_not_tradeable', or None if cannot determine
+        """
+        ticker_upper = ticker.upper()
+        
+        # First check if ticker is in tradeable cache (fast path)
+        # This method should only be called when are_tradeable() returns False,
+        # but check anyway for safety
+        if ticker_upper in self._tradeable_tickers:
+            return None  # Ticker is tradeable (shouldn't happen, but safe)
+        
+        # If cache is empty, we can't reliably determine - default to broker_not_tradeable
+        # This happens when cache is still loading
+        if not self._tradeable_tickers:
+            return 'broker_not_tradeable'
+        
+        # Ticker not in cache - check exchange to determine reason
+        try:
+            asset = self.trading_client.get_asset(ticker)
+            if asset and asset.exchange:
+                exchange = asset.exchange
+                
+                # Check if exchange is in allowed list
+                if exchange not in ['NASDAQ', 'NYSE', 'AMEX']:
+                    return 'invalid_exchange'
+                else:
+                    # Exchange is valid (NASDAQ/NYSE/AMEX), but ticker not in tradeable cache
+                    # This means broker doesn't support it (suspended, delisted, restricted, etc.)
+                    return 'broker_not_tradeable'
+        except Exception as e:
+            # Asset lookup failed (ticker doesn't exist in Alpaca's system)
+            # Default to broker_not_tradeable as safe fallback
+            logger.debug(
+                "TickerValidator: Failed to get asset for validation reason",
+                ticker=ticker,
+                error=str(e)
+            )
+            return 'broker_not_tradeable'
+        
+        # Fallback (shouldn't reach here)
+        return 'broker_not_tradeable'
+    
     def get_cache_stats(self) -> dict:
         """
         Get cache statistics for monitoring.

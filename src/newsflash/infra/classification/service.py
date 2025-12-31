@@ -246,12 +246,21 @@ Summary: {summary}"""
             
             # Step 2: Check if tickers are tradeable on NASDAQ/NYSE/AMEX (TickerValidator - cached lookup)
             if not self.ticker_validator or not self.ticker_validator.are_tradeable(request_data.article_tickers):
+                # Determine specific reason: invalid_exchange vs broker_not_tradeable
+                filter_reason = "broker_not_tradeable"  # Default fallback
+                if request_data.article_tickers:
+                    # Check first ticker to determine reason (all tickers should have same reason)
+                    reason = self.ticker_validator.get_validation_reason(request_data.article_tickers[0])
+                    if reason:
+                        filter_reason = reason
+                
                 logger.info(
-                    "⏭️ CLASSIFY INFRA: Skipping classification - tickers not tradeable on NASDAQ/NYSE/AMEX",
+                    f"⏭️ CLASSIFY INFRA: Skipping classification - {filter_reason}",
                     article_id=request_data.article_id,
-                    tickers=request_data.article_tickers
+                    tickers=request_data.article_tickers,
+                    reason=filter_reason
                 )
-                await self._publish_skipped_event(infra_event, "not_tradeable_exchange")
+                await self._publish_skipped_event(infra_event, filter_reason)
                 return
             
             # Step 3: Check NBBO availability (before expensive Groq API call)
@@ -444,7 +453,7 @@ Summary: {summary}"""
         
         Args:
             infra_event: Original classification request event
-            reason: Skip reason ('no_tickers' or 'not_tradeable_exchange')
+            reason: Skip reason ('no_tickers', 'invalid_exchange', 'broker_not_tradeable', 'nbbo_unavailable', or 'no_volume_since_publication')
         """
         skipped_event = ClassificationSkippedInfrastructureEvent(
             request_data=infra_event.request_data,

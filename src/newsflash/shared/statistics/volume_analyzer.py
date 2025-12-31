@@ -724,7 +724,7 @@ async def analyze_volume_around_event(
             is_size_ok = surge_score >= 3.0
             is_freq_ok = trade_count_multiplier >= 2.0
             is_mom_ok = max_excursion >= 0.5
-            is_conv_ok = pressure_pct >= 80.0
+            is_conv_ok = pressure_pct >= 70.0
             
             if is_size_ok and is_freq_ok and is_mom_ok and is_conv_ok:
                 move_type = "SURGE"
@@ -830,7 +830,7 @@ def format_volume_stats_for_notification(analysis: VolumeSurgeAnalysis) -> List[
     # 4. CONVICTION (Buying Pressure)
     if analysis.imbalance_ratio is not None:
         pressure_pct = (analysis.imbalance_ratio + 1) / 2 * 100
-        conv_emj = "🟢" if pressure_pct >= 80 else "🟡" if pressure_pct >= 50 else "🔴"
+        conv_emj = "🟢" if pressure_pct >= 70 else "🟡" if pressure_pct >= 50 else "🔴"
         lines.append(f"   {conv_emj} **Convict:** {pressure_pct:.1f}% BUY ({analysis.buy_volume:,} shares)")
 
     return lines

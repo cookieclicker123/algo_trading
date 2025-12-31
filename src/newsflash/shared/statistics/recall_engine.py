@@ -721,7 +721,8 @@ class RecallStatsEngine:
         
         This captures why articles were filtered BEFORE AI classification:
         - no_tickers: Article has no tickers
-        - not_tradeable_exchange: Tickers not tradeable on NASDAQ/NYSE
+        - invalid_exchange: Exchange is not NASDAQ/NYSE/AMEX
+        - broker_not_tradeable: Tickers not tradeable on broker (Alpaca) despite valid exchange
         - low_market_cap: Market cap below threshold
         - low_price: Price below threshold
         - nbbo_unavailable: No active bid/ask in current session

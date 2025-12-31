@@ -75,13 +75,14 @@ class ClassificationSkippedInfrastructureEvent(BaseModel):
     
     Published when article doesn't meet pre-classification criteria:
     - No tickers
-    - Tickers not tradeable on NASDAQ/NYSE/AMEX
+    - Invalid exchange (not NASDAQ/NYSE/AMEX)
+    - Broker not tradeable (valid exchange but broker doesn't support)
     - Market cap below $500M
     - Price below $5
     """
     request_data: InfrastructureClassificationRequestData = Field(..., description="Original request data")
     skipped_at: datetime = Field(..., description="When classification was skipped")
-    reason: str = Field(..., description="Skip reason: 'no_tickers', 'not_tradeable_exchange', 'nbbo_unavailable', or 'no_volume_since_publication'")
+    reason: str = Field(..., description="Skip reason: 'no_tickers', 'invalid_exchange', 'broker_not_tradeable', 'nbbo_unavailable', or 'no_volume_since_publication'")
     source: str = Field(default="classification_infrastructure", description="Event source")
     
     model_config = {"frozen": False}
