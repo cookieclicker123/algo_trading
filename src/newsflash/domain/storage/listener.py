@@ -110,18 +110,20 @@ class StorageDomainListener(
         """
         Stop listening to events.
         
-        Idempotent: Safe to call multiple times. Unsubscribing when not subscribed is safe.
+        Idempotent: Safe to call multiple times.
         """
         
-        # Unsubscribe from events
-        self.event_bus.unsubscribe("Domain.ArticleStorageRequested", self._handle_domain_article_storage_request)
-        self.event_bus.unsubscribe("Domain.AuditLogRequested", self._handle_domain_audit_log_request)
-        self.event_bus.unsubscribe("Domain.ArticleFetchRequested", self._handle_domain_article_fetch_request)
-        self.event_bus.unsubscribe("ArticleStored", self._handle_infra_article_stored_from_bus)
-        self.event_bus.unsubscribe("ArticleStorageFailed", self._handle_infra_article_storage_failed_from_bus)
-        self.event_bus.unsubscribe("AuditLogged", self._handle_infra_audit_logged_from_bus)
-        self.event_bus.unsubscribe("AuditLogStorageFailed", self._handle_infra_audit_log_storage_failed_from_bus)
-        self.event_bus.unsubscribe("ArticleFetched", self._handle_infra_article_fetched_from_bus)
+        # Unsubscribe from domain storage requests
+        self.event_bus.unsubscribe(DomainEventType.ARTICLE_STORAGE_REQUESTED, self._handle_domain_article_storage_request)
+        self.event_bus.unsubscribe(DomainEventType.AUDIT_LOG_STORAGE_REQUESTED, self._handle_domain_audit_log_request)
+        self.event_bus.unsubscribe(DomainEventType.ARTICLE_FETCH_REQUESTED, self._handle_domain_article_fetch_request)
+        
+        # Unsubscribe from infrastructure events
+        self.event_bus.unsubscribe(InfrastructureEventType.ARTICLE_STORED, self._handle_infra_article_stored_from_bus)
+        self.event_bus.unsubscribe(InfrastructureEventType.ARTICLE_STORAGE_FAILED, self._handle_infra_article_storage_failed_from_bus)
+        self.event_bus.unsubscribe(InfrastructureEventType.AUDIT_LOG_STORED, self._handle_infra_audit_logged_from_bus)
+        self.event_bus.unsubscribe(InfrastructureEventType.AUDIT_LOG_STORAGE_FAILED, self._handle_infra_audit_log_storage_failed_from_bus)
+        self.event_bus.unsubscribe(InfrastructureEventType.ARTICLE_FETCHED, self._handle_infra_article_fetched_from_bus)
         
         logger.info("StorageDomainListener stopped")
     

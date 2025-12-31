@@ -49,18 +49,11 @@ class ProcessArticleUseCase:
         """
         self.event_bus = event_bus
         
-        # Use case subscribes to domain events
-        # All processing is handled by dedicated use cases (event-driven)
-        # Store wrapper for unsubscribe
-        self._article_classified_wrapper = subscribe_typed(
-            self.event_bus,
-            DomainEventType.ARTICLE_CLASSIFIED,
-            ArticleClassifiedDomainEvent,
-            self._handle_article_classified,
-        )
+        # Track wrapper for unsubscribe
+        self._article_classified_wrapper = None
         
         logger.info(
-            "ProcessArticleUseCase initialized - subscribes to Domain.ArticleClassified events",
+            "ProcessArticleUseCase initialized - ready to start subscriptions",
             note="All processing handled by dedicated use cases (event-driven)"
         )
     
@@ -103,10 +96,23 @@ class ProcessArticleUseCase:
             )
     
     async def start(self) -> None:
-        """Start the use case (already subscribed in __init__)."""
+        """Start the use case - subscribe to domain events."""
+        if self._article_classified_wrapper:
+            logger.debug("ProcessArticleUseCase already started")
+            return
+
+        # Subscribe to typed Domain.ArticleClassified events
+        self._article_classified_wrapper = subscribe_typed(
+            self.event_bus,
+            DomainEventType.ARTICLE_CLASSIFIED,
+            ArticleClassifiedDomainEvent,
+            self._handle_article_classified,
+        )
         logger.info("ProcessArticleUseCase started")
     
     async def stop(self) -> None:
-        """Stop the use case."""
-        self.event_bus.unsubscribe("Domain.ArticleClassified", self._article_classified_wrapper)
-        logger.info("ProcessArticleUseCase stopped")
+        """Stop the use case - unsubscribe from domain events."""
+        if self._article_classified_wrapper:
+            self.event_bus.unsubscribe(DomainEventType.ARTICLE_CLASSIFIED, self._article_classified_wrapper)
+            self._article_classified_wrapper = None
+            logger.info("ProcessArticleUseCase stopped")

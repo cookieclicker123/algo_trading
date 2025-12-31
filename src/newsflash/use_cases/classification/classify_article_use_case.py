@@ -7,7 +7,7 @@ USE CASES ORCHESTRATE SERVICES:
 - Use cases publish domain events to trigger workflows
 """
 from datetime import datetime
-from typing import Final
+from typing import Final, Optional, Any
 
 from ...utils.logging_config import get_logger
 from ...shared.event_bus import AsyncEventBus
@@ -43,27 +43,34 @@ class ClassifyArticleUseCase:
         self.event_bus: Final[AsyncEventBus] = event_bus
         self.request_factory = ClassificationRequestFactory()
         
+        # Track wrapper for unsubscribe
+        self._article_received_wrapper: Optional[Any] = None
+        
+        logger.info(
+            "ClassifyArticleUseCase initialized - ready to start subscriptions"
+        )
+    
+    async def start(self) -> None:
+        """Start the use case - subscribe to domain events."""
+        if self._article_received_wrapper:
+            logger.debug("ClassifyArticleUseCase already started")
+            return
+
         # Subscribe to typed Domain.ArticleReceived events
-        # Store wrapper for unsubscribe
         self._article_received_wrapper = subscribe_typed(
             self.event_bus,
             DomainEventType.ARTICLE_RECEIVED,
             ArticleReceivedDomainEvent,
             self._handle_article_received,
         )
-        
-        logger.info(
-            "ClassifyArticleUseCase initialized - subscribes to Domain.ArticleReceived events"
-        )
-    
-    async def start(self) -> None:
-        """Start the use case (already subscribed in __init__)."""
-        logger.info("ClassifyArticleUseCase started")
+        logger.info("ClassifyArticleUseCase started - subscribed to Domain.ArticleReceived events")
     
     async def stop(self) -> None:
-        """Stop the use case."""
-        self.event_bus.unsubscribe(DomainEventType.ARTICLE_RECEIVED, self._article_received_wrapper)
-        logger.info("ClassifyArticleUseCase stopped")
+        """Stop the use case - unsubscribe from domain events."""
+        if self._article_received_wrapper:
+            self.event_bus.unsubscribe(DomainEventType.ARTICLE_RECEIVED, self._article_received_wrapper)
+            self._article_received_wrapper = None
+            logger.info("ClassifyArticleUseCase stopped")
     
     async def _handle_article_received(
         self,

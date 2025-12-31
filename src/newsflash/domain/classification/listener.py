@@ -98,8 +98,15 @@ class ClassificationDomainListener(
         """
         Stop listening to events.
         
-        Idempotent: Safe to call multiple times. Unsubscribing when not subscribed is safe.
+        Idempotent: Safe to call multiple times.
         """
+        # Unsubscribe from domain classification requests
+        self.event_bus.unsubscribe(DomainEventType.CLASSIFICATION_REQUESTED, self._handle_domain_classification_request)
+        
+        # Unsubscribe from infrastructure events
+        self.event_bus.unsubscribe(InfrastructureEventType.CLASSIFICATION_COMPLETED, self._handle_infra_classification_completed_from_bus)
+        self.event_bus.unsubscribe(InfrastructureEventType.CLASSIFICATION_FAILED, self._handle_infra_classification_failed_from_bus)
+        
         logger.info("ClassificationDomainListener stopped")
     
     @handle_errors(log_context="ClassificationDomainListener: Error handling domain classification request")

@@ -145,6 +145,10 @@ class BenzingaWebSocketMicroservice:
         
         Idempotent: Safe to call multiple times. Thread control flag prevents duplicate threads.
         """
+        if self._threads_should_run and self.websocket_thread and self.websocket_thread.is_alive():
+            logger.debug("Benzinga WebSocket microservice already started")
+            return
+
         logger.info("Starting Benzinga WebSocket microservice")
         # Set thread control flag (operational state for threads)
         self._threads_should_run = True
@@ -169,16 +173,6 @@ class BenzingaWebSocketMicroservice:
         
         self._cleanup_connections()
         
-        # Store main event loop for thread-safe publishing
-        try:
-            self._main_event_loop = asyncio.get_running_loop()
-        except RuntimeError:
-            try:
-                self._main_event_loop = asyncio.get_event_loop()
-            except RuntimeError:
-                logger.warning("No event loop available for WebSocket event publishing")
-                self._main_event_loop = None
-        
         # Start connection thread (will loop and reconnect automatically)
         self.websocket_thread = threading.Thread(target=self._run_websocket_loop)
         self.websocket_thread.daemon = True
@@ -200,7 +194,9 @@ class BenzingaWebSocketMicroservice:
         self._monitor_thread.start()
         
         # Start health monitor
-        self.health_monitor = WebSocketHealthMonitor(self.event_bus, self)
+        if not self.health_monitor:
+            self.health_monitor = WebSocketHealthMonitor(self.event_bus, self)
+        
         self.health_monitor.start()
         
         logger.info("WebSocket microservice threads started")

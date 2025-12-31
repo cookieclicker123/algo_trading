@@ -89,6 +89,13 @@ class WebSocketDomainListener(
         
         Idempotent: Safe to call multiple times.
         """
+        # Unsubscribe from infrastructure article events
+        self.event_bus.unsubscribe(InfrastructureEventType.ARTICLE_RECEIVED, self._handle_article_received_from_bus)
+        self.event_bus.unsubscribe(InfrastructureEventType.WEBSOCKET_HEALTH_STATUS, self._handle_websocket_health_status_from_bus)
+        self.event_bus.unsubscribe(InfrastructureEventType.WEBSOCKET_CONNECTED, self._handle_websocket_connected_from_bus)
+        self.event_bus.unsubscribe(InfrastructureEventType.WEBSOCKET_DISCONNECTED, self._handle_websocket_disconnected_from_bus)
+        self.event_bus.unsubscribe(InfrastructureEventType.WEBSOCKET_ERROR, self._handle_websocket_error_from_bus)
+        self.event_bus.unsubscribe(InfrastructureEventType.WEBSOCKET_RATE_LIMIT, self._handle_websocket_rate_limit_from_bus)
         logger.info("WebSocketDomainListener stopped")
     
     async def handle_article_received(self, event: ArticleReceivedInfrastructureEvent) -> None:

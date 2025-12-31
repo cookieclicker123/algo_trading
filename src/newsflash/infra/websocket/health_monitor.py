@@ -53,8 +53,12 @@ class WebSocketHealthMonitor:
         """
         Start health monitoring.
         
-        Idempotent: Safe to call multiple times. Thread control prevents duplicate threads.
+        Idempotent: Safe to call multiple times.
         """
+        if self._threads_should_run and self.monitor_thread and self.monitor_thread.is_alive():
+            logger.debug("WebSocket health monitor already started")
+            return
+
         # Set thread control flag (operational state for threads)
         self._threads_should_run = True
         self.monitor_thread = threading.Thread(target=self._monitor_loop, daemon=True)

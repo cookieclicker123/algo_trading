@@ -113,6 +113,10 @@ class RecallStatsEngine:
     
     async def start(self) -> None:
         """Start engine - subscribe to events."""
+        if self._article_received_wrapper:
+            logger.debug("RecallStatsEngine already started")
+            return
+
         # Subscribe to typed events using subscribe_typed helper
         self._article_received_wrapper = subscribe_typed(
             self.event_bus,
@@ -162,6 +166,27 @@ class RecallStatsEngine:
     
     async def stop(self) -> None:
         """Stop engine - cancel monitoring tasks and finalize metadata."""
+        # Unsubscribe from events
+        if self._article_received_wrapper:
+            self.event_bus.unsubscribe(DomainEventType.ARTICLE_RECEIVED, self._article_received_wrapper)
+            self._article_received_wrapper = None
+            
+        if self._article_classified_wrapper:
+            self.event_bus.unsubscribe(DomainEventType.ARTICLE_CLASSIFIED, self._article_classified_wrapper)
+            self._article_classified_wrapper = None
+            
+        if self._trade_executed_wrapper:
+            self.event_bus.unsubscribe(DomainEventType.TRADE_EXECUTED, self._trade_executed_wrapper)
+            self._trade_executed_wrapper = None
+            
+        if self._trade_failed_wrapper:
+            self.event_bus.unsubscribe(DomainEventType.TRADE_FAILED, self._trade_failed_wrapper)
+            self._trade_failed_wrapper = None
+            
+        if self._classification_skipped_wrapper:
+            self.event_bus.unsubscribe(InfrastructureEventType.CLASSIFICATION_SKIPPED, self._classification_skipped_wrapper)
+            self._classification_skipped_wrapper = None
+
         # Cancel finalization task
         if self._finalization_task:
             self._finalization_task.cancel()
@@ -169,6 +194,7 @@ class RecallStatsEngine:
                 await self._finalization_task
             except asyncio.CancelledError:
                 pass
+            self._finalization_task = None
         
         # Finalize all pending metadata before stopping
         await self._finalize_all_metadata()
@@ -273,51 +299,33 @@ class RecallStatsEngine:
             }
             session_enum = session_enum_map.get(session, MarketSession.MARKET)
             
-            # Fetch volume stats around publication time (NO FILTERING - just data collection)
-            volume_stats_dict = None
+            # Fetch volume stats for ALL tradable tickers (NO FILTERING - just data collection)
+            volume_stats_by_ticker = {}
             if self.market_data_client and article.published_at and tradable_tickers:
-                try:
-                    volume_analysis = await analyze_volume_around_event(
-                        client=self.market_data_client,
-                        symbol=tradable_tickers[0],  # Use first ticker
-                        event_time=article.published_at,
-                        received_at=received_at,  # For precise published_at → received_at window
-                        reference_nbbo=initial_nbbos.get(tradable_tickers[0])  # Pass real-time quote for order flow analysis
-                    )
-                    if volume_analysis:
-                        volume_stats_dict = volume_analysis.to_dict()
-                        logger.debug(
-                            "Recall: Fetched volume stats",
-                            article_id=article.id,
-                            ticker=tradable_tickers[0],
-                            move_type=volume_analysis.move_type
+                for ticker in tradable_tickers:
+                    try:
+                        volume_analysis = await analyze_volume_around_event(
+                            client=self.market_data_client,
+                            symbol=ticker,
+                            event_time=article.published_at,
+                            received_at=received_at,
+                            reference_nbbo=initial_nbbos.get(ticker)
                         )
-                except Exception as vol_error:
-                    error_type = type(vol_error).__name__
-                    error_msg = str(vol_error)
-                    # Distinguish between API errors and illiquidity (no data available)
-                    is_illiquidity = (
-                        "no data" in error_msg.lower() or
-                        "not found" in error_msg.lower() or
-                        "no bars" in error_msg.lower() or
-                        error_type == "ValueError"
-                    )
-                    
-                    logger.warning(
-                        "Recall: Failed to fetch volume stats",
-                        article_id=article.id,
-                        ticker=tradable_tickers[0] if tradable_tickers else None,
-                        error=error_msg,
-                        error_type=error_type,
-                        likely_illiquidity=is_illiquidity
-                    )
-                    
-                    # Store error info in volume_stats for analysis
-                    volume_stats_dict = {
-                        "error": error_msg,
-                        "error_type": error_type,
-                        "likely_illiquidity": is_illiquidity
-                    }
+                        if volume_analysis:
+                            volume_stats_by_ticker[ticker] = volume_analysis.to_dict()
+                            logger.debug("Recall: Fetched volume stats", article_id=article.id, ticker=ticker, move_type=volume_analysis.move_type)
+                    except Exception as vol_error:
+                        error_type = type(vol_error).__name__
+                        error_msg = str(vol_error)
+                        is_illiquidity = ("no data" in error_msg.lower() or "not found" in error_msg.lower() or "no bars" in error_msg.lower() or error_type == "ValueError")
+                        
+                        logger.warning("Recall: Failed to fetch volume stats", article_id=article.id, ticker=ticker, error=error_msg, likely_illiquidity=is_illiquidity)
+                        
+                        volume_stats_by_ticker[ticker] = {
+                            "error": error_msg,
+                            "error_type": error_type,
+                            "likely_illiquidity": is_illiquidity
+                        }
             
             # DOUBLE-CHECK: Make sure article wasn't traded between initial check and now (race condition protection)
             async with self._traded_lock:
@@ -349,7 +357,7 @@ class RecallStatsEngine:
                 initial_nbbo=initial_nbbos.get(tradable_tickers[0]) if tradable_tickers else None,
                 filter_reason=initial_filter_reason,  # Set immediately if known (from prefilter events)
                 ai_classification=initial_classification,  # Set immediately if known (from classification events)
-                volume_stats=volume_stats_dict
+                volume_stats=volume_stats_by_ticker
             )
             
             # Append record immediately (with initial NBBO)

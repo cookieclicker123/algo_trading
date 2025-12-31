@@ -57,9 +57,10 @@ class RecallRecord(BaseModel):
     )
     
     # Volume analysis at article receive time (for future filtering research)
-    volume_stats: Optional[Dict[str, Any]] = Field(
-        None,
-        description="Volume microstructures: move_type, surge_multiplier, trade_count_multiplier, max_excursion_pct, etc."
+    # Ticker -> Stats dictionary
+    volume_stats: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="ticker -> {move_type, surge_multiplier, trade_count_multiplier, max_excursion_pct, ...}"
     )
     
     # Tracking metadata

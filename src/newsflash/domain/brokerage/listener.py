@@ -120,8 +120,19 @@ class BrokerageDomainListener(
         """
         Stop listening to events.
         
-        Idempotent: Safe to call multiple times. Unsubscribing when not subscribed is safe.
+        Idempotent: Safe to call multiple times.
         """
+        # Unsubscribe from domain trade requests
+        self.event_bus.unsubscribe(DomainEventType.TRADE_REQUESTED, self._handle_domain_trade_request)
+        
+        # Unsubscribe from infrastructure events
+        self.event_bus.unsubscribe(InfrastructureEventType.TRADE_EXECUTED, self._handle_infra_trade_executed_from_bus)
+        self.event_bus.unsubscribe(InfrastructureEventType.TRADE_FAILED, self._handle_infra_trade_failed)
+        self.event_bus.unsubscribe(InfrastructureEventType.TRADE_REQUEST_QUEUED, self._handle_infra_trade_queued)
+        self.event_bus.unsubscribe(InfrastructureEventType.QUOTE_RECEIVED, self._handle_infra_quote_received)
+        self.event_bus.unsubscribe(InfrastructureEventType.CONNECTION_STATUS_CHANGED, self._handle_connection_status_from_bus)
+        self.event_bus.unsubscribe(InfrastructureEventType.BROKERAGE_HEALTH_STATUS, self._handle_brokerage_health_from_bus)
+        
         logger.info("BrokerageDomainListener stopped")
     
     @handle_errors(log_context="BrokerageDomainListener: Error handling domain trade request")

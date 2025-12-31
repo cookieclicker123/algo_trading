@@ -325,17 +325,11 @@ class AutoTradeService:
         self.storage_query_service = storage_query_service
         self.market_data_client = market_data_client
         
-        # Subscribe to typed Domain.ArticleClassified events
-        # Store wrapper for unsubscribe
-        self._article_classified_wrapper = subscribe_typed(
-            self.event_bus,
-            DomainEventType.ARTICLE_CLASSIFIED,
-            ArticleClassifiedDomainEvent,
-            self._handle_article_classified,
-        )
+        # Track wrapper for unsubscribe
+        self._article_classified_wrapper = None
         
         logger.info(
-            "AutoTradeService initialized - subscribes to Domain.ArticleClassified events",
+            "AutoTradeService initialized - ready to start subscriptions",
             enabled=self.is_enabled,
             has_storage_query=self.storage_query_service is not None
         )
@@ -364,11 +358,24 @@ class AutoTradeService:
         )
     
     async def start(self) -> None:
-        """Start the service (already subscribed in __init__)."""
+        """Start the service - subscribe to domain events."""
+        if self._article_classified_wrapper:
+            logger.debug("AutoTradeService already started")
+            return
+
+        # Subscribe to typed Domain.ArticleClassified events
+        self._article_classified_wrapper = subscribe_typed(
+            self.event_bus,
+            DomainEventType.ARTICLE_CLASSIFIED,
+            ArticleClassifiedDomainEvent,
+            self._handle_article_classified,
+        )
         logger.info("AutoTradeService started")
     
     async def stop(self) -> None:
-        """Stop the service."""
-        self.event_bus.unsubscribe(DomainEventType.ARTICLE_CLASSIFIED, self._article_classified_wrapper)
-        logger.info("AutoTradeService stopped")
+        """Stop the service - unsubscribe from domain events."""
+        if self._article_classified_wrapper:
+            self.event_bus.unsubscribe(DomainEventType.ARTICLE_CLASSIFIED, self._article_classified_wrapper)
+            self._article_classified_wrapper = None
+            logger.info("AutoTradeService stopped")
 
