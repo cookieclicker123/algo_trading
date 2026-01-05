@@ -307,12 +307,31 @@ Summary: {summary}"""
                         # Continue to Groq if volume check fails to be safe
             
             # Step 4: All checks passed - proceed to Groq API classification
+            # ========================================================================
+            # AI CLASSIFICATION TEMPORARILY DISABLED
+            # ========================================================================
+            # We are testing a surge-only strategy (prefiltering + 4-pillar SURGE criteria)
+            # without AI classification. This allows us to evaluate the strength of
+            # market physics signals alone before adding AI back as a noise filter.
+            #
+            # To re-enable AI classification:
+            # 1. Uncomment the code below
+            # 2. Remove this comment block
+            # ========================================================================
+            
             logger.info(
-                "✅ CLASSIFY INFRA: Pre-filters passed, proceeding to Groq API",
+                "⏭️ CLASSIFY INFRA: Pre-filters passed, but AI classification is DISABLED (testing surge-only strategy)",
                 article_id=request_data.article_id,
                 tickers=request_data.article_tickers
             )
-            await self._classify_via_groq(infra_event)
+            
+            # UNCOMMENT TO RE-ENABLE AI CLASSIFICATION:
+            # logger.info(
+            #     "✅ CLASSIFY INFRA: Pre-filters passed, proceeding to Groq API",
+            #     article_id=request_data.article_id,
+            #     tickers=request_data.article_tickers
+            # )
+            # await self._classify_via_groq(infra_event)
             
         except Exception as e:
             logger.error(

@@ -253,7 +253,7 @@ class BrokerageService:
                 )
             
             # Extended hours (premarket or postmarket)
-            logger.info("🌙 EXTENDED HOURS: Using ladder limit order strategy", session=session)
+            logger.info("🌙 EXTENDED HOURS: Using limit order strategy", session=session)
             return await self.extended_hours_executor.execute(
                 trade_request,
                 session,

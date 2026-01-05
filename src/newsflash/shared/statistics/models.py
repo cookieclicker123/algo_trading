@@ -26,10 +26,10 @@ class RecallRecord(BaseModel):
         description="Initial NBBO: bid, ask, spread, mid"
     )
     
-    # 5-minute price check result
-    price_check_5min: Optional[Dict[str, Any]] = Field(
+    # 10-minute price check result (formerly 5-minute, then 15-minute)
+    price_check_15min: Optional[Dict[str, Any]] = Field(
         None,
-        description="5-minute price check: final_mid, percent_change, moved_1_percent"
+        description="10-minute price check: final_mid, percent_change, moved_1_percent (field name kept for backward compatibility)"
     )
     
     # Ticker metadata (fetched via FinnhubCoordinator - shared across all services)
@@ -65,13 +65,53 @@ class RecallRecord(BaseModel):
     
     # Tracking metadata
     tracked_at: datetime = Field(default_factory=datetime.now, description="When tracking started")
-    price_checked_at: Optional[datetime] = Field(None, description="When 5-minute price check completed")
+    price_checked_at: Optional[datetime] = Field(None, description="When 10-minute price check completed")
+    
+    # Price tracking during 10-minute hold period
+    highest_price_during_hold: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Highest price reached during 10-minute hold: price, timestamp, percent_gain_from_entry, minute, second"
+    )
+    max_adverse_excursion: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Lowest price during 10-minute hold (max adverse excursion): price, timestamp, percent_loss_from_entry, minute, second, stop_loss_percentage, stop_loss_dollar_per_share"
+    )
     
     # Trade linkage (did we actually trade this?)
     is_traded: bool = Field(False, description="Whether this article resulted in a trade execution")
     trade_id: Optional[str] = Field(None, description="Trade ID if executed")
     
-    model_config = {"frozen": False}  # Allow updates for price_check_5min
+    # 2-minute monitoring for SURGE detection (for articles that didn't initially show SURGE)
+    monitoring_status: Optional[str] = Field(
+        None,
+        description="Monitoring status: None (not monitored), 'initiated' (monitoring started), 'surge_detected' (surge found), 'completed_no_surge' (monitoring finished, no surge)"
+    )
+    monitoring_initiated_at: Optional[datetime] = Field(
+        None,
+        description="When 2-minute monitoring was initiated"
+    )
+    monitoring_cycles_completed: int = Field(
+        0,
+        description="Number of 4-second cycles completed during monitoring (max 30)"
+    )
+    surge_detected_at: Optional[datetime] = Field(
+        None,
+        description="When SURGE was detected during monitoring (if any)"
+    )
+    surge_detection_cycle: Optional[int] = Field(
+        None,
+        description="Which 4-second cycle detected the surge (0-29)"
+    )
+    surge_detection_window_stats: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Volume stats from the window where surge was detected"
+    )
+    monitoring_completed_at: Optional[datetime] = Field(
+        None,
+        description="When monitoring completed (after 2 minutes or surge detected)"
+    )
+    
+    model_config = {"frozen": False}  # Allow updates for price_check_15min and monitoring fields
 
 
 class RecallSessionFile(BaseModel):

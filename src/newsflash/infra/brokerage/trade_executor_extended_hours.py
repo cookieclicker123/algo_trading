@@ -30,12 +30,19 @@ logger = get_logger(__name__)
 
 class AlpacaExtendedHoursTradeExecutor:
     """
-    Executes stock trades during extended hours using ladder limit order strategy.
+    Executes stock trades during extended hours.
+    
+    Entry (BUY) Strategy:
+    - Place single limit order at ask price
+    - No retry if order doesn't fill (fast-moving markets require immediate execution)
+    
+    Exit (SELL) Strategy:
+    - Place single marketable limit order at bid price (with discount to ensure immediate fill)
+    - No retry if order doesn't fill (fast-moving markets require immediate execution)
     
     Responsibilities:
-    - Execute ladder limit orders (stocks only)
-    - Handle 2x leverage
-    - Manage ladder progression
+    - Execute limit orders (stocks only)
+    - Handle trade execution
     - Publish trade events
     
     Does NOT:
@@ -144,33 +151,518 @@ class AlpacaExtendedHoursTradeExecutor:
                 return error_result
             
             # Calculate quantity
-            leverage = getattr(trade_request, "leverage", 2.0)
+            leverage = getattr(trade_request, "leverage", None)
             quantity, capital_required = calculate_trade_quantity(
-                trade_request, current_price, leverage
+                trade_request, current_price, leverage or 1.0
             )
             
+            trading_start = time.time()
+            
+            # SIMPLIFIED ENTRY LOGIC: For BUY orders, use marketable limit order to ensure fill
+            if action == "BUY":
+                ask_price = nbbo_snapshot.get("ask")
+                ask_size = nbbo_snapshot.get("ask_size")
+                if not ask_price or ask_price <= 0:
+                    error_result = {
+                        "success": False,
+                        "error": "Could not retrieve ask price for entry trade",
+                        "session": session,
+                        "order_type": "LIMIT",
+                        "instrument": "stock",
+                    }
+                    await self._publish_failed_event(trade_request, error_result["error"])
+                    return error_result
+                
+                # Use marketable limit order: price above ask to ensure immediate fill
+                # This is critical for fast-moving markets - we need to get filled NOW
+                # Strategy: Dynamic premium based on liquidity and spread conditions
+                # Since our system rarely makes losing trades, we prioritize fill probability over cost
+                
+                # Base premium: 0.5% or $0.02 minimum
+                base_premium_pct = 0.005  # 0.5%
+                base_premium_dollar = 0.02
+                price_premium = max(ask_price * base_premium_pct, base_premium_dollar)
+                
+                # Dynamic adjustment 1: Increase premium if ask_size is insufficient
+                # If we need more shares than available at ask, we need to pay more to reach higher price levels
+                liquidity_multiplier = 1.0
+                if ask_size is not None and ask_size > 0 and ask_size < quantity:
+                    shortfall_ratio = quantity / ask_size  # e.g., 1188 / 200 = 5.94x
+                    # Scale multiplier: more aggressive for larger shortfalls, capped at 3x
+                    # Formula: 1.0 + (shortfall_ratio - 1.0) * 0.15, max 3.0
+                    liquidity_multiplier = min(1.0 + (shortfall_ratio - 1.0) * 0.15, 3.0)
+                
+                # Dynamic adjustment 2: Increase premium for wide spreads
+                # Wide spreads indicate lower liquidity or higher volatility
+                bid_price = nbbo_snapshot.get("bid")
+                spread_multiplier = 1.0
+                if bid_price and bid_price > 0:
+                    spread = ask_price - bid_price
+                    spread_pct = (spread / ask_price) * 100
+                    # If spread > 0.5%, increase premium (wider spread = more premium needed)
+                    if spread_pct > 0.5:
+                        # Scale: 1.0x for 0.5% spread, up to 1.5x for 2%+ spread
+                        spread_multiplier = min(1.0 + (spread_pct - 0.5) * 0.25, 1.5)
+                
+                # Apply multipliers to base premium
+                price_premium = price_premium * liquidity_multiplier * spread_multiplier
+                
+                # Cap at reasonable maximum: 2% or $0.05 (whichever is larger)
+                # This ensures we don't overpay excessively, but still prioritize fills
+                max_premium_pct = 0.02  # 2%
+                max_premium_dollar = 0.05
+                price_premium = min(price_premium, max(ask_price * max_premium_pct, max_premium_dollar))
+                
+                limit_price = round(ask_price + price_premium, 2)
+                
+                # Enhanced logging with dynamic adjustments
+                liquidity_info = ""
+                spread_info = ""
+                if ask_size is not None:
+                    if ask_size < quantity:
+                        liquidity_info = f" | ask_size={ask_size} < qty={quantity} → {liquidity_multiplier:.2f}x premium"
+                    else:
+                        liquidity_info = f" | ask_size={ask_size} >= qty={quantity} (sufficient)"
+                
+                if bid_price:
+                    spread = ask_price - bid_price
+                    spread_pct = (spread / ask_price) * 100
+                    if spread_pct > 0.5:
+                        spread_info = f" | spread={spread_pct:.2f}% (wide) → {spread_multiplier:.2f}x premium"
+                    else:
+                        spread_info = f" | spread={spread_pct:.2f}% (normal)"
+                
+                logger.info(
+                    f"💰 ENTRY ORDER: Placing marketable limit order with dynamic premium to maximize fill probability",
+                    ticker=trade_request.ticker,
+                    limit_price=limit_price,
+                    ask_price=ask_price,
+                    price_premium=price_premium,
+                    premium_pct=(price_premium / ask_price * 100) if ask_price > 0 else 0,
+                    quantity=quantity,
+                    ask_size=ask_size,
+                    bid=bid_price,
+                    liquidity_multiplier=liquidity_multiplier,
+                    spread_multiplier=spread_multiplier,
+                    liquidity_info=liquidity_info,
+                    spread_info=spread_info
+                )
+                
+                order_data = LimitOrderRequest(
+                    symbol=trade_request.ticker,
+                    qty=quantity,
+                    side=OrderSide.BUY,
+                    limit_price=limit_price,
+                    time_in_force=TimeInForce.DAY,
+                    extended_hours=True
+                )
+                
+                order = self.trading_client.submit_order(order_data=order_data)
+                current_order_id = order.id
+                
+                # Immediately check if order was rejected (catch broker rejections early)
+                try:
+                    immediate_status = self.trading_client.get_order_by_id(order.id)
+                    if immediate_status.status in ["rejected", "canceled", "expired"]:
+                        reject_reason = getattr(immediate_status, 'reject_reason', 'Unknown')
+                        error_result = {
+                            "success": False,
+                            "error": f"Order immediately {immediate_status.status}: {reject_reason}",
+                            "session": session,
+                            "order_type": "LIMIT",
+                            "instrument": "stock",
+                            "limit_price_attempted": limit_price,
+                            "nbbo": nbbo_snapshot,
+                        }
+                        logger.warning(
+                            f"❌ ENTRY ORDER IMMEDIATELY REJECTED: Order was {immediate_status.status}",
+                            ticker=trade_request.ticker,
+                            limit_price=limit_price,
+                            ask=ask_price,
+                            reject_reason=reject_reason
+                        )
+                        await self._publish_failed_event(trade_request, error_result["error"], error_result)
+                        return error_result
+                except Exception as status_error:
+                    logger.debug(
+                        "Could not check immediate order status (will check during fill wait)",
+                        ticker=trade_request.ticker,
+                        error=str(status_error)
+                    )
+                
+                # Wait for fill with timeout (10 seconds for extended hours)
+                # News trades usually have high volume, but extended hours can have lower liquidity
+                # 10 seconds balances speed vs reliability
+                fill_wait_start = time.time()
+                fill_timeout = 10.0  # 10 seconds max wait for entry in extended hours
+                deadline_for_fill = min(timeout_deadline, time.monotonic() + fill_timeout) if timeout_deadline else time.monotonic() + fill_timeout
+                filled = await self._wait_for_fill(order.id, 0.5, deadline_for_fill)
+                fill_wait_time = time.time() - fill_wait_start
+                
+                if filled:
+                    # Order filled - get details
+                    order_status = self.trading_client.get_order_by_id(order.id)
+                    fill_price = float(order_status.filled_avg_price) if order_status.filled_avg_price else limit_price
+                    filled_shares = float(order_status.filled_qty) if order_status.filled_qty else quantity
+                    total_trading_time = time.time() - trading_start
+                    total_time = time.time() - total_start_time
+                    
+                    logger.info(
+                        f"✅ ENTRY ORDER FILLED at ask price",
+                        ticker=trade_request.ticker,
+                        fill_price=fill_price,
+                        shares=filled_shares
+                    )
+                    
+                    total_cost = fill_price * filled_shares if fill_price and filled_shares else None
+                    commission = 0.0
+                    
+                    result = {
+                        "success": True,
+                        "shares": filled_shares,
+                        "fill_price": fill_price,
+                        "total_cost": total_cost,
+                        "commission": commission,
+                        "session": session,
+                        "order_type": "LIMIT",
+                        "instrument": "stock",
+                        "limit_price_used": limit_price,
+                        "timing_info": {
+                            "session_detection": session_time,
+                            "connection": connect_time,
+                            "nbbo_retrieval": nbbo_time,
+                            "fill_wait": fill_wait_time,
+                            "trading_time": total_trading_time,
+                            "total": total_time,
+                        },
+                        "instrument_details": {
+                            "leverage": leverage,
+                            "capital_required": capital_required,
+                            "price_fallback_used": price_fallback_used,
+                            "nbbo": nbbo_snapshot,
+                        },
+                    }
+                    
+                    await self._publish_executed_event(trade_request, result)
+                    return result
+                else:
+                    # Entry order didn't fill - this should be rare with marketable limit order
+                    # Check order status to see if it was rejected
+                    try:
+                        order_status = self.trading_client.get_order_by_id(order.id)
+                        if order_status.status in ["rejected", "canceled", "expired"]:
+                            reject_reason = getattr(order_status, 'reject_reason', 'Unknown')
+                            error_result = {
+                                "success": False,
+                                "error": f"Order {order_status.status}: {reject_reason}",
+                                "session": session,
+                                "order_type": "LIMIT",
+                                "instrument": "stock",
+                                "limit_price_attempted": limit_price,
+                                "nbbo": nbbo_snapshot,
+                            }
+                            logger.warning(
+                                f"❌ ENTRY ORDER REJECTED: Order was {order_status.status}",
+                                ticker=trade_request.ticker,
+                                limit_price=limit_price,
+                                ask=ask_price,
+                                reject_reason=reject_reason
+                            )
+                            await self._publish_failed_event(trade_request, error_result["error"], error_result)
+                            return error_result
+                    except Exception as status_error:
+                        logger.debug(
+                            "Could not check order status after timeout",
+                            ticker=trade_request.ticker,
+                            error=str(status_error)
+                        )
+                    
+                    # Order didn't fill within timeout - cancel and fail
+                    await self._cancel_order_safely(order.id)
+                    error_result = {
+                        "success": False,
+                        "error": "Entry order did not fill within timeout (unexpected with marketable limit)",
+                        "session": session,
+                        "order_type": "LIMIT",
+                        "instrument": "stock",
+                        "limit_price_attempted": limit_price,
+                        "ask_price": ask_price,
+                        "price_premium": price_premium,
+                        "nbbo": nbbo_snapshot,
+                    }
+                    logger.warning(
+                        f"❌ ENTRY ORDER FAILED: Did not fill within timeout (unexpected)",
+                        ticker=trade_request.ticker,
+                        limit_price=limit_price,
+                        ask=ask_price,
+                        ask_size=ask_size,
+                        quantity=quantity
+                    )
+                    await self._publish_failed_event(trade_request, error_result["error"], error_result)
+                    return error_result
+            
+            # EXIT LOGIC: For SELL orders, use marketable limit order at bid price to ensure fill
+            if action == "SELL":
+                bid_price = nbbo_snapshot.get("bid")
+                bid_size = nbbo_snapshot.get("bid_size")
+                if not bid_price or bid_price <= 0:
+                    error_result = {
+                        "success": False,
+                        "error": "Could not retrieve bid price for exit trade",
+                        "session": session,
+                        "order_type": "LIMIT",
+                        "instrument": "stock",
+                    }
+                    await self._publish_failed_event(trade_request, error_result["error"])
+                    return error_result
+                
+                # Use marketable limit order: price below bid to ensure immediate fill
+                # This is critical for fast-moving markets - we need to get filled NOW
+                # Strategy: Dynamic discount based on liquidity and spread conditions
+                # Since our system rarely makes losing trades, we prioritize fill probability over cost
+                
+                # Base discount: 0.5% or $0.02 minimum
+                base_discount_pct = 0.005  # 0.5%
+                base_discount_dollar = 0.02
+                price_discount = max(bid_price * base_discount_pct, base_discount_dollar)
+                
+                # Dynamic adjustment 1: Increase discount if bid_size is insufficient
+                # If we need to sell more shares than available at bid, we need to discount more to reach lower price levels
+                liquidity_multiplier = 1.0
+                if bid_size is not None and bid_size > 0 and bid_size < quantity:
+                    shortfall_ratio = quantity / bid_size  # e.g., 1188 / 200 = 5.94x
+                    # Scale multiplier: more aggressive for larger shortfalls, capped at 3x
+                    # Formula: 1.0 + (shortfall_ratio - 1.0) * 0.15, max 3.0
+                    liquidity_multiplier = min(1.0 + (shortfall_ratio - 1.0) * 0.15, 3.0)
+                
+                # Dynamic adjustment 2: Increase discount for wide spreads
+                # Wide spreads indicate lower liquidity or higher volatility
+                ask_price = nbbo_snapshot.get("ask")
+                spread_multiplier = 1.0
+                if ask_price and ask_price > 0:
+                    spread = ask_price - bid_price
+                    spread_pct = (spread / bid_price) * 100
+                    # If spread > 0.5%, increase discount (wider spread = more discount needed)
+                    if spread_pct > 0.5:
+                        # Scale: 1.0x for 0.5% spread, up to 1.5x for 2%+ spread
+                        spread_multiplier = min(1.0 + (spread_pct - 0.5) * 0.25, 1.5)
+                
+                # Apply multipliers to base discount
+                price_discount = price_discount * liquidity_multiplier * spread_multiplier
+                
+                # Cap at reasonable maximum: 2% or $0.05 (whichever is larger)
+                # This ensures we don't discount excessively, but still prioritize fills
+                max_discount_pct = 0.02  # 2%
+                max_discount_dollar = 0.05
+                price_discount = min(price_discount, max(bid_price * max_discount_pct, max_discount_dollar))
+                
+                limit_price = round(bid_price - price_discount, 2)
+                
+                # Enhanced logging with dynamic adjustments
+                liquidity_info = ""
+                spread_info = ""
+                if bid_size is not None:
+                    if bid_size < quantity:
+                        liquidity_info = f" | bid_size={bid_size} < qty={quantity} → {liquidity_multiplier:.2f}x discount"
+                    else:
+                        liquidity_info = f" | bid_size={bid_size} >= qty={quantity} (sufficient)"
+                
+                if ask_price:
+                    spread = ask_price - bid_price
+                    spread_pct = (spread / bid_price) * 100
+                    if spread_pct > 0.5:
+                        spread_info = f" | spread={spread_pct:.2f}% (wide) → {spread_multiplier:.2f}x discount"
+                    else:
+                        spread_info = f" | spread={spread_pct:.2f}% (normal)"
+                
+                logger.info(
+                    f"💰 EXIT ORDER: Placing marketable limit order with dynamic discount to maximize fill probability",
+                    ticker=trade_request.ticker,
+                    limit_price=limit_price,
+                    bid_price=bid_price,
+                    price_discount=price_discount,
+                    discount_pct=(price_discount / bid_price * 100) if bid_price > 0 else 0,
+                    quantity=quantity,
+                    bid_size=bid_size,
+                    ask=ask_price,
+                    liquidity_multiplier=liquidity_multiplier,
+                    spread_multiplier=spread_multiplier,
+                    liquidity_info=liquidity_info,
+                    spread_info=spread_info
+                )
+                
+                order_data = LimitOrderRequest(
+                    symbol=trade_request.ticker,
+                    qty=quantity,
+                    side=OrderSide.SELL,
+                    limit_price=limit_price,
+                    time_in_force=TimeInForce.DAY,
+                    extended_hours=True
+                )
+                
+                order = self.trading_client.submit_order(order_data=order_data)
+                
+                # Immediately check if order was rejected (catch broker rejections early)
+                try:
+                    immediate_status = self.trading_client.get_order_by_id(order.id)
+                    if immediate_status.status in ["rejected", "canceled", "expired"]:
+                        reject_reason = getattr(immediate_status, 'reject_reason', 'Unknown')
+                        error_result = {
+                            "success": False,
+                            "error": f"Order immediately {immediate_status.status}: {reject_reason}",
+                            "session": session,
+                            "order_type": "LIMIT",
+                            "instrument": "stock",
+                            "limit_price_attempted": limit_price,
+                            "nbbo": nbbo_snapshot,
+                        }
+                        logger.warning(
+                            f"❌ EXIT ORDER IMMEDIATELY REJECTED: Order was {immediate_status.status}",
+                            ticker=trade_request.ticker,
+                            limit_price=limit_price,
+                            bid=bid_price,
+                            reject_reason=reject_reason
+                        )
+                        await self._publish_failed_event(trade_request, error_result["error"], error_result)
+                        return error_result
+                except Exception as status_error:
+                    logger.debug(
+                        "Could not check immediate order status (will check during fill wait)",
+                        ticker=trade_request.ticker,
+                        error=str(status_error)
+                    )
+                
+                # Wait for fill with timeout (10 seconds for extended hours)
+                fill_wait_start = time.time()
+                fill_timeout = 10.0  # 10 seconds max wait for exit in extended hours
+                deadline_for_fill = min(timeout_deadline, time.monotonic() + fill_timeout) if timeout_deadline else time.monotonic() + fill_timeout
+                filled = await self._wait_for_fill(order.id, 0.5, deadline_for_fill)
+                fill_wait_time = time.time() - fill_wait_start
+                
+                if filled:
+                    # Order filled - get details
+                    order_status = self.trading_client.get_order_by_id(order.id)
+                    fill_price = float(order_status.filled_avg_price) if order_status.filled_avg_price else limit_price
+                    filled_shares = float(order_status.filled_qty) if order_status.filled_qty else quantity
+                    total_trading_time = time.time() - trading_start
+                    total_time = time.time() - total_start_time
+                    
+                    logger.info(
+                        f"✅ EXIT ORDER FILLED at bid price",
+                        ticker=trade_request.ticker,
+                        fill_price=fill_price,
+                        shares=filled_shares
+                    )
+                    
+                    total_cost = fill_price * filled_shares if fill_price and filled_shares else None
+                    commission = 0.0
+                    
+                    result = {
+                        "success": True,
+                        "shares": filled_shares,
+                        "fill_price": fill_price,
+                        "total_cost": total_cost,
+                        "commission": commission,
+                        "session": session,
+                        "order_type": "LIMIT",
+                        "instrument": "stock",
+                        "limit_price_used": limit_price,
+                        "timing_info": {
+                            "session_detection": session_time,
+                            "connection": connect_time,
+                            "nbbo_retrieval": nbbo_time,
+                            "fill_wait": fill_wait_time,
+                            "trading_time": total_trading_time,
+                            "total": total_time,
+                        },
+                        "instrument_details": {
+                            "leverage": leverage,
+                            "capital_required": capital_required,
+                            "price_fallback_used": price_fallback_used,
+                            "nbbo": nbbo_snapshot,
+                        },
+                    }
+                    
+                    await self._publish_executed_event(trade_request, result)
+                    return result
+                else:
+                    # Exit order didn't fill - this should be rare with marketable limit order
+                    # Check order status to see if it was rejected
+                    try:
+                        order_status = self.trading_client.get_order_by_id(order.id)
+                        if order_status.status in ["rejected", "canceled", "expired"]:
+                            reject_reason = getattr(order_status, 'reject_reason', 'Unknown')
+                            error_result = {
+                                "success": False,
+                                "error": f"Order {order_status.status}: {reject_reason}",
+                                "session": session,
+                                "order_type": "LIMIT",
+                                "instrument": "stock",
+                                "limit_price_attempted": limit_price,
+                                "bid_price": bid_price,
+                                "nbbo": nbbo_snapshot,
+                            }
+                            logger.warning(
+                                f"❌ EXIT ORDER REJECTED: Order was {order_status.status}",
+                                ticker=trade_request.ticker,
+                                limit_price=limit_price,
+                                bid=bid_price,
+                                reject_reason=reject_reason
+                            )
+                            await self._publish_failed_event(trade_request, error_result["error"], error_result)
+                            return error_result
+                    except Exception as status_error:
+                        logger.debug(
+                            "Could not check order status after timeout",
+                            ticker=trade_request.ticker,
+                            error=str(status_error)
+                        )
+                    
+                    # Order didn't fill within timeout - cancel and fail
+                    await self._cancel_order_safely(order.id)
+                    error_result = {
+                        "success": False,
+                        "error": "Exit order did not fill within timeout (unexpected with marketable limit)",
+                        "session": session,
+                        "order_type": "LIMIT",
+                        "instrument": "stock",
+                        "limit_price_attempted": limit_price,
+                        "bid_price": bid_price,
+                        "price_discount": price_discount,
+                        "nbbo": nbbo_snapshot,
+                    }
+                    logger.warning(
+                        f"❌ EXIT ORDER FAILED: Did not fill within timeout (unexpected)",
+                        ticker=trade_request.ticker,
+                        limit_price=limit_price,
+                        bid=bid_price,
+                        bid_size=bid_size,
+                        quantity=quantity
+                    )
+                    await self._publish_failed_event(trade_request, error_result["error"], error_result)
+                    return error_result
+            
+            # Legacy ladder logic (should not be reached for SELL, but kept for safety)
             # Calculate ladder base price (start at midprice for better fills)
             base_price = calculate_ladder_base_price(
                 action,
                 nbbo_snapshot.get("ask"),
                 nbbo_snapshot.get("bid"),
                 current_price,
-                mid=nbbo_snapshot.get("mid"),  # Pass midprice for optimal starting point
+                mid=nbbo_snapshot.get("mid"),
             )
             
-            # Get ladder parameters
+            # Get ladder parameters for exits
             initial_cents, early_step, late_step, switch_after, interval_early, interval_late, max_cents_from_start = calculate_ladder_parameters(action)
             
-            trading_start = time.time()
             current_cents = initial_cents
             attempt_number = 0
             wait_time = interval_early
-            # current_order_id is already initialized at function start for exception handler access
             
-            # Track all ladder attempts for detailed statistics
+            # Track all ladder attempts for detailed statistics (exits only)
             ladder_attempts: list[Dict[str, Any]] = []
             
-            # Ladder loop
+            # Ladder loop (should not be reached for SELL, but kept for safety)
             while abs(current_cents) <= abs(max_cents_from_start):
                 remaining = time_left()
                 if remaining is not None and remaining <= 0:

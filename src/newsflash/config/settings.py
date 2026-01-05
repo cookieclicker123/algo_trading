@@ -41,7 +41,7 @@ WEBSOCKET_STARTUP_SKIP_OLD_MESSAGES_MINUTES = int(os.getenv("WEBSOCKET_STARTUP_S
 
 # Auto-Trading Configuration
 AUTO_TRADING_ENABLED = os.getenv("AUTO_TRADING_ENABLED", "true").lower() == "true"
-AUTO_TRADE_EXIT_DELAY_MINUTES = int(os.getenv("AUTO_TRADE_EXIT_DELAY_MINUTES", "5"))
+AUTO_TRADE_EXIT_DELAY_MINUTES = int(os.getenv("AUTO_TRADE_EXIT_DELAY_MINUTES", "10"))  # Exit after 10 minutes
 
 # Brokerage Configuration
 PAPER_TRADING = os.getenv("PAPER_TRADING", "true").lower() == "true"

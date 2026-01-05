@@ -3,15 +3,22 @@ Recall statistics engine - tracks all articles with tradable tickers.
 Event-driven, stateless, runs alongside main trading system.
 """
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, Set
 
 try:
     from alpaca.data import StockHistoricalDataClient
+    from alpaca.data.requests import StockBarsRequest, StockTradesRequest
+    from alpaca.data.timeframe import TimeFrame
+    from alpaca.data.enums import DataFeed
     from alpaca.trading.client import TradingClient
 except ImportError:
     StockHistoricalDataClient = None
     TradingClient = None
+    StockBarsRequest = None
+    StockTradesRequest = None
+    TimeFrame = None
+    DataFeed = None
 
 from ...utils.logging_config import get_logger
 from ...shared.event_bus import AsyncEventBus
@@ -25,9 +32,11 @@ from ...utils.brokerage.session_detector import get_market_session, get_market_s
 from .finnhub_coordinator import FinnhubCoordinator
 from ...domain.websocket.events import ArticleReceivedDomainEvent
 from ...domain.classification.events import ArticleClassifiedDomainEvent
-from ...domain.brokerage.events import TradeExecutedDomainEvent, TradeFailedDomainEvent
+from ...domain.brokerage.events import TradeExecutedDomainEvent, TradeFailedDomainEvent, TradeRequestDomainEvent
 from ...domain.brokerage.models import MarketSession
 from ...infra.classification.infrastructure_models import ClassificationSkippedInfrastructureEvent
+from ...services.brokerage.auto_trade import build_trade_request_for_article
+from ...shared.event_types import DomainEventType
 
 logger = get_logger(__name__)
 
@@ -39,7 +48,7 @@ class RecallStatsEngine:
     Responsibilities:
     - Subscribe to Domain.ArticleReceived events
     - Check if article has tradable tickers (NBBO available + in trading session)
-    - Monitor ticker price for 5 minutes after article received
+    - Monitor ticker price for 10 minutes after article received
     - Record missed opportunities (1%+ moves we didn't trade)
     - Append records to JSON files in real-time
     
@@ -366,13 +375,73 @@ class RecallStatsEngine:
             # TRACK LOCATION: Already done early to prevent race condition
             # self._record_locations[article.id] = (session, received_at)
             
-            # Start 5-minute monitoring task (fire and forget)
-            monitoring_task = asyncio.create_task(
-                self._monitor_ticker_price(article.id, tradable_tickers, initial_nbbos, session, received_at)
+            # Check if any ticker shows SURGE in initial 4-second window
+            has_initial_surge = False
+            surge_ticker = None
+            for ticker, stats in volume_stats_by_ticker.items():
+                # Only check if stats is a valid dict (not an error dict)
+                if isinstance(stats, dict) and "error" not in stats and stats.get("move_type") == "SURGE":
+                    has_initial_surge = True
+                    surge_ticker = ticker
+                    logger.info(
+                        "🚀 INITIAL SURGE: Detected in initial 4-second window",
+                        article_id=article.id,
+                        ticker=ticker,
+                        move_type=stats.get("move_type"),
+                        surge_multiplier=stats.get("surge_multiplier")
+                    )
+                    break
+            
+            if has_initial_surge:
+                # SURGE detected immediately - trigger trade
+                logger.info(
+                    "🚀 SURGE DETECTED: Initial 4-second window shows SURGE, triggering trade",
+                    article_id=article.id,
+                    ticker=surge_ticker
+                )
+                await self._trigger_trade_for_surge(article, surge_ticker)
+            else:
+                # No initial SURGE - start 2-minute monitoring for SURGE detection
+                logger.info(
+                    "📊 NO INITIAL SURGE: Starting 2-minute monitoring for SURGE detection",
+                    article_id=article.id,
+                    tickers=tradable_tickers,
+                    initial_move_types={t: (v.get("move_type") if isinstance(v, dict) else None) for t, v in volume_stats_by_ticker.items()}
+                )
+                
+                # Update record to indicate monitoring started
+                await self.repository.update_recall_record(
+                    article_id=article.id,
+                    updates={
+                        "monitoring_status": "initiated",
+                        "monitoring_initiated_at": datetime.now()
+                    },
+                    session=session,
+                    date=received_at
+                )
+                
+                # Start 2-minute SURGE monitoring task
+                monitoring_task = asyncio.create_task(
+                    self._monitor_for_surge(
+                        article=article,
+                        tradable_tickers=tradable_tickers,
+                        initial_nbbos=initial_nbbos,
+                        session=session,
+                        received_at=received_at,
+                        published_at=article.published_at
+                    )
+                )
+                
+                async with self._monitoring_lock:
+                    self._monitoring_tasks[article.id] = monitoring_task
+            
+            # Start 10-minute price monitoring task (for price check, independent of surge monitoring)
+            price_monitoring_task = asyncio.create_task(
+                self._monitor_ticker_price(article.id, tradable_tickers, initial_nbbos, session, received_at, article.published_at)
             )
             
-            async with self._monitoring_lock:
-                self._monitoring_tasks[article.id] = monitoring_task
+            # Track price monitoring task separately (don't overwrite surge monitoring)
+            # We can track multiple tasks per article if needed, but for now just track one
             
             # Fetch ticker metadata asynchronously (tracked for finalization)
             # Pass received_at so we can determine session from timestamp (stateless)
@@ -387,7 +456,8 @@ class RecallStatsEngine:
             logger.debug(
                 "Recall: Started monitoring ticker",
                 article_id=article.id,
-                tickers=tradable_tickers
+                tickers=tradable_tickers,
+                has_initial_surge=has_initial_surge
             )
             
         except Exception as e:
@@ -398,22 +468,369 @@ class RecallStatsEngine:
                 exc_info=True
             )
     
+    async def _trigger_trade_for_surge(
+        self,
+        article: Any,  # Domain Article model
+        ticker: str
+    ) -> None:
+        """
+        Trigger trade execution when SURGE is detected.
+        
+        Args:
+            article: Domain Article model
+            ticker: Ticker symbol that showed SURGE
+        """
+        try:
+            # Check if already traded
+            async with self._traded_lock:
+                if article.id in self._traded_articles:
+                    logger.debug(
+                        "Recall: Article already traded, skipping trade trigger",
+                        article_id=article.id,
+                        ticker=ticker
+                    )
+                    return
+            
+            # Get current ask price for calculating $5k trade size and validate spread
+            current_price = None
+            MAX_SPREAD_THRESHOLD_PCT = 2.0  # Reject trades if spread >= 2%
+            
+            try:
+                nbbo = await self.quote_fetcher.get_nbbo_snapshot(ticker)
+                if nbbo:
+                    current_price = nbbo.get("ask")  # Use ask price for buying
+                    
+                    # CRITICAL: Validate spread before triggering trade
+                    # Spread > 2% indicates illiquidity - reject trade even if surge detected
+                    bid = nbbo.get("bid")
+                    ask = nbbo.get("ask")
+                    
+                    if bid and ask and ask > 0:
+                        spread = ask - bid
+                        mid_price = (bid + ask) / 2.0
+                        spread_pct = (spread / mid_price) * 100 if mid_price > 0 else 0
+                        
+                        if spread_pct >= MAX_SPREAD_THRESHOLD_PCT:
+                            logger.warning(
+                                "🚫 TRADE REJECTED: Spread too wide (>= 2%), rejecting surge trade",
+                                article_id=article.id,
+                                ticker=ticker,
+                                spread_pct=round(spread_pct, 2),
+                                bid=bid,
+                                ask=ask,
+                                spread=spread,
+                                threshold=MAX_SPREAD_THRESHOLD_PCT
+                            )
+                            # Update recall record to note spread rejection
+                            try:
+                                now = datetime.now(timezone.utc)
+                                session, _ = get_market_session_from_timestamp(now)
+                                if session == "closed":
+                                    session = "premarket"  # Fallback
+                                await self.repository.update_recall_record(
+                                    article_id=article.id,
+                                    updates={
+                                        "filter_reason": f"spread_too_wide_{spread_pct:.2f}%"
+                                    },
+                                    session=session,
+                                    date=now
+                                )
+                            except Exception:
+                                pass  # Don't fail on metadata update
+                            return  # Reject trade - spread trumps surge signal
+                        
+                        logger.debug(
+                            "✅ Spread validation passed",
+                            ticker=ticker,
+                            spread_pct=round(spread_pct, 2),
+                            threshold=MAX_SPREAD_THRESHOLD_PCT
+                        )
+                    else:
+                        logger.warning(
+                            "⚠️ Could not validate spread (missing bid/ask), proceeding with caution",
+                            ticker=ticker,
+                            nbbo=nbbo
+                        )
+            except Exception as price_error:
+                logger.debug(
+                    "Recall: Could not get current price for trade sizing, will use amount_usd",
+                    ticker=ticker,
+                    error=str(price_error)
+                )
+            
+            # Build trade request from article with $5k position size
+            trade_request = build_trade_request_for_article(article, current_price=current_price)
+            
+            if not trade_request:
+                logger.warning(
+                    "Recall: Could not build trade request for surge",
+                    article_id=article.id,
+                    ticker=ticker
+                )
+                return
+            
+            # Mark as traded immediately (before publishing event to prevent race conditions)
+            async with self._traded_lock:
+                self._traded_articles.add(article.id)
+            
+            # Publish trade request domain event
+            domain_trade_event = TradeRequestDomainEvent(
+                trade_request=trade_request,
+                article_id=article.id,
+                requested_at=datetime.now()
+            )
+            
+            await self.event_bus.publish(
+                DomainEventType.TRADE_REQUESTED,
+                domain_trade_event.model_dump()
+            )
+            
+            logger.info(
+                "🚀 TRADE TRIGGERED: SURGE detected, trade request published",
+                article_id=article.id,
+                ticker=ticker,
+                trade_ticker=trade_request.ticker
+            )
+            
+        except Exception as e:
+            logger.error(
+                "Error triggering trade for surge",
+                article_id=article.id,
+                ticker=ticker,
+                error=str(e),
+                exc_info=True
+            )
+    
+    async def _monitor_for_surge(
+        self,
+        article: Any,  # Domain Article model
+        tradable_tickers: list[str],
+        initial_nbbos: Dict[str, Dict[str, Any]],
+        session: str,
+        received_at: datetime,
+        published_at: datetime
+    ) -> None:
+        """
+        Monitor for SURGE detection over 2 minutes (30 cycles of 4-second windows).
+        
+        Checks 4-second windows every 4 seconds:
+        - Cycle 0: published_at + 4s to published_at + 8s (first cycle after initial check)
+        - Cycle 1: published_at + 8s to published_at + 12s
+        - ...
+        - Cycle 29: published_at + 120s to published_at + 124s
+        
+        If SURGE detected in any cycle, immediately trigger trade and stop monitoring.
+        
+        Args:
+            article: Domain Article model
+            tradable_tickers: List of tradable ticker symbols
+            initial_nbbos: Initial NBBO snapshots
+            session: Market session
+            received_at: When article was received
+            published_at: When article was published
+        """
+        try:
+            monitoring_start = datetime.now()
+            max_cycles = 30  # 30 cycles * 4 seconds = 120 seconds = 2 minutes
+            cycle_duration = 4.0  # 4-second windows
+            
+            logger.info(
+                "📊 SURGE MONITORING: Starting 2-minute monitoring",
+                article_id=article.id,
+                tickers=tradable_tickers,
+                max_cycles=max_cycles,
+                cycle_duration_seconds=cycle_duration
+            )
+            
+            for cycle in range(max_cycles):
+                # Check if article was already traded
+                async with self._traded_lock:
+                    if article.id in self._traded_articles:
+                        logger.debug(
+                            "Recall: Article traded during monitoring, stopping",
+                            article_id=article.id,
+                            cycle=cycle
+                        )
+                        break
+                
+                # Calculate window start time for this cycle
+                # Cycle 0 starts at published_at + 4s (right after initial 4s check)
+                # Cycle 1 starts at published_at + 8s, etc.
+                window_start = published_at + timedelta(seconds=(cycle + 1) * cycle_duration)
+                
+                # Wait until window start time (if in the future)
+                # Ensure window_start has timezone
+                if window_start.tzinfo is None:
+                    window_start = window_start.replace(tzinfo=timezone.utc)
+                
+                now = datetime.now(timezone.utc)
+                if window_start > now:
+                    wait_time = (window_start - now).total_seconds()
+                    if wait_time > 0:
+                        await asyncio.sleep(wait_time)
+                
+                # Analyze 4-second window starting at window_start
+                # We use analyze_volume_around_event which analyzes 4 seconds from event_time
+                surge_detected = False
+                surge_ticker = None
+                surge_stats = None
+                
+                if not self.market_data_client:
+                    logger.warning("No market data client available for surge monitoring")
+                    break
+                
+                for ticker in tradable_tickers:
+                    try:
+                        # Analyze this 4-second window
+                        volume_analysis = await analyze_volume_around_event(
+                            client=self.market_data_client,
+                            symbol=ticker,
+                            event_time=window_start,  # Analyze 4 seconds starting from here
+                            received_at=window_start,  # Use window_start as received_at for this analysis
+                            reference_nbbo=initial_nbbos.get(ticker)
+                        )
+                        
+                        if volume_analysis and volume_analysis.move_type == "SURGE":
+                            surge_detected = True
+                            surge_ticker = ticker
+                            surge_stats = volume_analysis.to_dict()
+                            logger.info(
+                                "🚀 SURGE DETECTED: Found SURGE during monitoring cycle",
+                                article_id=article.id,
+                                ticker=ticker,
+                                cycle=cycle,
+                                cycle_start=window_start.isoformat(),
+                                move_type=volume_analysis.move_type,
+                                surge_multiplier=volume_analysis.surge_multiplier
+                            )
+                            break  # Found surge, stop checking other tickers
+                    
+                    except Exception as vol_error:
+                        logger.debug(
+                            "Recall: Error analyzing volume in monitoring cycle",
+                            article_id=article.id,
+                            ticker=ticker,
+                            cycle=cycle,
+                            error=str(vol_error)
+                        )
+                        continue
+                
+                # Update record with cycle progress
+                await self.repository.update_recall_record(
+                    article_id=article.id,
+                    updates={
+                        "monitoring_cycles_completed": cycle + 1
+                    },
+                    session=session,
+                    date=received_at
+                )
+                
+                # If surge detected, trigger trade and stop monitoring
+                if surge_detected:
+                    # Update record with surge detection details
+                    await self.repository.update_recall_record(
+                        article_id=article.id,
+                        updates={
+                            "monitoring_status": "surge_detected",
+                            "surge_detected_at": datetime.now(),
+                            "surge_detection_cycle": cycle,
+                            "surge_detection_window_stats": surge_stats,
+                            "monitoring_completed_at": datetime.now()
+                        },
+                        session=session,
+                        date=received_at
+                    )
+                    
+                    # Trigger trade
+                    await self._trigger_trade_for_surge(article, surge_ticker)
+                    
+                    # Stop monitoring (surge found)
+                    break
+                
+                # Wait 4 seconds before next cycle (but account for analysis time)
+                # We want cycles to be every 4 seconds, so if analysis took time, reduce wait
+                cycle_end = datetime.now(timezone.utc)
+                next_cycle_start = window_start + timedelta(seconds=cycle_duration)
+                if next_cycle_start.tzinfo is None:
+                    next_cycle_start = next_cycle_start.replace(tzinfo=timezone.utc)
+                if next_cycle_start > cycle_end:
+                    wait_until_next = (next_cycle_start - cycle_end).total_seconds()
+                    if wait_until_next > 0:
+                        await asyncio.sleep(wait_until_next)
+            
+            # Monitoring completed (either all cycles done or surge detected)
+            async with self._traded_lock:
+                was_traded = article.id in self._traded_articles
+            
+            if not was_traded:
+                # No surge detected in 2 minutes - update record
+                await self.repository.update_recall_record(
+                    article_id=article.id,
+                    updates={
+                        "monitoring_status": "completed_no_surge",
+                        "monitoring_completed_at": datetime.now()
+                    },
+                    session=session,
+                    date=received_at
+                )
+                
+                logger.info(
+                    "📊 SURGE MONITORING: Completed 2-minute monitoring, no SURGE detected",
+                    article_id=article.id,
+                    cycles_completed=max_cycles
+                )
+            
+            # Clean up monitoring task
+            async with self._monitoring_lock:
+                self._monitoring_tasks.pop(article.id, None)
+        
+        except asyncio.CancelledError:
+            logger.debug(
+                "Recall: Surge monitoring task cancelled",
+                article_id=article.id
+            )
+            async with self._monitoring_lock:
+                self._monitoring_tasks.pop(article.id, None)
+            raise
+        except Exception as e:
+            logger.error(
+                "Error in surge monitoring",
+                article_id=article.id,
+                error=str(e),
+                exc_info=True
+            )
+            async with self._monitoring_lock:
+                self._monitoring_tasks.pop(article.id, None)
+    
     async def _monitor_ticker_price(
         self,
         article_id: str,
         tickers: list[str],
         initial_nbbos: Dict[str, Dict[str, Any]],
         session: str,
-        received_at: datetime
+        received_at: datetime,
+        published_at: datetime
     ) -> None:
         """
-        Monitor ticker price for 5 minutes, then check if it moved 1%+.
+        Monitor ticker price for 10 minutes, track highest price and max adverse excursion.
         
-        Background task: Waits 5 minutes, then checks final price.
+        Background task: Waits 10 minutes, then analyzes price action:
+        - Final price at 10 minutes
+        - Highest price reached (with timestamp and minute/second)
+        - Lowest price reached (max adverse excursion, with timestamp and minute/second)
+        
+        Args:
+            article_id: Article ID
+            tickers: List of ticker symbols
+            initial_nbbos: Initial NBBO snapshots
+            session: Market session
+            received_at: When article was received
+            published_at: When article was published (used as hold period start)
         """
         try:
-            # Wait 5 minutes
-            await asyncio.sleep(300)  # 300 seconds = 5 minutes
+            # Wait 10 minutes (600 seconds)
+            hold_duration_seconds = 600  # 10 minutes
+            await asyncio.sleep(hold_duration_seconds)
             
             # Check if article was traded (OPTIONAL: skip if yes? User wants to track everything)
             # async with self._traded_lock:
@@ -421,33 +838,189 @@ class RecallStatsEngine:
             #         return  # We traded this, don't count as missed
             pass
             
-            # Get final NBBO for each ticker
+            # Get final NBBO and analyze price action during 15-minute hold
             final_nbbos = {}
             best_move = None
             best_ticker = None
+            highest_price_data = None
+            max_adverse_excursion_data = None
+            
+            # Use published_at as the start of the hold period (when article was published)
+            # This is consistent with how we track price action relative to news
+            monitoring_start = published_at
+            if monitoring_start.tzinfo is None:
+                monitoring_start = monitoring_start.replace(tzinfo=timezone.utc)
             
             for ticker in tickers:
+                if not initial_nbbos.get(ticker):
+                    continue
+                
+                initial_nbbo = initial_nbbos[ticker]
+                initial_bid = initial_nbbo.get("bid")
+                initial_ask = initial_nbbo.get("ask")
+                initial_mid = initial_nbbo.get("mid")
+                
+                # Entry price for calculations (we buy at ask)
+                entry_price = initial_ask if initial_ask else initial_mid
+                if not entry_price or entry_price <= 0:
+                    continue
+                
+                # Fetch minute bars for the 10-minute period to track highest/lowest
+                if self.market_data_client and StockBarsRequest:
+                    try:
+                        bars_end = monitoring_start + timedelta(minutes=15)
+                        bars_request = StockBarsRequest(
+                            symbol_or_symbols=[ticker],
+                            timeframe=TimeFrame.Minute,
+                            start=monitoring_start,
+                            end=bars_end,
+                            feed=DataFeed.SIP
+                        )
+                        bars_response = self.market_data_client.get_stock_bars(bars_request)
+                        
+                        highest_price = None
+                        highest_price_timestamp = None
+                        lowest_price = None
+                        lowest_price_timestamp = None
+                        
+                        if bars_response and bars_response.data and ticker in bars_response.data:
+                            # First pass: Find which minute had highest/lowest prices
+                            minute_with_highest = None
+                            minute_with_lowest = None
+                            
+                            for bar in bars_response.data[ticker]:
+                                bar_high = float(bar.high) if bar.high else None
+                                bar_low = float(bar.low) if bar.low else None
+                                bar_timestamp = bar.timestamp
+                                if bar_timestamp.tzinfo is None:
+                                    bar_timestamp = bar_timestamp.replace(tzinfo=timezone.utc)
+                                
+                                # Track highest price and which minute it occurred in
+                                if bar_high and (highest_price is None or bar_high > highest_price):
+                                    highest_price = bar_high
+                                    minute_with_highest = bar_timestamp
+                                
+                                # Track lowest price and which minute it occurred in
+                                if bar_low and (lowest_price is None or bar_low < lowest_price):
+                                    lowest_price = bar_low
+                                    minute_with_lowest = bar_timestamp
+                            
+                            # Second pass: Get exact second for highest price (fetch trades for that minute)
+                            highest_price_timestamp = minute_with_highest
+                            if highest_price and minute_with_highest and StockTradesRequest:
+                                try:
+                                    # Fetch trades for the minute with highest price to get exact second
+                                    minute_start = minute_with_highest.replace(second=0, microsecond=0)
+                                    minute_end = minute_start + timedelta(minutes=1)
+                                    trades_request = StockTradesRequest(
+                                        symbol_or_symbols=[ticker],
+                                        start=minute_start,
+                                        end=minute_end,
+                                        feed=DataFeed.SIP
+                                    )
+                                    trades_response = self.market_data_client.get_stock_trades(trades_request)
+                                    
+                                    if trades_response and trades_response.data and ticker in trades_response.data:
+                                        # Find the trade with the highest price in this minute (closest to bar high)
+                                        max_trade_price = None
+                                        for trade in trades_response.data[ticker]:
+                                            trade_price = float(trade.price) if trade.price else None
+                                            if trade_price:
+                                                # Update if this is the highest trade price we've seen
+                                                if max_trade_price is None or trade_price > max_trade_price:
+                                                    max_trade_price = trade_price
+                                                    trade_ts = trade.timestamp
+                                                    if trade_ts.tzinfo is None:
+                                                        trade_ts = trade_ts.replace(tzinfo=timezone.utc)
+                                                    highest_price_timestamp = trade_ts
+                                except Exception:
+                                    # If trades fetch fails, use minute-level timestamp (already set)
+                                    pass
+                            
+                            # Get exact second for lowest price (max adverse excursion)
+                            lowest_price_timestamp = minute_with_lowest
+                            if lowest_price and minute_with_lowest and StockTradesRequest:
+                                try:
+                                    # Fetch trades for the minute with lowest price to get exact second
+                                    minute_start = minute_with_lowest.replace(second=0, microsecond=0)
+                                    minute_end = minute_start + timedelta(minutes=1)
+                                    trades_request = StockTradesRequest(
+                                        symbol_or_symbols=[ticker],
+                                        start=minute_start,
+                                        end=minute_end,
+                                        feed=DataFeed.SIP
+                                    )
+                                    trades_response = self.market_data_client.get_stock_trades(trades_request)
+                                    
+                                    if trades_response and trades_response.data and ticker in trades_response.data:
+                                        # Find the trade with the lowest price in this minute (closest to bar low)
+                                        min_trade_price = None
+                                        for trade in trades_response.data[ticker]:
+                                            trade_price = float(trade.price) if trade.price else None
+                                            if trade_price:
+                                                # Update if this is the lowest trade price we've seen
+                                                if min_trade_price is None or trade_price < min_trade_price:
+                                                    min_trade_price = trade_price
+                                                    trade_ts = trade.timestamp
+                                                    if trade_ts.tzinfo is None:
+                                                        trade_ts = trade_ts.replace(tzinfo=timezone.utc)
+                                                    lowest_price_timestamp = trade_ts
+                                except Exception:
+                                    # If trades fetch fails, use minute-level timestamp (already set)
+                                    pass
+                            
+                            # Calculate percentages from entry price and build data structures
+                            if highest_price and highest_price_timestamp:
+                                highest_gain_pct = ((highest_price - entry_price) / entry_price) * 100
+                                highest_price_data = {
+                                    "price": highest_price,
+                                    "timestamp": highest_price_timestamp.isoformat(),
+                                    "percent_gain_from_entry": round(highest_gain_pct, 2),
+                                    "minute": highest_price_timestamp.minute,
+                                    "second": highest_price_timestamp.second,
+                                    "ticker": ticker
+                                }
+                            
+                            if lowest_price and lowest_price_timestamp:
+                                max_adverse_pct = ((lowest_price - entry_price) / entry_price) * 100
+                                # Calculate stop loss metrics
+                                stop_loss_percentage = abs(round(max_adverse_pct, 3))  # Minimum stop loss % needed (e.g., 2.125)
+                                stop_loss_dollar_per_share = round(entry_price * (stop_loss_percentage / 100), 4)  # Dollar loss per share
+                                
+                                max_adverse_excursion_data = {
+                                    "price": lowest_price,
+                                    "timestamp": lowest_price_timestamp.isoformat(),
+                                    "percent_loss_from_entry": round(max_adverse_pct, 2),
+                                    "minute": lowest_price_timestamp.minute,
+                                    "second": lowest_price_timestamp.second,
+                                    "stop_loss_percentage": stop_loss_percentage,  # Minimum stop loss % needed to avoid this loss
+                                    "stop_loss_dollar_per_share": stop_loss_dollar_per_share,  # Dollar amount lost per share at this stop
+                                    "ticker": ticker
+                                }
+                    except Exception as bars_error:
+                        logger.debug(
+                            "Recall: Error fetching minute bars for price tracking",
+                            article_id=article_id,
+                            ticker=ticker,
+                            error=str(bars_error)
+                        )
+                
+                # Get final NBBO at 10 minutes
                 nbbo = await self.quote_fetcher.get_nbbo_snapshot(ticker)
-                if nbbo and initial_nbbos.get(ticker):
-                    initial_nbbo = initial_nbbos[ticker]
-                    initial_bid = initial_nbbo.get("bid")
-                    initial_ask = initial_nbbo.get("ask")
-                    initial_mid = initial_nbbo.get("mid")
-                    
+                if nbbo:
                     final_bid = nbbo.get("bid")
                     final_ask = nbbo.get("ask")
                     final_mid = nbbo.get("mid")
                     
-                    # Calculate actual tradeable price change
+                    # Calculate actual tradeable price change (10 minutes)
                     # We buy at ask (pay more), sell at bid (get less)
                     # Actual P&L = (final_bid - initial_ask) / initial_ask
-                    # This is what we'd actually make if we bought and sold
                     
                     actual_pnl = None
                     if initial_ask and final_bid and initial_ask > 0:
                         actual_pnl = ((final_bid - initial_ask) / initial_ask) * 100
                     
-                    # Also track mid price change for reference (but don't use for decision)
+                    # Also track mid price change for reference
                     mid_price_change = None
                     if initial_mid and final_mid and initial_mid > 0:
                         mid_price_change = ((final_mid - initial_mid) / initial_mid) * 100
@@ -459,8 +1032,8 @@ class RecallStatsEngine:
                         final_nbbos[ticker] = {
                             **nbbo,
                             "percent_change": percent_change,
-                            "mid_price_change": mid_price_change,  # Keep for reference
-                            "actual_pnl": actual_pnl,  # Actual tradeable P&L
+                            "mid_price_change": mid_price_change,
+                            "actual_pnl": actual_pnl,
                             "moved_1_percent": percent_change >= 1.0
                         }
                         
@@ -469,30 +1042,46 @@ class RecallStatsEngine:
                             best_move = percent_change
                             best_ticker = ticker
             
-            # Update record with price check result
+            # Update record with price check result and tracking data
             if best_ticker and final_nbbos.get(best_ticker):
                 price_check = final_nbbos[best_ticker]
+                
+                updates = {
+                    "price_check_15min": price_check,  # Changed from price_check_5min
+                    "price_checked_at": datetime.now()
+                }
+                
+                # Add highest price tracking
+                if highest_price_data:
+                    updates["highest_price_during_hold"] = highest_price_data
+                
+                # Add max adverse excursion tracking
+                if max_adverse_excursion_data:
+                    updates["max_adverse_excursion"] = max_adverse_excursion_data
                 
                 # Update record in repository
                 updated = await self.repository.update_recall_record(
                     article_id=article_id,
-                    updates={
-                        "price_check_5min": price_check,
-                        "price_checked_at": datetime.now()
-                    },
+                    updates=updates,
                     session=session,
                     date=received_at
                 )
                 
                 if updated:
                     logger.info(
-                        "Recall: 5-minute price check completed",
+                        "Recall: 10-minute price check completed",
                         article_id=article_id,
                         best_ticker=best_ticker,
                         actual_pnl=price_check.get("actual_pnl"),
                         mid_price_change=price_check.get("mid_price_change"),
                         percent_change=best_move,
-                        moved_1_percent=price_check.get("moved_1_percent")
+                        moved_1_percent=price_check.get("moved_1_percent"),
+                        highest_price=highest_price_data.get("price") if highest_price_data else None,
+                        highest_gain_pct=highest_price_data.get("percent_gain_from_entry") if highest_price_data else None,
+                        max_adverse_price=max_adverse_excursion_data.get("price") if max_adverse_excursion_data else None,
+                        max_adverse_pct=max_adverse_excursion_data.get("percent_loss_from_entry") if max_adverse_excursion_data else None,
+                        stop_loss_percentage=max_adverse_excursion_data.get("stop_loss_percentage") if max_adverse_excursion_data else None,
+                        stop_loss_dollar_per_share=max_adverse_excursion_data.get("stop_loss_dollar_per_share") if max_adverse_excursion_data else None
                     )
                 else:
                     logger.warning(

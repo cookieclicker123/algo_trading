@@ -721,10 +721,21 @@ async def analyze_volume_around_event(
         else:
             # Check for SURGE Confluence (The USER-Defined Four-Pillar Gate)
             # "Size, trade count, momentum excursion and buying pressure"
+            # 
+            # BUYING PRESSURE THRESHOLD (70% = buy_vol must be 2.33x sell_vol):
+            # - 70% = imbalance 0.4 = buy_vol 2.33x sell_vol (current, quite strict)
+            # - 65% = imbalance 0.3 = buy_vol 1.86x sell_vol (recommended - still strong buying)
+            # - 60% = imbalance 0.2 = buy_vol 1.5x sell_vol (lenient - consider if missing good trades)
+            #
+            # Since other pillars (volume surge 3x, trades 2x, momentum 0.5%) already filter aggressively,
+            # we can afford to be slightly more lenient on buying pressure (65% recommended).
+            # Tune based on statistics: if missing good trades at 70%, lower to 65% or 60%.
+            BUYING_PRESSURE_THRESHOLD = 65.0  # 65% = buy volume 1.86x sell volume (still strong buying)
+            
             is_size_ok = surge_score >= 3.0
             is_freq_ok = trade_count_multiplier >= 2.0
-            is_mom_ok = max_excursion >= 0.5
-            is_conv_ok = pressure_pct >= 70.0
+            is_mom_ok = max_excursion >= 1.0  # Changed from 0.5% to 1.0% (stronger momentum requirement)
+            is_conv_ok = pressure_pct >= BUYING_PRESSURE_THRESHOLD
             
             if is_size_ok and is_freq_ok and is_mom_ok and is_conv_ok:
                 move_type = "SURGE"
@@ -830,7 +841,9 @@ def format_volume_stats_for_notification(analysis: VolumeSurgeAnalysis) -> List[
     # 4. CONVICTION (Buying Pressure)
     if analysis.imbalance_ratio is not None:
         pressure_pct = (analysis.imbalance_ratio + 1) / 2 * 100
-        conv_emj = "🟢" if pressure_pct >= 70 else "🟡" if pressure_pct >= 50 else "🔴"
+        # Use same threshold as SURGE check (65% currently)
+        SURGE_BUYING_PRESSURE_THRESHOLD = 65.0
+        conv_emj = "🟢" if pressure_pct >= SURGE_BUYING_PRESSURE_THRESHOLD else "🟡" if pressure_pct >= 50 else "🔴"
         lines.append(f"   {conv_emj} **Convict:** {pressure_pct:.1f}% BUY ({analysis.buy_volume:,} shares)")
 
     return lines

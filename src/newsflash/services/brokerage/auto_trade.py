@@ -12,7 +12,7 @@ from ...shared.event_bus import AsyncEventBus
 from ...shared.typed_event_bus import subscribe_typed
 from ...shared.event_types import DomainEventType
 from ...domain.brokerage.events import TradeRequestDomainEvent
-from ...domain.brokerage.models import TradeRequest, TradeAction
+from ...domain.brokerage.models import TradeRequest, TradeAction, TradeInstrument
 from ...domain.classification.events import ArticleClassifiedDomainEvent
 from ...domain.classification.models import ClassificationResult, ClassificationCategory
 from ...domain.websocket.models import Article
@@ -34,6 +34,10 @@ logger = get_logger(__name__)
 def should_process_classification(result: ClassificationResult, enabled: bool) -> bool:
     """
     Determine if a classification result should trigger auto-trade.
+    
+    NOTE: With AI classification disabled, this function is not currently used.
+    Trades are now triggered directly from SURGE detection in the recall engine.
+    This function is kept for when AI classification is re-enabled.
     
     Args:
         result: Classification result to check
@@ -114,25 +118,81 @@ async def fetch_article_for_trade(
     return None
 
 
-def build_trade_request_for_article(article: Article) -> Optional[TradeRequest]:
+def build_trade_request_for_article(article: Article, current_price: Optional[float] = None) -> Optional[TradeRequest]:
     """
-    Build a trade request from an article with 2x leverage.
+    Build a trade request from an article with $5,000 position size.
     
-    Business rule: Pay for 1 share, leverage the second.
-    No amount_usd needed - capital is always price of 1 share.
+    Business rule: Trade exactly $5,000 worth of shares.
+    - Calculate shares = floor(5000 / current_price) - rounded down to nearest share
+    - Each trade gets its own $5k allocation (even if multiple trades in same window)
+    - No leverage - direct capital usage
     
     Args:
         article: Domain Article model
+        current_price: Current ask price for buying (if None, will use amount_usd and let executor calculate)
         
     Returns:
-        Domain TradeRequest model, or None if invalid
+        Domain TradeRequest model with shares set (if price provided) or amount_usd=5000, or None if invalid
     """
-    trade_request = build_trade_request_from_article(
-        article=article,
-        amount_usd=None,  # Not used with leverage - capital is price of 1 share
-        leverage=Decimal("2.0"),
-        action=TradeAction.BUY
-    )
+    import math
+    
+    TRADE_SIZE_USD = Decimal("5000.00")  # Fixed $5k per trade
+    
+    # If we have price, calculate shares upfront and round down
+    if current_price and current_price > 0:
+        shares = math.floor(TRADE_SIZE_USD / Decimal(str(current_price)))
+        if shares <= 0:
+            logger.warning(
+                "⏭️ AUTO-TRADE SKIPPED: Price too high for $5k trade",
+                article_id=article.id,
+                current_price=current_price,
+                trade_size_usd=float(TRADE_SIZE_USD)
+            )
+            return None
+        
+        logger.info(
+            "💰 AUTO-TRADE: Building $5k trade with calculated shares",
+            article_id=article.id,
+            shares=shares,
+            current_price=current_price,
+            total_notional=float(shares * Decimal(str(current_price)))
+        )
+        
+        # Build trade request with explicit shares (no leverage, amount_usd for reference)
+        # Need to create TradeRequest directly with shares set
+        # article.tickers is a frozenset, so convert to list to get first element
+        ticker = next(iter(article.tickers), None) if article.tickers else None
+        if not ticker:
+            logger.info(
+                "⏭️ AUTO-TRADE SKIPPED: Article has no tickers",
+                article_id=article.id
+            )
+            return None
+        
+        # Create TradeRequest with shares calculated upfront (immutable model, so create new)
+        trade_request = TradeRequest(
+            ticker=ticker,
+            action=TradeAction.BUY,
+            shares=float(shares),  # Explicit shares calculated from $5k
+            amount_usd=TRADE_SIZE_USD,  # Reference value for tracking
+            leverage=None,  # No leverage - direct capital
+            article_id=article.id,
+            instrument=TradeInstrument.STOCK
+        )
+    else:
+        # Fallback: Set amount_usd and let executor calculate shares (will round down via int())
+        logger.info(
+            "💰 AUTO-TRADE: Building $5k trade (executor will calculate shares from price)",
+            article_id=article.id,
+            trade_size_usd=float(TRADE_SIZE_USD)
+        )
+        
+        trade_request = build_trade_request_from_article(
+            article=article,
+            amount_usd=TRADE_SIZE_USD,
+            leverage=None,  # No leverage - using direct capital
+            action=TradeAction.BUY
+        )
     
     if not trade_request:
         logger.info(
@@ -226,8 +286,16 @@ async def process_imminent_article(
             ticker_count=len(tickers_list)
         )
         
-        # Build trade request (with 2x leverage - pay for 1 share, leverage the second)
-        trade_request = build_trade_request_for_article(domain_article)
+        # Build trade request with $5k position size
+        # Try to get current price for calculating shares (if market_data_client available)
+        current_price = None
+        if domain_article.tickers:
+            ticker = list(domain_article.tickers)[0]
+            # Note: Could fetch price here if needed, but executor will handle if None
+            # For now, use fallback (executor will calculate shares from amount_usd)
+            pass
+        
+        trade_request = build_trade_request_for_article(domain_article, current_price=current_price)
         
         if not trade_request:
             return
