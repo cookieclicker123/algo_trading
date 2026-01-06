@@ -27,9 +27,9 @@ class RecallRecord(BaseModel):
     )
     
     # 10-minute price check result (formerly 5-minute, then 15-minute)
-    price_check_15min: Optional[Dict[str, Any]] = Field(
+    price_check_10min: Optional[Dict[str, Any]] = Field(
         None,
-        description="10-minute price check: final_mid, percent_change, moved_1_percent (field name kept for backward compatibility)"
+        description="10-minute price check: final_mid, percent_change, moved_1_percent"
     )
     
     # Ticker metadata (fetched via FinnhubCoordinator - shared across all services)
@@ -111,7 +111,7 @@ class RecallRecord(BaseModel):
         description="When monitoring completed (after 2 minutes or surge detected)"
     )
     
-    model_config = {"frozen": False}  # Allow updates for price_check_15min and monitoring fields
+    model_config = {"frozen": False}  # Allow updates for price_check_10min and monitoring fields
 
 
 class RecallSessionFile(BaseModel):

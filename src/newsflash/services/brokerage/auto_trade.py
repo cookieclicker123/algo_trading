@@ -120,30 +120,29 @@ async def fetch_article_for_trade(
 
 def build_trade_request_for_article(article: Article, current_price: Optional[float] = None) -> Optional[TradeRequest]:
     """
-    Build a trade request from an article with $5,000 position size.
+    Build a trade request from an article with $10,000 position size.
     
-    Business rule: Trade exactly $5,000 worth of shares.
-    - Calculate shares = floor(5000 / current_price) - rounded down to nearest share
-    - Each trade gets its own $5k allocation (even if multiple trades in same window)
-    - No leverage - direct capital usage
+    Business rule: Trade exactly $10,000 worth of shares.
+    - Calculate shares = floor(10000 / current_price) - rounded down to nearest share
+    - Each trade gets its own $10k allocation (even if multiple trades in same window)
     
     Args:
         article: Domain Article model
         current_price: Current ask price for buying (if None, will use amount_usd and let executor calculate)
         
     Returns:
-        Domain TradeRequest model with shares set (if price provided) or amount_usd=5000, or None if invalid
+        Domain TradeRequest model with shares set (if price provided) or amount_usd=10000, or None if invalid
     """
     import math
     
-    TRADE_SIZE_USD = Decimal("5000.00")  # Fixed $5k per trade
+    TRADE_SIZE_USD = Decimal("10000.00")  # Fixed $10k per trade
     
     # If we have price, calculate shares upfront and round down
     if current_price and current_price > 0:
         shares = math.floor(TRADE_SIZE_USD / Decimal(str(current_price)))
         if shares <= 0:
             logger.warning(
-                "⏭️ AUTO-TRADE SKIPPED: Price too high for $5k trade",
+                "⏭️ AUTO-TRADE SKIPPED: Price too high for $10k trade",
                 article_id=article.id,
                 current_price=current_price,
                 trade_size_usd=float(TRADE_SIZE_USD)
@@ -151,7 +150,7 @@ def build_trade_request_for_article(article: Article, current_price: Optional[fl
             return None
         
         logger.info(
-            "💰 AUTO-TRADE: Building $5k trade with calculated shares",
+            "💰 AUTO-TRADE: Building $10k trade with calculated shares",
             article_id=article.id,
             shares=shares,
             current_price=current_price,
@@ -173,7 +172,7 @@ def build_trade_request_for_article(article: Article, current_price: Optional[fl
         trade_request = TradeRequest(
             ticker=ticker,
             action=TradeAction.BUY,
-            shares=float(shares),  # Explicit shares calculated from $5k
+            shares=float(shares),  # Explicit shares calculated from $10k
             amount_usd=TRADE_SIZE_USD,  # Reference value for tracking
             leverage=None,  # No leverage - direct capital
             article_id=article.id,
@@ -182,7 +181,7 @@ def build_trade_request_for_article(article: Article, current_price: Optional[fl
     else:
         # Fallback: Set amount_usd and let executor calculate shares (will round down via int())
         logger.info(
-            "💰 AUTO-TRADE: Building $5k trade (executor will calculate shares from price)",
+            "💰 AUTO-TRADE: Building $10k trade (executor will calculate shares from price)",
             article_id=article.id,
             trade_size_usd=float(TRADE_SIZE_USD)
         )
@@ -286,7 +285,7 @@ async def process_imminent_article(
             ticker_count=len(tickers_list)
         )
         
-        # Build trade request with $5k position size
+        # Build trade request with $10k position size
         # Try to get current price for calculating shares (if market_data_client available)
         current_price = None
         if domain_article.tickers:

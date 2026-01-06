@@ -713,34 +713,24 @@ async def analyze_volume_around_event(
         if stats_now and bid_sz and ask_sz:
             post_trade_bid_ratio = round(bid_sz / ask_sz, 2)
 
-        # --- MOVE TYPE CLASSIFICATION (The Four-Pillar Gate) ---
+        # --- MOVE TYPE CLASSIFICATION (Simplified: Price Surge Only) ---
+        # EXPERIMENTAL: SURGE = 1% price move in 4-second window
+        # This is a simplified experiment to catch big movers early
+        # Can revert to Four-Pillar model if needed
         if current_vol is None or current_vol == 0:
             move_type = "INACTIVE"
         elif prior_avg_vol == 0:
             move_type = "NEW_ACTIVITY"
         else:
-            # Check for SURGE Confluence (The USER-Defined Four-Pillar Gate)
-            # "Size, trade count, momentum excursion and buying pressure"
-            # 
-            # BUYING PRESSURE THRESHOLD (70% = buy_vol must be 2.33x sell_vol):
-            # - 70% = imbalance 0.4 = buy_vol 2.33x sell_vol (current, quite strict)
-            # - 65% = imbalance 0.3 = buy_vol 1.86x sell_vol (recommended - still strong buying)
-            # - 60% = imbalance 0.2 = buy_vol 1.5x sell_vol (lenient - consider if missing good trades)
-            #
-            # Since other pillars (volume surge 3x, trades 2x, momentum 0.5%) already filter aggressively,
-            # we can afford to be slightly more lenient on buying pressure (65% recommended).
-            # Tune based on statistics: if missing good trades at 70%, lower to 65% or 60%.
-            BUYING_PRESSURE_THRESHOLD = 65.0  # 65% = buy volume 1.86x sell volume (still strong buying)
+            # SIMPLIFIED SURGE: Only check price movement
+            # If price moves 1%+ in the 4-second window, it's a SURGE
+            # No volume, trade count, or buying pressure requirements
+            PRICE_SURGE_THRESHOLD = 1.0  # 1% price move
             
-            is_size_ok = surge_score >= 3.0
-            is_freq_ok = trade_count_multiplier >= 2.0
-            is_mom_ok = max_excursion >= 1.0  # Changed from 0.5% to 1.0% (stronger momentum requirement)
-            is_conv_ok = pressure_pct >= BUYING_PRESSURE_THRESHOLD
-            
-            if is_size_ok and is_freq_ok and is_mom_ok and is_conv_ok:
+            if max_excursion >= PRICE_SURGE_THRESHOLD:
                 move_type = "SURGE"
             elif surge_score >= 1.5:
-                # High volume but missing a core pillar
+                # High volume but price didn't move enough
                 move_type = "STRENGTH"
             elif surge_score >= 1.0:
                 move_type = "NORMAL_ACTIVITY"

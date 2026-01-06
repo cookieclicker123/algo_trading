@@ -82,6 +82,31 @@ class ExitTradeUseCase:
         self.event_bus.unsubscribe(DomainEventType.TRADE_EXECUTED, self._trade_executed_wrapper)
         logger.info("ExitTradeUseCase stopped")
     
+    def cancel_scheduled_exit(self, ticker: str) -> bool:
+        """
+        Cancel scheduled exit for a ticker (called when manual exit happens).
+        
+        Args:
+            ticker: Ticker symbol to cancel exit for
+            
+        Returns:
+            True if exit was cancelled, False if no exit was scheduled
+        """
+        if ticker in self._scheduled_exits:
+            task = self._scheduled_exits[ticker]
+            if not task.done():
+                task.cancel()
+                del self._scheduled_exits[ticker]
+                logger.info(
+                    "ExitTradeUseCase: Cancelled scheduled exit due to manual exit",
+                    ticker=ticker
+                )
+                return True
+            else:
+                # Task already completed, remove from dict
+                del self._scheduled_exits[ticker]
+        return False
+    
     async def _handle_trade_executed(
         self,
         domain_event: TradeExecutedDomainEvent,

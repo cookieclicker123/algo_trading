@@ -334,6 +334,111 @@ class BrokerageService:
         """Get all queued trades."""
         return self.queue_manager.get_queued_trades()
     
+    async def get_positions(self) -> list[Dict[str, Any]]:
+        """
+        Get all open positions from Alpaca.
+        
+        Returns:
+            List of position dictionaries with symbol, qty, market_value, etc.
+        """
+        try:
+            await self.connection_manager.ensure_connected()
+            positions = self.connection_manager.trading_client.get_all_positions()
+            
+            result = []
+            for pos in positions:
+                result.append({
+                    "symbol": pos.symbol,
+                    "qty": float(pos.qty),
+                    "market_value": float(pos.market_value) if pos.market_value else 0.0,
+                    "unrealized_pl": float(pos.unrealized_pl) if pos.unrealized_pl else 0.0,
+                    "avg_entry_price": float(pos.avg_entry_price) if pos.avg_entry_price else 0.0,
+                })
+            
+            return result
+        except Exception as exc:
+            logger.error(f"Failed to get positions: {exc}", error=str(exc))
+            return []
+    
+    async def manual_exit_position(
+        self,
+        ticker: str,
+        exit_percentage: float = 1.0,
+        entry_price: Optional[float] = None
+    ) -> Dict[str, Any]:
+        """
+        Manually exit a position (or portion of it).
+        
+        Args:
+            ticker: Ticker symbol to exit
+            exit_percentage: Percentage of position to exit (0.0 to 1.0, default 1.0 = 100%)
+            entry_price: Optional entry price for P&L calculation (if None, will try to get from position)
+            
+        Returns:
+            Trade result dictionary with success, shares, fill_price, etc.
+        """
+        try:
+            # Get current positions
+            positions = await self.get_positions()
+            position = next((p for p in positions if p["symbol"].upper() == ticker.upper()), None)
+            
+            if not position:
+                return {
+                    "success": False,
+                    "error": f"No open position found for {ticker}",
+                    "ticker": ticker
+                }
+            
+            # Calculate shares to sell
+            total_shares = position["qty"]
+            shares_to_sell = int(total_shares * exit_percentage)
+            
+            if shares_to_sell <= 0:
+                return {
+                    "success": False,
+                    "error": f"Invalid exit percentage: {exit_percentage} (would sell 0 shares)",
+                    "ticker": ticker,
+                    "total_shares": total_shares
+                }
+            
+            # Use entry price from position if not provided
+            if entry_price is None:
+                entry_price = position.get("avg_entry_price", 0.0)
+            
+            # Create SELL trade request
+            from ...domain.brokerage.models import TradeRequest, TradeAction, TradeInstrument
+            trade_request = TradeRequest(
+                ticker=ticker.upper(),
+                action=TradeAction.SELL,
+                shares=shares_to_sell,
+                amount_usd=None,
+                leverage=None,
+                article_id=None,  # Manual exit, no article
+                instrument=TradeInstrument.STOCK
+            )
+            
+            # Execute the exit trade using the same smart exit system
+            result = await self.execute_trade(trade_request)
+            
+            # Add position info to result
+            result["position_info"] = {
+                "total_shares": total_shares,
+                "shares_sold": shares_to_sell,
+                "shares_remaining": total_shares - shares_to_sell,
+                "exit_percentage": exit_percentage,
+                "entry_price": entry_price
+            }
+            
+            return result
+            
+        except Exception as exc:
+            logger.error(f"Failed to manually exit position {ticker}: {exc}", error=str(exc), exc_info=True)
+            return {
+                "success": False,
+                "error": f"Failed to exit position: {str(exc)}",
+                "ticker": ticker
+            }
+    
     def get_stats(self) -> Dict[str, Any]:
         """Get brokerage service statistics."""
         stats = {

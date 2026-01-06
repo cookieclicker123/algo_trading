@@ -41,7 +41,8 @@ def _create_trade_handler_if_enabled(
         factory = getattr(container, factory_attr)
         return factory(
             bot_token=telegram_config["bot_token"],
-            trading_service=brokerage_infra
+            brokerage_service=brokerage_infra,
+            exit_trade_use_case=None  # Will be set later after exit_trade_use_case is created
         )
     return None
 
@@ -209,6 +210,14 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
     brokerage.exit_trade_use_case = exit_trade_use_case
     await exit_trade_use_case.start()
     logger.info("Exit trade use case created and started via DI container")
+    
+    # Update trade handlers with exit_trade_use_case (created after exit_trade_use_case)
+    if trade_handler:
+        trade_handler.exit_trade_use_case = exit_trade_use_case
+        trade_handler.brokerage_service = brokerage.infra
+    if trade_handler_2:
+        trade_handler_2.exit_trade_use_case = exit_trade_use_case
+        trade_handler_2.brokerage_service = brokerage.infra
     
     # Notify trade executed use case - sends notifications when trades execute
     # Pass market_data_client for volume stats analysis

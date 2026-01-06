@@ -1,12 +1,13 @@
 """
-Telegram bot handler for processing user trade decisions.
-Handles replies to IMMINENT news messages.
+Telegram bot handler for manual trade interventions.
+Handles exit commands for manual position management.
 """
 import asyncio
+import re
+from typing import Optional
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
-from ...models.base_models import TradeRequest
 from ...utils.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -14,26 +15,35 @@ logger = get_logger(__name__)
 
 class TelegramTradeHandler:
     """
-    Handles Telegram bot interactions for trade decisions.
-    Processes user replies to IMMINENT news messages.
+    Handles Telegram bot interactions for manual trade interventions.
+    Processes exit commands: "exit TICKER AMOUNT"
     
     ✅ STATELESS DESIGN: No singleton pattern - DI container manages instances
     """
     
-    def __init__(self, bot_token: str, trading_service=None):
+    def __init__(
+        self,
+        bot_token: str,
+        brokerage_service=None,
+        exit_trade_use_case=None
+    ):
         """
         Initialize Telegram trade handler.
         
         Args:
             bot_token: Telegram bot token
-            trading_service: Trading service instance
+            brokerage_service: BrokerageService instance for executing exits
+            exit_trade_use_case: ExitTradeUseCase instance for cancelling scheduled exits
         """
         self.bot_token = bot_token
-        # New brokerage service (or compatible interface)
-        self.trading_service = trading_service
-        if not self.trading_service:
-            logger.warning("No trading service provided to TelegramTradeHandler - trades will fail")
+        self.brokerage_service = brokerage_service
+        self.exit_trade_use_case = exit_trade_use_case
         self.application = None
+        
+        if not self.brokerage_service:
+            logger.warning("No brokerage service provided to TelegramTradeHandler - exits will fail")
+        if not self.exit_trade_use_case:
+            logger.warning("No exit trade use case provided - scheduled exits won't be cancelled")
         
         logger.info("Telegram trade handler initialized", bot_token=bot_token[:10] + "...")
     
@@ -107,189 +117,213 @@ class TelegramTradeHandler:
         """Handle /start command."""
         await update.message.reply_text(
             "🤖 NewsFlash Trading Bot\n\n"
-            "I'll send you IMMINENT news alerts with trading options.\n"
-            "Reply with:\n"
-            "• 'trade' - Trade the default ticker\n"
-            "• 'trade TICKER' - Trade specific ticker\n"
-            "• 'ignore' - Ignore the news\n"
-            "• No reply - Defaults to ignore\n\n"
+            "Manual exit commands:\n"
+            "• `exit TICKER` - Exit 100% of position\n"
+            "• `exit TICKER 0.4` - Exit 40% of position\n"
+            "• `exit TICKER 1` - Exit 100% of position\n\n"
+            "Example: `exit AAPL 0.5`\n\n"
             "Use /help for more info."
         )
     
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /help command."""
         await update.message.reply_text(
-            "📖 Trading Commands:\n\n"
-            "When you receive IMMINENT news:\n"
-            "• Reply 'trade' to buy $100 of the default ticker\n"
-            "• Reply 'trade AAPL' to buy $100 of specific ticker\n"
-            "• Reply 'ignore' to ignore the news\n"
-            "• No reply = ignore (default)\n\n"
-            "⏰ You have 30 minutes to decide before the next news arrives.\n"
-            "💰 Each trade is $100 USD.\n"
-            "🎯 Only IMMINENT news triggers trading options."
+            "📖 Manual Exit Commands:\n\n"
+            "Exit positions manually:\n"
+            "• `exit TICKER` - Exit 100% of position\n"
+            "• `exit TICKER 0.4` - Exit 40% of position\n"
+            "• `exit TICKER 1` - Exit 100% of position\n\n"
+            "Examples:\n"
+            "• `exit AAPL` - Exit all AAPL shares\n"
+            "• `exit TSLA 0.5` - Exit 50% of TSLA position\n\n"
+            "The system will automatically exit after 10 minutes if you don't intervene."
         )
     
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle incoming messages (trade decisions)."""
+        """Handle incoming messages - parse exit commands."""
         try:
-            user_chat_id = str(update.effective_chat.id)
-            message_text = update.message.text
+            message_text = update.message.text.strip()
             
-            logger.info("Received user message", 
-                       chat_id=user_chat_id,
-                       message=message_text)
+            logger.info("Received user message", message=message_text)
             
-            # Process the trade decision
-            trade_request = self.trading_service.process_user_response(user_chat_id, message_text)
+            # Parse exit command: "exit TICKER" or "exit TICKER AMOUNT"
+            exit_match = re.match(r'^exit\s+([A-Za-z]+)(?:\s+([0-9.]+))?$', message_text, re.IGNORECASE)
             
-            if trade_request:
-                # User wants to trade
-                await self._handle_trade_request(update, trade_request)
+            if exit_match:
+                ticker = exit_match.group(1).upper()
+                amount_str = exit_match.group(2)
+                
+                # Parse amount (default to 1.0 = 100% if not provided)
+                if amount_str is None:
+                    exit_percentage = 1.0
+                else:
+                    try:
+                        exit_percentage = float(amount_str)
+                        if exit_percentage <= 0 or exit_percentage > 1.0:
+                            await update.message.reply_text(
+                                f"❌ Invalid exit amount: {amount_str}\n"
+                                f"Please use a value between 0 and 1 (e.g., 0.4 for 40%, 1 for 100%)"
+                            )
+                            return
+                    except ValueError:
+                        await update.message.reply_text(
+                            f"❌ Invalid exit amount: {amount_str}\n"
+                            f"Please use a number between 0 and 1 (e.g., 0.4 for 40%)"
+                        )
+                        return
+                
+                # Handle exit command
+                await self._handle_exit_command(update, ticker, exit_percentage)
             else:
-                # User wants to ignore or invalid response
-                await self._handle_ignore_or_invalid(update, message_text)
+                # Unknown command
+                await update.message.reply_text(
+                    "❓ Unknown command. Available commands:\n\n"
+                    "• `exit TICKER` - Exit 100% of position\n"
+                    "• `exit TICKER 0.4` - Exit 40% of position\n"
+                    "• `exit TICKER 1` - Exit 100% of position\n\n"
+                    "Example: `exit AAPL 0.5`"
+                )
                 
         except Exception as e:
-            logger.error("Error handling user message", error=str(e))
+            logger.error("Error handling user message", error=str(e), exc_info=True)
             await update.message.reply_text(
                 "❌ Error processing your request. Please try again."
             )
     
-    async def _handle_trade_request(self, update: Update, trade_request: TradeRequest):
-        """Handle a trade request."""
+    async def _handle_exit_command(
+        self,
+        update: Update,
+        ticker: str,
+        exit_percentage: float
+    ) -> None:
+        """Handle exit command: exit TICKER AMOUNT"""
         try:
-            # Send confirmation message
+            if not self.brokerage_service:
+                await update.message.reply_text(
+                    "❌ Brokerage service not available. Cannot execute exit."
+                )
+                return
+            
+            # Get position info first
+            positions = await self.brokerage_service.get_positions()
+            position = next((p for p in positions if p["symbol"].upper() == ticker.upper()), None)
+            
+            if not position:
+                await update.message.reply_text(
+                    f"❌ No open position found for {ticker}\n\n"
+                    f"Available positions:\n" +
+                    "\n".join([f"• {p['symbol']}: {p['qty']:.0f} shares" for p in positions]) if positions else "• None"
+                )
+                return
+            
+            total_shares = position["qty"]
+            shares_to_sell = int(total_shares * exit_percentage)
+            entry_price = position.get("avg_entry_price", 0.0)
+            
+            if shares_to_sell <= 0:
+                await update.message.reply_text(
+                    f"❌ Invalid: Would sell 0 shares\n"
+                    f"Total position: {total_shares:.0f} shares\n"
+                    f"Exit percentage: {exit_percentage * 100:.1f}%"
+                )
+                return
+            
+            # Send "sending order" message
             await update.message.reply_text(
-                f"🚀 Executing trade:\n"
-                f"📈 Ticker: {trade_request.ticker}\n"
-                f"💰 Amount: ${trade_request.amount_usd}\n"
-                f"📊 Action: {trade_request.action}\n\n"
-                f"⏳ Processing..."
+                f"📤 Sending exit order...\n"
+                f"📈 Ticker: {ticker}\n"
+                f"📦 Selling: {shares_to_sell:.0f} shares ({exit_percentage * 100:.1f}%)\n"
+                f"📊 Total position: {total_shares:.0f} shares"
             )
             
-            # Execute the trade
-            # New service uses execute_trade, old service uses process_trade_request
-            if hasattr(self.trading_service, 'execute_trade'):
-                trade_result = await self.trading_service.execute_trade(trade_request)
-                # New service returns dict
-                success = trade_result.get("success", False)
-                shares = trade_result.get("shares", 0)
-                fill_price = trade_result.get("fill_price", 0.0)
-                total_cost = trade_result.get("total_cost", 0.0)
-                error = trade_result.get("error", "")
-            else:
-                # Old service returns TradeResult object
-                trade_result = await self.trading_service.process_trade_request(trade_request)
-                success = trade_result.success
-                shares = trade_result.shares
-                fill_price = trade_result.fill_price
-                total_cost = trade_result.total_cost
-                error = trade_result.error
+            # Cancel scheduled auto-exit if exists (for full exits)
+            if exit_percentage >= 1.0 and self.exit_trade_use_case:
+                cancelled = self.exit_trade_use_case.cancel_scheduled_exit(ticker)
+                if cancelled:
+                    logger.info(
+                        "TelegramTradeHandler: Cancelled scheduled auto-exit due to manual exit",
+                        ticker=ticker
+                    )
             
-            if success:
-                await update.message.reply_text(
-                    f"✅ Trade executed successfully!\n"
-                    f"📈 {trade_request.ticker}: {shares} share(s) at ${fill_price:.2f}\n"
-                    f"💰 Total cost: ${total_cost:.2f}\n"
-                    f"🎯 Fill price: ${fill_price:.2f}"
-                )
+            # Execute manual exit
+            result = await self.brokerage_service.manual_exit_position(
+                ticker=ticker,
+                exit_percentage=exit_percentage,
+                entry_price=entry_price
+            )
+            
+            if result.get("success"):
+                fill_price = result.get("fill_price", 0.0)
+                shares_sold = result.get("shares", 0)
+                position_info = result.get("position_info", {})
+                shares_remaining = position_info.get("shares_remaining", 0)
+                total_shares_original = position_info.get("total_shares", 0)
+                
+                # Calculate P&L
+                entry_price_used = entry_price
+                exit_price_used = fill_price
+                pnl = (exit_price_used - entry_price_used) * shares_sold
+                pnl_percent = ((exit_price_used - entry_price_used) / entry_price_used * 100) if entry_price_used > 0 else 0
+                
+                # Build success message
+                message_parts = [
+                    f"✅ Exit order filled!",
+                    "",
+                    f"📈 Ticker: {ticker}",
+                    f"📦 Shares sold: {shares_sold:.0f}",
+                    f"💵 Exit price: ${exit_price_used:.2f}",
+                    f"💰 Entry price: ${entry_price_used:.2f}",
+                    "",
+                    "💰 PROFIT/LOSS:",
+                    f"   Entry Price: ${entry_price_used:.2f}",
+                    f"   Exit Price: ${exit_price_used:.2f}",
+                    f"   Entry Cost: ${entry_price_used * shares_sold:.2f}",
+                    f"   Exit Proceeds: ${exit_price_used * shares_sold:.2f}",
+                ]
+                
+                if pnl >= 0:
+                    message_parts.append(f"   ✅ Profit: ${pnl:.2f} ({pnl_percent:+.2f}%)")
+                else:
+                    message_parts.append(f"   ❌ Loss: ${pnl:.2f} ({pnl_percent:+.2f}%)")
+                
+                # Add position status
+                if shares_remaining > 0:
+                    remaining_pct = (shares_remaining / total_shares_original * 100) if total_shares_original > 0 else 0
+                    message_parts.extend([
+                        "",
+                        f"📊 Position Status:",
+                        f"   Remaining: {shares_remaining:.0f} shares ({remaining_pct:.1f}%)"
+                    ])
+                else:
+                    message_parts.extend([
+                        "",
+                        f"📊 Position Status:",
+                        f"   ✅ Position fully closed"
+                    ])
+                
+                await update.message.reply_text("\n".join(message_parts))
+                
             else:
+                error = result.get("error", "Unknown error")
                 await update.message.reply_text(
-                    f"❌ Trade execution failed.\n"
-                    f"📈 {trade_request.ticker}: ${trade_request.amount_usd} {trade_request.action}\n"
-                    f"🚨 Error: {error}\n\n"
-                    f"🔍 Check the server logs for detailed error information.\n"
-                    f"Common issues:\n"
-                    f"• Market closed (trade will be queued)\n"
-                    f"• Insufficient buying power\n"
-                    f"• Invalid ticker symbol\n"
-                    f"• Brokerage connection issues"
+                    f"❌ Exit order failed\n"
+                    f"📈 Ticker: {ticker}\n"
+                    f"🚨 Error: {error}"
                 )
                 
         except Exception as e:
-            logger.error("Error executing trade", error=str(e))
+            logger.error("Error handling exit command", error=str(e), exc_info=True)
             await update.message.reply_text(
-                "❌ Error executing trade. Please try again later."
+                "❌ Error executing exit. Please try again."
             )
     
-    async def _handle_ignore_or_invalid(self, update: Update, message_text: str):
-        """Handle ignore or invalid responses."""
-        message_text = message_text.strip().lower()
-        
-        if message_text == "ignore":
-            await update.message.reply_text(
-                "👌 News ignored. Waiting for next IMMINENT alert..."
-            )
-        else:
-            # Check if it's a "trade" command with no pending trade
-            if message_text == "trade":
-                await update.message.reply_text(
-                    "📈 No recent news to trade. You can trade any ticker:\n\n"
-                    "• 'trade AAPL' - Trade Apple stock\n"
-                    "• 'trade MSFT' - Trade Microsoft stock\n"
-                    "• 'trade TSLA' - Trade Tesla stock\n\n"
-                    "Or wait for the next IMMINENT news alert!"
-                )
-            else:
-                await update.message.reply_text(
-                    "❓ Invalid response. Please reply with:\n"
-                    "• 'trade' - Trade default ticker (if recent news)\n"
-                    "• 'trade TICKER' - Trade specific ticker (any time)\n"
-                    "• 'ignore' - Ignore news\n\n"
-                    "Use /help for more info."
-                )
-    
-    async def send_imminent_alert(self, chat_id: str, message_text: str, tickers: list):
-        """
-        Send IMMINENT news alert with trading options.
-        
-        Args:
-            chat_id: Telegram chat ID
-            message_text: Formatted news message
-            tickers: List of tickers for trading
-        """
-        try:
-            # Send the news message
-            await self.application.bot.send_message(
-                chat_id=chat_id,
-                text=message_text,
-                parse_mode='HTML'
-            )
-            
-            # Add trading options message
-            ticker_list = ", ".join(tickers) if len(tickers) > 1 else tickers[0]
-            trading_message = (
-                f"\n🎯 TRADING OPTIONS:\n"
-                f"📊 Tickers: {ticker_list}\n"
-                f"💰 Amount: $100 per trade\n"
-                f"⏰ Reply within 30 minutes\n\n"
-                f"Reply with:\n"
-                f"• 'trade' - Trade default ticker\n"
-                f"• 'trade {tickers[0]}' - Trade specific ticker\n"
-                f"• 'ignore' - Ignore this news\n"
-                f"• No reply = ignore"
-            )
-            
-            await self.application.bot.send_message(
-                chat_id=chat_id,
-                text=trading_message
-            )
-            
-            # Note: Pending trade tracking removed - new brokerage service doesn't track pending trades
-            # Trades are executed immediately or queued if market is closed
-            
-            logger.info("Sent IMMINENT alert with trading options",
-                       chat_id=chat_id,
-                       tickers=tickers)
-            
-        except Exception as e:
-            logger.error("Failed to send IMMINENT alert", 
-                        chat_id=chat_id,
-                        error=str(e))
 
 
-def get_telegram_trade_handler(bot_token: str, trading_service=None) -> TelegramTradeHandler:
+def get_telegram_trade_handler(
+    bot_token: str,
+    brokerage_service=None,
+    exit_trade_use_case=None
+) -> TelegramTradeHandler:
     """
     Factory function for Telegram trade handler.
     
@@ -298,9 +332,14 @@ def get_telegram_trade_handler(bot_token: str, trading_service=None) -> Telegram
     
     Args:
         bot_token: Telegram bot token
-        trading_service: Optional trading service instance
+        brokerage_service: Optional BrokerageService instance
+        exit_trade_use_case: Optional ExitTradeUseCase instance
         
     Returns:
         TelegramTradeHandler instance
     """
-    return TelegramTradeHandler(bot_token, trading_service)
+    return TelegramTradeHandler(
+        bot_token=bot_token,
+        brokerage_service=brokerage_service,
+        exit_trade_use_case=exit_trade_use_case
+    )

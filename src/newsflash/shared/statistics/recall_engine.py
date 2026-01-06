@@ -1047,7 +1047,7 @@ class RecallStatsEngine:
                 price_check = final_nbbos[best_ticker]
                 
                 updates = {
-                    "price_check_15min": price_check,  # Changed from price_check_5min
+                    "price_check_10min": price_check,  # Changed from price_check_5min to 10min
                     "price_checked_at": datetime.now()
                 }
                 

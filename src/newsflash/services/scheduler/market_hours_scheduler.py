@@ -5,8 +5,10 @@ Shuts down heavy services (websocket) during off-hours to prevent rate limits
 and restarts them before market opens.
 
 Schedule:
-- Shutdown: 1:00 AM ET (after postmarket, before dead hours)
-- Startup: 3:55 AM ET (5 minutes before premarket at 4:00 AM ET)
+- Premarket shutdown: 9:30 AM ET (market open - system inactive during market hours)
+- Postmarket startup: 3:45 PM ET (15 minutes before postmarket at 4:00 PM ET)
+- Overnight shutdown: 1:00 AM ET (after postmarket, before dead hours)
+- Premarket startup: 3:55 AM ET (5 minutes before premarket at 4:00 AM ET)
 """
 import asyncio
 from datetime import datetime, timedelta
@@ -25,6 +27,8 @@ class MarketHoursScheduler:
     Scheduler that manages service lifecycle based on market hours.
     
     Responsibilities:
+    - Shutdown websocket at 9:30 AM ET (market open - system inactive during market hours)
+    - Restart websocket at 3:45 PM ET (15 min before postmarket)
     - Shutdown websocket at 1:00 AM ET (off-hours)
     - Restart websocket at 3:55 AM ET (5 min before premarket)
     - Monitor market session to determine shutdown/startup times
@@ -59,6 +63,12 @@ class MarketHoursScheduler:
         self.shutdown_minute = shutdown_minute
         self.startup_hour = startup_hour
         self.startup_minute = startup_minute
+        
+        # Market hours shutdown/startup times
+        self.market_open_shutdown_hour = 9  # 9:30 AM ET (market open)
+        self.market_open_shutdown_minute = 30
+        self.postmarket_startup_hour = 15  # 3:45 PM ET (15 min before postmarket at 4:00 PM)
+        self.postmarket_startup_minute = 45
         
         # Track scheduler state
         self._scheduler_task: Optional[asyncio.Task] = None
@@ -114,15 +124,29 @@ class MarketHoursScheduler:
             # Weekday - check market session
             session, _ = get_market_session()
             
-            if session in ["premarket", "market_hours", "postmarket"]:
-                # We're in a trading session - websocket should be running
+            if session == "market_hours":
+                # Market hours - websocket should be DOWN (system inactive during market hours)
+                if self.services.websocket and self.services.websocket.infra:
+                    if hasattr(self.services.websocket.infra, '_threads_should_run') and self.services.websocket.infra._threads_should_run:
+                        await self._send_notification(
+                            f"⏸️ WebSocket NOT started (market hours)\n"
+                            f"📍 Detected: Market Hours\n"
+                            f"🕐 Time: {time_str}\n"
+                            f"⏰ Will start: 3:45 PM ET (15 min before postmarket)"
+                        )
+                        await self.services.websocket.stop()
+                        logger.info("MarketHoursScheduler: Websocket shut down for market hours")
+                self._websocket_shutdown = True
+            elif session in ["premarket", "postmarket"]:
+                # We're in premarket or postmarket - websocket should be running
                 if self.services.websocket and self.services.websocket.infra:
                     if hasattr(self.services.websocket.infra, '_threads_should_run') and self.services.websocket.infra._threads_should_run:
                         self._websocket_shutdown = False
+                        next_shutdown = "9:30 AM ET" if session == "premarket" else "1:00 AM ET"
                         await self._send_notification(
                             f"✅ WebSocket running ({session})\n"
                             f"🕐 Time: {time_str}\n"
-                            f"⏰ Will shutdown: 8:00 PM ET"
+                            f"⏰ Will shutdown: {next_shutdown}"
                         )
                         logger.info(
                             "MarketHoursScheduler: Detected trading session, websocket is running",
@@ -220,6 +244,14 @@ class MarketHoursScheduler:
                 elif is_weekday and not is_monday and current_hour == self.startup_hour and current_minute == self.startup_minute:
                     await self._handle_startup_time(now_et, is_weekend_startup=False)
                 
+                # Check if it's a weekday and market open shutdown time (9:30 AM ET) - market hours shutdown
+                elif is_weekday and current_hour == self.market_open_shutdown_hour and current_minute == self.market_open_shutdown_minute:
+                    await self._handle_market_hours_shutdown(now_et)
+                
+                # Check if it's a weekday and postmarket startup time (3:45 PM ET) - postmarket startup
+                elif is_weekday and current_hour == self.postmarket_startup_hour and current_minute == self.postmarket_startup_minute:
+                    await self._handle_postmarket_startup(now_et)
+                
                 # Safety check: If it's Saturday or Sunday and websocket is running, shut it down
                 is_weekend = now_et.weekday() >= 5  # Saturday = 5, Sunday = 6
                 if is_weekend and not self._websocket_shutdown:
@@ -230,11 +262,12 @@ class MarketHoursScheduler:
                     await self._handle_shutdown_time(now_et, is_weekend_shutdown=True)
                 
                 # Check if we're in a trading session and websocket is down (shouldn't happen, but recover)
-                # BUT: Skip this check on weekends
+                # BUT: Skip this check on weekends AND during market hours (we intentionally shut down during market hours)
                 is_weekend = now_et.weekday() >= 5  # Saturday = 5, Sunday = 6
                 if not is_weekend:
                     session, _ = get_market_session()
-                    if session in ["premarket", "market_hours", "postmarket"]:
+                    # Only recover if in premarket or postmarket (NOT market_hours - we shut down intentionally)
+                    if session in ["premarket", "postmarket"]:
                         if self._websocket_shutdown:
                             logger.warning(
                                 "MarketHoursScheduler: Detected trading session but websocket is down - restarting",
@@ -382,6 +415,107 @@ class MarketHoursScheduler:
                 f"🚨 Error: {str(e)}"
             )
     
+    async def _handle_market_hours_shutdown(self, now_et: datetime) -> None:
+        """
+        Handle market hours shutdown - stop websocket at market open (9:30 AM ET).
+        
+        Args:
+            now_et: Current time in ET
+        """
+        if self._websocket_shutdown:
+            logger.debug("MarketHoursScheduler: Websocket already shut down, skipping")
+            return
+        
+        time_str = now_et.strftime("%Y-%m-%d %H:%M:%S %Z")
+        
+        logger.info(
+            "MarketHoursScheduler: Market open - shutting down websocket (system inactive during market hours)",
+            time=time_str,
+            next_startup="3:45 PM ET (15 min before postmarket)"
+        )
+        
+        # Send notification - attempting shutdown
+        await self._send_notification(
+            f"🔴 Shutting down WebSocket (market hours)\n"
+            f"📍 Market opened at 9:30 AM ET\n"
+            f"🕐 Time: {time_str}\n"
+            f"⏰ Will restart: 3:45 PM ET (15 min before postmarket)\n"
+            f"💡 System inactive during market hours (edge only in pre/post market)"
+        )
+        
+        try:
+            # Gracefully stop websocket
+            if self.services.websocket:
+                await self.services.websocket.stop()
+                self._websocket_shutdown = True
+                logger.info("MarketHoursScheduler: Websocket stopped for market hours")
+                
+                # Send success notification
+                await self._send_notification(
+                    f"✅ WebSocket shutdown complete (market hours)\n"
+                    f"🕐 Time: {time_str}\n"
+                    f"⏰ Will restart: 3:45 PM ET"
+                )
+        except Exception as e:
+            logger.error(
+                "MarketHoursScheduler: Error stopping websocket for market hours",
+                error=str(e),
+                exc_info=True
+            )
+            # Send failure notification
+            await self._send_notification(
+                f"❌ WebSocket shutdown FAILED (market hours)\n"
+                f"🚨 Error: {str(e)}"
+            )
+    
+    async def _handle_postmarket_startup(self, now_et: datetime) -> None:
+        """
+        Handle postmarket startup - restart websocket at 3:45 PM ET (15 min before postmarket).
+        
+        Args:
+            now_et: Current time in ET
+        """
+        if not self._websocket_shutdown:
+            logger.debug("MarketHoursScheduler: Websocket already running, skipping")
+            return
+        
+        time_str = now_et.strftime("%Y-%m-%d %H:%M:%S %Z")
+        
+        logger.info(
+            "MarketHoursScheduler: Postmarket approaching - restarting websocket",
+            time=time_str,
+            postmarket_starts_in="15 minutes",
+            market_hours_downtime="~6.5 hours (9:30 AM - 3:45 PM)"
+        )
+        
+        # Send notification - attempting startup
+        await self._send_notification(
+            f"🟢 Starting WebSocket (postmarket)\n"
+            f"📍 Postmarket opens in 15 minutes\n"
+            f"🕐 Time: {time_str}\n"
+            f"⏰ Market hours downtime: ~6.5 hours (9:30 AM - 3:45 PM)"
+        )
+        
+        try:
+            await self._startup_websocket()
+            # Send success notification
+            await self._send_notification(
+                f"✅ WebSocket started successfully\n"
+                f"📍 Ready for postmarket trading\n"
+                f"🕐 Time: {time_str}"
+            )
+        except Exception as e:
+            logger.error(
+                "MarketHoursScheduler: Error starting websocket for postmarket",
+                error=str(e),
+                exc_info=True
+            )
+            # Send failure notification
+            await self._send_notification(
+                f"❌ WebSocket startup FAILED (postmarket)\n"
+                f"🚨 Error: {str(e)}"
+            )
+    
     async def _startup_websocket(self) -> None:
         """Startup websocket service."""
         if self.services.websocket:
@@ -394,7 +528,7 @@ class MarketHoursScheduler:
             
             await self.services.websocket.start()
             self._websocket_shutdown = False
-            logger.info("MarketHoursScheduler: Websocket restarted for premarket")
+            logger.info("MarketHoursScheduler: Websocket restarted")
     
     def get_next_shutdown_time(self) -> Optional[datetime]:
         """

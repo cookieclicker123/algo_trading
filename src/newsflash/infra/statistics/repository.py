@@ -182,7 +182,7 @@ class StatisticsRepository:
             session_file.summary["total_articles_tracked"] = len(session_file.records)
             
             # Update 1% move count if price check completed
-            if record.price_check_15min and record.price_check_15min.get("moved_1_percent"):
+            if record.price_check_10min and record.price_check_10min.get("moved_1_percent"):
                 session_file.summary["articles_with_1_percent_move"] += 1
                 # If filtered (has filter_reason), it's a missed opportunity
                 if record.filter_reason:
@@ -294,7 +294,7 @@ class StatisticsRepository:
                 if record.article_id == article_id:
                     record_found = True
                     # Store old values BEFORE updating (for summary recalculation)
-                    old_price_check = record.price_check_15min
+                    old_price_check = record.price_check_10min
                     old_was_counted = old_price_check and old_price_check.get("moved_1_percent")
                     old_filter_reason = record.filter_reason
                     
@@ -329,8 +329,8 @@ class StatisticsRepository:
                                 setattr(record, key, value)
                     
                     # Recalculate summary if price check was updated
-                    if "price_check_15min" in updates:
-                        new_price_check = updates["price_check_15min"]
+                    if "price_check_10min" in updates:
+                        new_price_check = updates["price_check_10min"]
                         new_was_counted = new_price_check and new_price_check.get("moved_1_percent")
                         
                         # If transitioning from not counted to counted
@@ -350,7 +350,7 @@ class StatisticsRepository:
                         if updates["is_traded"] and not record.is_traded: # Transition to traded
                             session_file.summary["articles_traded"] += 1
                             # If it already had a 1% move, it's no longer a "missed" opportunity
-                            if record.price_check_15min and record.price_check_15min.get("moved_1_percent"):
+                            if record.price_check_10min and record.price_check_10min.get("moved_1_percent"):
                                 if record.filter_reason:
                                     session_file.summary["missed_opportunities"] = max(0, session_file.summary["missed_opportunities"] - 1)
                         elif not updates["is_traded"] and record.is_traded: # Transition from traded
