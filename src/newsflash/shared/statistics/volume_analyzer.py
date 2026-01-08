@@ -21,6 +21,7 @@ from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockBarsRequest, StockQuotesRequest, StockTradesRequest
 from alpaca.data.timeframe import TimeFrame
 from alpaca.data.enums import DataFeed
+import yfinance as yf
 
 from ...utils.logging_config import get_logger
 
@@ -55,6 +56,7 @@ class VolumeStats:
     tape_acceleration_pct: Optional[float] = None
     first_trade_ts: Optional[datetime] = None
     max_trade_gap: Optional[float] = None  # Liveness Metric: Max seconds between trades
+    tape_quality_score: Optional[float] = None  # New Metric: 0-100 Score
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
@@ -103,6 +105,8 @@ class VolumeSurgeAnalysis:
     latency_to_first_trade: Optional[float] = None
     post_trade_bid_ratio: Optional[float] = None
     max_trade_gap: Optional[float] = None  # Liveness Metric
+    tape_quality_score: Optional[float] = None  # 0-100 Score
+    float_shares: Optional[int] = None  # From YFinance
     
     # METADATA & LEGACY
     pub_to_recv_seconds: float = 0.0
@@ -117,6 +121,61 @@ class VolumeSurgeAnalysis:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return asdict(self)
+
+
+
+def _get_float_shares(symbol: str) -> Optional[int]:
+    """
+    Fetch shares outstanding from YFinance.
+    Note: This is a synchronous blocking call (~500ms-1s).
+    """
+    try:
+        # Suppress yfinance logging spam if possible, or just call
+        ticker = yf.Ticker(symbol)
+        # accessing .info triggers the request
+        info = ticker.info
+        # Prefer floatShares, fallback to sharesOutstanding
+        return info.get("floatShares") or info.get("sharesOutstanding")
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to fetch float for {symbol}: {e}")
+        return None
+
+
+def _calculate_tape_quality(
+    trade_list: List[Any],
+    buy_vol: int,
+    sell_vol: int,
+    imbalance: float,
+    block_pct: float
+) -> float:
+    """
+    Calculate Tape Quality Score (0-100).
+    A high score indicates specific, high-conviction order flow (clean tape).
+    A low score indicates choppy, indecisive, or retail-heavy flow.
+    """
+    if not trade_list:
+        return 0.0
+    
+    # 1. Conviction Score (Imbalance)
+    # 0.8 imbalance -> 1.0 score. 0.0 imbalance -> 0.0 score.
+    conviction_score = abs(imbalance) * 100
+    
+    # 2. Institutional Presence (Block Trade %)
+    # 50% blocks -> 100 score. 0% -> 0 score.
+    # We cap at 50% being "Perfect" (don't need 100% blocks)
+    inst_score = min(block_pct * 2, 100.0)
+    
+    # 3. Participation Consistency (Trade Count per Second)
+    # We want valid density, not 1 trade then silence.
+    # But simple logic for now: If we have > 10 trades, good.
+    density_score = min(len(trade_list) * 5, 100.0)
+    
+    # Weighted Average
+    # Conviction is King (50%)
+    # Institutions (30%)
+    # Density (20%)
+    total_score = (conviction_score * 0.5) + (inst_score * 0.3) + (density_score * 0.2)
+    return round(total_score, 1)
 
 
 def _fetch_trades_in_window(
@@ -281,6 +340,9 @@ def _fetch_trades_in_window(
         elif trades_second_half > 0:
             tape_accel = 100.0 # From 0 to something
             
+        # Calculate Tape Quality
+        tape_quality = _calculate_tape_quality(trade_list, buy_vol, sell_vol, imbalance, block_pct)
+            
         window_seconds = (window_end - window_start).total_seconds()
         
         # Normalization factor (e.g. if window is 3s, multiplier is 20x to reach a minute)
@@ -294,6 +356,7 @@ def _fetch_trades_in_window(
             "trade_count": int(trade_count),
             "buy_volume": int(buy_vol),
             "sell_volume": int(sell_vol),
+            "tape_quality_score": tape_quality,
             "imbalance_ratio": imbalance,
             "range": range_p,
             "normalized_minute_range": round(normalized_minute_range, 4),
@@ -540,6 +603,7 @@ def _get_stats_at_time(
                 "tape_acceleration_pct": trades_data.get("tape_acceleration_pct"),
                 "first_trade_ts": trades_data.get("first_trade_ts"),
                 "max_trade_gap": trades_data.get("max_trade_gap"),
+                "tape_quality_score": trades_data.get("tape_quality_score"),
             }
     else:
         # Get minute bar for this minute
@@ -601,10 +665,177 @@ def _get_stats_at_time(
         block_trade_pct=bar_data.get("block_trade_pct") if bar_data else None,
         tape_acceleration_pct=bar_data.get("tape_acceleration_pct") if bar_data else None,
         first_trade_ts=bar_data.get("first_trade_ts") if bar_data else None,
-        max_trade_gap=bar_data.get("max_trade_gap") if bar_data else None
+        max_trade_gap=bar_data.get("max_trade_gap") if bar_data else None,
+        tape_quality_score=bar_data.get("tape_quality_score") if bar_data else None
     )
     
     return stats
+
+
+def _assess_surge_snapshot(
+    client: StockHistoricalDataClient,
+    symbol: str,
+    event_time: datetime,
+    window_end: datetime,
+    prior_history: Dict[str, Any],
+    reference_nbbo: Optional[Dict[str, Any]],
+    sector: Optional[str]
+) -> tuple[Optional[VolumeStats], Dict[str, Any], str]:
+    """
+    Fetch stats, calculate metrics, and classify surge for a specific window end.
+    Returns: (stats_now, metrics_dict, move_type)
+    """
+    stats_now = _get_stats_at_time(
+        client=client, 
+        symbol=symbol, 
+        target_time=event_time, 
+        use_realtime_window=True, 
+        window_end=window_end, 
+        reference_nbbo=reference_nbbo
+    )
+    
+    # Extract Prior History
+    prior_avg_vol = prior_history.get("avg_volume", 0) if prior_history else 0
+    prior_avg_trades = prior_history.get("avg_trade_count", 0) if prior_history else 0
+    prior_avg_range = prior_history.get("avg_range", 0) if prior_history else 0
+    
+    # Default outputs
+    metrics = {
+        "surge_multiplier": 0.0,
+        "trade_count_multiplier": 0.0,
+        "max_excursion_pct": 0.0,
+        "imbalance_ratio": 0.0,
+        "buy_volume": None,
+        "sell_volume": None,
+        "tape_quality_score": None,
+        "trade_count_normalised": 0.0, 
+        "block_trade_pct": 0.0,
+        "tape_acceleration_pct": 0.0,
+        "price_impact_bps": 0.0,
+        "post_trade_bid_ratio": 0.0
+    }
+    move_type = "INACTIVE"
+    
+    current_vol = stats_now.volume if stats_now else 0
+    norm_vol = stats_now.normalized_minute_volume if stats_now else None
+    
+    if current_vol is None or current_vol == 0:
+        return stats_now, metrics, "INACTIVE"
+
+    # 1. PILLAR: SIZE (Volume Multiplier)
+    surge_score = 0.0
+    if prior_avg_vol > 0 and norm_vol is not None:
+        surge_score = round(norm_vol / prior_avg_vol, 2)
+    elif norm_vol is not None:
+        surge_score = round(norm_vol, 0)
+    metrics["surge_multiplier"] = surge_score
+
+    # 2. PILLAR: FREQUENCY (Trade Count Multiplier)
+    actual_duration = (window_end - event_time).total_seconds()
+    norm_factor = (60 / actual_duration) if actual_duration > 0 else 0
+    norm_trades = ((stats_now.trade_count or 0) * norm_factor) if stats_now else 0
+    metrics["trade_count_normalised"] = round(norm_trades, 1)
+
+    trade_count_multiplier = 0.0
+    if prior_avg_trades > 0:
+        trade_count_multiplier = round(norm_trades / prior_avg_trades, 2)
+    else:
+        trade_count_multiplier = round(norm_trades, 1)
+    metrics["trade_count_multiplier"] = trade_count_multiplier
+
+    # 3. PILLAR: MOMENTUM (Max Excursion)
+    pub_ask = stats_now.ask if stats_now else None 
+    max_seen = stats_now.max_price if stats_now else None
+    max_excursion = 0.0
+    if pub_ask and max_seen and pub_ask > 0:
+        max_excursion = round(((max_seen - pub_ask) / pub_ask) * 100, 3)
+    metrics["max_excursion_pct"] = max_excursion
+
+    # 4. PILLAR: CONVICTION (Buying Pressure)
+    imbalance = stats_now.imbalance_ratio if stats_now else 0
+    metrics["imbalance_ratio"] = imbalance
+    pressure_pct = (imbalance + 1) / 2 * 100 if imbalance is not None else 50.0
+    buy_volume = stats_now.buy_volume if stats_now else 0
+    metrics["buy_volume"] = buy_volume
+    metrics["sell_volume"] = stats_now.sell_volume
+
+    # Tape Metrics
+    metrics["tape_quality_score"] = getattr(stats_now, 'tape_quality_score', None)
+    metrics["block_trade_pct"] = getattr(stats_now, 'block_trade_pct', 0.0)
+    metrics["tape_acceleration_pct"] = getattr(stats_now, 'tape_acceleration_pct', 0.0)
+
+    # Price Impact & Post Trade Bid Logic (Simplified copy)
+    total_usd_vol = getattr(stats_now, 'total_dollar_volume', 0.0) or 0.0
+    if stats_now and total_usd_vol > 0 and stats_now.mid:
+        ref_mid = reference_nbbo.get("mid") if reference_nbbo else stats_now.ask
+        if ref_mid and ref_mid > 0:
+            price_move_pct = abs(stats_now.mid - ref_mid) / ref_mid
+            metrics["price_impact_bps"] = round((price_move_pct * 10000) / (total_usd_vol / 100000), 2)
+            
+    bid_sz = getattr(stats_now, 'bid_size', 0.0) or 0.0
+    ask_sz = getattr(stats_now, 'ask_size', 0.0) or 0.0
+    if stats_now and bid_sz and ask_sz:
+        metrics["post_trade_bid_ratio"] = round(bid_sz / ask_sz, 2)
+
+    # --- CLASSIFICATION ---
+    if prior_avg_vol == 0:
+        move_type = "NEW_ACTIVITY"
+    else:
+        # SURGE LOGIC
+        VOLUME_SURGE_THRESHOLD = 3.0
+        TRADE_COUNT_THRESHOLD = 2.0
+        MAX_EXCURSION_THRESHOLD = 1.0
+        BUYING_PRESSURE_THRESHOLD = 70.0
+        MIN_BUY_VOLUME_THRESHOLD = 1000
+        MIN_WINDOW_VOLUME_THRESHOLD = 5000
+        
+        is_size_ok = surge_score >= VOLUME_SURGE_THRESHOLD
+        is_freq_ok = trade_count_multiplier >= TRADE_COUNT_THRESHOLD
+        is_mom_ok = max_excursion >= MAX_EXCURSION_THRESHOLD
+        
+        PREFERRED_SECTORS = {"Healthcare", "Technology", "Financial Services"}
+        is_preferred_sector = (sector and sector in PREFERRED_SECTORS)
+        
+        has_sufficient_buying_pressure = pressure_pct >= BUYING_PRESSURE_THRESHOLD
+        if is_preferred_sector:
+            is_conv_ok = has_sufficient_buying_pressure
+        else:
+            is_conv_ok = (has_sufficient_buying_pressure and buy_volume >= MIN_BUY_VOLUME_THRESHOLD)
+        
+        if is_preferred_sector:
+            has_minimum_volume = True
+        else:
+            has_minimum_volume = (current_vol >= MIN_WINDOW_VOLUME_THRESHOLD)
+        
+        # Liveness
+        MAX_GAP_THRESHOLD = 1.0
+        if current_vol >= 50000: MAX_GAP_THRESHOLD = 1.5
+        check_gap = stats_now.max_trade_gap if stats_now and stats_now.max_trade_gap is not None else 99.0
+        is_alive = check_gap <= MAX_GAP_THRESHOLD
+        
+        if not is_alive:
+             pass
+        
+        HIGH_VOLUME_THRESHOLD = 50000
+        is_high_volume_tus_of_war = (current_vol >= HIGH_VOLUME_THRESHOLD)
+        
+        if is_high_volume_tus_of_war:
+            if is_size_ok and is_freq_ok and is_mom_ok and is_alive:
+                move_type = "SURGE"
+            else:
+                move_type = "STRENGTH"
+        elif is_size_ok and is_freq_ok and is_mom_ok and is_conv_ok and has_minimum_volume and is_alive:
+            move_type = "SURGE"
+        elif is_size_ok and is_freq_ok and is_mom_ok and is_conv_ok and not has_minimum_volume:
+            move_type = "STRENGTH"
+        elif surge_score >= 1.5:
+            move_type = "STRENGTH"
+        elif surge_score >= 1.0:
+            move_type = "NORMAL_ACTIVITY"
+        else:
+            move_type = "LOW_ACTIVITY"
+
+    return stats_now, metrics, move_type
 
 
 async def analyze_volume_around_event(
@@ -616,359 +847,193 @@ async def analyze_volume_around_event(
     sector: Optional[str] = None
 ) -> VolumeSurgeAnalysis:
     """
-    Analyze volume and quotes at key intervals around an event.
-    
-    Focuses on the "Third Confluence":
-    1. News (AI)
-    2. Volume Acceleration
-    3. Order Flow (Buying Pressure)
-    4. Price Action (Execution Cost)
+    Analyze volume/order flow with FAST POLLING (0.5s) to detect surges early.
+    Non-blocking execution via asyncio.to_thread for all I/O bound synchronous calls.
     """
-    if event_time.tzinfo is None:
-        event_time = event_time.replace(tzinfo=timezone.utc)
+    logger.debug("Analyzing volume around event (Polling)", symbol=symbol, event_time=event_time.isoformat())
     
-    logger.debug("Analyzing volume around event", symbol=symbol, event_time=event_time.isoformat())
+    # 1. Setup Float Data (Best Effort) - Offload Blocking I/O
+    float_shares = await asyncio.to_thread(_get_float_shares, symbol)
     
-    try:
-        # 🚀 THE SHOCK WINDOW PRINCIPLE:
-        # We always analyze the FIRST 4 SECONDS of the move for classification and pillars.
-        # This prevents dilution of intensity (Momentum/Pressure) caused by latency windows.
-        shock_window_seconds = 4.0
-        shock_end_time = event_time + timedelta(seconds=shock_window_seconds)
-        
-        # Determine real-world reception latency for metadata
-        real_window_seconds = 0
-        if received_at:
-            received_at_utc = received_at.replace(tzinfo=timezone.utc)
-            real_window_seconds = (received_at_utc - event_time).total_seconds()
-        
-        # If we are faster than the shock window, wait to get enough 'Tape'
-        now = datetime.now(timezone.utc)
-        if now < shock_end_time:
-            wait_time = (shock_end_time - now).total_seconds()
-            if wait_time > 0:
-                logger.debug(f"Waiting {round(wait_time, 2)}s for Shock Window", symbol=symbol)
-                await asyncio.sleep(wait_time)
+    # 2. Setup Windows
+    shock_window_seconds = 4.0
+    shock_end_time = event_time + timedelta(seconds=shock_window_seconds)
+    
+    # Real-world reception latency
+    real_window_seconds = 0
+    if received_at:
+        received_at_utc = received_at.replace(tzinfo=timezone.utc)
+        real_window_seconds = (received_at_utc - event_time).total_seconds()
 
-        # Fetch 10-minute prior history baseline
-        prior_history = _fetch_prior_history_stats(client, symbol, event_time, lookback_minutes=10)
-        prior_avg_vol = prior_history.get("avg_volume", 0) if prior_history else 0
-        prior_avg_range = prior_history.get("avg_range", 0) if prior_history else 0
-        prior_avg_trades = prior_history.get("avg_trade_count", 0) if prior_history else 0
-        
-        # 🎯 FETCH SHOCK STATS (Strict 4s window)
-        window_end_final = shock_end_time
-        
-        stats_now = _get_stats_at_time(
-            client=client, 
-            symbol=symbol, 
-            target_time=event_time, 
-            use_realtime_window=True, 
-            window_end=window_end_final, 
-            reference_nbbo=reference_nbbo
-        )
-        
-        # 🔄 LATE START EXTENSION (User Request)
-        # If activity started very late (e.g., > 3.0s into 4.0s window), we risk a "False Negative" on trade count/volume
-        # because the window cut off the activity.
-        # Logic: If first_trade_ts is within 1.0s of window_end, extend by 1.0s to confirm sustainment.
-        if stats_now and stats_now.first_trade_ts:
-            time_since_start = (stats_now.first_trade_ts - event_time).total_seconds()
-            time_left_in_window = (window_end_final - stats_now.first_trade_ts).total_seconds()
-            
-            # If we had less than 1.0s of activity in the window
-            if time_left_in_window < 1.0:
-                extension_seconds = 1.0
-                logger.debug(
-                    f"🔄 LATE START DETECTED (Started at {time_since_start:.2f}s). Extending window by {extension_seconds}s...",
-                    symbol=symbol
-                )
-                
-                # Wait for the extension time if needed (Real-time only)
-                window_end_final = shock_end_time + timedelta(seconds=extension_seconds)
-                now_ext = datetime.now(timezone.utc)
-                if now_ext < window_end_final:
-                     wait_ext = (window_end_final - now_ext).total_seconds()
-                     if wait_ext > 0:
-                         await asyncio.sleep(wait_ext)
-                
-                # Re-fetch with extended window
-                stats_now = _get_stats_at_time(
-                    client=client, 
-                    symbol=symbol, 
-                    target_time=event_time, 
-                    use_realtime_window=True, 
-                    window_end=window_end_final, 
-                    reference_nbbo=reference_nbbo
-                )
-        
-        current_vol = stats_now.volume if stats_now else None
-        norm_vol = stats_now.normalized_minute_volume if stats_now else None
-        
-        # 1. PILLAR: SIZE (Volume Multiplier)
-        surge_score = 0.0
-        if prior_avg_vol > 0 and norm_vol is not None:
-            surge_score = round(norm_vol / prior_avg_vol, 2)
-        elif norm_vol is not None:
-            surge_score = round(norm_vol, 0)
-
-        # 2. PILLAR: FREQUENCY (Trade Count Multiplier)
-        trade_count_multiplier = 0.0
-        # Normalize based on ACTUAL window duration (4s or 5s)
-        actual_duration = (window_end_final - event_time).total_seconds()
-        norm_factor = (60 / actual_duration)
-        norm_trades = ((stats_now.trade_count or 0) * norm_factor) if stats_now else 0
-        if prior_avg_trades > 0:
-            trade_count_multiplier = round(norm_trades / prior_avg_trades, 2)
-        else:
-            trade_count_multiplier = round(norm_trades, 1)
-
-        # 3. PILLAR: MOMENTUM (Max Excursion)
-        # We check the Peak price touched in the window vs Publication Ask
-        pub_ask = stats_now.ask if stats_now else None 
-        max_seen = stats_now.max_price if stats_now else None
-        max_excursion = 0.0
-        if pub_ask and max_seen and pub_ask > 0:
-            max_excursion = round(((max_seen - pub_ask) / pub_ask) * 100, 3)
-
-        # 4. PILLAR: CONVICTION (Buying Pressure)
-        imbalance = stats_now.imbalance_ratio if stats_now else 0
-        pressure_pct = (imbalance + 1) / 2 * 100 if imbalance is not None else 50.0
-        buy_volume = stats_now.buy_volume if stats_now else None
-
-        # 5. SPREAD COMPRESSION (Liquidity Tracking - SHADOW ONLY)
-        prior_avg_spread = 0.0
+    # 3. Prior History Baseline - Offload Blocking I/O
+    prior_history = await asyncio.to_thread(_fetch_prior_history_stats, client, symbol, event_time, lookback_minutes=10)
+    
+    # Shadow Spread Logic (calculated once)
+    prior_avg_spread = 0.0
+    
+    def _fetch_shadow_spread():
         try:
             spread_start = event_time - timedelta(minutes=10)
             spread_req = StockQuotesRequest(symbol_or_symbols=[symbol], start=spread_start, end=event_time, feed=DataFeed.SIP)
             spread_quotes = client.get_stock_quotes(spread_req)
             if symbol in spread_quotes.data and spread_quotes[symbol]:
                 all_spreads = [(float(q.ask_price) - float(q.bid_price)) for q in spread_quotes[symbol] if q.ask_price and q.bid_price]
-                prior_avg_spread = sum(all_spreads) / len(all_spreads) if all_spreads else 0.0
-        except: pass
-        
-        current_spread = stats_now.spread if stats_now else 0.0
-        spread_compression = 0.0
-        if prior_avg_spread > 0 and current_spread is not None:
-            spread_compression = round((1 - (current_spread / prior_avg_spread)) * 100, 1)
+                return sum(all_spreads) / len(all_spreads) if all_spreads else 0.0
+        except: return 0.0
+        return 0.0
 
-        # --- PILLAR 6: ADVANCED SHADOW TRACKING (ALPHA RESEARCH) ---
-        block_trade_pct = getattr(stats_now, 'block_trade_pct', 0.0) or 0.0
-        tape_accel = getattr(stats_now, 'tape_acceleration_pct', 0.0) or 0.0
-        
-        # Latency to First Print
-        latency_to_print = None
-        first_trade_ts = getattr(stats_now, 'first_trade_ts', None)
-        if stats_now and first_trade_ts:
-            latency_to_print = round((first_trade_ts - event_time).total_seconds(), 3)
-            
-        # Price Impact bps / $100k
-        price_impact_bps = 0.0
-        total_usd_vol = getattr(stats_now, 'total_dollar_volume', 0.0) or 0.0
-        if stats_now and total_usd_vol > 0 and stats_now.mid:
-            # mid price at event reception vs mid price after surge
-            ref_mid = reference_nbbo.get("mid") if reference_nbbo else stats_now.ask
-            if ref_mid and ref_mid > 0:
-                price_move_pct = abs(stats_now.mid - ref_mid) / ref_mid
-                # bps per $100k
-                price_impact_bps = round((price_move_pct * 10000) / (total_usd_vol / 100000), 2)
-
-        # Support Velocity (Post-Surge Bid/Ask Ratio)
-        post_trade_bid_ratio = 0.0
-        bid_sz = getattr(stats_now, 'bid_size', 0.0) or 0.0
-        ask_sz = getattr(stats_now, 'ask_size', 0.0) or 0.0
-        if stats_now and bid_sz and ask_sz:
-            post_trade_bid_ratio = round(bid_sz / ask_sz, 2)
-
-        # --- MOVE TYPE CLASSIFICATION (Four-Pillar Surge Model) ---
-        # SURGE classification has three paths:
-        #
-        # STANDARD PATH (Four Pillars):
-        # 1. SIZE: Volume surge multiplier >= 3.0x
-        # 2. FREQUENCY: Trade count multiplier >= 2.0x
-        # 3. MOMENTUM: Max excursion >= 1.0%
-        # 4. CONVICTION: Buying pressure >= 70% AND buy_volume >= 1000 (if pressure >= 70%)
-        #    - Edge case: Low-volume trades can skew imbalance ratio, so require minimum buy_volume
-        #    - This ensures buying pressure is meaningful, not just statistical noise
-        # 5. MINIMUM VOLUME: Window volume >= 5000 (absolute minimum for reliability)
-        #
-        # PREFERRED SECTOR EXCEPTION (Healthcare, Technology, Financial Services):
-        # These three sectors have proven reliability and don't need minimum volume requirements
-        # - Healthcare: 31.3% win rate, +13.08% avg win (biotech/pharma very reliable)
-        # - Technology: 31.6% win rate, +55.73% avg win (huge winners when they hit)
-        # - Financial Services: 25% win rate, +2,024% avg win (extreme winners)
-        # - EXCEPTION: No minimum window volume (5000) requirement
-        # - EXCEPTION: No minimum buy_volume (1000) requirement (only need 70% buying pressure)
-        # - Still requires: 3x volume, 2x trade count, 1% excursion, 70% buying pressure
-        #
-        # HIGH-VOLUME EDGE CASE (Buying Pressure Waived):
-        # If window volume >= 50,000, buying pressure (conviction pillar) is NOT required
-        # - These are high-volume "tug of war" moves - massive activity even if not one-sided
-        # - Natural movers with real volume, sometimes more balanced (50-70% buying pressure)
-        # - Requires: 50k volume, 3x multiplier, 2x trade count, 1% excursion
-        # - Note: If volume >= 50k, we automatically have >= 5k minimum and >= 1k buy_volume
-        # - This catches big winners that are high-volume but slightly "toxic" (balanced buying/selling)
-        #
-        # This combination has high predictive power with minimal noise
-        if current_vol is None or current_vol == 0:
-            move_type = "INACTIVE"
-        elif prior_avg_vol == 0:
-            move_type = "NEW_ACTIVITY"
-        else:
-            # FOUR-PILLAR SURGE CRITERIA
-            VOLUME_SURGE_THRESHOLD = 3.0  # Volume must be 3x normal
-            TRADE_COUNT_THRESHOLD = 2.0  # Trade count must be 2x normal
-            MAX_EXCURSION_THRESHOLD = 1.0  # Price must move at least 1%
-            BUYING_PRESSURE_THRESHOLD = 70.0  # Buying pressure must be at least 70%
-            MIN_BUY_VOLUME_THRESHOLD = 1000  # If buying pressure >= 70%, buy_volume must be >= 1000
-            MIN_WINDOW_VOLUME_THRESHOLD = 5000  # Absolute minimum window volume for reliability
-            
-            # Check each pillar
-            is_size_ok = surge_score >= VOLUME_SURGE_THRESHOLD
-            is_freq_ok = trade_count_multiplier >= TRADE_COUNT_THRESHOLD
-            is_mom_ok = max_excursion >= MAX_EXCURSION_THRESHOLD
-            
-            # SECTOR EXCEPTIONS: Healthcare, Technology, Financial Services
-            # These three sectors don't require minimum window volume (5000) or minimum buy volume (1000)
-            # All other sectors require all criteria including minimum volumes
-            PREFERRED_SECTORS = {"Healthcare", "Technology", "Financial Services"}
-            is_preferred_sector = (sector and sector in PREFERRED_SECTORS)
-            
-            # CONVICTION: Buying pressure >= 70% AND if so, buy_volume >= 1000
-            # EXCEPTION: Preferred sectors don't need minimum buy_volume (1000)
-            has_sufficient_buying_pressure = pressure_pct >= BUYING_PRESSURE_THRESHOLD
-            if is_preferred_sector:
-                # Preferred sectors: Only need buying pressure >= 70%, no minimum buy_volume
-                if has_sufficient_buying_pressure:
-                    is_conv_ok = True  # No buy_volume check for preferred sectors
-                else:
-                    is_conv_ok = False
-            else:
-                # All other sectors: Require buying pressure >= 70% AND buy_volume >= 1000
-                if has_sufficient_buying_pressure:
-                    is_conv_ok = (buy_volume is not None and buy_volume >= MIN_BUY_VOLUME_THRESHOLD)
-                else:
-                    is_conv_ok = False
-            
-            # MINIMUM VOLUME: Window volume must be >= 5000 for reliability
-            # Low-volume moves (< 5000) are highly unreliable even if other criteria are met
-            # EXCEPTION: Preferred sectors (Healthcare, Technology, Financial Services) don't need this
-            if is_preferred_sector:
-                # Preferred sectors: No minimum volume requirement
-                has_minimum_volume = True  # Always pass for preferred sectors
-            else:
-                # All other sectors: Require minimum volume
-                has_minimum_volume = (current_vol is not None and current_vol >= MIN_WINDOW_VOLUME_THRESHOLD)
-            
-            # --- PILLAR 6: LIVENESS GUARDRAIL (Anti-Fakeout) ---
-            # Reject if activity stops for too long (max_trade_gap)
-            # Threshold: 1.0s (Silence > 1.0s is suspicious for a surge)
-            # We relax this slightly for very high volume surges (>50k) as they are less likely to be fakeouts
-            MAX_GAP_THRESHOLD = 1.0
-            if current_vol and current_vol >= 50000:
-                MAX_GAP_THRESHOLD = 1.5  # Looser for massive volume
-            
-            check_gap = stats_now.max_trade_gap if stats_now and stats_now.max_trade_gap is not None else 99.0
-            is_alive = check_gap <= MAX_GAP_THRESHOLD
-            
-            if not is_alive:
-                logger.info(
-                   f"🚫 REJECTED: Liveness Check Failed (Gap: {check_gap}s > {MAX_GAP_THRESHOLD}s)",
-                   ticker=symbol,
-                   volume=current_vol
-                )
-            
-            # EDGE CASE: High-volume "tug of war" moves (>= 50k window volume)
-            # Very high volume moves are reliable even if buying pressure < 70%
-            # These are natural movers with massive activity (tug of war), not one-sided pumps
-            # If window volume >= 50k, buying pressure (conviction pillar) is waived
-            HIGH_VOLUME_THRESHOLD = 50000  # 50k absolute window volume
-            is_high_volume_tug_of_war = (current_vol is not None and current_vol >= HIGH_VOLUME_THRESHOLD)
-            
-            # SURGE classification logic:
-            # Option 1: Standard four pillars + minimum volume (buying pressure required)
-            # Option 2: High-volume edge case (buying pressure waived, requires 50k volume)
-            # Option 3: Preferred sector (Healthcare/Technology/Financial Services) - no minimum volume requirements
-            if is_high_volume_tug_of_war:
-                # High-volume edge case: Buying pressure doesn't matter
-                # Requires: 50k volume, 3x multiplier, 2x trade count, 1% excursion AND ALIVE
-                if is_size_ok and is_freq_ok and is_mom_ok and is_alive:
-                    move_type = "SURGE"
-                else:
-                    # High volume but other pillars failed
-                    move_type = "STRENGTH"
-            elif is_size_ok and is_freq_ok and is_mom_ok and is_conv_ok and has_minimum_volume and is_alive:
-                # Standard four pillars + minimum volume (all requirements met)
-                move_type = "SURGE"
-            elif is_size_ok and is_freq_ok and is_mom_ok and is_conv_ok and not has_minimum_volume:
-                # All four pillars met but volume too low - classify as STRENGTH instead (safe fallback)
-                move_type = "STRENGTH"
-            elif surge_score >= 1.5:
-                # High volume but didn't meet all surge criteria
-                move_type = "STRENGTH"
-            elif surge_score >= 1.0:
-                move_type = "NORMAL_ACTIVITY"
-            else:
-                move_type = "LOW_ACTIVITY"
-
-        vol_accel = None
-        if norm_vol is not None and prior_avg_vol > 0:
-            vol_accel = round(((norm_vol - prior_avg_vol) / prior_avg_vol) * 100, 1)
-
-        # 2. PRICE CLIP / SLIPPAGE (Use real received_at for speed monitoring)
-        recv_ask = reference_nbbo.get("ask") if reference_nbbo else None
-        ask_change = None
-        if pub_ask is not None and recv_ask is not None and pub_ask > 0:
-            ask_change = round(((recv_ask - pub_ask) / pub_ask) * 100, 3)
-
-        # 3. VOLATILITY SURGE (Normalized to 1 minute)
-        window_range = stats_now.range if stats_now and stats_now.range is not None else 0
-        norm_range = stats_now.normalized_minute_range if stats_now and stats_now.normalized_minute_range is not None else 0
-        vol_surge_ratio = None
-        if norm_range is not None and prior_avg_range > 0:
-            vol_surge_ratio = round(norm_range / prior_avg_range, 2)
-
-        return VolumeSurgeAnalysis(
-            symbol=symbol,
-            event_time=event_time.isoformat(),
-            move_type=move_type,
-            window_volume=current_vol if current_vol is not None else 0,
-            prior_avg_10min_volume=round(prior_avg_vol, 1),
-            surge_multiplier=surge_score,
-            window_volume_normalised=norm_vol,
-            volume_accel_pct=vol_accel,
-            trade_count=stats_now.trade_count if stats_now else 0,
-            trade_count_normalised=round(norm_trades, 1),
-            prior_avg_10min_trade_count=round(prior_avg_trades, 1),
-            trade_count_multiplier=trade_count_multiplier,
-            max_excursion_pct=max_excursion,
-            spread_compression_pct=spread_compression,
-            pub_price=pub_ask,
-            recv_price=recv_ask,
-            ask_change_pct=ask_change,
-            buy_volume=stats_now.buy_volume if stats_now else None,
-            sell_volume=stats_now.sell_volume if stats_now else None,
-            imbalance_ratio=imbalance,
-            block_trade_pct=block_trade_pct,
-            price_impact_bps=price_impact_bps,
-            tape_acceleration_pct=tape_accel,
-            latency_to_first_trade=latency_to_print,
-            post_trade_bid_ratio=post_trade_bid_ratio,
-            pub_to_recv_seconds=round(real_window_seconds, 3),
-            volatility_surge_ratio=vol_surge_ratio,
-            prior_avg_minute_range=round(prior_avg_range, 4),
-            prior_avg_10min_spread=round(prior_avg_spread, 4),
-            pub_to_recv_range=window_range,
-            pub_ask=pub_ask,
-            recv_ask=recv_ask,
-            error=None
-        )
-        
-    except Exception as e:
-        logger.error("Error analyzing volume", symbol=symbol, error=str(e), exc_info=True)
-        return VolumeSurgeAnalysis(symbol=symbol, event_time=event_time.isoformat(), move_type="ERROR", error=str(e), prior_avg_10min_volume=0, window_volume=0, surge_multiplier=0)
+    prior_avg_spread = await asyncio.to_thread(_fetch_shadow_spread)
     
+    # 4. POLLING LOOP
+    stats_now = None
+    metrics = {}
+    move_type = "INACTIVE"
+    last_window_end = None
+    
+    while True:
+        now = datetime.now(timezone.utc)
+        
+        # Check if we are past shock window
+        if now >= shock_end_time:
+            current_check_time = shock_end_time
+            is_final = True
+        else:
+            current_check_time = now
+            is_final = False
+        
+        # Don't check meaningful stats if < 0.5s of data unless it's final
+        duration = (current_check_time - event_time).total_seconds()
+        if duration < 0.5 and not is_final:
+            await asyncio.sleep(0.1)
+            continue
+            
+        # Assess Surge - Offload Blocking I/O
+        # This is CRITICAL: _assess_surge_snapshot calls client.get_stock_trades (Sync HTTP)
+        stats_now, metrics, move_type = await asyncio.to_thread(
+            _assess_surge_snapshot,
+            client=client,
+            symbol=symbol,
+            event_time=event_time,
+            window_end=current_check_time,
+            prior_history=prior_history,
+            reference_nbbo=reference_nbbo,
+            sector=sector
+        )
+        last_window_end = current_check_time
+        
+        # EARLY EXIT: If Surge criteria met, break immediately
+        if move_type == "SURGE":
+            logger.info(f"⚡ EARLY SURGE DETECTED for {symbol} at T+{duration:.2f}s!", 
+                        multiplier=metrics.get("surge_multiplier"))
+            break
+            
+        # If final pass, break
+        if is_final:
+            break
+            
+        # Wait 0.5s before next poll
+        # But ensure we don't overshoot shock_end too much
+        remaining = (shock_end_time - datetime.now(timezone.utc)).total_seconds()
+        if remaining <= 0:
+            continue # Loop back to hit is_final
+        
+        sleep_time = min(0.5, remaining)
+        if sleep_time > 0.05:
+            await asyncio.sleep(sleep_time)
+        else:
+            # yield to event loop
+            await asyncio.sleep(0)  
 
+    # 5. Populate Final Result (using stats from the loop)
+    # LATE START LOGIC: If we finished (Final) but failed to surge, check for late start
+    if move_type != "SURGE" and stats_now and stats_now.first_trade_ts:
+        time_since_start = (stats_now.first_trade_ts - event_time).total_seconds()
+        time_left_in_window = (shock_end_time - stats_now.first_trade_ts).total_seconds()
+        
+        # If activity started late (< 1.0s remaining) and we are at the end
+        if time_left_in_window < 1.0 and last_window_end >= shock_end_time:
+             # Extend!
+             extension_seconds = 1.0
+             logger.debug(f"🔄 LATE START DETECTED (Started at {time_since_start:.2f}s). Extending...", symbol=symbol)
+             
+             extended_end = shock_end_time + timedelta(seconds=extension_seconds)
+             # Wait for extension
+             now_ext = datetime.now(timezone.utc)
+             wait_ext = (extended_end - now_ext).total_seconds()
+             if wait_ext > 0:
+                 await asyncio.sleep(wait_ext)
+             
+             # Final Re-Assess (Non-blocking)
+             stats_now, metrics, move_type = await asyncio.to_thread(
+                 _assess_surge_snapshot,
+                 client, symbol, event_time, extended_end, prior_history, reference_nbbo, sector
+             )
+             last_window_end = extended_end
+
+    # 6. Additional Calculations for Dataclass
+    current_vol = stats_now.volume if stats_now else 0
+    prior_avg_vol = prior_history.get("avg_volume", 0) if prior_history else 0
+    prior_avg_range = prior_history.get("avg_range", 0) if prior_history else 0
+    
+    current_spread = stats_now.spread if stats_now else 0.0
+    spread_compression = 0.0
+    if prior_avg_spread > 0 and current_spread is not None:
+        spread_compression = round((1 - (current_spread / prior_avg_spread)) * 100, 1)
+
+    vol_accel = None
+    if metrics.get("surge_multiplier") and prior_avg_vol > 0:
+        vol_accel = round((metrics["surge_multiplier"] - 1) * 100, 1)
+
+    pub_ask = stats_now.ask if stats_now else None
+    recv_ask = reference_nbbo.get("ask") if reference_nbbo else None
+    ask_change = None
+    if pub_ask is not None and recv_ask is not None and pub_ask > 0:
+        ask_change = round(((recv_ask - pub_ask) / pub_ask) * 100, 3)
+
+    window_range = stats_now.range if stats_now else 0
+    norm_range = stats_now.normalized_minute_range if stats_now else 0
+    vol_surge_ratio = None
+    if norm_range and prior_avg_range > 0:
+        vol_surge_ratio = round(norm_range / prior_avg_range, 2)
+
+    return VolumeSurgeAnalysis(
+        symbol=symbol,
+        event_time=event_time.isoformat(),
+        move_type=move_type,
+        window_volume=current_vol,
+        prior_avg_10min_volume=round(prior_avg_vol, 1),
+        surge_multiplier=metrics.get("surge_multiplier"),
+        window_volume_normalised=stats_now.normalized_minute_volume if stats_now else None,
+        volume_accel_pct=vol_accel,
+        trade_count=stats_now.trade_count if stats_now else 0,
+        trade_count_normalised=metrics.get("trade_count_normalised"),
+        prior_avg_10min_trade_count=round(prior_history.get("avg_trade_count", 0), 1),
+        trade_count_multiplier=metrics.get("trade_count_multiplier"),
+        max_excursion_pct=metrics.get("max_excursion_pct"),
+        spread_compression_pct=spread_compression,
+        pub_price=pub_ask,
+        recv_price=recv_ask,
+        ask_change_pct=ask_change,
+        buy_volume=metrics.get("buy_volume"),
+        sell_volume=metrics.get("sell_volume"),
+        imbalance_ratio=metrics.get("imbalance_ratio"),
+        block_trade_pct=metrics.get("block_trade_pct"),
+        price_impact_bps=metrics.get("price_impact_bps"),
+        tape_acceleration_pct=metrics.get("tape_acceleration_pct"),
+        latency_to_first_trade=round((stats_now.first_trade_ts - event_time).total_seconds(), 3) if stats_now and stats_now.first_trade_ts else None,
+        post_trade_bid_ratio=metrics.get("post_trade_bid_ratio"),
+        pub_to_recv_seconds=round(real_window_seconds, 3),
+        volatility_surge_ratio=vol_surge_ratio,
+        prior_avg_minute_range=round(prior_avg_range, 4),
+        prior_avg_10min_spread=round(prior_avg_spread, 4),
+        pub_to_recv_range=window_range,
+        pub_ask=pub_ask,
+        recv_ask=recv_ask,
+        max_trade_gap=stats_now.max_trade_gap if stats_now else None,
+        tape_quality_score=metrics.get("tape_quality_score"),
+        float_shares=float_shares,
+        error=None
+    )
 def format_volume_stats_for_notification(analysis: VolumeSurgeAnalysis) -> List[str]:
     """Format the Four-Pillar Confluence for Telegram."""
     if not analysis or getattr(analysis, 'move_type', None) == "ERROR":
