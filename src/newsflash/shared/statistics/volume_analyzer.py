@@ -54,6 +54,7 @@ class VolumeStats:
     block_trade_pct: Optional[float] = None
     tape_acceleration_pct: Optional[float] = None
     first_trade_ts: Optional[datetime] = None
+    max_trade_gap: Optional[float] = None  # Liveness Metric: Max seconds between trades
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
@@ -101,6 +102,7 @@ class VolumeSurgeAnalysis:
     tape_acceleration_pct: Optional[float] = None
     latency_to_first_trade: Optional[float] = None
     post_trade_bid_ratio: Optional[float] = None
+    max_trade_gap: Optional[float] = None  # Liveness Metric
     
     # METADATA & LEGACY
     pub_to_recv_seconds: float = 0.0
@@ -184,6 +186,15 @@ def _fetch_trades_in_window(
         quote_idx = 0
         prev_price = None
         
+        # Liveness Tracking (Max Gap)
+        # Note: We track last_trade_ts but initialize it to first_trade_ts for inter-trade gaps
+        # We DO NOT count start latency (0 -> first trade) as a gap, per user request (latency != fakeout)
+        last_trade_ts = first_trade_ts
+        max_trade_gap = 0.0
+        
+        # User Feedback: "I don't mind if the first trade takes time... extend the window"
+        # So we skip start_gap penalty.
+        
         for t in trade_list:
             size = t.size
             price = t.price
@@ -240,7 +251,20 @@ def _fetch_trades_in_window(
                     buy_vol += size / 2
                     sell_vol += size / 2
             
+            # Liveness: Update Gap
+            current_gap = (t.timestamp - last_trade_ts).total_seconds()
+            max_trade_gap = max(max_trade_gap, current_gap)
+            last_trade_ts = t.timestamp
+            
             prev_price = price
+        
+        # Check Gap to Window End (did it die at the end?)
+        if last_trade_ts:
+            end_gap = (window_end - last_trade_ts).total_seconds()
+            max_trade_gap = max(max_trade_gap, end_gap)
+        elif not last_trade_ts:
+            # No trades at all? Gap is the whole window
+            max_trade_gap = (window_end - window_start).total_seconds()
         
         imbalance = 0.0
         if total_volume > 0:
@@ -279,7 +303,8 @@ def _fetch_trades_in_window(
             "total_dollar_volume": total_dollar_volume,
             "block_trade_pct": block_pct,
             "tape_acceleration_pct": tape_accel,
-            "first_trade_ts": first_trade_ts
+            "first_trade_ts": first_trade_ts,
+            "max_trade_gap": round(max_trade_gap, 2)
         }
     except Exception as e:
         logger.debug(f"Error fetching trades for {symbol} in window: {e}")
@@ -514,6 +539,7 @@ def _get_stats_at_time(
                 "block_trade_pct": trades_data.get("block_trade_pct"),
                 "tape_acceleration_pct": trades_data.get("tape_acceleration_pct"),
                 "first_trade_ts": trades_data.get("first_trade_ts"),
+                "max_trade_gap": trades_data.get("max_trade_gap"),
             }
     else:
         # Get minute bar for this minute
@@ -574,7 +600,8 @@ def _get_stats_at_time(
         total_dollar_volume=bar_data.get("total_dollar_volume") if bar_data else None,
         block_trade_pct=bar_data.get("block_trade_pct") if bar_data else None,
         tape_acceleration_pct=bar_data.get("tape_acceleration_pct") if bar_data else None,
-        first_trade_ts=bar_data.get("first_trade_ts") if bar_data else None
+        first_trade_ts=bar_data.get("first_trade_ts") if bar_data else None,
+        max_trade_gap=bar_data.get("max_trade_gap") if bar_data else None
     )
     
     return stats
@@ -630,14 +657,50 @@ async def analyze_volume_around_event(
         prior_avg_trades = prior_history.get("avg_trade_count", 0) if prior_history else 0
         
         # 🎯 FETCH SHOCK STATS (Strict 4s window)
+        window_end_final = shock_end_time
+        
         stats_now = _get_stats_at_time(
             client=client, 
             symbol=symbol, 
             target_time=event_time, 
             use_realtime_window=True, 
-            window_end=shock_end_time, 
+            window_end=window_end_final, 
             reference_nbbo=reference_nbbo
         )
+        
+        # 🔄 LATE START EXTENSION (User Request)
+        # If activity started very late (e.g., > 3.0s into 4.0s window), we risk a "False Negative" on trade count/volume
+        # because the window cut off the activity.
+        # Logic: If first_trade_ts is within 1.0s of window_end, extend by 1.0s to confirm sustainment.
+        if stats_now and stats_now.first_trade_ts:
+            time_since_start = (stats_now.first_trade_ts - event_time).total_seconds()
+            time_left_in_window = (window_end_final - stats_now.first_trade_ts).total_seconds()
+            
+            # If we had less than 1.0s of activity in the window
+            if time_left_in_window < 1.0:
+                extension_seconds = 1.0
+                logger.debug(
+                    f"🔄 LATE START DETECTED (Started at {time_since_start:.2f}s). Extending window by {extension_seconds}s...",
+                    symbol=symbol
+                )
+                
+                # Wait for the extension time if needed (Real-time only)
+                window_end_final = shock_end_time + timedelta(seconds=extension_seconds)
+                now_ext = datetime.now(timezone.utc)
+                if now_ext < window_end_final:
+                     wait_ext = (window_end_final - now_ext).total_seconds()
+                     if wait_ext > 0:
+                         await asyncio.sleep(wait_ext)
+                
+                # Re-fetch with extended window
+                stats_now = _get_stats_at_time(
+                    client=client, 
+                    symbol=symbol, 
+                    target_time=event_time, 
+                    use_realtime_window=True, 
+                    window_end=window_end_final, 
+                    reference_nbbo=reference_nbbo
+                )
         
         current_vol = stats_now.volume if stats_now else None
         norm_vol = stats_now.normalized_minute_volume if stats_now else None
@@ -651,7 +714,9 @@ async def analyze_volume_around_event(
 
         # 2. PILLAR: FREQUENCY (Trade Count Multiplier)
         trade_count_multiplier = 0.0
-        norm_factor = (60 / shock_window_seconds)
+        # Normalize based on ACTUAL window duration (4s or 5s)
+        actual_duration = (window_end_final - event_time).total_seconds()
+        norm_factor = (60 / actual_duration)
         norm_trades = ((stats_now.trade_count or 0) * norm_factor) if stats_now else 0
         if prior_avg_trades > 0:
             trade_count_multiplier = round(norm_trades / prior_avg_trades, 2)
@@ -795,6 +860,24 @@ async def analyze_volume_around_event(
                 # All other sectors: Require minimum volume
                 has_minimum_volume = (current_vol is not None and current_vol >= MIN_WINDOW_VOLUME_THRESHOLD)
             
+            # --- PILLAR 6: LIVENESS GUARDRAIL (Anti-Fakeout) ---
+            # Reject if activity stops for too long (max_trade_gap)
+            # Threshold: 1.0s (Silence > 1.0s is suspicious for a surge)
+            # We relax this slightly for very high volume surges (>50k) as they are less likely to be fakeouts
+            MAX_GAP_THRESHOLD = 1.0
+            if current_vol and current_vol >= 50000:
+                MAX_GAP_THRESHOLD = 1.5  # Looser for massive volume
+            
+            check_gap = stats_now.max_trade_gap if stats_now and stats_now.max_trade_gap is not None else 99.0
+            is_alive = check_gap <= MAX_GAP_THRESHOLD
+            
+            if not is_alive:
+                logger.info(
+                   f"🚫 REJECTED: Liveness Check Failed (Gap: {check_gap}s > {MAX_GAP_THRESHOLD}s)",
+                   ticker=symbol,
+                   volume=current_vol
+                )
+            
             # EDGE CASE: High-volume "tug of war" moves (>= 50k window volume)
             # Very high volume moves are reliable even if buying pressure < 70%
             # These are natural movers with massive activity (tug of war), not one-sided pumps
@@ -808,19 +891,17 @@ async def analyze_volume_around_event(
             # Option 3: Preferred sector (Healthcare/Technology/Financial Services) - no minimum volume requirements
             if is_high_volume_tug_of_war:
                 # High-volume edge case: Buying pressure doesn't matter
-                # Requires: 50k volume, 3x multiplier, 2x trade count, 1% excursion
-                # Note: If volume >= 50k, we automatically have >= 5k minimum and >= 1k buy_volume
-                if is_size_ok and is_freq_ok and is_mom_ok:
+                # Requires: 50k volume, 3x multiplier, 2x trade count, 1% excursion AND ALIVE
+                if is_size_ok and is_freq_ok and is_mom_ok and is_alive:
                     move_type = "SURGE"
                 else:
                     # High volume but other pillars failed
                     move_type = "STRENGTH"
-            elif is_size_ok and is_freq_ok and is_mom_ok and is_conv_ok and has_minimum_volume:
+            elif is_size_ok and is_freq_ok and is_mom_ok and is_conv_ok and has_minimum_volume and is_alive:
                 # Standard four pillars + minimum volume (all requirements met)
                 move_type = "SURGE"
             elif is_size_ok and is_freq_ok and is_mom_ok and is_conv_ok and not has_minimum_volume:
-                # All four pillars met but volume too low - classify as STRENGTH instead
-                # This prevents unreliable low-volume trades from being classified as SURGE
+                # All four pillars met but volume too low - classify as STRENGTH instead (safe fallback)
                 move_type = "STRENGTH"
             elif surge_score >= 1.5:
                 # High volume but didn't meet all surge criteria
