@@ -277,7 +277,15 @@ class RecallStatsEngine:
             tradable_tickers = []
             initial_nbbos = {}
             
-            for ticker in article.tickers:
+            raw_tickers = set(article.tickers)
+            candidates = []
+            for t in article.tickers:
+                # User Rule: If T and T+'W' exist, ignore T+'W'.
+                if t.endswith('W') and len(t) > 1 and t[:-1] in raw_tickers:
+                    continue
+                candidates.append(t)
+
+            for ticker in candidates:
                 # Skip non-US exchanges (TSX, TSXV, CSE, etc.) - Alpaca doesn't support them
                 # This prevents unnecessary API calls and error logs
                 if any(ticker.startswith(prefix) for prefix in ["TSX:", "TSXV:", "CSE:", "NEO:", "CBOE:"]):
@@ -430,6 +438,11 @@ class RecallStatsEngine:
                     )
                     break
             
+            # IDENTITY PRIMARY TICKER (Crucial for Data Consistency)
+            # 1. If SURGE detected, that is the primary ticker.
+            # 2. Else, the first tradable ticker (after sanitization) is primary.
+            primary_ticker = surge_ticker if has_initial_surge else (tradable_tickers[0] if tradable_tickers else None)
+            
             # Create recall record
             record = RecallRecord(
                 article_id=article.id,
@@ -438,7 +451,7 @@ class RecallStatsEngine:
                 session=session_enum,
                 published_at=article.published_at,
                 received_at=received_at,
-                initial_nbbo=initial_nbbos.get(tradable_tickers[0]) if tradable_tickers else None,
+                initial_nbbo=initial_nbbos.get(primary_ticker) if primary_ticker else None,
                 filter_reason=initial_filter_reason,  # Set immediately if known (from prefilter events)
                 ai_classification=initial_classification,  # Set immediately if known (from classification events)
                 volume_stats=volume_stats_by_ticker
@@ -574,9 +587,17 @@ class RecallStatsEngine:
                 
                 asyncio.create_task(update_monitoring_status())
             
-            # Start 10-minute price monitoring task (for price check, independent of surge monitoring)
+            # Start 10-minute price monitoring task
+            # STICK TO PRIMARY TICKER ONLY
             price_monitoring_task = asyncio.create_task(
-                self._monitor_ticker_price(article.id, tradable_tickers, initial_nbbos, session, received_at, article.published_at)
+                self._monitor_ticker_price(
+                    article_id=article.id,
+                    tickers=[primary_ticker] if primary_ticker else [],
+                    initial_nbbos=initial_nbbos,
+                    session=session,
+                    received_at=received_at,
+                    published_at=article.published_at
+                )
             )
             
             # Track price monitoring task separately (don't overwrite surge monitoring)
@@ -1044,7 +1065,18 @@ class RecallStatsEngine:
             if monitoring_start.tzinfo is None:
                 monitoring_start = monitoring_start.replace(tzinfo=timezone.utc)
             
-            for ticker in tickers:
+            # CRITICAL FIX: Only monitor the PRIMARY ticker (tickers[0])
+            # The RecallRecord stores initial_nbbo for tickers[0] only.
+            # If we iterate and pick the "best" ticker here (e.g. Common vs Warrant), 
+            # we create a mismatch where Initial is Warrant (0.08) and Final is Common (4.00),
+            # resulting in massive fake P&L.
+            # We must verify apples-to-apples performance.
+            target_ticker = tickers[0] if tickers else None
+            
+            # Create a single-item list to preserve existing loop logic structure
+            tickers_to_monitor = [target_ticker] if target_ticker else []
+
+            for ticker in tickers_to_monitor:
                 if not initial_nbbos.get(ticker):
                     continue
                 
