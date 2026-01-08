@@ -907,20 +907,24 @@ class RecallStatsEngine:
                         )
                         continue
                 
-                # Update record with cycle progress
-                await self.repository.update_recall_record(
+                # Update record with cycle progress (fire-and-forget, don't block monitoring)
+                asyncio.create_task(self.repository.update_recall_record(
                     article_id=article.id,
                     updates={
                         "monitoring_cycles_completed": cycle + 1
                     },
                     session=session,
                     date=received_at
-                )
+                ))
                 
                 # If surge detected, trigger trade and stop monitoring
                 if surge_detected:
-                    # Update record with surge detection details
-                    await self.repository.update_recall_record(
+                    # CRITICAL: Trigger trade IMMEDIATELY (fire-and-forget)
+                    # This is the #1 priority - no blocking operations before trade placement
+                    asyncio.create_task(self._trigger_trade_for_surge(article, surge_ticker))
+                    
+                    # Update record with surge detection details (fire-and-forget, don't block)
+                    asyncio.create_task(self.repository.update_recall_record(
                         article_id=article.id,
                         updates={
                             "monitoring_status": "surge_detected",
@@ -931,10 +935,7 @@ class RecallStatsEngine:
                         },
                         session=session,
                         date=received_at
-                    )
-                    
-                    # Trigger trade
-                    await self._trigger_trade_for_surge(article, surge_ticker)
+                    ))
                     
                     # Stop monitoring (surge found)
                     break
