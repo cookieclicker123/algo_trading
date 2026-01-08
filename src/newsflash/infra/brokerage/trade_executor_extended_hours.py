@@ -119,6 +119,37 @@ class AlpacaExtendedHoursTradeExecutor:
                 await self._publish_failed_event(trade_request, error_result["error"])
                 return error_result
             
+            # CRITICAL: Hard spread check at executor level (defense in depth)
+            # This catches any trades that bypassed the recall engine spread check
+            MAX_SPREAD_THRESHOLD_PCT = 2.0  # Reject trades if spread >= 2%
+            bid = nbbo_snapshot.get("bid")
+            ask = nbbo_snapshot.get("ask")
+            if bid and ask and ask > 0:
+                spread = ask - bid
+                mid_price = (bid + ask) / 2.0
+                spread_pct = (spread / mid_price) * 100 if mid_price > 0 else 0
+                
+                if spread_pct >= MAX_SPREAD_THRESHOLD_PCT:
+                    error_result = {
+                        "success": False,
+                        "error": f"Spread too wide ({spread_pct:.2f}% >= {MAX_SPREAD_THRESHOLD_PCT}%) - trade rejected",
+                        "session": session,
+                        "order_type": "LIMIT",
+                        "instrument": "stock",
+                        "spread_pct": round(spread_pct, 2),
+                        "bid": bid,
+                        "ask": ask
+                    }
+                    logger.warning(
+                        "🚫 EXECUTOR: Trade rejected - spread too wide",
+                        ticker=trade_request.ticker,
+                        spread_pct=round(spread_pct, 2),
+                        threshold=MAX_SPREAD_THRESHOLD_PCT,
+                        article_id=trade_request.article_id
+                    )
+                    await self._publish_failed_event(trade_request, error_result["error"])
+                    return error_result
+            
             # Get current price
             current_price = await self.quote_fetcher.get_realtime_price(trade_request.ticker)
             price_fallback_used = False

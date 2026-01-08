@@ -585,7 +585,8 @@ async def analyze_volume_around_event(
     symbol: str,
     event_time: datetime,
     received_at: datetime = None,
-    reference_nbbo: Optional[Dict[str, Any]] = None
+    reference_nbbo: Optional[Dict[str, Any]] = None,
+    sector: Optional[str] = None
 ) -> VolumeSurgeAnalysis:
     """
     Analyze volume and quotes at key intervals around an event.
@@ -668,6 +669,7 @@ async def analyze_volume_around_event(
         # 4. PILLAR: CONVICTION (Buying Pressure)
         imbalance = stats_now.imbalance_ratio if stats_now else 0
         pressure_pct = (imbalance + 1) / 2 * 100 if imbalance is not None else 50.0
+        buy_volume = stats_now.buy_volume if stats_now else None
 
         # 5. SPREAD COMPRESSION (Liquidity Tracking - SHADOW ONLY)
         prior_avg_spread = 0.0
@@ -713,24 +715,115 @@ async def analyze_volume_around_event(
         if stats_now and bid_sz and ask_sz:
             post_trade_bid_ratio = round(bid_sz / ask_sz, 2)
 
-        # --- MOVE TYPE CLASSIFICATION (Simplified: Price Surge Only) ---
-        # EXPERIMENTAL: SURGE = 1% price move in 4-second window
-        # This is a simplified experiment to catch big movers early
-        # Can revert to Four-Pillar model if needed
+        # --- MOVE TYPE CLASSIFICATION (Four-Pillar Surge Model) ---
+        # SURGE classification has three paths:
+        #
+        # STANDARD PATH (Four Pillars):
+        # 1. SIZE: Volume surge multiplier >= 3.0x
+        # 2. FREQUENCY: Trade count multiplier >= 2.0x
+        # 3. MOMENTUM: Max excursion >= 1.0%
+        # 4. CONVICTION: Buying pressure >= 70% AND buy_volume >= 1000 (if pressure >= 70%)
+        #    - Edge case: Low-volume trades can skew imbalance ratio, so require minimum buy_volume
+        #    - This ensures buying pressure is meaningful, not just statistical noise
+        # 5. MINIMUM VOLUME: Window volume >= 5000 (absolute minimum for reliability)
+        #
+        # PREFERRED SECTOR EXCEPTION (Healthcare, Technology, Financial Services):
+        # These three sectors have proven reliability and don't need minimum volume requirements
+        # - Healthcare: 31.3% win rate, +13.08% avg win (biotech/pharma very reliable)
+        # - Technology: 31.6% win rate, +55.73% avg win (huge winners when they hit)
+        # - Financial Services: 25% win rate, +2,024% avg win (extreme winners)
+        # - EXCEPTION: No minimum window volume (5000) requirement
+        # - EXCEPTION: No minimum buy_volume (1000) requirement (only need 70% buying pressure)
+        # - Still requires: 3x volume, 2x trade count, 1% excursion, 70% buying pressure
+        #
+        # HIGH-VOLUME EDGE CASE (Buying Pressure Waived):
+        # If window volume >= 50,000, buying pressure (conviction pillar) is NOT required
+        # - These are high-volume "tug of war" moves - massive activity even if not one-sided
+        # - Natural movers with real volume, sometimes more balanced (50-70% buying pressure)
+        # - Requires: 50k volume, 3x multiplier, 2x trade count, 1% excursion
+        # - Note: If volume >= 50k, we automatically have >= 5k minimum and >= 1k buy_volume
+        # - This catches big winners that are high-volume but slightly "toxic" (balanced buying/selling)
+        #
+        # This combination has high predictive power with minimal noise
         if current_vol is None or current_vol == 0:
             move_type = "INACTIVE"
         elif prior_avg_vol == 0:
             move_type = "NEW_ACTIVITY"
         else:
-            # SIMPLIFIED SURGE: Only check price movement
-            # If price moves 1%+ in the 4-second window, it's a SURGE
-            # No volume, trade count, or buying pressure requirements
-            PRICE_SURGE_THRESHOLD = 1.0  # 1% price move
+            # FOUR-PILLAR SURGE CRITERIA
+            VOLUME_SURGE_THRESHOLD = 3.0  # Volume must be 3x normal
+            TRADE_COUNT_THRESHOLD = 2.0  # Trade count must be 2x normal
+            MAX_EXCURSION_THRESHOLD = 1.0  # Price must move at least 1%
+            BUYING_PRESSURE_THRESHOLD = 70.0  # Buying pressure must be at least 70%
+            MIN_BUY_VOLUME_THRESHOLD = 1000  # If buying pressure >= 70%, buy_volume must be >= 1000
+            MIN_WINDOW_VOLUME_THRESHOLD = 5000  # Absolute minimum window volume for reliability
             
-            if max_excursion >= PRICE_SURGE_THRESHOLD:
+            # Check each pillar
+            is_size_ok = surge_score >= VOLUME_SURGE_THRESHOLD
+            is_freq_ok = trade_count_multiplier >= TRADE_COUNT_THRESHOLD
+            is_mom_ok = max_excursion >= MAX_EXCURSION_THRESHOLD
+            
+            # SECTOR EXCEPTIONS: Healthcare, Technology, Financial Services
+            # These three sectors don't require minimum window volume (5000) or minimum buy volume (1000)
+            # All other sectors require all criteria including minimum volumes
+            PREFERRED_SECTORS = {"Healthcare", "Technology", "Financial Services"}
+            is_preferred_sector = (sector and sector in PREFERRED_SECTORS)
+            
+            # CONVICTION: Buying pressure >= 70% AND if so, buy_volume >= 1000
+            # EXCEPTION: Preferred sectors don't need minimum buy_volume (1000)
+            has_sufficient_buying_pressure = pressure_pct >= BUYING_PRESSURE_THRESHOLD
+            if is_preferred_sector:
+                # Preferred sectors: Only need buying pressure >= 70%, no minimum buy_volume
+                if has_sufficient_buying_pressure:
+                    is_conv_ok = True  # No buy_volume check for preferred sectors
+                else:
+                    is_conv_ok = False
+            else:
+                # All other sectors: Require buying pressure >= 70% AND buy_volume >= 1000
+                if has_sufficient_buying_pressure:
+                    is_conv_ok = (buy_volume is not None and buy_volume >= MIN_BUY_VOLUME_THRESHOLD)
+                else:
+                    is_conv_ok = False
+            
+            # MINIMUM VOLUME: Window volume must be >= 5000 for reliability
+            # Low-volume moves (< 5000) are highly unreliable even if other criteria are met
+            # EXCEPTION: Preferred sectors (Healthcare, Technology, Financial Services) don't need this
+            if is_preferred_sector:
+                # Preferred sectors: No minimum volume requirement
+                has_minimum_volume = True  # Always pass for preferred sectors
+            else:
+                # All other sectors: Require minimum volume
+                has_minimum_volume = (current_vol is not None and current_vol >= MIN_WINDOW_VOLUME_THRESHOLD)
+            
+            # EDGE CASE: High-volume "tug of war" moves (>= 50k window volume)
+            # Very high volume moves are reliable even if buying pressure < 70%
+            # These are natural movers with massive activity (tug of war), not one-sided pumps
+            # If window volume >= 50k, buying pressure (conviction pillar) is waived
+            HIGH_VOLUME_THRESHOLD = 50000  # 50k absolute window volume
+            is_high_volume_tug_of_war = (current_vol is not None and current_vol >= HIGH_VOLUME_THRESHOLD)
+            
+            # SURGE classification logic:
+            # Option 1: Standard four pillars + minimum volume (buying pressure required)
+            # Option 2: High-volume edge case (buying pressure waived, requires 50k volume)
+            # Option 3: Preferred sector (Healthcare/Technology/Financial Services) - no minimum volume requirements
+            if is_high_volume_tug_of_war:
+                # High-volume edge case: Buying pressure doesn't matter
+                # Requires: 50k volume, 3x multiplier, 2x trade count, 1% excursion
+                # Note: If volume >= 50k, we automatically have >= 5k minimum and >= 1k buy_volume
+                if is_size_ok and is_freq_ok and is_mom_ok:
+                    move_type = "SURGE"
+                else:
+                    # High volume but other pillars failed
+                    move_type = "STRENGTH"
+            elif is_size_ok and is_freq_ok and is_mom_ok and is_conv_ok and has_minimum_volume:
+                # Standard four pillars + minimum volume (all requirements met)
                 move_type = "SURGE"
+            elif is_size_ok and is_freq_ok and is_mom_ok and is_conv_ok and not has_minimum_volume:
+                # All four pillars met but volume too low - classify as STRENGTH instead
+                # This prevents unreliable low-volume trades from being classified as SURGE
+                move_type = "STRENGTH"
             elif surge_score >= 1.5:
-                # High volume but price didn't move enough
+                # High volume but didn't meet all surge criteria
                 move_type = "STRENGTH"
             elif surge_score >= 1.0:
                 move_type = "NORMAL_ACTIVITY"
@@ -831,8 +924,8 @@ def format_volume_stats_for_notification(analysis: VolumeSurgeAnalysis) -> List[
     # 4. CONVICTION (Buying Pressure)
     if analysis.imbalance_ratio is not None:
         pressure_pct = (analysis.imbalance_ratio + 1) / 2 * 100
-        # Use same threshold as SURGE check (65% currently)
-        SURGE_BUYING_PRESSURE_THRESHOLD = 65.0
+        # Use same threshold as SURGE check (70% currently)
+        SURGE_BUYING_PRESSURE_THRESHOLD = 70.0
         conv_emj = "🟢" if pressure_pct >= SURGE_BUYING_PRESSURE_THRESHOLD else "🟡" if pressure_pct >= 50 else "🔴"
         lines.append(f"   {conv_emj} **Convict:** {pressure_pct:.1f}% BUY ({analysis.buy_volume:,} shares)")
 

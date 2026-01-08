@@ -118,31 +118,32 @@ async def fetch_article_for_trade(
     return None
 
 
-def build_trade_request_for_article(article: Article, current_price: Optional[float] = None) -> Optional[TradeRequest]:
+def build_trade_request_for_article(article: Article, current_price: Optional[float] = None, ticker: Optional[str] = None) -> Optional[TradeRequest]:
     """
-    Build a trade request from an article with $10,000 position size.
+    Build a trade request from an article with $5,000 position size.
     
-    Business rule: Trade exactly $10,000 worth of shares.
-    - Calculate shares = floor(10000 / current_price) - rounded down to nearest share
-    - Each trade gets its own $10k allocation (even if multiple trades in same window)
+    Business rule: Trade exactly $5,000 worth of shares.
+    - Calculate shares = floor(5000 / current_price) - rounded down to nearest share
+    - Each trade gets its own $5k allocation (even if multiple trades in same window)
     
     Args:
         article: Domain Article model
         current_price: Current ask price for buying (if None, will use amount_usd and let executor calculate)
+        ticker: Specific ticker to trade (if None, uses first ticker from article)
         
     Returns:
-        Domain TradeRequest model with shares set (if price provided) or amount_usd=10000, or None if invalid
+        Domain TradeRequest model with shares set (if price provided) or amount_usd=5000, or None if invalid
     """
     import math
     
-    TRADE_SIZE_USD = Decimal("10000.00")  # Fixed $10k per trade
+    TRADE_SIZE_USD = Decimal("5000.00")  # Fixed $5k per trade
     
     # If we have price, calculate shares upfront and round down
     if current_price and current_price > 0:
         shares = math.floor(TRADE_SIZE_USD / Decimal(str(current_price)))
         if shares <= 0:
             logger.warning(
-                "⏭️ AUTO-TRADE SKIPPED: Price too high for $10k trade",
+                "⏭️ AUTO-TRADE SKIPPED: Price too high for $5k trade",
                 article_id=article.id,
                 current_price=current_price,
                 trade_size_usd=float(TRADE_SIZE_USD)
@@ -150,7 +151,7 @@ def build_trade_request_for_article(article: Article, current_price: Optional[fl
             return None
         
         logger.info(
-            "💰 AUTO-TRADE: Building $10k trade with calculated shares",
+            "💰 AUTO-TRADE: Building $5k trade with calculated shares",
             article_id=article.id,
             shares=shares,
             current_price=current_price,
@@ -158,9 +159,11 @@ def build_trade_request_for_article(article: Article, current_price: Optional[fl
         )
         
         # Build trade request with explicit shares (no leverage, amount_usd for reference)
-        # Need to create TradeRequest directly with shares set
-        # article.tickers is a frozenset, so convert to list to get first element
-        ticker = next(iter(article.tickers), None) if article.tickers else None
+        # Use provided ticker if specified, otherwise use first ticker from article
+        # CRITICAL: If ticker is provided (e.g., from surge detection), use it to avoid trading wrong ticker
+        if not ticker:
+            # article.tickers is a frozenset, so convert to list to get first element
+            ticker = next(iter(article.tickers), None) if article.tickers else None
         if not ticker:
             logger.info(
                 "⏭️ AUTO-TRADE SKIPPED: Article has no tickers",

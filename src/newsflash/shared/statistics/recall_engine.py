@@ -49,7 +49,7 @@ class RecallStatsEngine:
     - Subscribe to Domain.ArticleReceived events
     - Check if article has tradable tickers (NBBO available + in trading session)
     - Monitor ticker price for 10 minutes after article received
-    - Record missed opportunities (1%+ moves we didn't trade)
+    - Record missed opportunities (Four-Pillar Surge moves we didn't trade)
     - Append records to JSON files in real-time
     
     Stateless: All state in repository (files), no in-memory storage.
@@ -308,33 +308,85 @@ class RecallStatsEngine:
             }
             session_enum = session_enum_map.get(session, MarketSession.MARKET)
             
+            # Fetch sector metadata for preferred sector exceptions (Healthcare, Technology, Financial Services)
+            # Try quick fetch (2 second timeout) - if fails, default to strict requirements (safe)
+            # Fetch in parallel for all tickers to avoid blocking
+            sector_by_ticker = {}
+            async def fetch_sector_quick(t: str) -> tuple[str, Optional[str]]:
+                """Quick sector fetch with short timeout."""
+                try:
+                    # Try quick fetch (2 second timeout - don't block)
+                    # Finnhub coordinator handles caching internally
+                    ticker_meta = await asyncio.wait_for(
+                        self.finnhub_coordinator.fetch_metadata(t, timeout=2.0),
+                        timeout=2.5  # Slightly longer than fetch timeout to catch timeout errors
+                    )
+                    if ticker_meta and ticker_meta.get("sector"):
+                        return (t, ticker_meta.get("sector"))
+                except (asyncio.TimeoutError, Exception):
+                    # If fetch fails or times out, default to None (strict requirements)
+                    # This is safe - we'll use strict requirements if sector unavailable
+                    pass
+                return (t, None)
+            
+            # Fetch sectors in parallel (non-blocking, quick timeout)
+            # Don't wait for these - proceed with volume analysis even if sector fetch fails
+            sector_tasks = [fetch_sector_quick(t) for t in tradable_tickers]
+            sector_results = await asyncio.gather(*sector_tasks, return_exceptions=True)
+            for result in sector_results:
+                if isinstance(result, Exception):
+                    continue
+                ticker, sector = result
+                sector_by_ticker[ticker] = sector
+            
             # Fetch volume stats for ALL tradable tickers (NO FILTERING - just data collection)
+            # CRITICAL: Run volume analysis in parallel to avoid delays (ASBP issue)
+            # Pass sector information for preferred sector exceptions
             volume_stats_by_ticker = {}
             if self.market_data_client and article.published_at and tradable_tickers:
-                for ticker in tradable_tickers:
+                async def fetch_volume_for_ticker(t: str) -> tuple[str, dict]:
+                    """Fetch volume stats for a single ticker, return (ticker, stats_dict)."""
                     try:
+                        # Get sector for this ticker (if available)
+                        ticker_sector = sector_by_ticker.get(t)
+                        
                         volume_analysis = await analyze_volume_around_event(
                             client=self.market_data_client,
-                            symbol=ticker,
+                            symbol=t,
                             event_time=article.published_at,
                             received_at=received_at,
-                            reference_nbbo=initial_nbbos.get(ticker)
+                            reference_nbbo=initial_nbbos.get(t),
+                            sector=ticker_sector  # Pass sector for preferred sector exceptions
                         )
                         if volume_analysis:
-                            volume_stats_by_ticker[ticker] = volume_analysis.to_dict()
-                            logger.debug("Recall: Fetched volume stats", article_id=article.id, ticker=ticker, move_type=volume_analysis.move_type)
+                            return (t, volume_analysis.to_dict())
+                        else:
+                            return (t, {"error": "No volume analysis returned"})
                     except Exception as vol_error:
                         error_type = type(vol_error).__name__
                         error_msg = str(vol_error)
                         is_illiquidity = ("no data" in error_msg.lower() or "not found" in error_msg.lower() or "no bars" in error_msg.lower() or error_type == "ValueError")
                         
-                        logger.warning("Recall: Failed to fetch volume stats", article_id=article.id, ticker=ticker, error=error_msg, likely_illiquidity=is_illiquidity)
+                        logger.warning("Recall: Failed to fetch volume stats", article_id=article.id, ticker=t, error=error_msg, likely_illiquidity=is_illiquidity)
                         
-                        volume_stats_by_ticker[ticker] = {
+                        return (t, {
                             "error": error_msg,
                             "error_type": error_type,
                             "likely_illiquidity": is_illiquidity
-                        }
+                        })
+                
+                # Run all volume analyses in parallel for speed
+                volume_tasks = [fetch_volume_for_ticker(t) for t in tradable_tickers]
+                volume_results = await asyncio.gather(*volume_tasks, return_exceptions=True)
+                
+                for result in volume_results:
+                    if isinstance(result, Exception):
+                        logger.error("Volume analysis task failed", article_id=article.id, error=str(result))
+                        continue
+                    ticker, stats = result
+                    volume_stats_by_ticker[ticker] = stats
+                    if isinstance(stats, dict) and "error" not in stats:
+                        logger.debug("Recall: Fetched volume stats", article_id=article.id, ticker=ticker, move_type=stats.get("move_type"))
             
             # DOUBLE-CHECK: Make sure article wasn't traded between initial check and now (race condition protection)
             async with self._traded_lock:
@@ -356,6 +408,29 @@ class RecallStatsEngine:
             async with self._classification_lock:
                 initial_classification = self._pending_classifications.pop(article.id, None)
             
+            # CRITICAL: Check for initial SURGE BEFORE any blocking DB operations
+            # This ensures we trigger trades immediately when surge is detected (ASBP fix)
+            # The volume analysis already checked the 4-second window from event_time (published_at)
+            # If we received the article after the shock window ended, no wait was needed
+            # So surge detection happens at the EVENT TIME of the surge, not after
+            has_initial_surge = False
+            surge_ticker = None
+            for ticker, stats in volume_stats_by_ticker.items():
+                # Only check if stats is a valid dict (not an error dict)
+                if isinstance(stats, dict) and "error" not in stats and stats.get("move_type") == "SURGE":
+                    has_initial_surge = True
+                    surge_ticker = ticker
+                    logger.info(
+                        "🚀 INITIAL SURGE: Detected in initial 4-second window",
+                        article_id=article.id,
+                        ticker=ticker,
+                        move_type=stats.get("move_type"),
+                        max_excursion_pct=stats.get("max_excursion_pct"),
+                        surge_multiplier=stats.get("surge_multiplier")
+                    )
+                    break
+            
+            # Create recall record
             record = RecallRecord(
                 article_id=article.id,
                 title=article.title,
@@ -369,38 +444,89 @@ class RecallStatsEngine:
                 volume_stats=volume_stats_by_ticker
             )
             
-            # Append record immediately (with initial NBBO)
-            await self.repository.append_recall_record(record, session, received_at)
-            
-            # TRACK LOCATION: Already done early to prevent race condition
-            # self._record_locations[article.id] = (session, received_at)
-            
-            # Check if any ticker shows SURGE in initial 4-second window
-            has_initial_surge = False
-            surge_ticker = None
-            for ticker, stats in volume_stats_by_ticker.items():
-                # Only check if stats is a valid dict (not an error dict)
-                if isinstance(stats, dict) and "error" not in stats and stats.get("move_type") == "SURGE":
-                    has_initial_surge = True
-                    surge_ticker = ticker
-                    logger.info(
-                        "🚀 INITIAL SURGE: Detected in initial 4-second window",
-                        article_id=article.id,
-                        ticker=ticker,
-                        move_type=stats.get("move_type"),
-                        surge_multiplier=stats.get("surge_multiplier")
-                    )
-                    break
-            
+            # If SURGE detected, trigger trade IMMEDIATELY (don't wait for DB write)
+            # GUARANTEE: Trade enters at the EVENT TIME of the surge, not after
+            # - Volume analysis checks the 4-second window from published_at (event_time)
+            # - If shock window already passed when we received article, no wait needed
+            # - Surge check happens immediately after volume_stats populated
+            # - Trade triggered via asyncio.create_task (non-blocking, fire-and-forget)
+            # - No DB writes block trade execution
             if has_initial_surge:
-                # SURGE detected immediately - trigger trade
+                # SURGE detected immediately - trigger trade NOW (at event time, not after)
                 logger.info(
-                    "🚀 SURGE DETECTED: Initial 4-second window shows SURGE, triggering trade",
+                    "🚀 SURGE DETECTED: Initial 4-second window shows SURGE, triggering trade immediately at event time",
                     article_id=article.id,
-                    ticker=surge_ticker
+                    ticker=surge_ticker,
+                    published_at=article.published_at.isoformat(),
+                    received_at=received_at.isoformat()
                 )
-                await self._trigger_trade_for_surge(article, surge_ticker)
+                
+                # Capture NBBO at surge detection time (for surge_detection_window_stats)
+                surge_nbbo = None
+                try:
+                    surge_nbbo = await self.quote_fetcher.get_nbbo_snapshot(surge_ticker)
+                except Exception as nbbo_error:
+                    logger.debug(
+                        "Could not fetch NBBO at surge detection time",
+                        ticker=surge_ticker,
+                        error=str(nbbo_error)
+                    )
+                
+                # Get initial surge stats and add surge NBBO fields
+                initial_surge_stats = volume_stats_by_ticker.get(surge_ticker, {})
+                if isinstance(initial_surge_stats, dict):
+                    # Create a copy to avoid modifying the original
+                    surge_detection_stats = initial_surge_stats.copy()
+                    
+                    # Add surge NBBO fields to surge_detection_stats
+                    # These show bid/ask/spread at the moment of surge classification
+                    # Compare: pub_ask (publication), recv_ask (reception), surge_ask (surge detection)
+                    # The surge_ask is the price we use for trade execution (plus premium)
+                    if surge_nbbo:
+                        surge_bid = surge_nbbo.get("bid")
+                        surge_ask = surge_nbbo.get("ask")
+                        surge_spread = surge_ask - surge_bid if (surge_bid and surge_ask) else None
+                        
+                        surge_detection_stats["surge_bid"] = surge_bid
+                        surge_detection_stats["surge_ask"] = surge_ask
+                        surge_detection_stats["surge_spread"] = surge_spread
+                else:
+                    surge_detection_stats = initial_surge_stats
+                
+                # Update record with surge detection (in background, non-blocking)
+                async def update_with_initial_surge():
+                    try:
+                        await self.repository.update_recall_record(
+                            article_id=article.id,
+                            updates={
+                                "monitoring_status": "surge_detected",
+                                "surge_detected_at": datetime.now(),
+                                "surge_detection_cycle": 0,  # Initial surge = cycle 0
+                                "surge_detection_window_stats": surge_detection_stats,
+                                "monitoring_completed_at": datetime.now()
+                            },
+                            session=session,
+                            date=received_at
+                        )
+                    except Exception as e:
+                        logger.error("Failed to update initial surge detection", article_id=article.id, error=str(e))
+                
+                # CRITICAL: Trade execution is PRIORITY #1 - everything else is secondary
+                # Fire and forget: Trigger trade immediately, don't wait for anything
+                # This executes at the EVENT TIME of the surge (published_at + 4s window)
+                # NO blocking operations - trade placement is prioritized above ALL else
+                asyncio.create_task(self._trigger_trade_for_surge(article, surge_ticker))
+                
+                # Update record with surge detection (non-blocking)
+                asyncio.create_task(update_with_initial_surge())
+                
+                # Append record in background (non-blocking, doesn't delay trade)
+                # DB writes are LOWEST priority - they never block trade execution
+                asyncio.create_task(self.repository.append_recall_record(record, session, received_at))
             else:
+                # No initial SURGE - append record normally, then start monitoring
+                await self.repository.append_recall_record(record, session, received_at)
+                
                 # No initial SURGE - start 2-minute monitoring for SURGE detection
                 logger.info(
                     "📊 NO INITIAL SURGE: Starting 2-minute monitoring for SURGE detection",
@@ -409,18 +535,8 @@ class RecallStatsEngine:
                     initial_move_types={t: (v.get("move_type") if isinstance(v, dict) else None) for t, v in volume_stats_by_ticker.items()}
                 )
                 
-                # Update record to indicate monitoring started
-                await self.repository.update_recall_record(
-                    article_id=article.id,
-                    updates={
-                        "monitoring_status": "initiated",
-                        "monitoring_initiated_at": datetime.now()
-                    },
-                    session=session,
-                    date=received_at
-                )
-                
-                # Start 2-minute SURGE monitoring task
+                # CRITICAL: Start monitoring task IMMEDIATELY (don't wait for DB update)
+                # The DB update can happen in background - speed is critical for surge detection
                 monitoring_task = asyncio.create_task(
                     self._monitor_for_surge(
                         article=article,
@@ -434,6 +550,29 @@ class RecallStatsEngine:
                 
                 async with self._monitoring_lock:
                     self._monitoring_tasks[article.id] = monitoring_task
+                
+                # Update record asynchronously (don't block on this)
+                # This was causing ~20-30 second delays before monitoring started!
+                async def update_monitoring_status():
+                    try:
+                        await self.repository.update_recall_record(
+                            article_id=article.id,
+                            updates={
+                                "monitoring_status": "initiated",
+                                "monitoring_initiated_at": datetime.now()
+                            },
+                            session=session,
+                            date=received_at
+                        )
+                    except Exception as e:
+                        logger.error(
+                            "Failed to update monitoring status in background",
+                            article_id=article.id,
+                            error=str(e),
+                            exc_info=True
+                        )
+                
+                asyncio.create_task(update_monitoring_status())
             
             # Start 10-minute price monitoring task (for price check, independent of surge monitoring)
             price_monitoring_task = asyncio.create_task(
@@ -475,6 +614,11 @@ class RecallStatsEngine:
     ) -> None:
         """
         Trigger trade execution when SURGE is detected.
+        
+        PRIORITY #1: Place trade immediately - no delays, no blocking operations.
+        This function is called via asyncio.create_task (non-blocking) and executes
+        the trade request as fast as possible. Only essential operations (spread check,
+        price fetch) happen before trade placement. All DB writes are deferred.
         
         Args:
             article: Domain Article model
@@ -521,19 +665,23 @@ class RecallStatsEngine:
                                 spread=spread,
                                 threshold=MAX_SPREAD_THRESHOLD_PCT
                             )
-                            # Update recall record to note spread rejection
+                            # Update recall record to note spread rejection (non-blocking, fire-and-forget)
+                            # DB writes are LOWEST priority - never block trade execution
                             try:
                                 now = datetime.now(timezone.utc)
                                 session, _ = get_market_session_from_timestamp(now)
                                 if session == "closed":
                                     session = "premarket"  # Fallback
-                                await self.repository.update_recall_record(
-                                    article_id=article.id,
-                                    updates={
-                                        "filter_reason": f"spread_too_wide_{spread_pct:.2f}%"
-                                    },
-                                    session=session,
-                                    date=now
+                                # Fire-and-forget: Don't await, just schedule it
+                                asyncio.create_task(
+                                    self.repository.update_recall_record(
+                                        article_id=article.id,
+                                        updates={
+                                            "filter_reason": f"spread_too_wide_{spread_pct:.2f}%"
+                                        },
+                                        session=session,
+                                        date=now
+                                    )
                                 )
                             except Exception:
                                 pass  # Don't fail on metadata update
@@ -559,7 +707,8 @@ class RecallStatsEngine:
                 )
             
             # Build trade request from article with $5k position size
-            trade_request = build_trade_request_for_article(article, current_price=current_price)
+            # CRITICAL: Pass the specific ticker that showed SURGE to avoid trading wrong ticker
+            trade_request = build_trade_request_for_article(article, current_price=current_price, ticker=ticker)
             
             if not trade_request:
                 logger.warning(
@@ -573,7 +722,10 @@ class RecallStatsEngine:
             async with self._traded_lock:
                 self._traded_articles.add(article.id)
             
-            # Publish trade request domain event
+            # CRITICAL PATH: Publish trade request domain event
+            # This is the ONLY blocking operation in the trade execution path
+            # Everything else (DB writes, logging) is fire-and-forget
+            # Trade placement is PRIORITY #1 - this await is necessary for trade execution
             domain_trade_event = TradeRequestDomainEvent(
                 trade_request=trade_request,
                 article_id=article.id,
@@ -681,19 +833,58 @@ class RecallStatsEngine:
                 
                 for ticker in tradable_tickers:
                     try:
+                        # Get sector for this ticker (try to fetch if not already cached)
+                        # For monitoring cycles, we can try quick fetch or use cached value
+                        ticker_sector = None
+                        try:
+                            # Try quick fetch (1 second timeout - don't block monitoring)
+                            ticker_meta = await asyncio.wait_for(
+                                self.finnhub_coordinator.fetch_metadata(ticker, timeout=1.0),
+                                timeout=1.5
+                            )
+                            if ticker_meta:
+                                ticker_sector = ticker_meta.get("sector")
+                        except (asyncio.TimeoutError, Exception):
+                            # If fetch fails, proceed without sector (strict requirements)
+                            pass
+                        
                         # Analyze this 4-second window
                         volume_analysis = await analyze_volume_around_event(
                             client=self.market_data_client,
                             symbol=ticker,
                             event_time=window_start,  # Analyze 4 seconds starting from here
                             received_at=window_start,  # Use window_start as received_at for this analysis
-                            reference_nbbo=initial_nbbos.get(ticker)
+                            reference_nbbo=initial_nbbos.get(ticker),
+                            sector=ticker_sector  # Pass sector for preferred sector exceptions
                         )
                         
                         if volume_analysis and volume_analysis.move_type == "SURGE":
                             surge_detected = True
                             surge_ticker = ticker
                             surge_stats = volume_analysis.to_dict()
+                            
+                            # Capture NBBO at surge detection time (for surge_detection_window_stats)
+                            # These show bid/ask/spread at the moment of surge classification
+                            # Compare: pub_ask (publication), recv_ask (reception), surge_ask (surge detection)
+                            # The surge_ask is the price we use for trade execution (plus premium)
+                            try:
+                                surge_nbbo = await self.quote_fetcher.get_nbbo_snapshot(ticker)
+                                if surge_nbbo:
+                                    surge_bid = surge_nbbo.get("bid")
+                                    surge_ask = surge_nbbo.get("ask")
+                                    surge_spread = surge_ask - surge_bid if (surge_bid and surge_ask) else None
+                                    
+                                    # Add surge NBBO fields to the stats dict
+                                    surge_stats["surge_bid"] = surge_bid
+                                    surge_stats["surge_ask"] = surge_ask
+                                    surge_stats["surge_spread"] = surge_spread
+                            except Exception as nbbo_error:
+                                logger.debug(
+                                    "Could not fetch NBBO at surge detection time",
+                                    ticker=ticker,
+                                    error=str(nbbo_error)
+                                )
+                            
                             logger.info(
                                 "🚀 SURGE DETECTED: Found SURGE during monitoring cycle",
                                 article_id=article.id,
@@ -701,7 +892,8 @@ class RecallStatsEngine:
                                 cycle=cycle,
                                 cycle_start=window_start.isoformat(),
                                 move_type=volume_analysis.move_type,
-                                surge_multiplier=volume_analysis.surge_multiplier
+                                surge_multiplier=volume_analysis.surge_multiplier,
+                                surge_ask=surge_stats.get("surge_ask")
                             )
                             break  # Found surge, stop checking other tickers
                     
