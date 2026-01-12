@@ -47,6 +47,10 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+# Set test trade size to $1 to avoid buying power issues in load tests
+# This allows us to test latency without worrying about account balance
+os.environ["TEST_TRADE_SIZE_USD"] = "1.00"
+
 # Ensure src is on path
 import sys
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent

@@ -135,8 +135,10 @@ def build_trade_request_for_article(article: Article, current_price: Optional[fl
         Domain TradeRequest model with shares set (if price provided) or amount_usd=2000, or None if invalid
     """
     import math
+    import os
     
-    TRADE_SIZE_USD = Decimal("2000.00")  # Fixed $2k per trade (reduced for testing/load scenarios)
+    # Allow test override via environment variable (for load tests to avoid buying power issues)
+    TRADE_SIZE_USD = Decimal(os.getenv("TEST_TRADE_SIZE_USD", "2000.00"))  # Default $2k, override for tests
     
     # If we have price, calculate shares upfront and round down
     if current_price and current_price > 0:

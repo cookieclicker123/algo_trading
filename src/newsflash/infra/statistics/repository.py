@@ -9,6 +9,7 @@ from pathlib import Path
 from datetime import datetime
 import aiofiles
 import pytz
+from collections import defaultdict
 
 from ...utils.logging_config import get_logger
 from ...shared.statistics.models import (
@@ -46,12 +47,36 @@ class StatisticsRepository:
         """
         self.tmp_dir = tmp_dir
         self.statistics_dir = tmp_dir / "statistics"
-        self._file_lock = asyncio.Lock()  # Serialize file access
+        # Per-file locks: Different files can be written concurrently
+        # Only writes to the same file need to be serialized
+        self._file_locks: Dict[str, asyncio.Lock] = {}
+        self._locks_lock = asyncio.Lock()  # Protects the _file_locks dictionary
         
         # Ensure statistics directory exists
         self.statistics_dir.mkdir(parents=True, exist_ok=True)
         
         logger.info("StatisticsRepository initialized", tmp_dir=str(tmp_dir))
+    
+    async def _get_file_lock(self, file_path: str) -> asyncio.Lock:
+        """
+        Get or create a lock for a specific file path.
+        
+        This allows concurrent writes to different files while serializing
+        writes to the same file. Critical for performance under load.
+        
+        Args:
+            file_path: String path to the file
+            
+        Returns:
+            asyncio.Lock for the specific file
+        """
+        # Normalize path (use string representation for consistency)
+        normalized_path = str(Path(file_path).resolve())
+        
+        async with self._locks_lock:
+            if normalized_path not in self._file_locks:
+                self._file_locks[normalized_path] = asyncio.Lock()
+            return self._file_locks[normalized_path]
     
     def _get_session_file_path(
         self,
@@ -169,9 +194,10 @@ class StatisticsRepository:
             session: Session name (from session_detector)
             date: Date for file path calculation
         """
-        async with self._file_lock:
-            file_path = self._get_session_file_path("recall", session, date)
-            
+        file_path = self._get_session_file_path("recall", session, date)
+        file_lock = await self._get_file_lock(str(file_path))
+        
+        async with file_lock:
             # Load existing file or create new
             session_file = await self._load_recall_file(file_path, session, date)
             
@@ -230,7 +256,8 @@ class StatisticsRepository:
             if not file_path.exists():
                 return False
             
-            async with self._file_lock:
+            file_lock = await self._get_file_lock(str(file_path))
+            async with file_lock:
                 # Load file (need session and date for _load_recall_file signature)
                 session_file = await self._load_recall_file(file_path, session, date)
                 
@@ -282,9 +309,10 @@ class StatisticsRepository:
         Returns:
             True if record found and updated, False otherwise
         """
-        async with self._file_lock:
-            file_path = self._get_session_file_path("recall", session, date)
-            
+        file_path = self._get_session_file_path("recall", session, date)
+        file_lock = await self._get_file_lock(str(file_path))
+        
+        async with file_lock:
             # Load existing file
             session_file = await self._load_recall_file(file_path, session, date)
             
@@ -407,9 +435,10 @@ class StatisticsRepository:
             session: Session name
             date: Date for file path calculation
         """
-        async with self._file_lock:
-            file_path = self._get_session_file_path("signal", session, date)
-            
+        file_path = self._get_session_file_path("signal", session, date)
+        file_lock = await self._get_file_lock(str(file_path))
+        
+        async with file_lock:
             # Load existing file
             session_file = await self._load_signal_file(file_path, session, date)
             
@@ -503,9 +532,10 @@ class StatisticsRepository:
             session: Session name (from session_detector)
             date: Date for file path calculation
         """
-        async with self._file_lock:
-            file_path = self._get_session_file_path("signal", session, date)
-            
+        file_path = self._get_session_file_path("signal", session, date)
+        file_lock = await self._get_file_lock(str(file_path))
+        
+        async with file_lock:
             # Load existing file or create new
             session_file = await self._load_signal_file(file_path, session, date)
             
@@ -674,9 +704,10 @@ class StatisticsRepository:
             session: Session name (from session_detector)
             date: Date for file path calculation
         """
-        async with self._file_lock:
-            file_path = self._get_session_file_path("failed_trades", session, date)
-            
+        file_path = self._get_session_file_path("failed_trades", session, date)
+        file_lock = await self._get_file_lock(str(file_path))
+        
+        async with file_lock:
             # Load existing file or create new
             session_file = await self._load_failed_trade_file(file_path, session, date)
             
@@ -758,9 +789,10 @@ class StatisticsRepository:
             session: Session name
             date: Date for file path calculation
         """
-        async with self._file_lock:
-            file_path = self._get_session_file_path("failed_trades", session, date)
-            
+        file_path = self._get_session_file_path("failed_trades", session, date)
+        file_lock = await self._get_file_lock(str(file_path))
+        
+        async with file_lock:
             # Load existing file
             session_file = await self._load_failed_trade_file(file_path, session, date)
             

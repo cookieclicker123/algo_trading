@@ -833,10 +833,7 @@ async def analyze_volume_around_event(
     """
     logger.debug("Analyzing volume around event (Polling)", symbol=symbol, event_time=event_time.isoformat())
     
-    # 1. Setup Float Data (Best Effort) - Offload Blocking I/O
-    float_shares = await asyncio.to_thread(_get_float_shares, symbol)
-    
-    # 2. Setup Windows
+    # 1. Setup Windows (calculate immediately - no I/O)
     shock_window_seconds = 4.0
     shock_end_time = event_time + timedelta(seconds=shock_window_seconds)
     
@@ -846,8 +843,19 @@ async def analyze_volume_around_event(
         received_at_utc = received_at.replace(tzinfo=timezone.utc)
         real_window_seconds = (received_at_utc - event_time).total_seconds()
 
-    # 3. Prior History Baseline - Offload Blocking I/O
-    prior_history = await asyncio.to_thread(_fetch_prior_history_stats, client, symbol, event_time, lookback_minutes=10)
+    # 2. Fetch Float Data and Prior History in PARALLEL (non-blocking)
+    # Both are independent I/O operations - fetch concurrently to reduce latency
+    float_shares_task = asyncio.create_task(asyncio.to_thread(_get_float_shares, symbol))
+    prior_history_task = asyncio.create_task(asyncio.to_thread(_fetch_prior_history_stats, client, symbol, event_time, lookback_minutes=10))
+    
+    # Wait for both to complete (they run in parallel)
+    float_shares, prior_history = await asyncio.gather(float_shares_task, prior_history_task, return_exceptions=True)
+    
+    # Handle exceptions gracefully
+    if isinstance(float_shares, Exception):
+        float_shares = None
+    if isinstance(prior_history, Exception):
+        prior_history = None
     
     # Shadow Spread Logic (calculated once)
     prior_avg_spread = 0.0

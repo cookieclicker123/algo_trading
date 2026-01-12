@@ -334,19 +334,21 @@ class RecallStatsEngine:
             # Fetch in parallel for all tickers to avoid blocking
             sector_by_ticker = {}
             async def fetch_sector_quick(t: str) -> tuple[str, Optional[str]]:
-                """Quick sector fetch with short timeout."""
+                """Quick sector fetch with short timeout - non-blocking with queue on failure."""
                 try:
                     # Try quick fetch (2 second timeout - don't block)
-                    # Finnhub coordinator handles caching internally
-                    ticker_meta = await asyncio.wait_for(
-                        self.yahoo_finance_coordinator.fetch_metadata(t, timeout=2.0),
-                        timeout=2.5  # Slightly longer than fetch timeout to catch timeout errors
+                    # Use queue_on_failure=True to ensure metadata is eventually populated
+                    ticker_meta = await self.yahoo_finance_coordinator.fetch_metadata(
+                        t,
+                        timeout=2.0,
+                        queue_on_failure=True  # Queue for background retry if fails
                     )
                     if ticker_meta and ticker_meta.get("sector"):
                         return (t, ticker_meta.get("sector"))
                 except (asyncio.TimeoutError, Exception):
                     # If fetch fails or times out, default to None (strict requirements)
                     # This is safe - we'll use strict requirements if sector unavailable
+                    # Metadata will be queued for background retry
                     pass
                 return (t, None)
             
@@ -550,10 +552,11 @@ class RecallStatsEngine:
                 # DB writes are LOWEST priority - they never block trade execution
                 asyncio.create_task(self.repository.append_recall_record(record, session, received_at))
             else:
-                # No initial SURGE - append record normally, then start monitoring
-                await self.repository.append_recall_record(record, session, received_at)
+                # No initial SURGE - append record in background (non-blocking, doesn't delay monitoring)
+                # DB writes are LOWEST priority - start monitoring immediately, don't wait for DB write
+                asyncio.create_task(self.repository.append_recall_record(record, session, received_at))
                 
-                # No initial SURGE - start 2-minute monitoring for SURGE detection
+                # No initial SURGE - start 2-minute monitoring for SURGE detection IMMEDIATELY
                 logger.info(
                     "📊 NO INITIAL SURGE: Starting 2-minute monitoring for SURGE detection",
                     article_id=article.id,
@@ -872,14 +875,17 @@ class RecallStatsEngine:
                         ticker_sector = None
                         try:
                             # Try quick fetch (1 second timeout - don't block monitoring)
-                            ticker_meta = await asyncio.wait_for(
-                                self.yahoo_finance_coordinator.fetch_metadata(ticker, timeout=1.0),
-                                timeout=1.5
+                            # Use queue_on_failure=True to ensure metadata is eventually populated
+                            ticker_meta = await self.yahoo_finance_coordinator.fetch_metadata(
+                                ticker,
+                                timeout=1.0,
+                                queue_on_failure=True  # Queue for background retry if fails
                             )
                             if ticker_meta:
                                 ticker_sector = ticker_meta.get("sector")
                         except (asyncio.TimeoutError, Exception):
                             # If fetch fails, proceed without sector (strict requirements)
+                            # Metadata will be queued for background retry
                             pass
                         
                         # Analyze this 4-second window
