@@ -29,7 +29,7 @@ from ...shared.statistics.volume_analyzer import analyze_volume_around_event
 from ...infra.statistics.repository import StatisticsRepository
 from ...infra.brokerage.quote_fetcher import AlpacaQuoteFetcher
 from ...utils.brokerage.session_detector import get_market_session, get_market_session_from_timestamp
-from .finnhub_coordinator import FinnhubCoordinator
+from .yahoo_finance_coordinator import YahooFinanceCoordinator
 from ...domain.websocket.events import ArticleReceivedDomainEvent
 from ...domain.classification.events import ArticleClassifiedDomainEvent
 from ...domain.brokerage.events import TradeExecutedDomainEvent, TradeFailedDomainEvent, TradeRequestDomainEvent
@@ -60,7 +60,7 @@ class RecallStatsEngine:
         event_bus: AsyncEventBus,
         repository: StatisticsRepository,
         quote_fetcher: AlpacaQuoteFetcher,
-        finnhub_coordinator: FinnhubCoordinator,
+        yahoo_finance_coordinator: YahooFinanceCoordinator,
         market_data_client: Optional["StockHistoricalDataClient"] = None,
         trading_client: Optional["TradingClient"] = None
     ):
@@ -71,14 +71,14 @@ class RecallStatsEngine:
             event_bus: Event bus for subscribing to events
             repository: Statistics repository for file I/O
             quote_fetcher: Quote fetcher for NBBO snapshots
-            finnhub_coordinator: Shared Finnhub API coordinator (for industry/sector/market_cap)
+            yahoo_finance_coordinator: Shared Yahoo Finance coordinator (for industry/sector/market_cap)
             market_data_client: Optional Alpaca market data client for volume stats
             trading_client: Optional Alpaca trading client for exchange info
         """
         self.event_bus = event_bus
         self.repository = repository
         self.quote_fetcher = quote_fetcher
-        self.finnhub_coordinator = finnhub_coordinator
+        self.yahoo_finance_coordinator = yahoo_finance_coordinator
         self.market_data_client = market_data_client
         self.trading_client = trading_client
         
@@ -167,9 +167,10 @@ class RecallStatsEngine:
         # Start finalization task (runs every 5 minutes to ensure metadata is populated)
         self._finalization_task = asyncio.create_task(self._finalization_loop())
         
-        # Ensure Finnhub coordinator is started (may already be started by MarketDataValidator)
-        if not self.finnhub_coordinator._worker_task or self.finnhub_coordinator._worker_task.done():
-            await self.finnhub_coordinator.start()
+        # Ensure coordinator is started (may already be started by MarketDataValidator)
+        # YahooFinanceCoordinator has _worker_task for compatibility, but it's optional
+        # YahooFinanceCoordinator - just call start (no worker_task check needed)
+        await self.yahoo_finance_coordinator.start()
         
         logger.info("RecallStatsEngine started - subscribed to events")
     
@@ -209,7 +210,7 @@ class RecallStatsEngine:
         await self._finalize_all_metadata()
         
         # Stop Finnhub coordinator
-        await self.finnhub_coordinator.stop()
+        await self.yahoo_finance_coordinator.stop()
         
         # Cancel monitoring tasks
         async with self._monitoring_lock:
@@ -295,7 +296,19 @@ class RecallStatsEngine:
                 nbbo = await self.quote_fetcher.get_nbbo_snapshot(ticker)
                 
                 if nbbo:
-                    # Ticker is tradable (has NBBO in current session)
+                    # CRITICAL: 10 cent minimum stock price filter
+                    # Reject stocks below $0.10 to avoid bad trades from low-priced, illiquid stocks
+                    mid_price = nbbo.get("mid")
+                    if mid_price and mid_price < 0.10:
+                        logger.info(
+                            "⏭️ RECALL: Skipping ticker - stock price below $0.10 minimum",
+                            article_id=article.id,
+                            ticker=ticker,
+                            price=mid_price
+                        )
+                        continue  # Skip this ticker
+                    
+                    # Ticker is tradable (has NBBO in current session) and meets minimum price
                     tradable_tickers.append(ticker)
                     initial_nbbos[ticker] = nbbo
             
@@ -316,7 +329,7 @@ class RecallStatsEngine:
             }
             session_enum = session_enum_map.get(session, MarketSession.MARKET)
             
-            # Fetch sector metadata for preferred sector exceptions (Healthcare, Technology, Financial Services)
+            # Fetch sector metadata for surge detection (all sectors treated equally now)
             # Try quick fetch (2 second timeout) - if fails, default to strict requirements (safe)
             # Fetch in parallel for all tickers to avoid blocking
             sector_by_ticker = {}
@@ -326,7 +339,7 @@ class RecallStatsEngine:
                     # Try quick fetch (2 second timeout - don't block)
                     # Finnhub coordinator handles caching internally
                     ticker_meta = await asyncio.wait_for(
-                        self.finnhub_coordinator.fetch_metadata(t, timeout=2.0),
+                        self.yahoo_finance_coordinator.fetch_metadata(t, timeout=2.0),
                         timeout=2.5  # Slightly longer than fetch timeout to catch timeout errors
                     )
                     if ticker_meta and ticker_meta.get("sector"):
@@ -364,7 +377,7 @@ class RecallStatsEngine:
                             event_time=article.published_at,
                             received_at=received_at,
                             reference_nbbo=initial_nbbos.get(t),
-                            sector=ticker_sector  # Pass sector for preferred sector exceptions
+                            sector=ticker_sector  # Pass sector for surge detection
                         )
                         if volume_analysis:
                             return (t, volume_analysis.to_dict())
@@ -656,7 +669,7 @@ class RecallStatsEngine:
                     )
                     return
             
-            # Get current ask price for calculating $5k trade size and validate spread
+            # Get current ask price for calculating $2k trade size and validate spread
             current_price = None
             MAX_SPREAD_THRESHOLD_PCT = 2.0  # Reject trades if spread >= 2%
             
@@ -727,7 +740,7 @@ class RecallStatsEngine:
                     error=str(price_error)
                 )
             
-            # Build trade request from article with $5k position size
+            # Build trade request from article with $2k position size
             # CRITICAL: Pass the specific ticker that showed SURGE to avoid trading wrong ticker
             trade_request = build_trade_request_for_article(article, current_price=current_price, ticker=ticker)
             
@@ -860,7 +873,7 @@ class RecallStatsEngine:
                         try:
                             # Try quick fetch (1 second timeout - don't block monitoring)
                             ticker_meta = await asyncio.wait_for(
-                                self.finnhub_coordinator.fetch_metadata(ticker, timeout=1.0),
+                                self.yahoo_finance_coordinator.fetch_metadata(ticker, timeout=1.0),
                                 timeout=1.5
                             )
                             if ticker_meta:
@@ -876,7 +889,7 @@ class RecallStatsEngine:
                             event_time=window_start,  # Analyze 4 seconds starting from here
                             received_at=window_start,  # Use window_start as received_at for this analysis
                             reference_nbbo=initial_nbbos.get(ticker),
-                            sector=ticker_sector  # Pass sector for preferred sector exceptions
+                            sector=ticker_sector  # Pass sector for surge detection
                         )
                         
                         if volume_analysis and volume_analysis.move_type == "SURGE":
@@ -1662,9 +1675,42 @@ class RecallStatsEngine:
                                 error=str(exchange_error)
                             )
                     
-                    # Get industry, sector, market_cap from Finnhub (rate-limited, 60/min)
+                    # Get industry, sector, market_cap from Yahoo Finance
+                    # CRITICAL: If fetch fails, automatically queue for background retry to ensure eventual completion
+                    async def update_metadata_callback(t: str, meta: Optional[Dict[str, Any]]) -> None:
+                        """Callback to update record when metadata is eventually fetched (background retry)."""
+                        if meta:
+                            # Add price and exchange from Alpaca if available
+                            if price is not None:
+                                meta["price"] = price
+                            if exchange:
+                                meta["exchange"] = exchange
+                            
+                            # Fire-and-forget: Update record in background (non-blocking)
+                            asyncio.create_task(
+                                self.repository.update_recall_record(
+                                    article_id,
+                                    {"ticker_metadata": {t: meta}},
+                                    session,
+                                    received_at
+                                )
+                            )
+                            logger.info(
+                                "✅ RECALL: Metadata eventually fetched and updated (background retry)",
+                                article_id=article_id,
+                                ticker=t,
+                                industry=meta.get("industry"),
+                                sector=meta.get("sector")
+                            )
+                    
                     try:
-                        ticker_meta = await self.finnhub_coordinator.fetch_metadata(ticker, timeout=30.0)
+                        # Attempt fetch with automatic queuing on failure
+                        ticker_meta = await self.yahoo_finance_coordinator.fetch_metadata(
+                            ticker,
+                            timeout=30.0,
+                            queue_on_failure=True,  # Automatically queue for background retry if fails
+                            callback=update_metadata_callback
+                        )
                         if ticker_meta:
                             # Add price and exchange from Alpaca
                             if price is not None:
@@ -1673,7 +1719,8 @@ class RecallStatsEngine:
                                 ticker_meta["exchange"] = exchange
                             metadata_dict[ticker] = ticker_meta
                         else:
-                            # Finnhub returned None - but we might still have price/exchange from Alpaca
+                            # Fetch returned None - queued for background retry
+                            # Store partial metadata (price/exchange) now, full metadata will be updated later
                             if price is not None or exchange:
                                 metadata_dict[ticker] = {
                                     "industry": None,
@@ -1682,11 +1729,12 @@ class RecallStatsEngine:
                                     "price": price,
                                     "exchange": exchange
                                 }
+                                metadata_errors[ticker] = "metadata_queued_for_retry"
                             else:
                                 failed_tickers.append(ticker)
-                                metadata_errors[ticker] = "no_data_available"
+                                metadata_errors[ticker] = "no_data_available_queued_for_retry"
                     except asyncio.TimeoutError:
-                        # Finnhub timeout - but we might still have price/exchange from Alpaca
+                        # Timeout - queue for background retry
                         if price is not None or exchange:
                             metadata_dict[ticker] = {
                                 "industry": None,
@@ -1695,12 +1743,15 @@ class RecallStatsEngine:
                                 "price": price,
                                 "exchange": exchange
                             }
-                            metadata_errors[ticker] = "finnhub_timeout"
+                            metadata_errors[ticker] = "timeout_queued_for_retry"
                         else:
                             failed_tickers.append(ticker)
-                            metadata_errors[ticker] = "api_timeout"
+                            metadata_errors[ticker] = "api_timeout_queued_for_retry"
+                        
+                        # Queue for background retry
+                        await self.yahoo_finance_coordinator.queue_metadata_fetch(ticker, update_metadata_callback)
                     except Exception as meta_error:
-                        # Finnhub error - but we might still have price/exchange from Alpaca
+                        # Error - queue for background retry
                         if price is not None or exchange:
                             metadata_dict[ticker] = {
                                 "industry": None,
@@ -1710,14 +1761,17 @@ class RecallStatsEngine:
                                 "exchange": exchange
                             }
                         error_type = type(meta_error).__name__
-                        metadata_errors[ticker] = f"finnhub_error_{error_type.lower()}"
+                        metadata_errors[ticker] = f"error_{error_type.lower()}_queued_for_retry"
                         logger.debug(
-                            "Recall: Finnhub metadata fetch error (but have price/exchange from Alpaca)",
+                            "Recall: Metadata fetch error - queued for background retry",
                             article_id=article_id,
                             ticker=ticker,
                             error=str(meta_error),
                             error_type=error_type
                         )
+                        
+                        # Queue for background retry
+                        await self.yahoo_finance_coordinator.queue_metadata_fetch(ticker, update_metadata_callback)
                 
                 # Update record even if only partial metadata (better than nothing)
                 if metadata_dict or attempt == max_retries - 1:
@@ -1913,8 +1967,40 @@ class RecallStatsEngine:
                     except Exception:
                         pass
                 
-                # Get industry, sector, market_cap from Finnhub
-                ticker_meta = await self.finnhub_coordinator.fetch_metadata(ticker, timeout=30.0)
+                # Callback to update record when metadata is eventually fetched
+                async def update_metadata_callback(t: str, meta: Optional[Dict[str, Any]]) -> None:
+                    """Callback to update record when metadata is eventually fetched (background retry)."""
+                    if meta:
+                        # Add price and exchange from Alpaca if available
+                        if price is not None:
+                            meta["price"] = price
+                        if exchange:
+                            meta["exchange"] = exchange
+                        
+                        # Fire-and-forget: Update record in background (non-blocking)
+                        asyncio.create_task(
+                            self.repository.update_recall_record(
+                                article_id,
+                                {"ticker_metadata": {t: meta}},
+                                session,
+                                received_at
+                            )
+                        )
+                        logger.info(
+                            "✅ RECALL: Metadata eventually fetched and updated (retry)",
+                            article_id=article_id,
+                            ticker=t,
+                            industry=meta.get("industry"),
+                            sector=meta.get("sector")
+                        )
+                
+                # Get industry, sector, market_cap from Yahoo Finance with automatic queuing on failure
+                ticker_meta = await self.yahoo_finance_coordinator.fetch_metadata(
+                    ticker,
+                    timeout=30.0,
+                    queue_on_failure=True,  # Automatically queue for background retry if fails
+                    callback=update_metadata_callback
+                )
                 if ticker_meta:
                     # Add price and exchange from Alpaca
                     if price is not None:
@@ -1923,7 +2009,7 @@ class RecallStatsEngine:
                         ticker_meta["exchange"] = exchange
                     metadata_dict[ticker] = ticker_meta
                 elif price is not None or exchange:
-                    # Finnhub failed but we have price/exchange from Alpaca
+                    # Fetch failed but we have price/exchange from Alpaca (queued for retry)
                     metadata_dict[ticker] = {
                         "industry": None,
                         "sector": None,

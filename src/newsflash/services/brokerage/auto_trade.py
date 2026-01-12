@@ -120,38 +120,38 @@ async def fetch_article_for_trade(
 
 def build_trade_request_for_article(article: Article, current_price: Optional[float] = None, ticker: Optional[str] = None) -> Optional[TradeRequest]:
     """
-    Build a trade request from an article with $5,000 position size.
+    Build a trade request from an article with $2,000 position size.
     
-    Business rule: Trade exactly $5,000 worth of shares.
-    - Calculate shares = floor(5000 / current_price) - rounded down to nearest share
-    - Each trade gets its own $5k allocation (even if multiple trades in same window)
+    Business rule: Trade exactly $2,000 worth of shares.
+    - Calculate shares = floor(2000 / current_price) - rounded down to nearest share
+    - Each trade gets its own $2k allocation (even if multiple trades in same window)
     
     Args:
         article: Domain Article model
         current_price: Current ask price for buying (if None, will use amount_usd and let executor calculate)
         ticker: Specific ticker to trade (if None, uses first ticker from article)
         
-    Returns:
-        Domain TradeRequest model with shares set (if price provided) or amount_usd=5000, or None if invalid
+        Returns:
+        Domain TradeRequest model with shares set (if price provided) or amount_usd=2000, or None if invalid
     """
     import math
     
-    TRADE_SIZE_USD = Decimal("5000.00")  # Fixed $5k per trade
+    TRADE_SIZE_USD = Decimal("2000.00")  # Fixed $2k per trade (reduced for testing/load scenarios)
     
     # If we have price, calculate shares upfront and round down
     if current_price and current_price > 0:
         shares = math.floor(TRADE_SIZE_USD / Decimal(str(current_price)))
         if shares <= 0:
             logger.warning(
-                "⏭️ AUTO-TRADE SKIPPED: Price too high for $5k trade",
+                "⏭️ AUTO-TRADE SKIPPED: Price too high for $2k trade",
                 article_id=article.id,
                 current_price=current_price,
                 trade_size_usd=float(TRADE_SIZE_USD)
             )
             return None
         
-        logger.info(
-            "💰 AUTO-TRADE: Building $5k trade with calculated shares",
+            logger.info(
+            "💰 AUTO-TRADE: Building $2k trade with calculated shares",
             article_id=article.id,
             shares=shares,
             current_price=current_price,

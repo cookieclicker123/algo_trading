@@ -786,45 +786,26 @@ def _assess_surge_snapshot(
         TRADE_COUNT_THRESHOLD = 2.0
         MAX_EXCURSION_THRESHOLD = 1.0
         BUYING_PRESSURE_THRESHOLD = 70.0
-        MIN_BUY_VOLUME_THRESHOLD = 1000
         MIN_WINDOW_VOLUME_THRESHOLD = 5000
         
         is_size_ok = surge_score >= VOLUME_SURGE_THRESHOLD
         is_freq_ok = trade_count_multiplier >= TRADE_COUNT_THRESHOLD
         is_mom_ok = max_excursion >= MAX_EXCURSION_THRESHOLD
         
-        PREFERRED_SECTORS = {"Healthcare", "Technology", "Financial Services"}
-        is_preferred_sector = (sector and sector in PREFERRED_SECTORS)
-        
+        # All sectors treated equally - no preferred sector lenience
         has_sufficient_buying_pressure = pressure_pct >= BUYING_PRESSURE_THRESHOLD
-        if is_preferred_sector:
-            is_conv_ok = has_sufficient_buying_pressure
-        else:
-            is_conv_ok = (has_sufficient_buying_pressure and buy_volume >= MIN_BUY_VOLUME_THRESHOLD)
+        # 70% buying pressure (imbalance ratio >= 0.4) - minimum buy volume removed (redundant with buying pressure + window volume)
+        is_conv_ok = has_sufficient_buying_pressure
         
-        if is_preferred_sector:
-            has_minimum_volume = True
-        else:
-            has_minimum_volume = (current_vol >= MIN_WINDOW_VOLUME_THRESHOLD)
+        # All sectors require minimum volume
+        has_minimum_volume = (current_vol >= MIN_WINDOW_VOLUME_THRESHOLD)
         
-        # Liveness
-        MAX_GAP_THRESHOLD = 1.0
-        if current_vol >= 50000: MAX_GAP_THRESHOLD = 1.5
-        check_gap = stats_now.max_trade_gap if stats_now and stats_now.max_trade_gap is not None else 99.0
-        is_alive = check_gap <= MAX_GAP_THRESHOLD
+        # Liveness metric completely removed - no longer used in surge detection
         
-        if not is_alive:
-             pass
-        
-        HIGH_VOLUME_THRESHOLD = 50000
-        is_high_volume_tus_of_war = (current_vol >= HIGH_VOLUME_THRESHOLD)
-        
-        if is_high_volume_tus_of_war:
-            if is_size_ok and is_freq_ok and is_mom_ok and is_alive:
-                move_type = "SURGE"
-            else:
-                move_type = "STRENGTH"
-        elif is_size_ok and is_freq_ok and is_mom_ok and is_conv_ok and has_minimum_volume and is_alive:
+        # Single path: All surges require 5 signals (size, frequency, momentum, conviction, minimum volume)
+        # 70% buying pressure is REQUIRED for all surges (no high volume exception)
+        if is_size_ok and is_freq_ok and is_mom_ok and is_conv_ok and has_minimum_volume:
+            # Surge path: size, frequency, momentum, conviction (70% buying pressure), minimum volume (no liveness, no sector lenience)
             move_type = "SURGE"
         elif is_size_ok and is_freq_ok and is_mom_ok and is_conv_ok and not has_minimum_volume:
             move_type = "STRENGTH"

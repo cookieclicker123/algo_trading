@@ -105,19 +105,19 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
     )
     logger.info("TickerValidator created")
     
-    # Step 2.6: Create MarketDataValidator (needs TradingClient, MarketDataClient, and shared FinnhubCoordinator)
+    # Step 2.6: Create MarketDataValidator (needs TradingClient, MarketDataClient, and shared YahooFinanceCoordinator)
     from ..infra.brokerage.market_data_validator import MarketDataValidator
-    # Get shared FinnhubCoordinator from container (singleton - shared with stats engines)
-    finnhub_coordinator = container.finnhub_coordinator()
-    await finnhub_coordinator.start()  # Start coordinator early so it's ready for all services
-    logger.info("FinnhubCoordinator started (shared across MarketDataValidator and stats engines)")
+    # Get shared YahooFinanceCoordinator from container (singleton - shared with stats engines)
+    yahoo_finance_coordinator = container.yahoo_finance_coordinator()
+    await yahoo_finance_coordinator.start()  # Start coordinator early so it's ready for all services
+    logger.info("YahooFinanceCoordinator started (shared across MarketDataValidator and stats engines)")
     
     market_data_validator = MarketDataValidator(
         trading_client=brokerage.infra.connection_manager.trading_client,
         market_data_client=brokerage.infra.connection_manager.market_data_client,
-        finnhub_coordinator=finnhub_coordinator  # Shared singleton - single API call per ticker
+        yahoo_finance_coordinator=yahoo_finance_coordinator  # Shared singleton - single API call per ticker
     )
-    logger.info("MarketDataValidator created (using shared FinnhubCoordinator)")
+    logger.info("MarketDataValidator created (using shared YahooFinanceCoordinator)")
     
     # Step 2.7: Inject validators and quote_fetcher into classification infrastructure (before starting)
     classification.infra.ticker_validator = ticker_validator
@@ -248,31 +248,31 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
     statistics_repository = container.statistics_repository()
     logger.info("StatisticsRepository initialized via DI container")
     
-    # Create recall engine via DI container factory (quote_fetcher, finnhub_coordinator, market_data_client, trading_client passed as dependencies)
-    # Note: finnhub_coordinator is already started above (shared with MarketDataValidator)
+    # Create recall engine via DI container factory (quote_fetcher, yahoo_finance_coordinator, market_data_client, trading_client passed as dependencies)
+    # Note: yahoo_finance_coordinator is already started above (shared with MarketDataValidator)
     recall_engine = container.recall_stats_engine(
         quote_fetcher=brokerage.quote_fetcher,  # Use property (not .infra directly)
-        finnhub_coordinator=finnhub_coordinator,  # Use already-started shared singleton
+        yahoo_finance_coordinator=yahoo_finance_coordinator,  # Use already-started shared singleton
         market_data_client=brokerage.infra.connection_manager.market_data_client if brokerage else None,
         trading_client=brokerage.infra.connection_manager.trading_client if brokerage else None
     )
     await recall_engine.start()
     logger.info("RecallStatsEngine started - tracking missed opportunities (with volume stats)")
     
-    # Create signal engine via DI container factory (finnhub_coordinator, quote_fetcher, trading_client)
-    # Note: finnhub_coordinator is already started above (shared with MarketDataValidator)
+    # Create signal engine via DI container factory (yahoo_finance_coordinator, quote_fetcher, trading_client)
+    # Note: yahoo_finance_coordinator is already started above (shared with MarketDataValidator)
     signal_engine = container.signal_stats_engine(
-        finnhub_coordinator=finnhub_coordinator,  # Use already-started shared singleton
+        yahoo_finance_coordinator=yahoo_finance_coordinator,  # Use already-started shared singleton
         quote_fetcher=brokerage.quote_fetcher if brokerage else None,
         trading_client=brokerage.infra.connection_manager.trading_client if brokerage else None
     )
     await signal_engine.start()
     logger.info("SignalStatsEngine started - tracking trade executions")
     
-    # Create failed trades engine via DI container factory (finnhub_coordinator, quote_fetcher, trading_client)
-    # Note: finnhub_coordinator is already started above (shared with MarketDataValidator)
+    # Create failed trades engine via DI container factory (yahoo_finance_coordinator, quote_fetcher, trading_client)
+    # Note: yahoo_finance_coordinator is already started above (shared with MarketDataValidator)
     failed_trades_engine = container.failed_trade_stats_engine(
-        finnhub_coordinator=finnhub_coordinator,  # Use already-started shared singleton
+        yahoo_finance_coordinator=yahoo_finance_coordinator,  # Use already-started shared singleton
         quote_fetcher=brokerage.quote_fetcher,  # Use property (not .infra directly)
         trading_client=brokerage.infra.connection_manager.trading_client if brokerage else None
     )

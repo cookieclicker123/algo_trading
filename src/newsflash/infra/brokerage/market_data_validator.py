@@ -1,8 +1,8 @@
 """
 Market data validator - validates market cap and price thresholds.
 
-Pure infrastructure - uses Alpaca API for prices and FinnhubCoordinator for market cap.
-Shares FinnhubCoordinator with stats engines for efficient single API call per ticker.
+Pure infrastructure - uses Alpaca API for prices and YahooFinanceCoordinator for market cap.
+Shares YahooFinanceCoordinator with stats engines for efficient single API call per ticker.
 """
 from typing import Optional, Tuple
 from datetime import datetime
@@ -36,7 +36,7 @@ class MarketDataValidator:
         self,
         trading_client: TradingClient,
         market_data_client: StockHistoricalDataClient,
-        finnhub_coordinator=None  # Optional - will be injected from DI container
+        yahoo_finance_coordinator=None  # Optional - will be injected from DI container
     ):
         """
         Initialize market data validator.
@@ -44,15 +44,15 @@ class MarketDataValidator:
         Args:
             trading_client: Alpaca TradingClient instance for fetching asset info
             market_data_client: Alpaca StockHistoricalDataClient for fetching prices
-            finnhub_coordinator: Shared FinnhubCoordinator instance (for market cap, shared with stats engines)
+            yahoo_finance_coordinator: Shared YahooFinanceCoordinator instance (for market cap, shared with stats engines)
         """
         self.trading_client = trading_client
         self.market_data_client = market_data_client
-        self.finnhub_coordinator = finnhub_coordinator
+        self.yahoo_finance_coordinator = yahoo_finance_coordinator
         
         logger.info(
             "MarketDataValidator initialized",
-            has_finnhub_coordinator=finnhub_coordinator is not None
+            has_yahoo_finance_coordinator=yahoo_finance_coordinator is not None
         )
     
     async def start(self) -> None:
@@ -172,18 +172,18 @@ class MarketDataValidator:
             
             # Fetch market cap from FinnhubCoordinator (shared with stats engines - single API call per ticker)
             market_cap_millions = None
-            if price and self.finnhub_coordinator:  # Only fetch market cap if we have price and coordinator is available
+            if price and self.yahoo_finance_coordinator:  # Only fetch market cap if we have price and coordinator is available
                 try:
-                    logger.debug("MarketDataValidator: Fetching market cap from FinnhubCoordinator", ticker=ticker)
+                    logger.debug("MarketDataValidator: Fetching market cap from YahooFinanceCoordinator", ticker=ticker)
                     # Use shared coordinator - will cache and share with stats engines
-                    metadata = await self.finnhub_coordinator.fetch_metadata(ticker, timeout=30.0)
+                    metadata = await self.yahoo_finance_coordinator.fetch_metadata(ticker, timeout=30.0)
                     
                     if metadata:
                         # Extract market cap from metadata (already in millions)
                         market_cap_millions = metadata.get('market_cap_millions')
                 except Exception as e:
                     logger.debug(
-                        "MarketDataValidator: Failed to fetch market cap from FinnhubCoordinator",
+                        "MarketDataValidator: Failed to fetch market cap from YahooFinanceCoordinator",
                         ticker=ticker,
                         error=str(e)
                     )

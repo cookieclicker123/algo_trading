@@ -32,7 +32,7 @@ class RecallRecord(BaseModel):
         description="10-minute price check: final_mid, percent_change, moved_1_percent"
     )
     
-    # Ticker metadata (fetched via FinnhubCoordinator - shared across all services)
+    # Ticker metadata (fetched via YahooFinanceCoordinator - shared across all services)
     ticker_metadata: Dict[str, Dict[str, Any]] = Field(
         default_factory=dict,
         description="ticker -> {industry, sector, market_cap_millions, price, exchange}"
@@ -163,7 +163,7 @@ class SignalRecord(BaseModel):
         description="NBBO at entry: bid, ask, spread, mid"
     )
     
-    # Ticker metadata (fetched via FinnhubCoordinator - shared across all services)
+    # Ticker metadata (fetched via YahooFinanceCoordinator - shared across all services)
     ticker_metadata: Optional[Dict[str, Any]] = Field(
         None,
         description="{industry, sector, market_cap_millions, price, exchange}"
@@ -218,7 +218,7 @@ class FailedTradeRecord(BaseModel):
     minute: int = Field(..., description="Minute of hour (0-59) when trade failed")
     time_of_day: str = Field(..., description="Time of day string (HH:MM format)")
     
-    # Ticker metadata (fetched via FinnhubCoordinator - shared across all services)
+    # Ticker metadata (fetched via YahooFinanceCoordinator - shared across all services)
     ticker_metadata: Optional[Dict[str, Any]] = Field(
         None,
         description="{industry, sector, market_cap_millions, price, exchange}"

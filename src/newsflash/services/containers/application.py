@@ -37,7 +37,6 @@ from ...infra.statistics.repository import StatisticsRepository
 from ...shared.statistics.recall_engine import RecallStatsEngine
 from ...shared.statistics.signal_engine import SignalStatsEngine
 from ...shared.statistics.failed_trades_engine import FailedTradeStatsEngine
-from ...shared.statistics.finnhub_coordinator import FinnhubCoordinator
 from ...shared.statistics.yahoo_finance_coordinator import YahooFinanceCoordinator
 from pathlib import Path
 class ApplicationContainer(containers.DeclarativeContainer):
@@ -263,32 +262,29 @@ class ApplicationContainer(containers.DeclarativeContainer):
         YahooFinanceCoordinator,
     )
     
-    # Keep finnhub_coordinator alias for backward compatibility
-    finnhub_coordinator = yahoo_finance_coordinator
-    
-    # RecallStatsEngine - needs event_bus, repository, quote_fetcher, finnhub_coordinator, market_data_client, trading_client
+    # RecallStatsEngine - needs event_bus, repository, quote_fetcher, yahoo_finance_coordinator, market_data_client, trading_client
     recall_stats_engine = providers.Factory(
         RecallStatsEngine,
         event_bus=shared.event_bus,
         repository=statistics_repository,
-        finnhub_coordinator=finnhub_coordinator,
+        yahoo_finance_coordinator=yahoo_finance_coordinator,
         # quote_fetcher, market_data_client, trading_client will be passed when recall_stats_engine is called in composition_root
     )
     
-    # SignalStatsEngine - needs event_bus, repository, finnhub_coordinator, quote_fetcher, trading_client
+    # SignalStatsEngine - needs event_bus, repository, yahoo_finance_coordinator, quote_fetcher, trading_client
     signal_stats_engine = providers.Factory(
         SignalStatsEngine,
         event_bus=shared.event_bus,
         repository=statistics_repository,
-        finnhub_coordinator=finnhub_coordinator,
+        yahoo_finance_coordinator=yahoo_finance_coordinator,
         # quote_fetcher and trading_client will be passed when signal_stats_engine is called in composition_root
     )
     
-    # FailedTradeStatsEngine - needs event_bus, repository, quote_fetcher, finnhub_coordinator, trading_client
+    # FailedTradeStatsEngine - needs event_bus, repository, quote_fetcher, yahoo_finance_coordinator, trading_client
     failed_trade_stats_engine = providers.Factory(
         FailedTradeStatsEngine,
         event_bus=shared.event_bus,
         repository=statistics_repository,
-        finnhub_coordinator=finnhub_coordinator,
+        yahoo_finance_coordinator=yahoo_finance_coordinator,
         # quote_fetcher and trading_client will be passed when failed_trade_stats_engine is called in composition_root
     )

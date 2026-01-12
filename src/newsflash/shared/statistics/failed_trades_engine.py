@@ -16,7 +16,7 @@ from ...infra.brokerage.quote_fetcher import AlpacaQuoteFetcher
 from ...utils.brokerage.session_detector import get_market_session_from_timestamp
 from ...domain.brokerage.events import TradeFailedDomainEvent
 from ...domain.brokerage.models import MarketSession
-from .finnhub_coordinator import FinnhubCoordinator
+from .yahoo_finance_coordinator import YahooFinanceCoordinator
 
 logger = get_logger(__name__)
 
@@ -39,7 +39,7 @@ class FailedTradeStatsEngine:
         event_bus: AsyncEventBus,
         repository: StatisticsRepository,
         quote_fetcher: AlpacaQuoteFetcher,
-        finnhub_coordinator: FinnhubCoordinator,
+        yahoo_finance_coordinator: YahooFinanceCoordinator,
         trading_client: Optional["TradingClient"] = None
     ):
         """
@@ -49,13 +49,13 @@ class FailedTradeStatsEngine:
             event_bus: Event bus for subscribing to events
             repository: Statistics repository for file I/O
             quote_fetcher: Quote fetcher for NBBO snapshots at failure time
-            finnhub_coordinator: Shared Finnhub API coordinator (for industry/sector/market_cap)
+            yahoo_finance_coordinator: Shared Yahoo Finance coordinator (for industry/sector/market_cap)
             trading_client: Optional trading client for exchange info
         """
         self.event_bus = event_bus
         self.repository = repository
         self.quote_fetcher = quote_fetcher
-        self.finnhub_coordinator = finnhub_coordinator
+        self.yahoo_finance_coordinator = yahoo_finance_coordinator
         self.trading_client = trading_client
         
         # Track pending metadata fetches (trade_id -> (ticker, session, failed_at, task))
@@ -84,8 +84,8 @@ class FailedTradeStatsEngine:
         self._finalization_task = asyncio.create_task(self._finalization_loop())
         
         # Ensure Finnhub coordinator is started (may already be started by MarketDataValidator)
-        if not self.finnhub_coordinator._worker_task or self.finnhub_coordinator._worker_task.done():
-            await self.finnhub_coordinator.start()
+        # YahooFinanceCoordinator - just call start (no worker_task check needed)
+        await self.yahoo_finance_coordinator.start()
         
         logger.info("FailedTradeStatsEngine started - subscribed to events")
     
@@ -103,7 +103,7 @@ class FailedTradeStatsEngine:
         await self._finalize_all_metadata()
         
         # Stop Finnhub coordinator
-        await self.finnhub_coordinator.stop()
+        await self.yahoo_finance_coordinator.stop()
         
         logger.info("FailedTradeStatsEngine stopped")
     
@@ -281,7 +281,7 @@ class FailedTradeStatsEngine:
                         pass
                 
                 # Get industry, sector, market_cap from Finnhub (rate-limited, 60/min)
-                metadata = await self.finnhub_coordinator.fetch_metadata(record.ticker, timeout=30.0)
+                metadata = await self.yahoo_finance_coordinator.fetch_metadata(record.ticker, timeout=30.0)
                 if metadata:
                     # Add price and exchange from Alpaca
                     if price is not None:
@@ -474,7 +474,7 @@ class FailedTradeStatsEngine:
                     pass
             
             # Get industry, sector, market_cap from Finnhub (rate-limited, 60/min)
-            metadata = await self.finnhub_coordinator.fetch_metadata(ticker, timeout=30.0)
+            metadata = await self.yahoo_finance_coordinator.fetch_metadata(ticker, timeout=30.0)
             if metadata:
                 # Add price and exchange from Alpaca
                 if price is not None:
