@@ -873,65 +873,148 @@ async def analyze_volume_around_event(
 
     prior_avg_spread = await asyncio.to_thread(_fetch_shadow_spread)
     
-    # 4. POLLING LOOP
+    # 3. CATCH-UP WINDOW ANALYSIS (Bottleneck #3)
+    # If article arrived late (received_at > event_time), analyze the entire catch-up window first
+    # This allows us to detect surges that occurred during the reception delay
     stats_now = None
     metrics = {}
     move_type = "INACTIVE"
     last_window_end = None
+    use_catchup_window = False
+    catchup_window_end = None
     
-    while True:
-        now = datetime.now(timezone.utc)
+    if received_at:
+        received_at_utc = received_at.replace(tzinfo=timezone.utc) if received_at.tzinfo is None else received_at
+        event_time_utc = event_time.replace(tzinfo=timezone.utc) if event_time.tzinfo is None else event_time
+        catchup_delay = (received_at_utc - event_time_utc).total_seconds()
         
-        # Check if we are past shock window
-        if now >= shock_end_time:
-            current_check_time = shock_end_time
-            is_final = True
-        else:
-            current_check_time = now
-            is_final = False
-        
-        # Don't check meaningful stats if < 0.5s of data unless it's final
-        duration = (current_check_time - event_time).total_seconds()
-        if duration < 0.5 and not is_final:
-            await asyncio.sleep(0.1)
-            continue
+        # Only use catch-up window if article arrived late (received_at > event_time)
+        # And only if we're analyzing a reasonable window (0-60 seconds, not hours in the past from tests)
+        # Allow 0-60 second windows: sometimes things are very quick, and in practice most articles
+        # have a meaningful period (a few seconds) before we receive them where we can find signal
+        if 0 < catchup_delay <= 60:  # Reasonable delay window: 0-60 seconds (exclude 0 since no window to analyze)
+            use_catchup_window = True
+            catchup_window_end = received_at_utc
             
-        # Assess Surge - Offload Blocking I/O
-        # This is CRITICAL: _assess_surge_snapshot calls client.get_stock_trades (Sync HTTP)
-        stats_now, metrics, move_type = await asyncio.to_thread(
-            _assess_surge_snapshot,
-            client=client,
-            symbol=symbol,
-            event_time=event_time,
-            window_end=current_check_time,
-            prior_history=prior_history,
-            reference_nbbo=reference_nbbo,
-            sector=sector
-        )
-        last_window_end = current_check_time
-        
-        # EARLY EXIT: If Surge criteria met, break immediately
-        if move_type == "SURGE":
-            logger.info(f"⚡ EARLY SURGE DETECTED for {symbol} at T+{duration:.2f}s!", 
-                        multiplier=metrics.get("surge_multiplier"))
-            break
+            # Analyze entire catch-up window as one period
+            logger.debug(
+                "Analyzing catch-up window",
+                symbol=symbol,
+                event_time=event_time_utc.isoformat(),
+                catchup_window_end=catchup_window_end.isoformat(),
+                catchup_delay_seconds=round(catchup_delay, 2)
+            )
             
-        # If final pass, break
-        if is_final:
-            break
+            catchup_stats_now, catchup_metrics, catchup_move_type = await asyncio.to_thread(
+                _assess_surge_snapshot,
+                client=client,
+                symbol=symbol,
+                event_time=event_time_utc,
+                window_end=catchup_window_end,
+                prior_history=prior_history,
+                reference_nbbo=reference_nbbo,
+                sector=sector
+            )
             
-        # Wait 0.5s before next poll
-        # But ensure we don't overshoot shock_end too much
-        remaining = (shock_end_time - datetime.now(timezone.utc)).total_seconds()
-        if remaining <= 0:
-            continue # Loop back to hit is_final
-        
-        sleep_time = min(0.5, remaining)
-        if sleep_time > 0.05:
-            await asyncio.sleep(sleep_time)
-        else:
-            # yield to event loop
-            await asyncio.sleep(0)  
+            stats_now = catchup_stats_now
+            metrics = catchup_metrics
+            move_type = catchup_move_type
+            last_window_end = catchup_window_end
+            
+            # If surge detected in catch-up window, return immediately
+            if move_type == "SURGE":
+                logger.info(
+                    f"⚡ SURGE DETECTED in catch-up window for {symbol} (delay: {catchup_delay:.2f}s)!",
+                    multiplier=metrics.get("surge_multiplier"),
+                    catchup_delay_seconds=round(catchup_delay, 2)
+                )
+                # Skip polling loop - surge already found
+            else:
+                # No surge in catch-up window - continue with normal polling
+                # But only if we haven't already passed the normal 4-second window
+                if catchup_window_end >= shock_end_time:
+                    # We've already analyzed past the normal 4-second window
+                    # Skip polling loop - use catch-up window results
+                    logger.debug(
+                        "Catch-up window extends past normal window, using catch-up results",
+                        symbol=symbol,
+                        catchup_window_end=catchup_window_end.isoformat(),
+                        shock_end_time=shock_end_time.isoformat()
+                    )
+                else:
+                    # Continue with normal polling from catchup_window_end forward
+                    # The polling loop will start from where we left off
+                    logger.debug(
+                        "No surge in catch-up window, continuing with normal polling",
+                        symbol=symbol,
+                        catchup_window_end=catchup_window_end.isoformat()
+                    )
+    
+    # 4. POLLING LOOP (only if no surge detected in catch-up window and we haven't passed the normal window)
+    if move_type != "SURGE" and (not use_catchup_window or (use_catchup_window and catchup_window_end < shock_end_time)):
+        while True:
+            now = datetime.now(timezone.utc)
+            
+            # Check if we are past shock window
+            if now >= shock_end_time:
+                current_check_time = shock_end_time
+                is_final = True
+            else:
+                current_check_time = now
+                is_final = False
+            
+            # If we used catch-up window, start polling from catchup_window_end (not event_time)
+            # Otherwise, start from event_time as normal
+            if use_catchup_window and last_window_end:
+                # Don't re-analyze the catch-up window
+                if current_check_time <= last_window_end:
+                    # Wait until we're past the catch-up window
+                    if not is_final:
+                        await asyncio.sleep(0.1)
+                        continue
+            
+            # Don't check meaningful stats if < 0.5s of data unless it's final
+            duration = (current_check_time - event_time).total_seconds()
+            if duration < 0.5 and not is_final:
+                await asyncio.sleep(0.1)
+                continue
+                
+            # Assess Surge - Offload Blocking I/O
+            # This is CRITICAL: _assess_surge_snapshot calls client.get_stock_trades (Sync HTTP)
+            stats_now, metrics, move_type = await asyncio.to_thread(
+                _assess_surge_snapshot,
+                client=client,
+                symbol=symbol,
+                event_time=event_time,
+                window_end=current_check_time,
+                prior_history=prior_history,
+                reference_nbbo=reference_nbbo,
+                sector=sector
+            )
+            last_window_end = current_check_time
+            
+            # EARLY EXIT: If Surge criteria met, break immediately
+            if move_type == "SURGE":
+                logger.info(f"⚡ EARLY SURGE DETECTED for {symbol} at T+{duration:.2f}s!", 
+                            multiplier=metrics.get("surge_multiplier"))
+                break
+                
+            # If final pass, break
+            if is_final:
+                break
+                
+            # Wait 0.1s before next poll (faster polling for early detection)
+            # But ensure we don't overshoot shock_end too much
+            remaining = (shock_end_time - datetime.now(timezone.utc)).total_seconds()
+            if remaining <= 0:
+                continue # Loop back to hit is_final
+            
+            sleep_time = min(0.1, remaining)  # Changed from 0.5s to 0.1s for faster detection
+            if sleep_time > 0.05:
+                await asyncio.sleep(sleep_time)
+            else:
+                # yield to event loop
+                await asyncio.sleep(0)  
 
     # 5. Populate Final Result (using stats from the loop)
     # LATE START LOGIC: If we finished (Final) but failed to surge, check for late start

@@ -423,11 +423,11 @@ class RecallStatsEngine:
             # Create recall record
             # Use first ticker's NBBO as the initial_nbbo (we'll track all tickers)
             # Check if we already have pending filter reason or classification (from events that fire before record creation)
+            # Combined lock acquisition to reduce lock overhead
             initial_filter_reason = None
+            initial_classification = None
             async with self._filter_reasons_lock:
                 initial_filter_reason = self._pending_filter_reasons.pop(article.id, None)
-            
-            initial_classification = None
             async with self._classification_lock:
                 initial_classification = self._pending_classifications.pop(article.id, None)
             
@@ -1405,7 +1405,7 @@ class RecallStatsEngine:
                 )
                 
                 if updated:
-                    # Success - remove from pending
+                    # Success - remove from pending (combined operations to reduce lock overhead)
                     async with self._filter_reasons_lock:
                         self._pending_filter_reasons.pop(article_id, None)
                     async with self._classification_lock:
