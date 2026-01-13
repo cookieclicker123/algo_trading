@@ -1,5 +1,5 @@
 """
-Failed trades statistics engine - tracks trade execution failures.
+Failed trades statistics engine - tracks failed trade attempts.
 Event-driven, stateless, runs alongside main trading system.
 """
 import asyncio
@@ -12,24 +12,29 @@ from ...shared.typed_event_bus import subscribe_typed
 from ...shared.event_types import DomainEventType
 from ...shared.statistics.models import FailedTradeRecord
 from ...infra.statistics.repository import StatisticsRepository
-from ...infra.brokerage.quote_fetcher import AlpacaQuoteFetcher
-from ...utils.brokerage.session_detector import get_market_session_from_timestamp
+from ...utils.brokerage.session_detector import get_market_session, get_market_session_from_timestamp
 from ...domain.brokerage.events import TradeFailedDomainEvent
 from ...domain.brokerage.models import MarketSession
+from ...infra.brokerage.quote_fetcher import AlpacaQuoteFetcher
 from .yahoo_finance_coordinator import YahooFinanceCoordinator
+
+try:
+    from alpaca.trading.client import TradingClient
+except ImportError:
+    TradingClient = None
 
 logger = get_logger(__name__)
 
 
 class FailedTradeStatsEngine:
     """
-    Failed trades statistics engine - tracks trade execution failures.
+    Failed trades statistics engine - tracks failed trade attempts.
     
     Responsibilities:
     - Subscribe to Domain.TradeFailed events
-    - Extract failure details (reason, ladder attempts, NBBO at failure)
+    - Extract failure details (error, NBBO at failure, ladder attempts)
     - Append records to JSON files in real-time
-    - Track patterns in failures (time of day, spread, liquidity)
+    - Track failure patterns for analysis
     
     Stateless: All state in repository (files), no in-memory storage.
     """
@@ -38,24 +43,24 @@ class FailedTradeStatsEngine:
         self,
         event_bus: AsyncEventBus,
         repository: StatisticsRepository,
-        quote_fetcher: AlpacaQuoteFetcher,
         yahoo_finance_coordinator: YahooFinanceCoordinator,
+        quote_fetcher: Optional[AlpacaQuoteFetcher] = None,
         trading_client: Optional["TradingClient"] = None
     ):
         """
         Initialize failed trades statistics engine.
-        
+
         Args:
             event_bus: Event bus for subscribing to events
             repository: Statistics repository for file I/O
-            quote_fetcher: Quote fetcher for NBBO snapshots at failure time
             yahoo_finance_coordinator: Shared Yahoo Finance coordinator (for industry/sector/market_cap)
+            quote_fetcher: Optional quote fetcher for NBBO at failure time
             trading_client: Optional trading client for exchange info
         """
         self.event_bus = event_bus
         self.repository = repository
-        self.quote_fetcher = quote_fetcher
         self.yahoo_finance_coordinator = yahoo_finance_coordinator
+        self.quote_fetcher = quote_fetcher
         self.trading_client = trading_client
         
         # Track pending metadata fetches (trade_id -> (ticker, session, failed_at, task))
@@ -83,8 +88,7 @@ class FailedTradeStatsEngine:
         # Start finalization task (runs every 5 minutes to ensure metadata is populated)
         self._finalization_task = asyncio.create_task(self._finalization_loop())
         
-        # Ensure Finnhub coordinator is started (may already be started by MarketDataValidator)
-        # YahooFinanceCoordinator - just call start (no worker_task check needed)
+        # Ensure YahooFinanceCoordinator is started (may already be started by MarketDataValidator)
         await self.yahoo_finance_coordinator.start()
         
         logger.info("FailedTradeStatsEngine started - subscribed to events")
@@ -102,7 +106,7 @@ class FailedTradeStatsEngine:
         # Finalize all pending metadata before stopping
         await self._finalize_all_metadata()
         
-        # Stop Finnhub coordinator
+        # Stop YahooFinanceCoordinator
         await self.yahoo_finance_coordinator.stop()
         
         logger.info("FailedTradeStatsEngine stopped")
@@ -116,49 +120,21 @@ class FailedTradeStatsEngine:
             trade_request = event.trade_request
             
             # Get ticker and article_id
-            ticker = trade_request.ticker if hasattr(trade_request, 'ticker') else None
-            if not ticker:
-                # Try to get from dict
-                trade_request_dict = trade_request if isinstance(trade_request, dict) else trade_request.model_dump() if hasattr(trade_request, 'model_dump') else {}
-                ticker = trade_request_dict.get("ticker")
+            ticker = trade_request.ticker
+            article_id = trade_request.article_id
             
-            if not ticker:
-                logger.warning("FailedTrade: No ticker in trade request", trade_request=str(trade_request))
-                return
+            # Generate trade_id (order_id is infrastructure concern, not in domain model)
+            trade_id = f"failed_{int(event.failed_at.timestamp() * 1000)}"
             
-            # Get article_id
-            article_id = trade_request.article_id if hasattr(trade_request, 'article_id') else None
-            if not article_id:
-                trade_request_dict = trade_request if isinstance(trade_request, dict) else trade_request.model_dump() if hasattr(trade_request, 'model_dump') else {}
-                article_id = trade_request_dict.get("article_id")
-            
-            # Get session from failed_at timestamp (same logic as signal/recall engines)
+            # Get session from failed_at timestamp (stateless)
             session, _ = get_market_session_from_timestamp(event.failed_at)
-            
-            # If session detection fails, try to infer from trade_request.session if available
             if session == "closed":
-                trade_request_dict = trade_request if isinstance(trade_request, dict) else trade_request.model_dump() if hasattr(trade_request, 'model_dump') else {}
-                trade_session = trade_request_dict.get("session")
-                if trade_session:
-                    # Map MarketSession enum to string
-                    if isinstance(trade_session, MarketSession):
-                        if trade_session == MarketSession.PREMARKET:
-                            session = "premarket"
-                        elif trade_session == MarketSession.POSTMARKET:
-                            session = "postmarket"
-                        elif trade_session == MarketSession.MARKET:
-                            session = "market_hours"
-                    elif isinstance(trade_session, str):
-                        session = trade_session
+                # Fallback: try to get from current market session
+                current_session, _ = get_market_session()
+                if current_session == "closed":
+                    session = "market_hours"  # Default fallback
                 else:
-                    # Last resort: infer from hour (4am-9:30am = premarket, 4pm-8pm = postmarket)
-                    hour = event.failed_at.hour
-                    if 4 <= hour < 9 or (hour == 9 and event.failed_at.minute < 30):
-                        session = "premarket"
-                    elif 16 <= hour < 20:
-                        session = "postmarket"
-                    else:
-                        session = "market_hours"  # Default fallback
+                    session = current_session
             
             # Map session string to MarketSession enum
             if session == "market_hours":
@@ -170,33 +146,39 @@ class FailedTradeStatsEngine:
             else:
                 session_enum = MarketSession.MARKET  # Default fallback
             
-            # Get NBBO at failure time (with bid/ask sizes)
-            failure_nbbo = await self.quote_fetcher.get_nbbo_snapshot(ticker)
-            
             # Extract time of day
-            hour = event.failed_at.hour
-            minute = event.failed_at.minute
+            failed_at_et = event.failed_at  # Assuming UTC, adjust if needed
+            hour = failed_at_et.hour
+            minute = failed_at_et.minute
             time_of_day = f"{hour:02d}:{minute:02d}"
             
-            # Generate trade_id
-            trade_id = f"failed_{int(event.failed_at.timestamp() * 1000)}"
-            if hasattr(trade_request, 'order_id') and trade_request.order_id:
-                trade_id = trade_request.order_id
-            elif isinstance(trade_request, dict) and trade_request.get("order_id"):
-                trade_id = trade_request["order_id"]
+            # Get NBBO at failure time (if quote_fetcher available)
+            failure_nbbo = None
+            if self.quote_fetcher:
+                try:
+                    nbbo = await self.quote_fetcher.get_nbbo_snapshot(ticker)
+                    if nbbo:
+                        failure_nbbo = {
+                            "bid": nbbo.get("bid"),
+                            "ask": nbbo.get("ask"),
+                            "spread": nbbo.get("spread"),
+                            "mid": nbbo.get("mid"),
+                            "bid_size": nbbo.get("bid_size"),
+                            "ask_size": nbbo.get("ask_size")
+                        }
+                except Exception as e:
+                    logger.debug(
+                        "Failed to fetch NBBO at failure time",
+                        ticker=ticker,
+                        error=str(e)
+                    )
             
             # Extract trade request details
-            requested_shares = None
-            requested_price = None
-            order_type = None
-            if hasattr(trade_request, 'shares'):
-                requested_shares = int(trade_request.shares) if trade_request.shares else None
-            elif isinstance(trade_request, dict):
-                requested_shares = trade_request.get("shares")
-                requested_price = trade_request.get("limit_price")
-                order_type = trade_request.get("order_type", "market")
+            requested_shares = trade_request.shares
+            requested_price = None  # limit_price is infrastructure concern, not in domain model
+            order_type = None  # order_type is infrastructure concern, not in domain model
             
-            # Create failed trade record
+            # Create failed trade record (metadata will be added later)
             record = FailedTradeRecord(
                 trade_id=trade_id,
                 article_id=article_id,
@@ -215,15 +197,11 @@ class FailedTradeStatsEngine:
                 order_type=order_type
             )
             
-            # Append record to repository
-            await self.repository.append_failed_trade_record(record, session, event.failed_at)
-            
-            logger.info(
-                "FailedTrade: Recorded failed trade",
-                trade_id=trade_id,
-                ticker=ticker,
-                reason=event.error,
-                session=session
+            # Append record immediately (before metadata fetch)
+            await self.repository.append_failed_trade_record(
+                record=record,
+                session=session,
+                date=event.failed_at
             )
             
             # Fetch ticker metadata asynchronously (tracked for finalization)
@@ -233,11 +211,19 @@ class FailedTradeStatsEngine:
             
             # Track pending metadata fetch
             async with self._metadata_lock:
-                self._pending_metadata[trade_id] = (ticker, session, event.failed_at, metadata_task)
+                self._pending_metadata[record.trade_id] = (record.ticker, session, event.failed_at, metadata_task)
+            
+            logger.debug(
+                "FailedTrade: Recorded failed trade",
+                trade_id=trade_id,
+                ticker=ticker,
+                article_id=article_id,
+                error=event.error
+            )
             
         except Exception as e:
             logger.error(
-                "Error handling trade failed for statistics",
+                "Error handling trade failed for failed trades engine",
                 error=str(e),
                 exc_info=True
             )
@@ -260,15 +246,15 @@ class FailedTradeStatsEngine:
         
         for attempt in range(max_retries):
             try:
-                # Use coordinator (handles caching, rate limiting, queueing)
                 # Get price from NBBO (Alpaca - instant)
                 price = None
-                try:
-                    nbbo = await self.quote_fetcher.get_nbbo_snapshot(record.ticker)
-                    if nbbo:
-                        price = nbbo.get("mid") or nbbo.get("ask") or nbbo.get("bid")
-                except Exception:
-                    pass
+                if self.quote_fetcher:
+                    try:
+                        nbbo = await self.quote_fetcher.get_nbbo_snapshot(record.ticker)
+                        if nbbo:
+                            price = nbbo.get("mid") or nbbo.get("ask") or nbbo.get("bid")
+                    except Exception:
+                        pass
                 
                 # Get exchange from Alpaca (instant)
                 exchange = None
@@ -280,7 +266,7 @@ class FailedTradeStatsEngine:
                     except Exception:
                         pass
                 
-                # Get industry, sector, market_cap from Finnhub (rate-limited, 60/min)
+                # Get industry, sector, market_cap from YahooFinance (rate-limited)
                 metadata = await self.yahoo_finance_coordinator.fetch_metadata(record.ticker, timeout=30.0)
                 if metadata:
                     # Add price and exchange from Alpaca
@@ -288,6 +274,7 @@ class FailedTradeStatsEngine:
                         metadata["price"] = price
                     if exchange:
                         metadata["exchange"] = exchange
+                    
                     # Determine session from failed_at timestamp (stateless)
                     session, _ = get_market_session_from_timestamp(failed_at)
                     if session == "closed":
@@ -360,6 +347,7 @@ class FailedTradeStatsEngine:
                         ticker=record.ticker,
                         error=str(e)
                     )
+    
     
     async def _finalization_loop(self) -> None:
         """
@@ -453,15 +441,15 @@ class FailedTradeStatsEngine:
     ) -> None:
         """Retry metadata fetch for a specific failed trade."""
         try:
-            # Use coordinator (handles caching, rate limiting, queueing)
             # Get price from NBBO (Alpaca - instant)
             price = None
-            try:
-                nbbo = await self.quote_fetcher.get_nbbo_snapshot(ticker)
-                if nbbo:
-                    price = nbbo.get("mid") or nbbo.get("ask") or nbbo.get("bid")
-            except Exception:
-                pass
+            if self.quote_fetcher:
+                try:
+                    nbbo = await self.quote_fetcher.get_nbbo_snapshot(ticker)
+                    if nbbo:
+                        price = nbbo.get("mid") or nbbo.get("ask") or nbbo.get("bid")
+                except Exception:
+                    pass
             
             # Get exchange from Alpaca (instant)
             exchange = None
@@ -473,7 +461,7 @@ class FailedTradeStatsEngine:
                 except Exception:
                     pass
             
-            # Get industry, sector, market_cap from Finnhub (rate-limited, 60/min)
+            # Get industry, sector, market_cap from YahooFinance (rate-limited)
             metadata = await self.yahoo_finance_coordinator.fetch_metadata(ticker, timeout=30.0)
             if metadata:
                 # Add price and exchange from Alpaca

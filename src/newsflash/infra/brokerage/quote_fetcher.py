@@ -1,5 +1,5 @@
 """
-Alpaca quote fetcher - REST API quote fetching.
+Alpaca quote fetcher - REST API quote fetching with optional WebSocket cache.
 Pure infrastructure - fetches quotes and publishes events.
 """
 from typing import Optional, Dict, Any
@@ -14,6 +14,12 @@ from .events import QuoteReceivedEvent
 from .infrastructure_models import InfrastructureQuoteData
 
 logger = get_logger(__name__)
+
+# Optional WebSocket stream manager (graceful degradation if not available)
+try:
+    from .stream_manager import AlpacaMarketDataStreamManager
+except ImportError:
+    AlpacaMarketDataStreamManager = None
 
 
 class AlpacaQuoteFetcher:
@@ -30,18 +36,28 @@ class AlpacaQuoteFetcher:
     - Send Telegram notifications
     """
     
-    def __init__(self, event_bus: AsyncEventBus, market_data_client: StockHistoricalDataClient):
+    def __init__(
+        self,
+        event_bus: AsyncEventBus,
+        market_data_client: StockHistoricalDataClient,
+        stream_manager: Optional[AlpacaMarketDataStreamManager] = None
+    ):
         """
         Initialize quote fetcher.
         
         Args:
             event_bus: Event bus instance for publishing/subscribing to events
             market_data_client: Alpaca StockHistoricalDataClient instance for market data
+            stream_manager: Optional WebSocket stream manager for cached quotes (backward compatible)
         """
         self.event_bus = event_bus
         self.market_data_client = market_data_client
+        self.stream_manager = stream_manager  # Optional - REST API fallback always available
         
-        logger.info("AlpacaQuoteFetcher initialized")
+        logger.info(
+            "AlpacaQuoteFetcher initialized",
+            websocket_available=self.stream_manager is not None
+        )
     
     async def get_realtime_price(self, symbol: str) -> Optional[float]:
         """
@@ -86,12 +102,49 @@ class AlpacaQuoteFetcher:
         """
         Get NBBO (National Best Bid/Offer) snapshot for a symbol.
         
+        Uses WebSocket cache if available (instant), falls back to REST API.
+        Method signature unchanged for backward compatibility.
+        
         Args:
             symbol: Stock ticker symbol
             
         Returns:
             Dictionary with bid, ask, spread, mid, or None if unavailable
         """
+        # Try WebSocket cache first (if available)
+        if self.stream_manager:
+            try:
+                cached_quote = await self.stream_manager.get_latest_quote(symbol)
+                if cached_quote:
+                    logger.debug(
+                        f"✅ NBBO from WebSocket cache: {symbol}",
+                        bid=cached_quote.get("bid"),
+                        ask=cached_quote.get("ask"),
+                        spread=cached_quote.get("spread")
+                    )
+                    # Publish quote event (for consistency with REST API path)
+                    await self._publish_quote_event(
+                        symbol,
+                        cached_quote["bid"],
+                        cached_quote["ask"],
+                        cached_quote["spread"]
+                    )
+                    return cached_quote
+                else:
+                    logger.debug(
+                        f"WebSocket cache empty for {symbol}, falling back to REST API",
+                        symbol=symbol,
+                        reason="cache_empty"
+                    )
+            except Exception as e:
+                logger.debug(
+                    f"WebSocket cache error for {symbol}, falling back to REST API",
+                    symbol=symbol,
+                    error=str(e)
+                )
+                # Continue to REST API fallback
+        
+        # REST API fallback (original implementation - unchanged)
         try:
             # Get latest quote using market data client
             # Use SIP feed for true NBBO (requires Algo Trader Plus subscription)

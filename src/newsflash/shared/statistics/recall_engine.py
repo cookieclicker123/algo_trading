@@ -286,14 +286,43 @@ class RecallStatsEngine:
                     continue
                 candidates.append(t)
 
-            for ticker in candidates:
-                # Skip non-US exchanges (TSX, TSXV, CSE, etc.) - Alpaca doesn't support them
-                # This prevents unnecessary API calls and error logs
-                if any(ticker.startswith(prefix) for prefix in ["TSX:", "TSXV:", "CSE:", "NEO:", "CBOE:"]):
+            # Filter out non-US exchanges first (before parallelization)
+            us_candidates = [
+                t for t in candidates
+                if not any(t.startswith(prefix) for prefix in ["TSX:", "TSXV:", "CSE:", "NEO:", "CBOE:"])
+            ]
+            
+            # PARALLELIZE NBBO checks for all tickers simultaneously
+            # This reduces latency from ~0.1s per ticker to ~0.1s total (for all tickers)
+            async def check_ticker_nbbo(ticker: str) -> tuple[str, Optional[Dict[str, Any]]]:
+                """Check NBBO for a single ticker, return (ticker, nbbo_dict or None)."""
+                try:
+                    nbbo = await self.quote_fetcher.get_nbbo_snapshot(ticker)
+                    return (ticker, nbbo)
+                except Exception as e:
+                    logger.debug(
+                        "Error checking NBBO for ticker",
+                        article_id=article.id,
+                        ticker=ticker,
+                        error=str(e)
+                    )
+                    return (ticker, None)
+            
+            # Fetch NBBO for all candidates in parallel
+            nbbo_tasks = [check_ticker_nbbo(t) for t in us_candidates]
+            nbbo_results = await asyncio.gather(*nbbo_tasks, return_exceptions=True)
+            
+            # Process results
+            for result in nbbo_results:
+                if isinstance(result, Exception):
+                    logger.debug(
+                        "NBBO check task failed",
+                        article_id=article.id,
+                        error=str(result)
+                    )
                     continue
                 
-                # Get NBBO snapshot (this checks if ticker is tradable in current session)
-                nbbo = await self.quote_fetcher.get_nbbo_snapshot(ticker)
+                ticker, nbbo = result
                 
                 if nbbo:
                     # CRITICAL: 10 cent minimum stock price filter
@@ -379,6 +408,7 @@ class RecallStatsEngine:
                             event_time=article.published_at,
                             received_at=received_at,
                             reference_nbbo=initial_nbbos.get(t),
+                            stream_manager=self.quote_fetcher.stream_manager if self.quote_fetcher else None,
                             sector=ticker_sector  # Pass sector for surge detection
                         )
                         if volume_analysis:
@@ -895,7 +925,8 @@ class RecallStatsEngine:
                             event_time=window_start,  # Analyze 4 seconds starting from here
                             received_at=window_start,  # Use window_start as received_at for this analysis
                             reference_nbbo=initial_nbbos.get(ticker),
-                            sector=ticker_sector  # Pass sector for surge detection
+                            sector=ticker_sector,  # Pass sector for surge detection
+                            stream_manager=self.quote_fetcher.stream_manager if self.quote_fetcher else None
                         )
                         
                         if volume_analysis and volume_analysis.move_type == "SURGE":
@@ -1553,7 +1584,7 @@ class RecallStatsEngine:
         Handle ClassificationSkipped infrastructure event - capture prefilter reasons.
         
         This captures why articles were filtered BEFORE AI classification:
-        - no_tickers: Article has no tickers
+        - no_tickers: Article has no tickers (no record created, skip update)
         - invalid_exchange: Exchange is not NASDAQ/NYSE/AMEX
         - broker_not_tradeable: Tickers not tradeable on broker (Alpaca) despite valid exchange
         - low_market_cap: Market cap below threshold
@@ -1570,6 +1601,20 @@ class RecallStatsEngine:
             session, _ = get_market_session_from_timestamp(event.skipped_at)
             if session == "closed":
                 return
+            
+            # SPECIAL CASE: If article has no tickers, no record was created
+            # (because _handle_article_received returns early)
+            # So we can't update a non-existent record - just store to pending
+            # in case a record gets created later (shouldn't happen, but safe)
+            if event.reason == "no_tickers":
+                async with self._filter_reasons_lock:
+                    self._pending_filter_reasons[article_id] = filter_reason
+                logger.debug(
+                    "Recall: Article has no tickers - no record created, stored filter reason to pending",
+                    article_id=article_id,
+                    filter_reason=filter_reason
+                )
+                return  # No record exists, skip update attempt
             
             # STEP 1: Always store to pending first (eliminates race condition)
             async with self._filter_reasons_lock:

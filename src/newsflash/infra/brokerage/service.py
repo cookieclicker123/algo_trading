@@ -63,10 +63,11 @@ class BrokerageService:
             metrics_service=metrics_service
         )
         
-        # Quote fetcher needs market data client
+        # Quote fetcher needs market data client and optional WebSocket stream manager
         self.quote_fetcher = AlpacaQuoteFetcher(
             event_bus=event_bus,
-            market_data_client=self.connection_manager.market_data_client
+            market_data_client=self.connection_manager.market_data_client,
+            stream_manager=self.connection_manager.stream_manager  # Optional - backward compatible
         )
         
         # Trade executors

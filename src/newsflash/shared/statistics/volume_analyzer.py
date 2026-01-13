@@ -15,7 +15,7 @@ Thresholds will be derived from 30+ days of statistics.
 import asyncio
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, TYPE_CHECKING
 
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockBarsRequest, StockQuotesRequest, StockTradesRequest
@@ -24,6 +24,9 @@ from alpaca.data.enums import DataFeed
 import yfinance as yf
 
 from ...utils.logging_config import get_logger
+
+if TYPE_CHECKING:
+    from ...infra.brokerage.stream_manager import AlpacaMarketDataStreamManager
 
 logger = get_logger(__name__)
 
@@ -178,6 +181,121 @@ def _calculate_tape_quality(
     return round(total_score, 1)
 
 
+async def _fetch_trades_in_window_async(
+    client: StockHistoricalDataClient,
+    symbol: str,
+    window_start: datetime,
+    window_end: datetime,
+    reference_nbbo: Optional[Dict[str, Any]] = None,
+    stream_manager: Optional["AlpacaMarketDataStreamManager"] = None
+) -> Optional[Dict[str, Any]]:
+    """
+    Fetch all trades in a time window using WebSocket cache if available, else REST API.
+    
+    Uses high-precision tick data to separate Buy volume from Sell volume.
+    """
+    # Ensure UTC
+    if window_start.tzinfo is None:
+        window_start = window_start.replace(tzinfo=timezone.utc)
+    if window_end.tzinfo is None:
+        window_end = window_end.replace(tzinfo=timezone.utc)
+    
+    # Try WebSocket cache first (if available and window is recent)
+    now = datetime.now(timezone.utc)
+    window_age_seconds = (now - window_end).total_seconds()
+    
+    # Use WebSocket cache if:
+    # 1. Stream manager is available
+    # 2. Window is recent (within last 60 seconds - cache only has recent trades)
+    # 3. Window is in the past (not future)
+    if stream_manager and -60 <= window_age_seconds <= 60:
+        try:
+            cached_trades = await stream_manager.get_recent_trades(symbol, max_trades=1000)
+            
+            # Filter trades by time window
+            filtered_trades = [
+                t for t in cached_trades
+                if isinstance(t, dict) and 
+                "timestamp" in t and
+                window_start <= t["timestamp"] <= window_end
+            ]
+            
+            if filtered_trades:
+                logger.debug(
+                    f"✅ Using WebSocket cache for trades: {symbol}",
+                    cached_count=len(filtered_trades),
+                    window_start=window_start.isoformat(),
+                    window_end=window_end.isoformat()
+                )
+                # Convert dict trades to format expected by aggregation logic
+                # Create simple objects with .timestamp, .price, .size attributes
+                class TradeObj:
+                    def __init__(self, d: Dict[str, Any]):
+                        self.timestamp = d.get("timestamp")
+                        self.price = d.get("price")
+                        self.size = d.get("size")
+                
+                trade_list = [TradeObj(t) for t in filtered_trades]
+                
+                # Try to get quotes from WebSocket cache too
+                cached_quotes = []
+                try:
+                    cached_quotes_raw = await stream_manager.get_recent_quotes(symbol, max_quotes=1000)
+                    # Filter quotes by time window
+                    cached_quotes = [
+                        q for q in cached_quotes_raw
+                        if isinstance(q, dict) and
+                        "timestamp" in q and
+                        window_start <= q["timestamp"] <= window_end
+                    ]
+                except Exception as e:
+                    logger.debug(f"WebSocket quote cache miss, will use REST API: {symbol}", error=str(e))
+                
+                # Continue with aggregation (reuse existing logic)
+                # Pass cached quotes if available, otherwise will fetch from REST API
+                return await asyncio.to_thread(
+                    _aggregate_trades_data,
+                    trade_list=trade_list,
+                    symbol=symbol,
+                    window_start=window_start,
+                    window_end=window_end,
+                    client=client,
+                    reference_nbbo=reference_nbbo,
+                    cached_quotes=cached_quotes if cached_quotes else None
+                )
+        except Exception as e:
+            logger.debug(
+                f"WebSocket cache miss for trades, falling back to REST API: {symbol}",
+                error=str(e)
+            )
+            # Fall through to REST API
+    
+    # REST API fallback (original implementation)
+    return await asyncio.to_thread(
+        _fetch_trades_in_window,
+        client=client,
+        symbol=symbol,
+        window_start=window_start,
+        window_end=window_end,
+        reference_nbbo=reference_nbbo
+    )
+
+
+def _aggregate_trades_data(
+    trade_list: List[Any],
+    symbol: str,
+    window_start: datetime,
+    window_end: datetime,
+    client: StockHistoricalDataClient,
+    reference_nbbo: Optional[Dict[str, Any]] = None
+) -> Optional[Dict[str, Any]]:
+    """
+    Aggregate trade data (shared logic for WebSocket cache and REST API paths).
+    """
+    if not trade_list:
+        return None
+
+
 def _fetch_trades_in_window(
     client: StockHistoricalDataClient,
     symbol: str,
@@ -189,6 +307,7 @@ def _fetch_trades_in_window(
     Fetch all trades in a time window and aggregate volume + order flow.
     
     Uses high-precision tick data to separate Buy volume from Sell volume.
+    REST API implementation (fallback when WebSocket cache unavailable).
     """
     try:
         # Ensure UTC
@@ -208,16 +327,62 @@ def _fetch_trades_in_window(
         if symbol not in trades.data or not trades[symbol]:
             return None
         trade_list = list(trades[symbol])
-
-        # 2. Fetch all quotes in this window to build a 'Moving Ruler'
-        quote_request = StockQuotesRequest(
-            symbol_or_symbols=[symbol],
-            start=window_start,
-            end=window_end,
-            feed=DataFeed.SIP
+        
+        # Aggregate trades (reuse existing logic)
+        return _aggregate_trades_data(
+            trade_list=trade_list,
+            symbol=symbol,
+            window_start=window_start,
+            window_end=window_end,
+            client=client,
+            reference_nbbo=reference_nbbo
         )
-        quotes_data = client.get_stock_quotes(quote_request)
-        quote_list = list(quotes_data[symbol]) if symbol in quotes_data.data else []
+    except Exception as e:
+        logger.error(f"Error fetching trades in window: {e}", exc_info=True)
+        return None
+
+
+def _aggregate_trades_data(
+    trade_list: List[Any],
+    symbol: str,
+    window_start: datetime,
+    window_end: datetime,
+    client: StockHistoricalDataClient,
+    reference_nbbo: Optional[Dict[str, Any]] = None,
+    cached_quotes: Optional[List[Dict[str, Any]]] = None
+) -> Optional[Dict[str, Any]]:
+    """
+    Aggregate trade data (shared logic for WebSocket cache and REST API paths).
+    
+    Args:
+        cached_quotes: Optional list of quote dicts from WebSocket cache (if available)
+    """
+    if not trade_list:
+        return None
+    
+    try:
+        # 2. Fetch all quotes in this window to build a 'Moving Ruler'
+        # Use WebSocket cache if available, otherwise fetch from REST API
+        if cached_quotes:
+            # Convert cached quote dicts to format expected by aggregation logic
+            class QuoteObj:
+                def __init__(self, d: Dict[str, Any]):
+                    self.timestamp = d.get("timestamp")
+                    self.bid_price = d.get("bid")
+                    self.ask_price = d.get("ask")
+            
+            quote_list = [QuoteObj(q) for q in cached_quotes]
+            logger.debug(f"✅ Using WebSocket cache for quotes: {symbol}", cached_count=len(quote_list))
+        else:
+            # REST API fallback
+            quote_request = StockQuotesRequest(
+                symbol_or_symbols=[symbol],
+                start=window_start,
+                end=window_end,
+                feed=DataFeed.SIP
+            )
+            quotes_data = client.get_stock_quotes(quote_request)
+            quote_list = list(quotes_data[symbol]) if symbol in quotes_data.data else []
         
         # Aggregate volume and balance
         total_volume = 0
@@ -370,7 +535,7 @@ def _fetch_trades_in_window(
             "max_trade_gap": round(max_trade_gap, 2)
         }
     except Exception as e:
-        logger.debug(f"Error fetching trades for {symbol} in window: {e}")
+        logger.debug(f"Error aggregating trades for {symbol} in window: {e}")
         return None
         
 def _fetch_prior_history_stats(
@@ -549,13 +714,14 @@ def _fetch_quote_at_time(
         return None
 
 
-def _get_stats_at_time(
+async def _get_stats_at_time(
     client: StockHistoricalDataClient,
     symbol: str,
     target_time: datetime,
     use_realtime_window: bool = False,
     window_end: datetime = None,
     reference_nbbo: Optional[Dict[str, Any]] = None,
+    stream_manager: Optional["AlpacaMarketDataStreamManager"] = None
 ) -> Optional[VolumeStats]:
     """
     Get combined volume and quote stats at a specific time.
@@ -566,6 +732,7 @@ def _get_stats_at_time(
         target_time: Target timestamp (window start for real-time mode)
         use_realtime_window: If True, fetch trades in a window instead of minute bar
         window_end: End of window for real-time mode (e.g., received_at)
+        stream_manager: Optional WebSocket stream manager for cached trades
         
     Returns:
         VolumeStats or None if no data
@@ -584,7 +751,11 @@ def _get_stats_at_time(
         if target_time.tzinfo is None:
             target_time = target_time.replace(tzinfo=timezone.utc)
         
-        trades_data = _fetch_trades_in_window(client, symbol, target_time, window_end, reference_nbbo=reference_nbbo)
+        trades_data = await _fetch_trades_in_window_async(
+            client, symbol, target_time, window_end, 
+            reference_nbbo=reference_nbbo,
+            stream_manager=stream_manager
+        )
         
         if trades_data:
             bar_data = {
@@ -672,32 +843,34 @@ def _get_stats_at_time(
     return stats
 
 
-def _assess_surge_snapshot(
+async def _assess_surge_snapshot(
     client: StockHistoricalDataClient,
     symbol: str,
     event_time: datetime,
     window_end: datetime,
-    prior_history: Dict[str, Any],
+    prior_history: Optional[Dict[str, Any]],  # Can be None if fetch fails
     reference_nbbo: Optional[Dict[str, Any]],
-    sector: Optional[str]
+    sector: Optional[str],
+    stream_manager: Optional["AlpacaMarketDataStreamManager"] = None
 ) -> tuple[Optional[VolumeStats], Dict[str, Any], str]:
     """
     Fetch stats, calculate metrics, and classify surge for a specific window end.
     Returns: (stats_now, metrics_dict, move_type)
     """
-    stats_now = _get_stats_at_time(
+    stats_now = await _get_stats_at_time(
         client=client, 
         symbol=symbol, 
         target_time=event_time, 
         use_realtime_window=True, 
         window_end=window_end, 
-        reference_nbbo=reference_nbbo
+        reference_nbbo=reference_nbbo,
+        stream_manager=stream_manager
     )
     
-    # Extract Prior History
-    prior_avg_vol = prior_history.get("avg_volume", 0) if prior_history else 0
-    prior_avg_trades = prior_history.get("avg_trade_count", 0) if prior_history else 0
-    prior_avg_range = prior_history.get("avg_range", 0) if prior_history else 0
+    # Extract Prior History (defensive - ensure prior_history is dict before calling .get())
+    prior_avg_vol = prior_history.get("avg_volume", 0) if isinstance(prior_history, dict) else 0
+    prior_avg_trades = prior_history.get("avg_trade_count", 0) if isinstance(prior_history, dict) else 0
+    prior_avg_range = prior_history.get("avg_range", 0) if isinstance(prior_history, dict) else 0
     
     # Default outputs
     metrics = {
@@ -825,7 +998,8 @@ async def analyze_volume_around_event(
     event_time: datetime,
     received_at: datetime = None,
     reference_nbbo: Optional[Dict[str, Any]] = None,
-    sector: Optional[str] = None
+    sector: Optional[str] = None,
+    stream_manager: Optional[Any] = None  # AlpacaMarketDataStreamManager (optional for WebSocket cache)
 ) -> VolumeSurgeAnalysis:
     """
     Analyze volume/order flow with FAST POLLING (0.5s) to detect surges early.
@@ -905,15 +1079,15 @@ async def analyze_volume_around_event(
                 catchup_delay_seconds=round(catchup_delay, 2)
             )
             
-            catchup_stats_now, catchup_metrics, catchup_move_type = await asyncio.to_thread(
-                _assess_surge_snapshot,
+            catchup_stats_now, catchup_metrics, catchup_move_type = await _assess_surge_snapshot(
                 client=client,
                 symbol=symbol,
                 event_time=event_time_utc,
                 window_end=catchup_window_end,
                 prior_history=prior_history,
                 reference_nbbo=reference_nbbo,
-                sector=sector
+                sector=sector,
+                stream_manager=stream_manager
             )
             
             stats_now = catchup_stats_now
@@ -979,17 +1153,16 @@ async def analyze_volume_around_event(
                 await asyncio.sleep(0.1)
                 continue
                 
-            # Assess Surge - Offload Blocking I/O
-            # This is CRITICAL: _assess_surge_snapshot calls client.get_stock_trades (Sync HTTP)
-            stats_now, metrics, move_type = await asyncio.to_thread(
-                _assess_surge_snapshot,
+            # Assess Surge - Now async to support WebSocket cache
+            stats_now, metrics, move_type = await _assess_surge_snapshot(
                 client=client,
                 symbol=symbol,
                 event_time=event_time,
                 window_end=current_check_time,
                 prior_history=prior_history,
                 reference_nbbo=reference_nbbo,
-                sector=sector
+                sector=sector,
+                stream_manager=stream_manager
             )
             last_window_end = current_check_time
             
@@ -1035,17 +1208,23 @@ async def analyze_volume_around_event(
              if wait_ext > 0:
                  await asyncio.sleep(wait_ext)
              
-             # Final Re-Assess (Non-blocking)
-             stats_now, metrics, move_type = await asyncio.to_thread(
-                 _assess_surge_snapshot,
-                 client, symbol, event_time, extended_end, prior_history, reference_nbbo, sector
+             # Final Re-Assess (async - supports WebSocket cache)
+             stats_now, metrics, move_type = await _assess_surge_snapshot(
+                 client=client,
+                 symbol=symbol,
+                 event_time=event_time,
+                 window_end=extended_end,
+                 prior_history=prior_history,
+                 reference_nbbo=reference_nbbo,
+                 sector=sector,
+                 stream_manager=stream_manager
              )
              last_window_end = extended_end
 
     # 6. Additional Calculations for Dataclass
     current_vol = stats_now.volume if stats_now else 0
-    prior_avg_vol = prior_history.get("avg_volume", 0) if prior_history else 0
-    prior_avg_range = prior_history.get("avg_range", 0) if prior_history else 0
+    prior_avg_vol = prior_history.get("avg_volume", 0) if isinstance(prior_history, dict) else 0
+    prior_avg_range = prior_history.get("avg_range", 0) if isinstance(prior_history, dict) else 0
     
     current_spread = stats_now.spread if stats_now else 0.0
     spread_compression = 0.0
@@ -1079,7 +1258,7 @@ async def analyze_volume_around_event(
         volume_accel_pct=vol_accel,
         trade_count=stats_now.trade_count if stats_now else 0,
         trade_count_normalised=metrics.get("trade_count_normalised"),
-        prior_avg_10min_trade_count=round(prior_history.get("avg_trade_count", 0), 1),
+        prior_avg_10min_trade_count=round(prior_history.get("avg_trade_count", 0), 1) if isinstance(prior_history, dict) else 0.0,
         trade_count_multiplier=metrics.get("trade_count_multiplier"),
         max_excursion_pct=metrics.get("max_excursion_pct"),
         spread_compression_pct=spread_compression,

@@ -309,7 +309,8 @@ class NotifyTradeExecutedUseCase:
                         client=self.market_data_client,
                         symbol=trade_result.get_ticker(),
                         event_time=publication_time,
-                        received_at=received_at
+                        received_at=received_at,
+                        stream_manager=None  # Not available in this context (optional)
                     )
                     logger.info(
                         "📊 VOLUME STATS: Fetched volume analysis",

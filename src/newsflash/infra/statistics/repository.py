@@ -410,8 +410,10 @@ class StatisticsRepository:
                 )
                 return True
             else:
-                logger.warning(
-                    "Recall: Record not found for update",
+                # Record not found - this is expected for articles with no tickers
+                # or articles that were filtered before record creation
+                logger.debug(
+                    "Recall: Record not found for update (may not exist yet or was never created)",
                     article_id=article_id,
                     file_path=str(file_path),
                     session=session,

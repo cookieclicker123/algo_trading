@@ -18,6 +18,12 @@ load_dotenv()
 
 logger = get_logger(__name__)
 
+# Optional WebSocket stream manager (graceful degradation if not available)
+try:
+    from .stream_manager import AlpacaMarketDataStreamManager
+except ImportError:
+    AlpacaMarketDataStreamManager = None
+
 
 class AlpacaConnectionManager:
     """
@@ -71,12 +77,32 @@ class AlpacaConnectionManager:
             secret_key=api_secret
         )
         
+        # Initialize WebSocket stream manager (optional - graceful degradation)
+        self.stream_manager: Optional[AlpacaMarketDataStreamManager] = None
+        if AlpacaMarketDataStreamManager is not None:
+            try:
+                from alpaca.data.enums import DataFeed
+                self.stream_manager = AlpacaMarketDataStreamManager(
+                    event_bus=event_bus,
+                    api_key=api_key,
+                    api_secret=api_secret,
+                    paper_trading=paper_trading,
+                    feed=DataFeed.IEX  # Use IEX feed (SIP requires subscription)
+                )
+                logger.info("WebSocket stream manager initialized (optional feature)")
+            except Exception as e:
+                logger.warning(f"WebSocket stream manager not available (fallback to REST): {e}")
+                self.stream_manager = None
+        else:
+            logger.debug("WebSocket stream manager not available (alpaca-py SDK version)")
+        
         self.is_connected = False
         
         mode = "Paper Trading" if paper_trading else "Live Trading"
         logger.info(
             f"Alpaca Connection Manager initialized for {mode}",
-            paper_trading=paper_trading
+            paper_trading=paper_trading,
+            websocket_available=self.stream_manager is not None
         )
     
     def get_trading_client(self) -> TradingClient:
@@ -105,6 +131,15 @@ class AlpacaConnectionManager:
             # Publish connection status
             await self._publish_connection_status(True, "Connected successfully")
             
+            # Start WebSocket stream manager (optional - failures don't affect REST API)
+            if self.stream_manager:
+                try:
+                    await self.stream_manager.start()
+                    logger.info("WebSocket stream manager started")
+                except Exception as e:
+                    logger.warning(f"WebSocket stream manager failed to start (REST API still available): {e}")
+                    # Don't fail connection - REST API is still available
+            
         except Exception as e:
             logger.error(f"Failed to connect to Alpaca: {e}", exc_info=True)
             self.is_connected = False
@@ -120,6 +155,14 @@ class AlpacaConnectionManager:
         logger.info("🛑 Stopping Alpaca Connection Manager")
         
         self.is_connected = False
+        
+        # Stop WebSocket stream manager (optional - failures don't affect cleanup)
+        if self.stream_manager:
+            try:
+                await self.stream_manager.stop()
+                logger.info("WebSocket stream manager stopped")
+            except Exception as e:
+                logger.warning(f"Error stopping WebSocket stream manager: {e}")
         
         # Publish disconnection event
         await self._publish_connection_status(False, "Connection manager stopped")
