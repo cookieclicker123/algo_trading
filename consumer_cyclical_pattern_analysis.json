@@ -1,0 +1,4929 @@
+{
+  "analysis_metadata": {
+    "analysis_date": "2026-01-14T12:23:31.958184+00:00",
+    "period": "2026-01-02 to 2026-01-13",
+    "total_records_processed": 2696,
+    "total_consumer_cyclical_records": 331
+  },
+  "summary": {
+    "total_winners": 15,
+    "total_non_movers": 88,
+    "total_non_movers_sampled": 50,
+    "total_losers": 104,
+    "industries_analyzed": 27
+  },
+  "overall_patterns": {
+    "keyword_analysis": {
+      "announce": {
+        "winner_count": 8,
+        "winner_pct": 53.33,
+        "non_mover_count": 10,
+        "non_mover_pct": 20.0,
+        "difference_pct": 33.33
+      },
+      "announces": {
+        "winner_count": 7,
+        "winner_pct": 46.67,
+        "non_mover_count": 7,
+        "non_mover_pct": 14.0,
+        "difference_pct": 32.67
+      },
+      "garden": {
+        "winner_count": 2,
+        "winner_pct": 13.33,
+        "non_mover_count": 0,
+        "non_mover_pct": 0.0,
+        "difference_pct": 13.33
+      },
+      "sale": {
+        "winner_count": 2,
+        "winner_pct": 13.33,
+        "non_mover_count": 3,
+        "non_mover_pct": 6.0,
+        "difference_pct": 7.33
+      },
+      "tv": {
+        "winner_count": 1,
+        "winner_pct": 6.67,
+        "non_mover_count": 0,
+        "non_mover_pct": 0.0,
+        "difference_pct": 6.67
+      },
+      "releases": {
+        "winner_count": 1,
+        "winner_pct": 6.67,
+        "non_mover_count": 0,
+        "non_mover_pct": 0.0,
+        "difference_pct": 6.67
+      },
+      "acquisition": {
+        "winner_count": 1,
+        "winner_pct": 6.67,
+        "non_mover_count": 0,
+        "non_mover_pct": 0.0,
+        "difference_pct": 6.67
+      },
+      "release": {
+        "winner_count": 1,
+        "winner_pct": 6.67,
+        "non_mover_count": 0,
+        "non_mover_pct": 0.0,
+        "difference_pct": 6.67
+      },
+      "autonomous": {
+        "winner_count": 1,
+        "winner_pct": 6.67,
+        "non_mover_count": 0,
+        "non_mover_pct": 0.0,
+        "difference_pct": 6.67
+      },
+      "unveil": {
+        "winner_count": 1,
+        "winner_pct": 6.67,
+        "non_mover_count": 0,
+        "non_mover_pct": 0.0,
+        "difference_pct": 6.67
+      },
+      "win": {
+        "winner_count": 1,
+        "winner_pct": 6.67,
+        "non_mover_count": 0,
+        "non_mover_pct": 0.0,
+        "difference_pct": 6.67
+      },
+      "ev": {
+        "winner_count": 2,
+        "winner_pct": 13.33,
+        "non_mover_count": 4,
+        "non_mover_pct": 8.0,
+        "difference_pct": 5.33
+      },
+      "growth": {
+        "winner_count": 1,
+        "winner_pct": 6.67,
+        "non_mover_count": 1,
+        "non_mover_pct": 2.0,
+        "difference_pct": 4.67
+      },
+      "sales": {
+        "winner_count": 1,
+        "winner_pct": 6.67,
+        "non_mover_count": 1,
+        "non_mover_pct": 2.0,
+        "difference_pct": 4.67
+      },
+      "fiscal": {
+        "winner_count": 1,
+        "winner_pct": 6.67,
+        "non_mover_count": 1,
+        "non_mover_pct": 2.0,
+        "difference_pct": 4.67
+      },
+      "grow": {
+        "winner_count": 1,
+        "winner_pct": 6.67,
+        "non_mover_count": 1,
+        "non_mover_pct": 2.0,
+        "difference_pct": 4.67
+      },
+      "new": {
+        "winner_count": 1,
+        "winner_pct": 6.67,
+        "non_mover_count": 2,
+        "non_mover_pct": 4.0,
+        "difference_pct": 2.67
+      },
+      "global": {
+        "winner_count": 1,
+        "winner_pct": 6.67,
+        "non_mover_count": 2,
+        "non_mover_pct": 4.0,
+        "difference_pct": 2.67
+      },
+      "product": {
+        "winner_count": 1,
+        "winner_pct": 6.67,
+        "non_mover_count": 2,
+        "non_mover_pct": 4.0,
+        "difference_pct": 2.67
+      },
+      "auto": {
+        "winner_count": 1,
+        "winner_pct": 6.67,
+        "non_mover_count": 2,
+        "non_mover_pct": 4.0,
+        "difference_pct": 2.67
+      }
+    },
+    "total_keywords_analyzed": 65,
+    "winner_keyword_frequency": {
+      "announce": 8,
+      "announces": 7,
+      "ev": 2,
+      "garden": 2,
+      "sale": 2,
+      "up": 2,
+      "line": 1,
+      "fiscal": 1,
+      "autonomous": 1,
+      "auto": 1,
+      "unveil": 1,
+      "global": 1,
+      "product": 1,
+      "new": 1,
+      "tv": 1,
+      "acquisition": 1,
+      "sales": 1,
+      "growth": 1,
+      "grow": 1,
+      "release": 1
+    },
+    "non_mover_keyword_frequency": {
+      "line": 13,
+      "up": 10,
+      "announce": 10,
+      "announces": 7,
+      "quarter": 6,
+      "market": 6,
+      "gain": 5,
+      "gains": 5,
+      "loss": 5,
+      "losses": 5,
+      "ev": 4,
+      "brand": 4,
+      "sale": 3,
+      "brands": 3,
+      "food": 2,
+      "success": 2,
+      "product": 2,
+      "annual": 2,
+      "home": 2,
+      "auto": 2
+    }
+  },
+  "industry_breakdown": {
+    "Internet Retail": {
+      "winners_count": 1,
+      "non_movers_count": 7,
+      "patterns": {
+        "keyword_analysis": {
+          "announces": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 14.29,
+            "difference_pct": 85.71
+          },
+          "announce": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 2,
+            "non_mover_pct": 28.57,
+            "difference_pct": 71.43
+          },
+          "losses": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 14.29,
+            "difference_pct": -14.29
+          },
+          "ev": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 14.29,
+            "difference_pct": -14.29
+          },
+          "loss": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 14.29,
+            "difference_pct": -14.29
+          },
+          "gains": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 14.29,
+            "difference_pct": -14.29
+          },
+          "gain": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 14.29,
+            "difference_pct": -14.29
+          },
+          "quarter": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 14.29,
+            "difference_pct": -14.29
+          },
+          "global": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 14.29,
+            "difference_pct": -14.29
+          },
+          "line": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 2,
+            "non_mover_pct": 28.57,
+            "difference_pct": -28.57
+          },
+          "up": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 5,
+            "non_mover_pct": 71.43,
+            "difference_pct": -71.43
+          }
+        },
+        "total_keywords_analyzed": 11,
+        "winner_keyword_frequency": {
+          "announce": 1,
+          "announces": 1
+        },
+        "non_mover_keyword_frequency": {
+          "up": 5,
+          "announce": 2,
+          "line": 2,
+          "ev": 1,
+          "quarter": 1,
+          "announces": 1,
+          "gain": 1,
+          "gains": 1,
+          "loss": 1,
+          "losses": 1,
+          "global": 1
+        }
+      }
+    },
+    "Travel Services": {
+      "winners_count": 0,
+      "non_movers_count": 1,
+      "patterns": {
+        "keyword_analysis": {
+          "cruise": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "ev": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "up": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "new": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "car": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          }
+        },
+        "total_keywords_analyzed": 5,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "car": 1,
+          "ev": 1,
+          "cruise": 1,
+          "new": 1,
+          "up": 1
+        }
+      }
+    },
+    "Residential Construction": {
+      "winners_count": 0,
+      "non_movers_count": 2,
+      "patterns": {
+        "keyword_analysis": {
+          "earnings": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          },
+          "homes": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          },
+          "announces": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          },
+          "annual": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          },
+          "announce": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          },
+          "quarter": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          },
+          "home": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 2,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          }
+        },
+        "total_keywords_analyzed": 7,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "home": 2,
+          "announce": 1,
+          "announces": 1,
+          "homes": 1,
+          "earnings": 1,
+          "quarter": 1,
+          "annual": 1
+        }
+      }
+    },
+    "Specialty Retail": {
+      "winners_count": 1,
+      "non_movers_count": 0,
+      "patterns": {
+        "keyword_analysis": {
+          "fiscal": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0,
+            "difference_pct": 100.0
+          },
+          "announces": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0,
+            "difference_pct": 100.0
+          },
+          "announce": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0,
+            "difference_pct": 100.0
+          }
+        },
+        "total_keywords_analyzed": 3,
+        "winner_keyword_frequency": {
+          "announce": 1,
+          "announces": 1,
+          "fiscal": 1
+        },
+        "non_mover_keyword_frequency": {}
+      }
+    },
+    "Auto & Truck Dealerships": {
+      "winners_count": 0,
+      "non_movers_count": 1,
+      "patterns": {
+        "keyword_analysis": {
+          "global": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "auto": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          }
+        },
+        "total_keywords_analyzed": 2,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "auto": 1,
+          "global": 1
+        }
+      }
+    },
+    "Capital Markets": {
+      "winners_count": 0,
+      "non_movers_count": 1,
+      "patterns": {
+        "keyword_analysis": {
+          "up": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "lines": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "line": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "market": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          }
+        },
+        "total_keywords_analyzed": 4,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "line": 1,
+          "lines": 1,
+          "market": 1,
+          "up": 1
+        }
+      }
+    },
+    "Specialty Chemicals": {
+      "winners_count": 0,
+      "non_movers_count": 1,
+      "patterns": {
+        "keyword_analysis": {
+          "ev": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "strength": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "growth": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "grow": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "success": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          }
+        },
+        "total_keywords_analyzed": 5,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "ev": 1,
+          "growth": 1,
+          "grow": 1,
+          "strength": 1,
+          "success": 1
+        }
+      }
+    },
+    "Packaged Foods": {
+      "winners_count": 2,
+      "non_movers_count": 4,
+      "patterns": {
+        "keyword_analysis": {
+          "gains": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          },
+          "gain": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          },
+          "announces": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 25.0,
+            "difference_pct": 25.0
+          },
+          "announce": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 25.0,
+            "difference_pct": 25.0
+          },
+          "record": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 25.0,
+            "difference_pct": -25.0
+          },
+          "introduces": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 25.0,
+            "difference_pct": -25.0
+          },
+          "sale": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 25.0,
+            "difference_pct": -25.0
+          },
+          "sales": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 25.0,
+            "difference_pct": -25.0
+          },
+          "introduce": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 25.0,
+            "difference_pct": -25.0
+          },
+          "brand": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 25.0,
+            "difference_pct": -25.0
+          },
+          "food": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 2,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          }
+        },
+        "total_keywords_analyzed": 11,
+        "winner_keyword_frequency": {
+          "announce": 1,
+          "announces": 1,
+          "gain": 1,
+          "gains": 1
+        },
+        "non_mover_keyword_frequency": {
+          "food": 2,
+          "sale": 1,
+          "sales": 1,
+          "brand": 1,
+          "introduce": 1,
+          "introduces": 1,
+          "announce": 1,
+          "announces": 1,
+          "record": 1
+        }
+      }
+    },
+    "Furnishings, Fixtures & Appliances": {
+      "winners_count": 0,
+      "non_movers_count": 1,
+      "patterns": {
+        "keyword_analysis": {},
+        "total_keywords_analyzed": 0,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {}
+      }
+    },
+    "Beverages - Wineries & Distilleries": {
+      "winners_count": 0,
+      "non_movers_count": 1,
+      "patterns": {
+        "keyword_analysis": {
+          "retail": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "sale": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "store": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "stores": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          }
+        },
+        "total_keywords_analyzed": 4,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "retail": 1,
+          "store": 1,
+          "stores": 1,
+          "sale": 1
+        }
+      }
+    },
+    "Recreational Vehicles": {
+      "winners_count": 1,
+      "non_movers_count": 0,
+      "patterns": {
+        "keyword_analysis": {
+          "ev": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0,
+            "difference_pct": 100.0
+          },
+          "announces": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0,
+            "difference_pct": 100.0
+          },
+          "announce": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0,
+            "difference_pct": 100.0
+          }
+        },
+        "total_keywords_analyzed": 3,
+        "winner_keyword_frequency": {
+          "ev": 1,
+          "announce": 1,
+          "announces": 1
+        },
+        "non_mover_keyword_frequency": {}
+      }
+    },
+    "Restaurants": {
+      "winners_count": 0,
+      "non_movers_count": 3,
+      "patterns": {
+        "keyword_analysis": {
+          "up": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "shops": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "shop": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "launch": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "trip": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          }
+        },
+        "total_keywords_analyzed": 5,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "shop": 1,
+          "shops": 1,
+          "trip": 1,
+          "launch": 1,
+          "up": 1
+        }
+      }
+    },
+    "Education & Training Services": {
+      "winners_count": 2,
+      "non_movers_count": 5,
+      "patterns": {
+        "keyword_analysis": {
+          "up": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          },
+          "announces": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          },
+          "releases": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          },
+          "release": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          },
+          "announce": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          },
+          "lose": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 20.0,
+            "difference_pct": -20.0
+          },
+          "new": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 20.0,
+            "difference_pct": -20.0
+          },
+          "gains": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 2,
+            "non_mover_pct": 40.0,
+            "difference_pct": -40.0
+          },
+          "gain": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 2,
+            "non_mover_pct": 40.0,
+            "difference_pct": -40.0
+          },
+          "losses": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 3,
+            "non_mover_pct": 60.0,
+            "difference_pct": -60.0
+          },
+          "loss": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 3,
+            "non_mover_pct": 60.0,
+            "difference_pct": -60.0
+          },
+          "line": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 4,
+            "non_mover_pct": 80.0,
+            "difference_pct": -80.0
+          }
+        },
+        "total_keywords_analyzed": 12,
+        "winner_keyword_frequency": {
+          "release": 1,
+          "releases": 1,
+          "up": 1,
+          "announce": 1,
+          "announces": 1
+        },
+        "non_mover_keyword_frequency": {
+          "line": 4,
+          "loss": 3,
+          "losses": 3,
+          "gain": 2,
+          "gains": 2,
+          "lose": 1,
+          "new": 1
+        }
+      }
+    },
+    "Farm Products": {
+      "winners_count": 2,
+      "non_movers_count": 0,
+      "patterns": {
+        "keyword_analysis": {
+          "garden": {
+            "winner_count": 2,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0,
+            "difference_pct": 100.0
+          },
+          "win": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0,
+            "difference_pct": 50.0
+          },
+          "sale": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0,
+            "difference_pct": 50.0
+          },
+          "sales": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0,
+            "difference_pct": 50.0
+          }
+        },
+        "total_keywords_analyzed": 4,
+        "winner_keyword_frequency": {
+          "garden": 2,
+          "sale": 1,
+          "sales": 1,
+          "win": 1
+        },
+        "non_mover_keyword_frequency": {}
+      }
+    },
+    "Auto Manufacturers": {
+      "winners_count": 2,
+      "non_movers_count": 3,
+      "patterns": {
+        "keyword_analysis": {
+          "ev": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          },
+          "tv": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          },
+          "autonomous": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          },
+          "unveil": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          },
+          "auto": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          },
+          "acquisition": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          },
+          "global": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          },
+          "announce": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 2,
+            "non_mover_pct": 66.67,
+            "difference_pct": -16.67
+          },
+          "q4": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "announces": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "product": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "best": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "quarter": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 2,
+            "non_mover_pct": 66.67,
+            "difference_pct": -66.67
+          }
+        },
+        "total_keywords_analyzed": 13,
+        "winner_keyword_frequency": {
+          "autonomous": 1,
+          "auto": 1,
+          "unveil": 1,
+          "announce": 1,
+          "global": 1,
+          "ev": 1,
+          "tv": 1,
+          "acquisition": 1
+        },
+        "non_mover_keyword_frequency": {
+          "announce": 2,
+          "quarter": 2,
+          "product": 1,
+          "announces": 1,
+          "q4": 1,
+          "best": 1
+        }
+      }
+    },
+    "Packaging & Containers": {
+      "winners_count": 0,
+      "non_movers_count": 1,
+      "patterns": {
+        "keyword_analysis": {
+          "quarter": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "announce": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          }
+        },
+        "total_keywords_analyzed": 2,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "announce": 1,
+          "quarter": 1
+        }
+      }
+    },
+    "Beverages - Non-Alcoholic": {
+      "winners_count": 0,
+      "non_movers_count": 3,
+      "patterns": {
+        "keyword_analysis": {
+          "merger": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "ev": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "merge": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "up": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 2,
+            "non_mover_pct": 66.67,
+            "difference_pct": -66.67
+          },
+          "brand": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 2,
+            "non_mover_pct": 66.67,
+            "difference_pct": -66.67
+          },
+          "line": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 2,
+            "non_mover_pct": 66.67,
+            "difference_pct": -66.67
+          },
+          "brands": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 2,
+            "non_mover_pct": 66.67,
+            "difference_pct": -66.67
+          }
+        },
+        "total_keywords_analyzed": 7,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "brand": 2,
+          "brands": 2,
+          "line": 2,
+          "up": 2,
+          "merger": 1,
+          "merge": 1,
+          "ev": 1
+        }
+      }
+    },
+    "Household & Personal Products": {
+      "winners_count": 0,
+      "non_movers_count": 2,
+      "patterns": {
+        "keyword_analysis": {
+          "sale": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          }
+        },
+        "total_keywords_analyzed": 1,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "sale": 1
+        }
+      }
+    },
+    "Grocery Stores": {
+      "winners_count": 0,
+      "non_movers_count": 5,
+      "patterns": {
+        "keyword_analysis": {
+          "loss": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 20.0,
+            "difference_pct": -20.0
+          },
+          "losses": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 20.0,
+            "difference_pct": -20.0
+          },
+          "gains": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 2,
+            "non_mover_pct": 40.0,
+            "difference_pct": -40.0
+          },
+          "gain": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 2,
+            "non_mover_pct": 40.0,
+            "difference_pct": -40.0
+          },
+          "line": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 4,
+            "non_mover_pct": 80.0,
+            "difference_pct": -80.0
+          },
+          "market": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 5,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          }
+        },
+        "total_keywords_analyzed": 6,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "market": 5,
+          "line": 4,
+          "gain": 2,
+          "gains": 2,
+          "loss": 1,
+          "losses": 1
+        }
+      }
+    },
+    "Leisure": {
+      "winners_count": 1,
+      "non_movers_count": 0,
+      "patterns": {
+        "keyword_analysis": {
+          "line": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0,
+            "difference_pct": 100.0
+          }
+        },
+        "total_keywords_analyzed": 1,
+        "winner_keyword_frequency": {
+          "line": 1
+        },
+        "non_mover_keyword_frequency": {}
+      }
+    },
+    "Financial Data & Stock Exchanges": {
+      "winners_count": 0,
+      "non_movers_count": 1,
+      "patterns": {
+        "keyword_analysis": {},
+        "total_keywords_analyzed": 0,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {}
+      }
+    },
+    "Confectioners": {
+      "winners_count": 1,
+      "non_movers_count": 0,
+      "patterns": {
+        "keyword_analysis": {
+          "up": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0,
+            "difference_pct": 100.0
+          },
+          "announces": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0,
+            "difference_pct": 100.0
+          },
+          "growth": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0,
+            "difference_pct": 100.0
+          },
+          "announce": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0,
+            "difference_pct": 100.0
+          },
+          "grow": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0,
+            "difference_pct": 100.0
+          },
+          "sale": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0,
+            "difference_pct": 100.0
+          }
+        },
+        "total_keywords_analyzed": 6,
+        "winner_keyword_frequency": {
+          "announce": 1,
+          "announces": 1,
+          "sale": 1,
+          "growth": 1,
+          "grow": 1,
+          "up": 1
+        },
+        "non_mover_keyword_frequency": {}
+      }
+    },
+    "Beverages - Brewers": {
+      "winners_count": 0,
+      "non_movers_count": 1,
+      "patterns": {
+        "keyword_analysis": {
+          "brands": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "quarter": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "brand": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "fiscal": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          }
+        },
+        "total_keywords_analyzed": 4,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "brand": 1,
+          "brands": 1,
+          "quarter": 1,
+          "fiscal": 1
+        }
+      }
+    },
+    "Personal Services": {
+      "winners_count": 0,
+      "non_movers_count": 1,
+      "patterns": {
+        "keyword_analysis": {
+          "surpass": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "expansion": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "collaboration": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          }
+        },
+        "total_keywords_analyzed": 3,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "collaboration": 1,
+          "surpass": 1,
+          "expansion": 1
+        }
+      }
+    },
+    "Auto Parts": {
+      "winners_count": 1,
+      "non_movers_count": 4,
+      "patterns": {
+        "keyword_analysis": {
+          "announces": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 3,
+            "non_mover_pct": 75.0,
+            "difference_pct": 25.0
+          },
+          "announce": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 3,
+            "non_mover_pct": 75.0,
+            "difference_pct": 25.0
+          },
+          "capacity": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 25.0,
+            "difference_pct": -25.0
+          },
+          "successful": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 25.0,
+            "difference_pct": -25.0
+          },
+          "product": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 25.0,
+            "difference_pct": -25.0
+          },
+          "auto": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 25.0,
+            "difference_pct": -25.0
+          },
+          "success": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 25.0,
+            "difference_pct": -25.0
+          },
+          "automotive": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 25.0,
+            "difference_pct": -25.0
+          },
+          "miss": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 25.0,
+            "difference_pct": -25.0
+          },
+          "partnership": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 25.0,
+            "difference_pct": -25.0
+          },
+          "annual": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 25.0,
+            "difference_pct": -25.0
+          }
+        },
+        "total_keywords_analyzed": 11,
+        "winner_keyword_frequency": {
+          "announce": 1,
+          "announces": 1
+        },
+        "non_mover_keyword_frequency": {
+          "announce": 3,
+          "announces": 3,
+          "partnership": 1,
+          "product": 1,
+          "annual": 1,
+          "capacity": 1,
+          "automotive": 1,
+          "auto": 1,
+          "miss": 1,
+          "success": 1,
+          "successful": 1
+        }
+      }
+    },
+    "Resorts & Casinos": {
+      "winners_count": 0,
+      "non_movers_count": 1,
+      "patterns": {
+        "keyword_analysis": {
+          "resorts": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "resort": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          }
+        },
+        "total_keywords_analyzed": 2,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "resort": 1,
+          "resorts": 1
+        }
+      }
+    },
+    "Tobacco": {
+      "winners_count": 1,
+      "non_movers_count": 1,
+      "patterns": {
+        "keyword_analysis": {
+          "new": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 100.0
+          },
+          "product": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 100.0
+          }
+        },
+        "total_keywords_analyzed": 2,
+        "winner_keyword_frequency": {
+          "product": 1,
+          "new": 1
+        },
+        "non_mover_keyword_frequency": {}
+      }
+    }
+  },
+  "detailed_data": {
+    "winners": [
+      {
+        "article_id": "benzinga:49706571",
+        "title": "DEADLINE ALERT for FUN, TLX, LRN, PRMB: Law Offices of Howard G. Smith Reminds Shareholders of Opportunity to Lead Securities Fraud Class Actions",
+        "published_at": "2026-01-05T20:35:00Z",
+        "received_at": "2026-01-05T20:35:15.570750",
+        "tickers": [
+          "FUN",
+          "TLX",
+          "LRN",
+          "PRMB"
+        ],
+        "industry": "Leisure",
+        "industries": [
+          "Beverages - Non-Alcoholic",
+          "Biotechnology",
+          "Education & Training Services",
+          "Leisure"
+        ],
+        "sectors": [
+          "Consumer Cyclical",
+          "Healthcare",
+          "Consumer Defensive"
+        ],
+        "initial_ask": 14.79,
+        "peak_price": 16.68,
+        "peak_price_timestamp": "2026-01-05T20:35:23.404519+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 12.778904665314405,
+        "session": "market",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/market_hours/market_hours.json"
+      },
+      {
+        "article_id": "benzinga:49708574",
+        "title": "Boqii Announces Fiscal 2026 First Half Unaudited Financial Results",
+        "published_at": "2026-01-05T21:20:00Z",
+        "received_at": "2026-01-05T21:20:17.182199",
+        "tickers": [
+          "BQ"
+        ],
+        "industry": "Specialty Retail",
+        "industries": [
+          "Specialty Retail"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 2.09,
+        "peak_price": 2.25,
+        "peak_price_timestamp": "2026-01-05T21:20:53.225934+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 7.655502392344504,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49711734",
+        "title": "Lucid, Nuro, and Uber Unveil Global Robotaxi at CES, Announce Autonomous On-Road Testing",
+        "published_at": "2026-01-05T23:00:00Z",
+        "received_at": "2026-01-05T23:00:23.673074",
+        "tickers": [
+          "LCID",
+          "UBER"
+        ],
+        "industry": "Auto Manufacturers",
+        "industries": [
+          "Software - Application",
+          "Auto Manufacturers"
+        ],
+        "sectors": [
+          "Consumer Cyclical",
+          "Technology"
+        ],
+        "initial_ask": 11.75,
+        "peak_price": 80.9,
+        "peak_price_timestamp": "2026-01-05T23:01:36.292976+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 588.5106382978723,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49691990",
+        "title": "CIMG Inc. Announces Entry into Computing Power Industry; Initial Contracts with Aggregate Value of Approximately $124 Million",
+        "published_at": "2026-01-05T14:20:00Z",
+        "received_at": "2026-01-05T14:20:14.897016",
+        "tickers": [
+          "IMG"
+        ],
+        "industry": "Packaged Foods",
+        "industries": [
+          "Packaged Foods"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 1.42,
+        "peak_price": 1.54,
+        "peak_price_timestamp": "2026-01-05T14:20:06.089131+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 8.450704225352121,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49716726",
+        "title": "22nd Century Files VLN\u00ae MRTP Renewal \u2013 Only Combustible Tobacco Product Authorized by the FDA Specifically to Help Smokers Smoke Less",
+        "published_at": "2026-01-06T11:10:00Z",
+        "received_at": "2026-01-06T11:10:02.536861",
+        "tickers": [
+          "XXII"
+        ],
+        "industry": "Tobacco",
+        "industries": [
+          "Tobacco"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 0.9653,
+        "peak_price": 1.13,
+        "peak_price_timestamp": "2026-01-06T11:12:11.956495+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 17.062053247695,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49717563",
+        "title": "EVTV Executes Transformational AZIO AI Acquisition Framework at $3.00 Per Share",
+        "published_at": "2026-01-06T12:00:00Z",
+        "received_at": "2026-01-06T12:00:11.847112",
+        "tickers": [
+          "EVTV"
+        ],
+        "industry": "Auto Manufacturers",
+        "industries": [
+          "Auto Manufacturers"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 0.5689,
+        "peak_price": 0.7339,
+        "peak_price_timestamp": "2026-01-06T12:04:45.797226+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 29.00333977851996,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49718493",
+        "title": "Edible Garden Preliminary Holiday Sales Surge 26.4% Year-Over-Year During Key Time Period",
+        "published_at": "2026-01-06T12:30:00Z",
+        "received_at": "2026-01-06T12:30:03.991279",
+        "tickers": [
+          "EDBLW",
+          "EDBL"
+        ],
+        "industry": "Farm Products",
+        "industries": [
+          "Farm Products"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 0.082,
+        "peak_price": 0.779,
+        "peak_price_timestamp": "2026-01-06T12:30:00.439622+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 850.0,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49719285",
+        "title": "Sow Good Inc. Announces $6.0 Million Private Placement, Strategic Asset Sale, and Leadership Transition to Support Continued Candy Operations and Future Growth",
+        "published_at": "2026-01-06T13:00:00Z",
+        "received_at": "2026-01-06T13:00:16.708805",
+        "tickers": [
+          "SOWG"
+        ],
+        "industry": "Confectioners",
+        "industries": [
+          "Confectioners"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 0.49,
+        "peak_price": 0.55,
+        "peak_price_timestamp": "2026-01-06T13:07:10.130796+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 12.244897959183684,
+        "session": "premarket",
+        "filter_reason": "spread_too_wide_9.42%",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49719389",
+        "title": "Genius Group Releases Iconic Plans for Genius City and Genius Future School",
+        "published_at": "2026-01-06T13:00:00Z",
+        "received_at": "2026-01-06T13:00:41.174595",
+        "tickers": [
+          "GNS"
+        ],
+        "industry": "Education & Training Services",
+        "industries": [
+          "Education & Training Services"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 0.664,
+        "peak_price": 0.7,
+        "peak_price_timestamp": "2026-01-06T13:00:02.436620+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 5.421686746987939,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49719405",
+        "title": "Innoviz Technologies Announces First Sensor-Fusion Colored 3D LiDAR and Camera in InnovizThree",
+        "published_at": "2026-01-06T13:00:00Z",
+        "received_at": "2026-01-06T13:00:46.513300",
+        "tickers": [
+          "INVZ"
+        ],
+        "industry": "Auto Parts",
+        "industries": [
+          "Auto Parts"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 1.31,
+        "peak_price": 1.44,
+        "peak_price_timestamp": "2026-01-06T13:01:04.492143+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 9.923664122137396,
+        "session": "premarket",
+        "filter_reason": "spread_too_wide_2.28%",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49778556",
+        "title": "SRx Health Solutions Regains Compliance with NYSE",
+        "published_at": "2026-01-08T12:15:00Z",
+        "received_at": "2026-01-08T12:15:01.708931",
+        "tickers": [
+          "SRXH"
+        ],
+        "industry": "Packaged Foods",
+        "industries": [
+          "Packaged Foods"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 0.199,
+        "peak_price": 0.2203,
+        "peak_price_timestamp": "2026-01-08T12:16:06.524622+00:00",
+        "final_ask_10min": 0.2088,
+        "max_excursion_pct": 10.703517587939691,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/08/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49826749",
+        "title": "Vasta Platform Limited Announces Delisting From NASDAQ",
+        "published_at": "2026-01-09T21:49:00Z",
+        "received_at": "2026-01-09T21:49:01.274210Z",
+        "tickers": [
+          "VSTA"
+        ],
+        "industry": "Education & Training Services",
+        "industries": [
+          "Education & Training Services"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 5.12,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": 7.88,
+        "max_excursion_pct": 27.16,
+        "session": "postmarket",
+        "filter_reason": "classification_skipped: no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/09/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49841828",
+        "title": "Vision Marine Technologies Announces Reverse Stock Split",
+        "published_at": "2026-01-12T13:30:00Z",
+        "received_at": "2026-01-12T13:30:19.783130",
+        "tickers": [
+          "VMAR"
+        ],
+        "industry": "Recreational Vehicles",
+        "industries": [
+          "Recreational Vehicles"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 0.18,
+        "peak_price": 0.2,
+        "peak_price_timestamp": "2026-01-12T13:30:03.855273+00:00",
+        "final_ask_10min": 0.1718,
+        "max_excursion_pct": 11.111111111111121,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49842772",
+        "title": "Oriental Culture Holding LTD Announces Special Cash Dividend Plan to Reward Shareholders on Fifth Anniversary of Listing",
+        "published_at": "2026-01-12T13:55:00Z",
+        "received_at": "2026-01-12T13:55:19.537667",
+        "tickers": [
+          "OCG"
+        ],
+        "industry": "Internet Retail",
+        "industries": [
+          "Internet Retail"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 0.022,
+        "peak_price": 0.025,
+        "peak_price_timestamp": "2026-01-12T13:58:10.295547+00:00",
+        "final_ask_10min": 0.0212,
+        "max_excursion_pct": 13.63636363636365,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49843297",
+        "title": "Edible Garden&#39;s Award-Winning Kick. Sports Nutrition Now Available on Walmart.com",
+        "published_at": "2026-01-12T14:05:00Z",
+        "received_at": "2026-01-12T14:05:02.147920",
+        "tickers": [
+          "EDBL"
+        ],
+        "industry": "Farm Products",
+        "industries": [
+          "Farm Products"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 0.745,
+        "peak_price": 0.9,
+        "peak_price_timestamp": "2026-01-12T14:10:01.665902+00:00",
+        "final_ask_10min": 0.83,
+        "max_excursion_pct": 20.805369127516784,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+      }
+    ],
+    "non_movers_sample": [
+      {
+        "article_id": "benzinga:49705964",
+        "title": "LRN Investors Have Opportunity to Lead Stride, Inc. Securities Fraud Lawsuit with the Schall Law Firm",
+        "published_at": "2026-01-05T20:12:00Z",
+        "received_at": "2026-01-05T20:12:14.122715",
+        "tickers": [
+          "LRN"
+        ],
+        "industry": "Education & Training Services",
+        "industries": [
+          "Education & Training Services"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 68.28,
+        "peak_price": 68.41,
+        "peak_price_timestamp": "2026-01-05T20:13:48.091209+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.19039250146455103,
+        "session": "market",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/market_hours/market_hours.json"
+      },
+      {
+        "article_id": "benzinga:49707588",
+        "title": "SharkNinja to Participate in the ICR Conference",
+        "published_at": "2026-01-05T21:05:00Z",
+        "received_at": "2026-01-05T21:05:04.366382",
+        "tickers": [
+          "SN"
+        ],
+        "industry": "Furnishings, Fixtures & Appliances",
+        "industries": [
+          "Furnishings, Fixtures & Appliances"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 112.0,
+        "peak_price": 110.96,
+        "peak_price_timestamp": "2026-01-05T21:06:21.621971+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.9285714285714342,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49707595",
+        "title": "Dutch Bros Inc. Appoints Jennifer Somers as Chief Shops Officer",
+        "published_at": "2026-01-05T21:05:00Z",
+        "received_at": "2026-01-05T21:05:11.344500",
+        "tickers": [
+          "BROS"
+        ],
+        "industry": "Restaurants",
+        "industries": [
+          "Restaurants"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 60.88,
+        "peak_price": 60.3954,
+        "peak_price_timestamp": "2026-01-05T21:10:09.518642+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.7959921156373199,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49709259",
+        "title": "B&amp;G Foods Appoints John Ozgopoyan as Executive Vice President of Sales",
+        "published_at": "2026-01-05T21:34:00Z",
+        "received_at": "2026-01-05T21:34:01.768014",
+        "tickers": [
+          "BGS"
+        ],
+        "industry": "Packaged Foods",
+        "industries": [
+          "Packaged Foods"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 4.17,
+        "peak_price": 4.1437,
+        "peak_price_timestamp": "2026-01-05T21:37:28.130323+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.6306954436450838,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49711524",
+        "title": "Big Tree Cloud Holdings Limited Receives Nasdaq Notice on MVLS and MVPHS Requirements",
+        "published_at": "2026-01-05T22:45:00Z",
+        "received_at": "2026-01-05T22:45:14.507592",
+        "tickers": [
+          "DSY"
+        ],
+        "industry": "Household & Personal Products",
+        "industries": [
+          "Household & Personal Products"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 0.32,
+        "peak_price": 0.32,
+        "peak_price_timestamp": "2026-01-05T22:50:03.916999+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.0,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49685672",
+        "title": "Kraft Hockeyville Extends Community Impact with Biggest Prize Pool Yet to Celebrate 20th Anniversary",
+        "published_at": "2026-01-05T11:00:00Z",
+        "received_at": "2026-01-05T11:00:08.794958",
+        "tickers": [
+          "KHC"
+        ],
+        "industry": "Packaged Foods",
+        "industries": [
+          "Packaged Foods"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 24.44,
+        "peak_price": 24.39,
+        "peak_price_timestamp": "2026-01-05T11:04:43.808229+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.2045826513911649,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49690865",
+        "title": "Round Table Pizza Delivers Triple the Flavor With Triple Crown Pepperoni Pizza",
+        "published_at": "2026-01-05T14:00:00Z",
+        "received_at": "2026-01-05T14:00:14.254375",
+        "tickers": [
+          "FAT"
+        ],
+        "industry": "Restaurants",
+        "industries": [
+          "Restaurants"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 0.35,
+        "peak_price": 0.35,
+        "peak_price_timestamp": "2026-01-05T14:05:11.167693+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.0,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49690871",
+        "title": "Gevo Strengthens Operational Leadership Amid Ongoing Growth and Succession Planning",
+        "published_at": "2026-01-05T14:00:00Z",
+        "received_at": "2026-01-05T14:00:14.623323",
+        "tickers": [
+          "GEVO",
+          "INGR"
+        ],
+        "industry": "Specialty Chemicals",
+        "industries": [
+          "Specialty Chemicals",
+          "Packaged Foods"
+        ],
+        "sectors": [
+          "Consumer Defensive",
+          "Basic Materials"
+        ],
+        "initial_ask": 2.06,
+        "peak_price": 2.0596,
+        "peak_price_timestamp": "2026-01-05T14:04:42.108534+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.0194174757281532,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49691009",
+        "title": "Shareholders that lost money on Coupang, Inc. (CPNG) should contact The Gross Law Firm about pending Class Action - CPNG",
+        "published_at": "2026-01-05T14:00:00Z",
+        "received_at": "2026-01-05T14:00:38.934102",
+        "tickers": [
+          "CPNG"
+        ],
+        "industry": "Internet Retail",
+        "industries": [
+          "Internet Retail"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 23.48,
+        "peak_price": 23.49,
+        "peak_price_timestamp": "2026-01-05T14:05:49.957543+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.04258943781941231,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49691035",
+        "title": "Hesai Announces Partnership with MOVIN, Redefining the Future of 3D Motion Capture",
+        "published_at": "2026-01-05T14:00:00Z",
+        "received_at": "2026-01-05T14:00:44.983294",
+        "tickers": [
+          "HSAI"
+        ],
+        "industry": "Auto Parts",
+        "industries": [
+          "Auto Parts"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 24.05,
+        "peak_price": 24.0,
+        "peak_price_timestamp": "2026-01-05T14:08:48.087216+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.20790020790021085,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49691036",
+        "title": "Lucid Announces Q4 Production &amp; Deliveries, Sets Date for Fourth Quarter 2025 Results",
+        "published_at": "2026-01-05T14:00:00Z",
+        "received_at": "2026-01-05T14:00:45.610179",
+        "tickers": [
+          "LCID"
+        ],
+        "industry": "Auto Manufacturers",
+        "industries": [
+          "Auto Manufacturers"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 11.32,
+        "peak_price": 11.35,
+        "peak_price_timestamp": "2026-01-05T14:00:54.833964+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.2650176678445173,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49691045",
+        "title": "Hesai Announces Plan to Double Annual Lidar Production Capacity at CES 2026",
+        "published_at": "2026-01-05T14:00:00Z",
+        "received_at": "2026-01-05T14:00:47.154866",
+        "tickers": [
+          "HSAI"
+        ],
+        "industry": "Auto Parts",
+        "industries": [
+          "Auto Parts"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 24.05,
+        "peak_price": 24.0,
+        "peak_price_timestamp": "2026-01-05T14:08:48.087216+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.20790020790021085,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49691556",
+        "title": "PRMB 1-WEEK DEADLINE ALERT: Primo Brands (PRMB) Facing Class Action Lawsuit Over Allegedly Concealed Merger Failure, CEO Replacement, and &#34;Self-Inflicted&#34; Disruptions - Hagens Berman Scrutinizing",
+        "published_at": "2026-01-05T14:12:45Z",
+        "received_at": "2026-01-05T14:12:47.046484",
+        "tickers": [
+          "PRMB"
+        ],
+        "industry": "Beverages - Non-Alcoholic",
+        "industries": [
+          "Beverages - Non-Alcoholic"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 16.19,
+        "peak_price": 16.19,
+        "peak_price_timestamp": "2026-01-05T14:27:10.359991+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.0,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49739116",
+        "title": "Toll Brothers Announces Final Opportunity to Own a Luxury Home at Fontaine by Toll Brothers in Lake Mary, Florida",
+        "published_at": "2026-01-06T20:58:25Z",
+        "received_at": "2026-01-06T20:58:26.801464",
+        "tickers": [
+          "TOL"
+        ],
+        "industry": "Residential Construction",
+        "industries": [
+          "Residential Construction"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 135.88,
+        "peak_price": 136.1,
+        "peak_price_timestamp": "2026-01-06T20:59:55.421505+00:00",
+        "final_ask_10min": 137.0,
+        "max_excursion_pct": 0.16190756549896884,
+        "session": "market",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/market_hours/market_hours.json"
+      },
+      {
+        "article_id": "benzinga:49739173",
+        "title": "PRMB LAWSUIT ALERT: Levi &amp; Korsinsky Notifies Primo Brands Corporation / Primo Water Corporation Investors of a Class Action Lawsuit and Upcoming Deadline",
+        "published_at": "2026-01-06T21:00:00Z",
+        "received_at": "2026-01-06T21:00:02.072689",
+        "tickers": [
+          "PRMB"
+        ],
+        "industry": "Beverages - Non-Alcoholic",
+        "industries": [
+          "Beverages - Non-Alcoholic"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 16.24,
+        "peak_price": 16.11,
+        "peak_price_timestamp": "2026-01-06T21:00:00.571325+00:00",
+        "final_ask_10min": 16.41,
+        "max_excursion_pct": -0.8004926108374324,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49739180",
+        "title": "Coupang, Inc. Sued for Securities Law Violations \u2013 Investors Should Contact Levi &amp; Korsinsky Before February 17, 2026 to Discuss Your Rights \u2013 CPNG",
+        "published_at": "2026-01-06T21:00:00Z",
+        "received_at": "2026-01-06T21:00:03.106130",
+        "tickers": [
+          "CPNG"
+        ],
+        "industry": "Internet Retail",
+        "industries": [
+          "Internet Retail"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 23.63,
+        "peak_price": 23.54,
+        "peak_price_timestamp": "2026-01-06T21:03:33.729943+00:00",
+        "final_ask_10min": 23.63,
+        "max_excursion_pct": -0.38087177316969895,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49740056",
+        "title": "Universal Corporation to Participate in the ICR Conference 2026",
+        "published_at": "2026-01-06T21:15:00Z",
+        "received_at": "2026-01-06T21:15:05.069901",
+        "tickers": [
+          "UVV"
+        ],
+        "industry": "Tobacco",
+        "industries": [
+          "Tobacco"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 53.0,
+        "peak_price": 52.99,
+        "peak_price_timestamp": "2026-01-06T21:24:15.214738+00:00",
+        "final_ask_10min": 53.0,
+        "max_excursion_pct": -0.018867924528298132,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49743283",
+        "title": "LGI Homes Reports 2025 Annual Home Closings and Sets Date for Fourth Quarter and Year End 2025 Earnings Conference Call",
+        "published_at": "2026-01-06T23:52:02Z",
+        "received_at": "2026-01-06T23:52:03.724816",
+        "tickers": [
+          "LGIH"
+        ],
+        "industry": "Residential Construction",
+        "industries": [
+          "Residential Construction"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 44.39,
+        "peak_price": 43.95,
+        "peak_price_timestamp": "2026-01-06T23:55:31.713153+00:00",
+        "final_ask_10min": 46.0,
+        "max_excursion_pct": -0.9912142374408598,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49716423",
+        "title": "China Automotive Systems Announces 2026-2030 Strategic Plan",
+        "published_at": "2026-01-06T11:00:00Z",
+        "received_at": "2026-01-06T11:01:07.245098",
+        "tickers": [
+          "CAAS"
+        ],
+        "industry": "Auto Parts",
+        "industries": [
+          "Auto Parts"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 4.43,
+        "peak_price": 4.43,
+        "peak_price_timestamp": "2026-01-06T11:00:58.028327+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.0,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49717525",
+        "title": "Papa Johns and the CHL\u00ae Launch &#34;Champions of Tomorrow&#34; to Support Canada&#39;s Young Hockey Players",
+        "published_at": "2026-01-06T12:00:00Z",
+        "received_at": "2026-01-06T12:00:03.666749",
+        "tickers": [
+          "PZZA"
+        ],
+        "industry": "Restaurants",
+        "industries": [
+          "Restaurants"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 40.0,
+        "peak_price": 39.89,
+        "peak_price_timestamp": "2026-01-06T12:00:00.577389+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.2749999999999986,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49717569",
+        "title": "Hyliion Successfully Completes Mission-Representative U.S. Navy Load Profile with KARNO\u2122 Power Module",
+        "published_at": "2026-01-06T12:00:00Z",
+        "received_at": "2026-01-06T12:00:11.847308",
+        "tickers": [
+          "HYLN"
+        ],
+        "industry": "Auto Parts",
+        "industries": [
+          "Auto Parts"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 1.95,
+        "peak_price": 1.95,
+        "peak_price_timestamp": "2026-01-06T12:00:00.113230+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.0,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49717794",
+        "title": "Lucid Gravity Recognized for Best Public Charging Experience by MotorTrend 2026 Best Tech Awards",
+        "published_at": "2026-01-06T12:05:00Z",
+        "received_at": "2026-01-06T12:05:15.912862",
+        "tickers": [
+          "LCID"
+        ],
+        "industry": "Auto Manufacturers",
+        "industries": [
+          "Auto Manufacturers"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 11.86,
+        "peak_price": 11.83,
+        "peak_price_timestamp": "2026-01-06T12:10:36.829657+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.25295109612141115,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49719407",
+        "title": "HORMEL\u00ae MARY KITCHEN\u00ae Brand Introduces Two Varieties to Bring Comfort and Convenience to the Table",
+        "published_at": "2026-01-06T13:00:00Z",
+        "received_at": "2026-01-06T13:00:48.533911",
+        "tickers": [
+          "HRL"
+        ],
+        "industry": "Packaged Foods",
+        "industries": [
+          "Packaged Foods"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 23.25,
+        "peak_price": 23.02,
+        "peak_price_timestamp": "2026-01-06T13:00:01.374166+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.9892473118279588,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49767978",
+        "title": "Sprouts Farmers Market, Inc. (SFM) Shareholders Who Lost Money Have Opportunity to Lead Securities Fraud Lawsuit",
+        "published_at": "2026-01-07T20:39:00Z",
+        "received_at": "2026-01-07T20:45:35.554688",
+        "tickers": [
+          "SFM"
+        ],
+        "industry": "Grocery Stores",
+        "industries": [
+          "Grocery Stores"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 75.32,
+        "peak_price": 75.35,
+        "peak_price_timestamp": "2026-01-07T20:40:41.861147+00:00",
+        "final_ask_10min": 75.0,
+        "max_excursion_pct": 0.03983005841742052,
+        "session": "market",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/market_hours/market_hours.json"
+      },
+      {
+        "article_id": "benzinga:49769222",
+        "title": "DoorDash to Announce Fourth Quarter and Full Year 2025 Financial Results on February 18, 2026",
+        "published_at": "2026-01-07T21:05:00Z",
+        "received_at": "2026-01-07T21:05:01.961580",
+        "tickers": [
+          "DASH"
+        ],
+        "industry": "Internet Retail",
+        "industries": [
+          "Internet Retail"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 230.6,
+        "peak_price": 230.29,
+        "peak_price_timestamp": "2026-01-07T21:05:59.390360+00:00",
+        "final_ask_10min": 230.6,
+        "max_excursion_pct": -0.1344319167389429,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49769243",
+        "title": "Constellation Brands Reports Third Quarter Fiscal 2026 Financial Results",
+        "published_at": "2026-01-07T21:05:00Z",
+        "received_at": "2026-01-07T21:05:03.222672",
+        "tickers": [
+          "STZ"
+        ],
+        "industry": "Beverages - Brewers",
+        "industries": [
+          "Beverages - Brewers"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 145.45,
+        "peak_price": 145.71,
+        "peak_price_timestamp": "2026-01-07T21:08:23.982379+00:00",
+        "final_ask_10min": 145.0,
+        "max_excursion_pct": 0.1787555861120793,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49769822",
+        "title": "Bragar Eagel &amp; Squire, P.C. Reminds Stockholders of Sprouts Farmers Market and DeFi Technologies to Contact the Firm Before Upcoming Deadlines",
+        "published_at": "2026-01-07T21:15:21Z",
+        "received_at": "2026-01-07T21:15:25.360102",
+        "tickers": [
+          "DEFT",
+          "SFM"
+        ],
+        "industry": "Capital Markets",
+        "industries": [
+          "Capital Markets",
+          "Grocery Stores"
+        ],
+        "sectors": [
+          "Financial Services",
+          "Consumer Defensive"
+        ],
+        "initial_ask": 1.01,
+        "peak_price": 1.01,
+        "peak_price_timestamp": "2026-01-07T21:17:53.550221+00:00",
+        "final_ask_10min": 1.01,
+        "max_excursion_pct": 0.0,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49770403",
+        "title": "SNDL &amp; 1CM Complete Purchase and Sale of 5 Retail Stores in Alberta and Saskatchewan",
+        "published_at": "2026-01-07T21:30:00Z",
+        "received_at": "2026-01-07T21:30:02.590896",
+        "tickers": [
+          "SNDL"
+        ],
+        "industry": "Beverages - Wineries & Distilleries",
+        "industries": [
+          "Beverages - Wineries & Distilleries"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 1.66,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": 1.66,
+        "max_excursion_pct": -0.6024096385542175,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49771574",
+        "title": "Kenvue Investor Alert: Kahn Swick &amp; Foti, LLC Investigates Adequacy of Price and Process in Proposed Sale of Kenvue Inc. - KVUE",
+        "published_at": "2026-01-07T22:11:00Z",
+        "received_at": "2026-01-07T22:11:16.519211",
+        "tickers": [
+          "KMB",
+          "KVUE"
+        ],
+        "industry": "Household & Personal Products",
+        "industries": [
+          "Household & Personal Products"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 97.84,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": 97.84,
+        "max_excursion_pct": -0.3475061324611646,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49772268",
+        "title": "LRN 5-DAY DEADLINE ALERT: Stride (LRN) Investors Encouraged to Contact Hagens Berman, Securities Class Action Pending Over Alleged Undisclosed Operational Failures",
+        "published_at": "2026-01-07T22:51:24Z",
+        "received_at": "2026-01-07T22:51:24.099454",
+        "tickers": [
+          "LRN"
+        ],
+        "industry": "Education & Training Services",
+        "industries": [
+          "Education & Training Services"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 68.45,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": 68.45,
+        "max_excursion_pct": -0.9495982468955524,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49772429",
+        "title": "SFM Class Action Alert: Kessler Topaz Meltzer &amp; Check, LLP Reminds Sprouts Farmers Market, Inc. (SFM) Shareholders of Securities Fraud Class Action Lawsuit Deadline",
+        "published_at": "2026-01-07T23:08:34Z",
+        "received_at": "2026-01-07T23:08:33.425059",
+        "tickers": [
+          "SFM"
+        ],
+        "industry": "Grocery Stores",
+        "industries": [
+          "Grocery Stores"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 75.3,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": 75.3,
+        "max_excursion_pct": -0.7835325365205889,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49800140",
+        "title": "The Vita Coco Company Appoints Shelley Broader to Board of Directors",
+        "published_at": "2026-01-08T21:05:00Z",
+        "received_at": "2026-01-08T21:05:02.079630",
+        "tickers": [
+          "COCO"
+        ],
+        "industry": "Beverages - Non-Alcoholic",
+        "industries": [
+          "Beverages - Non-Alcoholic"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 55.28,
+        "peak_price": 54.9,
+        "peak_price_timestamp": "2026-01-08T21:06:48.241727+00:00",
+        "final_ask_10min": 55.0,
+        "max_excursion_pct": -0.6874095513748237,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49800197",
+        "title": "Kefir-Leader Lifeway Foods Expects Record-Breaking 2025 Results and Announces Participation in the ICR Conference",
+        "published_at": "2026-01-08T21:05:00Z",
+        "received_at": "2026-01-08T21:05:19.283402",
+        "tickers": [
+          "LWAY"
+        ],
+        "industry": "Packaged Foods",
+        "industries": [
+          "Packaged Foods"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 23.01,
+        "peak_price": 23.01,
+        "peak_price_timestamp": "2026-01-08T21:05:21.200511+00:00",
+        "final_ask_10min": 22.55,
+        "max_excursion_pct": 0.0,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49800689",
+        "title": "World, Co-founded by Sam Altman and Alex Blania, Accelerates Expansion in Japan via MEDIROM Collaboration Re.Ra.Ku&#39;s &#34;Orb&#34; Authentication Surpasses 20,000 Cumulative Verifications, Doubling in Approximately Two Months",
+        "published_at": "2026-01-08T21:15:00Z",
+        "received_at": "2026-01-08T21:15:01.937161",
+        "tickers": [
+          "MRM"
+        ],
+        "industry": "Personal Services",
+        "industries": [
+          "Personal Services"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 2.2,
+        "peak_price": 2.2,
+        "peak_price_timestamp": "2026-01-08T21:15:05.487805+00:00",
+        "final_ask_10min": 1.95,
+        "max_excursion_pct": 0.0,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49800714",
+        "title": "Sealed Air to Announce Fourth Quarter and Full Year 2025 Results",
+        "published_at": "2026-01-08T21:15:00Z",
+        "received_at": "2026-01-08T21:15:16.423527",
+        "tickers": [
+          "SEE"
+        ],
+        "industry": "Packaging & Containers",
+        "industries": [
+          "Packaging & Containers"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 41.52,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": 41.58,
+        "max_excursion_pct": -0.19267822736032128,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49801050",
+        "title": "Mayor Levine Cava, Royal Caribbean Group, and partners celebrate groundbreaking of new Cruise Terminal G at PortMiami",
+        "published_at": "2026-01-08T21:22:00Z",
+        "received_at": "2026-01-08T21:22:36.521080",
+        "tickers": [
+          "RCL"
+        ],
+        "industry": "Travel Services",
+        "industries": [
+          "Travel Services"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 308.0,
+        "peak_price": 308.0,
+        "peak_price_timestamp": "2026-01-08T21:23:54.915073+00:00",
+        "final_ask_10min": 309.99,
+        "max_excursion_pct": 0.0,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49801813",
+        "title": "Kessler Topaz Meltzer &amp; Check, LLP Reminds Investors of Deadline for Securities Fraud Class Action Lawsuit Filed Against Sprouts Farmers Market, Inc. (SFM)",
+        "published_at": "2026-01-08T21:42:00Z",
+        "received_at": "2026-01-08T21:42:13.395557",
+        "tickers": [
+          "SFM"
+        ],
+        "industry": "Grocery Stores",
+        "industries": [
+          "Grocery Stores"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 77.07,
+        "peak_price": 77.06,
+        "peak_price_timestamp": "2026-01-08T21:50:12.660029+00:00",
+        "final_ask_10min": 78.06,
+        "max_excursion_pct": -0.01297521733487856,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49776702",
+        "title": "JD.com Announces Updates of Share Repurchase and Cancellation",
+        "published_at": "2026-01-08T11:00:00Z",
+        "received_at": "2026-01-08T11:00:02.749108",
+        "tickers": [
+          "JD"
+        ],
+        "industry": "Internet Retail",
+        "industries": [
+          "Internet Retail"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 28.87,
+        "peak_price": 28.87,
+        "peak_price_timestamp": "2026-01-08T11:00:01.083999+00:00",
+        "final_ask_10min": 28.82,
+        "max_excursion_pct": 0.0,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/08/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49777447",
+        "title": "FERRARI TO ANNOUNCE 2025 FULL YEAR AND FOURTH QUARTER FINANCIAL RESULTS ON FEBRUARY 10",
+        "published_at": "2026-01-08T11:29:45Z",
+        "received_at": "2026-01-08T11:29:44.669639",
+        "tickers": [
+          "RACE"
+        ],
+        "industry": "Auto Manufacturers",
+        "industries": [
+          "Auto Manufacturers"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 364.84,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": 364.63,
+        "max_excursion_pct": -0.1288235939041691,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/08/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49778557",
+        "title": "LRN LAWSUIT NEWS: Stride, Inc. Securities Fraud Class Action Deadline January 12 \u2013 Investors with Losses Notified to Contact BFA Law",
+        "published_at": "2026-01-08T12:15:00Z",
+        "received_at": "2026-01-08T12:15:02.013659",
+        "tickers": [
+          "LRN"
+        ],
+        "industry": "Education & Training Services",
+        "industries": [
+          "Education & Training Services"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 68.0,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": 68.0,
+        "max_excursion_pct": -0.8235294117647093,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/08/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49828142",
+        "title": "Walmart Inc. to Join the Nasdaq-100 Index\u00ae Beginning January 20th, 2026",
+        "published_at": "2026-01-10T01:00:00Z",
+        "received_at": "2026-01-10T01:00:01.840242Z",
+        "tickers": [
+          "NDAQ",
+          "AZN",
+          "WMT"
+        ],
+        "industry": "Financial Data & Stock Exchanges",
+        "industries": [
+          "Financial Data & Stock Exchanges",
+          "Drug Manufacturers - General",
+          "Discount Stores"
+        ],
+        "sectors": [
+          "Financial Services",
+          "Healthcare",
+          "Consumer Defensive"
+        ],
+        "initial_ask": 98.6,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": 98.6,
+        "max_excursion_pct": 0.0,
+        "session": "closed",
+        "filter_reason": "classification_skipped: no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/09/closed/closed.json"
+      },
+      {
+        "article_id": "benzinga:49828143",
+        "title": "CPNG DEADLINE ALERT: Coupang, Inc. Investors Urged to Contact Kirby McInerney LLP About Class Action Lawsuit",
+        "published_at": "2026-01-10T01:00:00Z",
+        "received_at": "2026-01-10T01:00:02.388977Z",
+        "tickers": [
+          "CPNG"
+        ],
+        "industry": "Internet Retail",
+        "industries": [
+          "Internet Retail"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 22.8,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": 22.8,
+        "max_excursion_pct": 0.0,
+        "session": "closed",
+        "filter_reason": "classification_skipped: no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/09/closed/closed.json"
+      },
+      {
+        "article_id": "benzinga:49828595",
+        "title": "Coupang Shareholder Alert: ClaimsFiler Reminds Investors With Losses In Excess Of $100,000 Of Lead Plaintiff Deadline In Class Action Lawsuits Against Coupang, Inc. - CPNG",
+        "published_at": "2026-01-10T03:11:00Z",
+        "received_at": "2026-01-10T03:11:13.618339Z",
+        "tickers": [
+          "CPNG"
+        ],
+        "industry": "Internet Retail",
+        "industries": [
+          "Internet Retail"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 22.8,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": 22.8,
+        "max_excursion_pct": 0.0,
+        "session": "closed",
+        "filter_reason": "classification_skipped: no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/09/closed/closed.json"
+      },
+      {
+        "article_id": "benzinga:49828601",
+        "title": "Sprouts Farmers Shareholder Alert: ClaimsFiler Reminds Investors With Losses In Excess Of $100,000 Of Lead Plaintiff Deadline In Class Action Lawsuits Against Sprouts Farmers Market, Inc. - SFM",
+        "published_at": "2026-01-10T03:15:00Z",
+        "received_at": "2026-01-10T03:15:14.582356Z",
+        "tickers": [
+          "SFM"
+        ],
+        "industry": "Grocery Stores",
+        "industries": [
+          "Grocery Stores"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 77.64,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": 77.64,
+        "max_excursion_pct": 0.0,
+        "session": "closed",
+        "filter_reason": "classification_skipped: no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/09/closed/closed.json"
+      },
+      {
+        "article_id": "benzinga:49828606",
+        "title": "Stride Shareholder Alert: ClaimsFiler Reminds Investors With Losses In Excess Of $100,000 Of Lead Plaintiff Deadline In Class Action Lawsuits Against Stride, Inc. - LRN",
+        "published_at": "2026-01-10T03:17:00Z",
+        "received_at": "2026-01-10T03:17:13.484910Z",
+        "tickers": [
+          "LRN"
+        ],
+        "industry": "Education & Training Services",
+        "industries": [
+          "Education & Training Services"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 70.87,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": 70.87,
+        "max_excursion_pct": 0.0,
+        "session": "closed",
+        "filter_reason": "classification_skipped: no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/09/closed/closed.json"
+      },
+      {
+        "article_id": "benzinga:49828657",
+        "title": "Stride 72 Hour Deadline Alert: Kahn Swick &amp; Foti, LLC Reminds Investors With Losses In Excess Of $100,000 of Deadline in Class Action Lawsuit Against Stride, Inc. - LRN",
+        "published_at": "2026-01-10T03:54:00Z",
+        "received_at": "2026-01-10T03:54:01.371633Z",
+        "tickers": [
+          "LRN"
+        ],
+        "industry": "Education & Training Services",
+        "industries": [
+          "Education & Training Services"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 70.87,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": 70.87,
+        "max_excursion_pct": 0.0,
+        "session": "closed",
+        "filter_reason": "classification_skipped: no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/09/closed/closed.json"
+      },
+      {
+        "article_id": "benzinga:49825743",
+        "title": "Autozi Internet Technology (Global) Ltd. Received Two Notification Letters from Nasdaq",
+        "published_at": "2026-01-09T21:05:00Z",
+        "received_at": "2026-01-09T21:05:13.432575Z",
+        "tickers": [
+          "AZI"
+        ],
+        "industry": "Auto & Truck Dealerships",
+        "industries": [
+          "Auto & Truck Dealerships"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 3.19,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.79,
+        "session": "postmarket",
+        "filter_reason": "classification_skipped: no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/09/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49826256",
+        "title": "WEBUY GLOBAL LTD Receives Nasdaq Notification Regarding Minimum Stockholders&#39; Equity Deficiency",
+        "published_at": "2026-01-09T21:30:00Z",
+        "received_at": "2026-01-09T21:30:02.034739Z",
+        "tickers": [
+          "WBUY"
+        ],
+        "industry": "Internet Retail",
+        "industries": [
+          "Internet Retail"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 1.34,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": 1.34,
+        "max_excursion_pct": 0.0,
+        "session": "postmarket",
+        "filter_reason": "classification_skipped: no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/09/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49826425",
+        "title": "Craig Fullalove to Succeed Julie Cameron-Doe as Chief Financial Officer at Wynn Resorts",
+        "published_at": "2026-01-09T21:35:00Z",
+        "received_at": "2026-01-09T21:35:01.990525Z",
+        "tickers": [
+          "WYNN"
+        ],
+        "industry": "Resorts & Casinos",
+        "industries": [
+          "Resorts & Casinos"
+        ],
+        "sectors": [
+          "Consumer Cyclical"
+        ],
+        "initial_ask": 118.54,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": 118.54,
+        "max_excursion_pct": 0.0,
+        "session": "postmarket",
+        "filter_reason": "classification_skipped: no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/09/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49826486",
+        "title": "SFM Deadline: Rosen Law Firm Urges Sprouts Farmers Market, Inc. (NASDAQ: SFM) Stockholders to Contact the Firm for Information About Their Rights",
+        "published_at": "2026-01-09T21:38:00Z",
+        "received_at": "2026-01-09T21:38:01.408594Z",
+        "tickers": [
+          "SFM"
+        ],
+        "industry": "Grocery Stores",
+        "industries": [
+          "Grocery Stores"
+        ],
+        "sectors": [
+          "Consumer Defensive"
+        ],
+        "initial_ask": 78.0,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": 78.0,
+        "max_excursion_pct": 0.83,
+        "session": "postmarket",
+        "filter_reason": "classification_skipped: no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/09/postmarket/postmarket.json"
+      }
+    ],
+    "industry_analysis": {
+      "Internet Retail": {
+        "winners": [
+          {
+            "article_id": "benzinga:49842772",
+            "title": "Oriental Culture Holding LTD Announces Special Cash Dividend Plan to Reward Shareholders on Fifth Anniversary of Listing",
+            "published_at": "2026-01-12T13:55:00Z",
+            "received_at": "2026-01-12T13:55:19.537667",
+            "tickers": [
+              "OCG"
+            ],
+            "industry": "Internet Retail",
+            "industries": [
+              "Internet Retail"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 0.022,
+            "peak_price": 0.025,
+            "peak_price_timestamp": "2026-01-12T13:58:10.295547+00:00",
+            "final_ask_10min": 0.0212,
+            "max_excursion_pct": 13.63636363636365,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+          }
+        ],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49691009",
+            "title": "Shareholders that lost money on Coupang, Inc. (CPNG) should contact The Gross Law Firm about pending Class Action - CPNG",
+            "published_at": "2026-01-05T14:00:00Z",
+            "received_at": "2026-01-05T14:00:38.934102",
+            "tickers": [
+              "CPNG"
+            ],
+            "industry": "Internet Retail",
+            "industries": [
+              "Internet Retail"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 23.48,
+            "peak_price": 23.49,
+            "peak_price_timestamp": "2026-01-05T14:05:49.957543+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.04258943781941231,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49739180",
+            "title": "Coupang, Inc. Sued for Securities Law Violations \u2013 Investors Should Contact Levi &amp; Korsinsky Before February 17, 2026 to Discuss Your Rights \u2013 CPNG",
+            "published_at": "2026-01-06T21:00:00Z",
+            "received_at": "2026-01-06T21:00:03.106130",
+            "tickers": [
+              "CPNG"
+            ],
+            "industry": "Internet Retail",
+            "industries": [
+              "Internet Retail"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 23.63,
+            "peak_price": 23.54,
+            "peak_price_timestamp": "2026-01-06T21:03:33.729943+00:00",
+            "final_ask_10min": 23.63,
+            "max_excursion_pct": -0.38087177316969895,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49769222",
+            "title": "DoorDash to Announce Fourth Quarter and Full Year 2025 Financial Results on February 18, 2026",
+            "published_at": "2026-01-07T21:05:00Z",
+            "received_at": "2026-01-07T21:05:01.961580",
+            "tickers": [
+              "DASH"
+            ],
+            "industry": "Internet Retail",
+            "industries": [
+              "Internet Retail"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 230.6,
+            "peak_price": 230.29,
+            "peak_price_timestamp": "2026-01-07T21:05:59.390360+00:00",
+            "final_ask_10min": 230.6,
+            "max_excursion_pct": -0.1344319167389429,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49776702",
+            "title": "JD.com Announces Updates of Share Repurchase and Cancellation",
+            "published_at": "2026-01-08T11:00:00Z",
+            "received_at": "2026-01-08T11:00:02.749108",
+            "tickers": [
+              "JD"
+            ],
+            "industry": "Internet Retail",
+            "industries": [
+              "Internet Retail"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 28.87,
+            "peak_price": 28.87,
+            "peak_price_timestamp": "2026-01-08T11:00:01.083999+00:00",
+            "final_ask_10min": 28.82,
+            "max_excursion_pct": 0.0,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/08/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49828143",
+            "title": "CPNG DEADLINE ALERT: Coupang, Inc. Investors Urged to Contact Kirby McInerney LLP About Class Action Lawsuit",
+            "published_at": "2026-01-10T01:00:00Z",
+            "received_at": "2026-01-10T01:00:02.388977Z",
+            "tickers": [
+              "CPNG"
+            ],
+            "industry": "Internet Retail",
+            "industries": [
+              "Internet Retail"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 22.8,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": 22.8,
+            "max_excursion_pct": 0.0,
+            "session": "closed",
+            "filter_reason": "classification_skipped: no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/09/closed/closed.json"
+          },
+          {
+            "article_id": "benzinga:49828595",
+            "title": "Coupang Shareholder Alert: ClaimsFiler Reminds Investors With Losses In Excess Of $100,000 Of Lead Plaintiff Deadline In Class Action Lawsuits Against Coupang, Inc. - CPNG",
+            "published_at": "2026-01-10T03:11:00Z",
+            "received_at": "2026-01-10T03:11:13.618339Z",
+            "tickers": [
+              "CPNG"
+            ],
+            "industry": "Internet Retail",
+            "industries": [
+              "Internet Retail"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 22.8,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": 22.8,
+            "max_excursion_pct": 0.0,
+            "session": "closed",
+            "filter_reason": "classification_skipped: no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/09/closed/closed.json"
+          },
+          {
+            "article_id": "benzinga:49826256",
+            "title": "WEBUY GLOBAL LTD Receives Nasdaq Notification Regarding Minimum Stockholders&#39; Equity Deficiency",
+            "published_at": "2026-01-09T21:30:00Z",
+            "received_at": "2026-01-09T21:30:02.034739Z",
+            "tickers": [
+              "WBUY"
+            ],
+            "industry": "Internet Retail",
+            "industries": [
+              "Internet Retail"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 1.34,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": 1.34,
+            "max_excursion_pct": 0.0,
+            "session": "postmarket",
+            "filter_reason": "classification_skipped: no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/09/postmarket/postmarket.json"
+          }
+        ]
+      },
+      "Travel Services": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49801050",
+            "title": "Mayor Levine Cava, Royal Caribbean Group, and partners celebrate groundbreaking of new Cruise Terminal G at PortMiami",
+            "published_at": "2026-01-08T21:22:00Z",
+            "received_at": "2026-01-08T21:22:36.521080",
+            "tickers": [
+              "RCL"
+            ],
+            "industry": "Travel Services",
+            "industries": [
+              "Travel Services"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 308.0,
+            "peak_price": 308.0,
+            "peak_price_timestamp": "2026-01-08T21:23:54.915073+00:00",
+            "final_ask_10min": 309.99,
+            "max_excursion_pct": 0.0,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+          }
+        ]
+      },
+      "Residential Construction": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49739116",
+            "title": "Toll Brothers Announces Final Opportunity to Own a Luxury Home at Fontaine by Toll Brothers in Lake Mary, Florida",
+            "published_at": "2026-01-06T20:58:25Z",
+            "received_at": "2026-01-06T20:58:26.801464",
+            "tickers": [
+              "TOL"
+            ],
+            "industry": "Residential Construction",
+            "industries": [
+              "Residential Construction"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 135.88,
+            "peak_price": 136.1,
+            "peak_price_timestamp": "2026-01-06T20:59:55.421505+00:00",
+            "final_ask_10min": 137.0,
+            "max_excursion_pct": 0.16190756549896884,
+            "session": "market",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/market_hours/market_hours.json"
+          },
+          {
+            "article_id": "benzinga:49743283",
+            "title": "LGI Homes Reports 2025 Annual Home Closings and Sets Date for Fourth Quarter and Year End 2025 Earnings Conference Call",
+            "published_at": "2026-01-06T23:52:02Z",
+            "received_at": "2026-01-06T23:52:03.724816",
+            "tickers": [
+              "LGIH"
+            ],
+            "industry": "Residential Construction",
+            "industries": [
+              "Residential Construction"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 44.39,
+            "peak_price": 43.95,
+            "peak_price_timestamp": "2026-01-06T23:55:31.713153+00:00",
+            "final_ask_10min": 46.0,
+            "max_excursion_pct": -0.9912142374408598,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+          }
+        ]
+      },
+      "Specialty Retail": {
+        "winners": [
+          {
+            "article_id": "benzinga:49708574",
+            "title": "Boqii Announces Fiscal 2026 First Half Unaudited Financial Results",
+            "published_at": "2026-01-05T21:20:00Z",
+            "received_at": "2026-01-05T21:20:17.182199",
+            "tickers": [
+              "BQ"
+            ],
+            "industry": "Specialty Retail",
+            "industries": [
+              "Specialty Retail"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 2.09,
+            "peak_price": 2.25,
+            "peak_price_timestamp": "2026-01-05T21:20:53.225934+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 7.655502392344504,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          }
+        ],
+        "non_movers_sample": []
+      },
+      "Auto & Truck Dealerships": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49825743",
+            "title": "Autozi Internet Technology (Global) Ltd. Received Two Notification Letters from Nasdaq",
+            "published_at": "2026-01-09T21:05:00Z",
+            "received_at": "2026-01-09T21:05:13.432575Z",
+            "tickers": [
+              "AZI"
+            ],
+            "industry": "Auto & Truck Dealerships",
+            "industries": [
+              "Auto & Truck Dealerships"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 3.19,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.79,
+            "session": "postmarket",
+            "filter_reason": "classification_skipped: no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/09/postmarket/postmarket.json"
+          }
+        ]
+      },
+      "Capital Markets": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49769822",
+            "title": "Bragar Eagel &amp; Squire, P.C. Reminds Stockholders of Sprouts Farmers Market and DeFi Technologies to Contact the Firm Before Upcoming Deadlines",
+            "published_at": "2026-01-07T21:15:21Z",
+            "received_at": "2026-01-07T21:15:25.360102",
+            "tickers": [
+              "DEFT",
+              "SFM"
+            ],
+            "industry": "Capital Markets",
+            "industries": [
+              "Capital Markets",
+              "Grocery Stores"
+            ],
+            "sectors": [
+              "Financial Services",
+              "Consumer Defensive"
+            ],
+            "initial_ask": 1.01,
+            "peak_price": 1.01,
+            "peak_price_timestamp": "2026-01-07T21:17:53.550221+00:00",
+            "final_ask_10min": 1.01,
+            "max_excursion_pct": 0.0,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+          }
+        ]
+      },
+      "Specialty Chemicals": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49690871",
+            "title": "Gevo Strengthens Operational Leadership Amid Ongoing Growth and Succession Planning",
+            "published_at": "2026-01-05T14:00:00Z",
+            "received_at": "2026-01-05T14:00:14.623323",
+            "tickers": [
+              "GEVO",
+              "INGR"
+            ],
+            "industry": "Specialty Chemicals",
+            "industries": [
+              "Specialty Chemicals",
+              "Packaged Foods"
+            ],
+            "sectors": [
+              "Consumer Defensive",
+              "Basic Materials"
+            ],
+            "initial_ask": 2.06,
+            "peak_price": 2.0596,
+            "peak_price_timestamp": "2026-01-05T14:04:42.108534+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.0194174757281532,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          }
+        ]
+      },
+      "Packaged Foods": {
+        "winners": [
+          {
+            "article_id": "benzinga:49691990",
+            "title": "CIMG Inc. Announces Entry into Computing Power Industry; Initial Contracts with Aggregate Value of Approximately $124 Million",
+            "published_at": "2026-01-05T14:20:00Z",
+            "received_at": "2026-01-05T14:20:14.897016",
+            "tickers": [
+              "IMG"
+            ],
+            "industry": "Packaged Foods",
+            "industries": [
+              "Packaged Foods"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 1.42,
+            "peak_price": 1.54,
+            "peak_price_timestamp": "2026-01-05T14:20:06.089131+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 8.450704225352121,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49778556",
+            "title": "SRx Health Solutions Regains Compliance with NYSE",
+            "published_at": "2026-01-08T12:15:00Z",
+            "received_at": "2026-01-08T12:15:01.708931",
+            "tickers": [
+              "SRXH"
+            ],
+            "industry": "Packaged Foods",
+            "industries": [
+              "Packaged Foods"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 0.199,
+            "peak_price": 0.2203,
+            "peak_price_timestamp": "2026-01-08T12:16:06.524622+00:00",
+            "final_ask_10min": 0.2088,
+            "max_excursion_pct": 10.703517587939691,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/08/premarket/premarket.json"
+          }
+        ],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49709259",
+            "title": "B&amp;G Foods Appoints John Ozgopoyan as Executive Vice President of Sales",
+            "published_at": "2026-01-05T21:34:00Z",
+            "received_at": "2026-01-05T21:34:01.768014",
+            "tickers": [
+              "BGS"
+            ],
+            "industry": "Packaged Foods",
+            "industries": [
+              "Packaged Foods"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 4.17,
+            "peak_price": 4.1437,
+            "peak_price_timestamp": "2026-01-05T21:37:28.130323+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.6306954436450838,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49685672",
+            "title": "Kraft Hockeyville Extends Community Impact with Biggest Prize Pool Yet to Celebrate 20th Anniversary",
+            "published_at": "2026-01-05T11:00:00Z",
+            "received_at": "2026-01-05T11:00:08.794958",
+            "tickers": [
+              "KHC"
+            ],
+            "industry": "Packaged Foods",
+            "industries": [
+              "Packaged Foods"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 24.44,
+            "peak_price": 24.39,
+            "peak_price_timestamp": "2026-01-05T11:04:43.808229+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.2045826513911649,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49719407",
+            "title": "HORMEL\u00ae MARY KITCHEN\u00ae Brand Introduces Two Varieties to Bring Comfort and Convenience to the Table",
+            "published_at": "2026-01-06T13:00:00Z",
+            "received_at": "2026-01-06T13:00:48.533911",
+            "tickers": [
+              "HRL"
+            ],
+            "industry": "Packaged Foods",
+            "industries": [
+              "Packaged Foods"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 23.25,
+            "peak_price": 23.02,
+            "peak_price_timestamp": "2026-01-06T13:00:01.374166+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.9892473118279588,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49800197",
+            "title": "Kefir-Leader Lifeway Foods Expects Record-Breaking 2025 Results and Announces Participation in the ICR Conference",
+            "published_at": "2026-01-08T21:05:00Z",
+            "received_at": "2026-01-08T21:05:19.283402",
+            "tickers": [
+              "LWAY"
+            ],
+            "industry": "Packaged Foods",
+            "industries": [
+              "Packaged Foods"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 23.01,
+            "peak_price": 23.01,
+            "peak_price_timestamp": "2026-01-08T21:05:21.200511+00:00",
+            "final_ask_10min": 22.55,
+            "max_excursion_pct": 0.0,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+          }
+        ]
+      },
+      "Furnishings, Fixtures & Appliances": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49707588",
+            "title": "SharkNinja to Participate in the ICR Conference",
+            "published_at": "2026-01-05T21:05:00Z",
+            "received_at": "2026-01-05T21:05:04.366382",
+            "tickers": [
+              "SN"
+            ],
+            "industry": "Furnishings, Fixtures & Appliances",
+            "industries": [
+              "Furnishings, Fixtures & Appliances"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 112.0,
+            "peak_price": 110.96,
+            "peak_price_timestamp": "2026-01-05T21:06:21.621971+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.9285714285714342,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          }
+        ]
+      },
+      "Beverages - Wineries & Distilleries": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49770403",
+            "title": "SNDL &amp; 1CM Complete Purchase and Sale of 5 Retail Stores in Alberta and Saskatchewan",
+            "published_at": "2026-01-07T21:30:00Z",
+            "received_at": "2026-01-07T21:30:02.590896",
+            "tickers": [
+              "SNDL"
+            ],
+            "industry": "Beverages - Wineries & Distilleries",
+            "industries": [
+              "Beverages - Wineries & Distilleries"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 1.66,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": 1.66,
+            "max_excursion_pct": -0.6024096385542175,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+          }
+        ]
+      },
+      "Recreational Vehicles": {
+        "winners": [
+          {
+            "article_id": "benzinga:49841828",
+            "title": "Vision Marine Technologies Announces Reverse Stock Split",
+            "published_at": "2026-01-12T13:30:00Z",
+            "received_at": "2026-01-12T13:30:19.783130",
+            "tickers": [
+              "VMAR"
+            ],
+            "industry": "Recreational Vehicles",
+            "industries": [
+              "Recreational Vehicles"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 0.18,
+            "peak_price": 0.2,
+            "peak_price_timestamp": "2026-01-12T13:30:03.855273+00:00",
+            "final_ask_10min": 0.1718,
+            "max_excursion_pct": 11.111111111111121,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+          }
+        ],
+        "non_movers_sample": []
+      },
+      "Restaurants": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49707595",
+            "title": "Dutch Bros Inc. Appoints Jennifer Somers as Chief Shops Officer",
+            "published_at": "2026-01-05T21:05:00Z",
+            "received_at": "2026-01-05T21:05:11.344500",
+            "tickers": [
+              "BROS"
+            ],
+            "industry": "Restaurants",
+            "industries": [
+              "Restaurants"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 60.88,
+            "peak_price": 60.3954,
+            "peak_price_timestamp": "2026-01-05T21:10:09.518642+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.7959921156373199,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49690865",
+            "title": "Round Table Pizza Delivers Triple the Flavor With Triple Crown Pepperoni Pizza",
+            "published_at": "2026-01-05T14:00:00Z",
+            "received_at": "2026-01-05T14:00:14.254375",
+            "tickers": [
+              "FAT"
+            ],
+            "industry": "Restaurants",
+            "industries": [
+              "Restaurants"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 0.35,
+            "peak_price": 0.35,
+            "peak_price_timestamp": "2026-01-05T14:05:11.167693+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.0,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49717525",
+            "title": "Papa Johns and the CHL\u00ae Launch &#34;Champions of Tomorrow&#34; to Support Canada&#39;s Young Hockey Players",
+            "published_at": "2026-01-06T12:00:00Z",
+            "received_at": "2026-01-06T12:00:03.666749",
+            "tickers": [
+              "PZZA"
+            ],
+            "industry": "Restaurants",
+            "industries": [
+              "Restaurants"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 40.0,
+            "peak_price": 39.89,
+            "peak_price_timestamp": "2026-01-06T12:00:00.577389+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.2749999999999986,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          }
+        ]
+      },
+      "Education & Training Services": {
+        "winners": [
+          {
+            "article_id": "benzinga:49719389",
+            "title": "Genius Group Releases Iconic Plans for Genius City and Genius Future School",
+            "published_at": "2026-01-06T13:00:00Z",
+            "received_at": "2026-01-06T13:00:41.174595",
+            "tickers": [
+              "GNS"
+            ],
+            "industry": "Education & Training Services",
+            "industries": [
+              "Education & Training Services"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 0.664,
+            "peak_price": 0.7,
+            "peak_price_timestamp": "2026-01-06T13:00:02.436620+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 5.421686746987939,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49826749",
+            "title": "Vasta Platform Limited Announces Delisting From NASDAQ",
+            "published_at": "2026-01-09T21:49:00Z",
+            "received_at": "2026-01-09T21:49:01.274210Z",
+            "tickers": [
+              "VSTA"
+            ],
+            "industry": "Education & Training Services",
+            "industries": [
+              "Education & Training Services"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 5.12,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": 7.88,
+            "max_excursion_pct": 27.16,
+            "session": "postmarket",
+            "filter_reason": "classification_skipped: no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/09/postmarket/postmarket.json"
+          }
+        ],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49705964",
+            "title": "LRN Investors Have Opportunity to Lead Stride, Inc. Securities Fraud Lawsuit with the Schall Law Firm",
+            "published_at": "2026-01-05T20:12:00Z",
+            "received_at": "2026-01-05T20:12:14.122715",
+            "tickers": [
+              "LRN"
+            ],
+            "industry": "Education & Training Services",
+            "industries": [
+              "Education & Training Services"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 68.28,
+            "peak_price": 68.41,
+            "peak_price_timestamp": "2026-01-05T20:13:48.091209+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.19039250146455103,
+            "session": "market",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/market_hours/market_hours.json"
+          },
+          {
+            "article_id": "benzinga:49772268",
+            "title": "LRN 5-DAY DEADLINE ALERT: Stride (LRN) Investors Encouraged to Contact Hagens Berman, Securities Class Action Pending Over Alleged Undisclosed Operational Failures",
+            "published_at": "2026-01-07T22:51:24Z",
+            "received_at": "2026-01-07T22:51:24.099454",
+            "tickers": [
+              "LRN"
+            ],
+            "industry": "Education & Training Services",
+            "industries": [
+              "Education & Training Services"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 68.45,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": 68.45,
+            "max_excursion_pct": -0.9495982468955524,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49778557",
+            "title": "LRN LAWSUIT NEWS: Stride, Inc. Securities Fraud Class Action Deadline January 12 \u2013 Investors with Losses Notified to Contact BFA Law",
+            "published_at": "2026-01-08T12:15:00Z",
+            "received_at": "2026-01-08T12:15:02.013659",
+            "tickers": [
+              "LRN"
+            ],
+            "industry": "Education & Training Services",
+            "industries": [
+              "Education & Training Services"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 68.0,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": 68.0,
+            "max_excursion_pct": -0.8235294117647093,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/08/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49828606",
+            "title": "Stride Shareholder Alert: ClaimsFiler Reminds Investors With Losses In Excess Of $100,000 Of Lead Plaintiff Deadline In Class Action Lawsuits Against Stride, Inc. - LRN",
+            "published_at": "2026-01-10T03:17:00Z",
+            "received_at": "2026-01-10T03:17:13.484910Z",
+            "tickers": [
+              "LRN"
+            ],
+            "industry": "Education & Training Services",
+            "industries": [
+              "Education & Training Services"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 70.87,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": 70.87,
+            "max_excursion_pct": 0.0,
+            "session": "closed",
+            "filter_reason": "classification_skipped: no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/09/closed/closed.json"
+          },
+          {
+            "article_id": "benzinga:49828657",
+            "title": "Stride 72 Hour Deadline Alert: Kahn Swick &amp; Foti, LLC Reminds Investors With Losses In Excess Of $100,000 of Deadline in Class Action Lawsuit Against Stride, Inc. - LRN",
+            "published_at": "2026-01-10T03:54:00Z",
+            "received_at": "2026-01-10T03:54:01.371633Z",
+            "tickers": [
+              "LRN"
+            ],
+            "industry": "Education & Training Services",
+            "industries": [
+              "Education & Training Services"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 70.87,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": 70.87,
+            "max_excursion_pct": 0.0,
+            "session": "closed",
+            "filter_reason": "classification_skipped: no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/09/closed/closed.json"
+          }
+        ]
+      },
+      "Farm Products": {
+        "winners": [
+          {
+            "article_id": "benzinga:49718493",
+            "title": "Edible Garden Preliminary Holiday Sales Surge 26.4% Year-Over-Year During Key Time Period",
+            "published_at": "2026-01-06T12:30:00Z",
+            "received_at": "2026-01-06T12:30:03.991279",
+            "tickers": [
+              "EDBLW",
+              "EDBL"
+            ],
+            "industry": "Farm Products",
+            "industries": [
+              "Farm Products"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 0.082,
+            "peak_price": 0.779,
+            "peak_price_timestamp": "2026-01-06T12:30:00.439622+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 850.0,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49843297",
+            "title": "Edible Garden&#39;s Award-Winning Kick. Sports Nutrition Now Available on Walmart.com",
+            "published_at": "2026-01-12T14:05:00Z",
+            "received_at": "2026-01-12T14:05:02.147920",
+            "tickers": [
+              "EDBL"
+            ],
+            "industry": "Farm Products",
+            "industries": [
+              "Farm Products"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 0.745,
+            "peak_price": 0.9,
+            "peak_price_timestamp": "2026-01-12T14:10:01.665902+00:00",
+            "final_ask_10min": 0.83,
+            "max_excursion_pct": 20.805369127516784,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+          }
+        ],
+        "non_movers_sample": []
+      },
+      "Auto Manufacturers": {
+        "winners": [
+          {
+            "article_id": "benzinga:49711734",
+            "title": "Lucid, Nuro, and Uber Unveil Global Robotaxi at CES, Announce Autonomous On-Road Testing",
+            "published_at": "2026-01-05T23:00:00Z",
+            "received_at": "2026-01-05T23:00:23.673074",
+            "tickers": [
+              "LCID",
+              "UBER"
+            ],
+            "industry": "Auto Manufacturers",
+            "industries": [
+              "Software - Application",
+              "Auto Manufacturers"
+            ],
+            "sectors": [
+              "Consumer Cyclical",
+              "Technology"
+            ],
+            "initial_ask": 11.75,
+            "peak_price": 80.9,
+            "peak_price_timestamp": "2026-01-05T23:01:36.292976+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 588.5106382978723,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49717563",
+            "title": "EVTV Executes Transformational AZIO AI Acquisition Framework at $3.00 Per Share",
+            "published_at": "2026-01-06T12:00:00Z",
+            "received_at": "2026-01-06T12:00:11.847112",
+            "tickers": [
+              "EVTV"
+            ],
+            "industry": "Auto Manufacturers",
+            "industries": [
+              "Auto Manufacturers"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 0.5689,
+            "peak_price": 0.7339,
+            "peak_price_timestamp": "2026-01-06T12:04:45.797226+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 29.00333977851996,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          }
+        ],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49691036",
+            "title": "Lucid Announces Q4 Production &amp; Deliveries, Sets Date for Fourth Quarter 2025 Results",
+            "published_at": "2026-01-05T14:00:00Z",
+            "received_at": "2026-01-05T14:00:45.610179",
+            "tickers": [
+              "LCID"
+            ],
+            "industry": "Auto Manufacturers",
+            "industries": [
+              "Auto Manufacturers"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 11.32,
+            "peak_price": 11.35,
+            "peak_price_timestamp": "2026-01-05T14:00:54.833964+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.2650176678445173,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49717794",
+            "title": "Lucid Gravity Recognized for Best Public Charging Experience by MotorTrend 2026 Best Tech Awards",
+            "published_at": "2026-01-06T12:05:00Z",
+            "received_at": "2026-01-06T12:05:15.912862",
+            "tickers": [
+              "LCID"
+            ],
+            "industry": "Auto Manufacturers",
+            "industries": [
+              "Auto Manufacturers"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 11.86,
+            "peak_price": 11.83,
+            "peak_price_timestamp": "2026-01-06T12:10:36.829657+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.25295109612141115,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49777447",
+            "title": "FERRARI TO ANNOUNCE 2025 FULL YEAR AND FOURTH QUARTER FINANCIAL RESULTS ON FEBRUARY 10",
+            "published_at": "2026-01-08T11:29:45Z",
+            "received_at": "2026-01-08T11:29:44.669639",
+            "tickers": [
+              "RACE"
+            ],
+            "industry": "Auto Manufacturers",
+            "industries": [
+              "Auto Manufacturers"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 364.84,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": 364.63,
+            "max_excursion_pct": -0.1288235939041691,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/08/premarket/premarket.json"
+          }
+        ]
+      },
+      "Packaging & Containers": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49800714",
+            "title": "Sealed Air to Announce Fourth Quarter and Full Year 2025 Results",
+            "published_at": "2026-01-08T21:15:00Z",
+            "received_at": "2026-01-08T21:15:16.423527",
+            "tickers": [
+              "SEE"
+            ],
+            "industry": "Packaging & Containers",
+            "industries": [
+              "Packaging & Containers"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 41.52,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": 41.58,
+            "max_excursion_pct": -0.19267822736032128,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+          }
+        ]
+      },
+      "Beverages - Non-Alcoholic": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49691556",
+            "title": "PRMB 1-WEEK DEADLINE ALERT: Primo Brands (PRMB) Facing Class Action Lawsuit Over Allegedly Concealed Merger Failure, CEO Replacement, and &#34;Self-Inflicted&#34; Disruptions - Hagens Berman Scrutinizing",
+            "published_at": "2026-01-05T14:12:45Z",
+            "received_at": "2026-01-05T14:12:47.046484",
+            "tickers": [
+              "PRMB"
+            ],
+            "industry": "Beverages - Non-Alcoholic",
+            "industries": [
+              "Beverages - Non-Alcoholic"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 16.19,
+            "peak_price": 16.19,
+            "peak_price_timestamp": "2026-01-05T14:27:10.359991+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.0,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49739173",
+            "title": "PRMB LAWSUIT ALERT: Levi &amp; Korsinsky Notifies Primo Brands Corporation / Primo Water Corporation Investors of a Class Action Lawsuit and Upcoming Deadline",
+            "published_at": "2026-01-06T21:00:00Z",
+            "received_at": "2026-01-06T21:00:02.072689",
+            "tickers": [
+              "PRMB"
+            ],
+            "industry": "Beverages - Non-Alcoholic",
+            "industries": [
+              "Beverages - Non-Alcoholic"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 16.24,
+            "peak_price": 16.11,
+            "peak_price_timestamp": "2026-01-06T21:00:00.571325+00:00",
+            "final_ask_10min": 16.41,
+            "max_excursion_pct": -0.8004926108374324,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49800140",
+            "title": "The Vita Coco Company Appoints Shelley Broader to Board of Directors",
+            "published_at": "2026-01-08T21:05:00Z",
+            "received_at": "2026-01-08T21:05:02.079630",
+            "tickers": [
+              "COCO"
+            ],
+            "industry": "Beverages - Non-Alcoholic",
+            "industries": [
+              "Beverages - Non-Alcoholic"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 55.28,
+            "peak_price": 54.9,
+            "peak_price_timestamp": "2026-01-08T21:06:48.241727+00:00",
+            "final_ask_10min": 55.0,
+            "max_excursion_pct": -0.6874095513748237,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+          }
+        ]
+      },
+      "Household & Personal Products": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49711524",
+            "title": "Big Tree Cloud Holdings Limited Receives Nasdaq Notice on MVLS and MVPHS Requirements",
+            "published_at": "2026-01-05T22:45:00Z",
+            "received_at": "2026-01-05T22:45:14.507592",
+            "tickers": [
+              "DSY"
+            ],
+            "industry": "Household & Personal Products",
+            "industries": [
+              "Household & Personal Products"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 0.32,
+            "peak_price": 0.32,
+            "peak_price_timestamp": "2026-01-05T22:50:03.916999+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.0,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49771574",
+            "title": "Kenvue Investor Alert: Kahn Swick &amp; Foti, LLC Investigates Adequacy of Price and Process in Proposed Sale of Kenvue Inc. - KVUE",
+            "published_at": "2026-01-07T22:11:00Z",
+            "received_at": "2026-01-07T22:11:16.519211",
+            "tickers": [
+              "KMB",
+              "KVUE"
+            ],
+            "industry": "Household & Personal Products",
+            "industries": [
+              "Household & Personal Products"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 97.84,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": 97.84,
+            "max_excursion_pct": -0.3475061324611646,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+          }
+        ]
+      },
+      "Grocery Stores": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49767978",
+            "title": "Sprouts Farmers Market, Inc. (SFM) Shareholders Who Lost Money Have Opportunity to Lead Securities Fraud Lawsuit",
+            "published_at": "2026-01-07T20:39:00Z",
+            "received_at": "2026-01-07T20:45:35.554688",
+            "tickers": [
+              "SFM"
+            ],
+            "industry": "Grocery Stores",
+            "industries": [
+              "Grocery Stores"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 75.32,
+            "peak_price": 75.35,
+            "peak_price_timestamp": "2026-01-07T20:40:41.861147+00:00",
+            "final_ask_10min": 75.0,
+            "max_excursion_pct": 0.03983005841742052,
+            "session": "market",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/market_hours/market_hours.json"
+          },
+          {
+            "article_id": "benzinga:49772429",
+            "title": "SFM Class Action Alert: Kessler Topaz Meltzer &amp; Check, LLP Reminds Sprouts Farmers Market, Inc. (SFM) Shareholders of Securities Fraud Class Action Lawsuit Deadline",
+            "published_at": "2026-01-07T23:08:34Z",
+            "received_at": "2026-01-07T23:08:33.425059",
+            "tickers": [
+              "SFM"
+            ],
+            "industry": "Grocery Stores",
+            "industries": [
+              "Grocery Stores"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 75.3,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": 75.3,
+            "max_excursion_pct": -0.7835325365205889,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49801813",
+            "title": "Kessler Topaz Meltzer &amp; Check, LLP Reminds Investors of Deadline for Securities Fraud Class Action Lawsuit Filed Against Sprouts Farmers Market, Inc. (SFM)",
+            "published_at": "2026-01-08T21:42:00Z",
+            "received_at": "2026-01-08T21:42:13.395557",
+            "tickers": [
+              "SFM"
+            ],
+            "industry": "Grocery Stores",
+            "industries": [
+              "Grocery Stores"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 77.07,
+            "peak_price": 77.06,
+            "peak_price_timestamp": "2026-01-08T21:50:12.660029+00:00",
+            "final_ask_10min": 78.06,
+            "max_excursion_pct": -0.01297521733487856,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49828601",
+            "title": "Sprouts Farmers Shareholder Alert: ClaimsFiler Reminds Investors With Losses In Excess Of $100,000 Of Lead Plaintiff Deadline In Class Action Lawsuits Against Sprouts Farmers Market, Inc. - SFM",
+            "published_at": "2026-01-10T03:15:00Z",
+            "received_at": "2026-01-10T03:15:14.582356Z",
+            "tickers": [
+              "SFM"
+            ],
+            "industry": "Grocery Stores",
+            "industries": [
+              "Grocery Stores"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 77.64,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": 77.64,
+            "max_excursion_pct": 0.0,
+            "session": "closed",
+            "filter_reason": "classification_skipped: no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/09/closed/closed.json"
+          },
+          {
+            "article_id": "benzinga:49826486",
+            "title": "SFM Deadline: Rosen Law Firm Urges Sprouts Farmers Market, Inc. (NASDAQ: SFM) Stockholders to Contact the Firm for Information About Their Rights",
+            "published_at": "2026-01-09T21:38:00Z",
+            "received_at": "2026-01-09T21:38:01.408594Z",
+            "tickers": [
+              "SFM"
+            ],
+            "industry": "Grocery Stores",
+            "industries": [
+              "Grocery Stores"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 78.0,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": 78.0,
+            "max_excursion_pct": 0.83,
+            "session": "postmarket",
+            "filter_reason": "classification_skipped: no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/09/postmarket/postmarket.json"
+          }
+        ]
+      },
+      "Leisure": {
+        "winners": [
+          {
+            "article_id": "benzinga:49706571",
+            "title": "DEADLINE ALERT for FUN, TLX, LRN, PRMB: Law Offices of Howard G. Smith Reminds Shareholders of Opportunity to Lead Securities Fraud Class Actions",
+            "published_at": "2026-01-05T20:35:00Z",
+            "received_at": "2026-01-05T20:35:15.570750",
+            "tickers": [
+              "FUN",
+              "TLX",
+              "LRN",
+              "PRMB"
+            ],
+            "industry": "Leisure",
+            "industries": [
+              "Beverages - Non-Alcoholic",
+              "Biotechnology",
+              "Education & Training Services",
+              "Leisure"
+            ],
+            "sectors": [
+              "Consumer Cyclical",
+              "Healthcare",
+              "Consumer Defensive"
+            ],
+            "initial_ask": 14.79,
+            "peak_price": 16.68,
+            "peak_price_timestamp": "2026-01-05T20:35:23.404519+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 12.778904665314405,
+            "session": "market",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/market_hours/market_hours.json"
+          }
+        ],
+        "non_movers_sample": []
+      },
+      "Financial Data & Stock Exchanges": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49828142",
+            "title": "Walmart Inc. to Join the Nasdaq-100 Index\u00ae Beginning January 20th, 2026",
+            "published_at": "2026-01-10T01:00:00Z",
+            "received_at": "2026-01-10T01:00:01.840242Z",
+            "tickers": [
+              "NDAQ",
+              "AZN",
+              "WMT"
+            ],
+            "industry": "Financial Data & Stock Exchanges",
+            "industries": [
+              "Financial Data & Stock Exchanges",
+              "Drug Manufacturers - General",
+              "Discount Stores"
+            ],
+            "sectors": [
+              "Financial Services",
+              "Healthcare",
+              "Consumer Defensive"
+            ],
+            "initial_ask": 98.6,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": 98.6,
+            "max_excursion_pct": 0.0,
+            "session": "closed",
+            "filter_reason": "classification_skipped: no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/09/closed/closed.json"
+          }
+        ]
+      },
+      "Confectioners": {
+        "winners": [
+          {
+            "article_id": "benzinga:49719285",
+            "title": "Sow Good Inc. Announces $6.0 Million Private Placement, Strategic Asset Sale, and Leadership Transition to Support Continued Candy Operations and Future Growth",
+            "published_at": "2026-01-06T13:00:00Z",
+            "received_at": "2026-01-06T13:00:16.708805",
+            "tickers": [
+              "SOWG"
+            ],
+            "industry": "Confectioners",
+            "industries": [
+              "Confectioners"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 0.49,
+            "peak_price": 0.55,
+            "peak_price_timestamp": "2026-01-06T13:07:10.130796+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 12.244897959183684,
+            "session": "premarket",
+            "filter_reason": "spread_too_wide_9.42%",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          }
+        ],
+        "non_movers_sample": []
+      },
+      "Beverages - Brewers": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49769243",
+            "title": "Constellation Brands Reports Third Quarter Fiscal 2026 Financial Results",
+            "published_at": "2026-01-07T21:05:00Z",
+            "received_at": "2026-01-07T21:05:03.222672",
+            "tickers": [
+              "STZ"
+            ],
+            "industry": "Beverages - Brewers",
+            "industries": [
+              "Beverages - Brewers"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 145.45,
+            "peak_price": 145.71,
+            "peak_price_timestamp": "2026-01-07T21:08:23.982379+00:00",
+            "final_ask_10min": 145.0,
+            "max_excursion_pct": 0.1787555861120793,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+          }
+        ]
+      },
+      "Personal Services": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49800689",
+            "title": "World, Co-founded by Sam Altman and Alex Blania, Accelerates Expansion in Japan via MEDIROM Collaboration Re.Ra.Ku&#39;s &#34;Orb&#34; Authentication Surpasses 20,000 Cumulative Verifications, Doubling in Approximately Two Months",
+            "published_at": "2026-01-08T21:15:00Z",
+            "received_at": "2026-01-08T21:15:01.937161",
+            "tickers": [
+              "MRM"
+            ],
+            "industry": "Personal Services",
+            "industries": [
+              "Personal Services"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 2.2,
+            "peak_price": 2.2,
+            "peak_price_timestamp": "2026-01-08T21:15:05.487805+00:00",
+            "final_ask_10min": 1.95,
+            "max_excursion_pct": 0.0,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+          }
+        ]
+      },
+      "Auto Parts": {
+        "winners": [
+          {
+            "article_id": "benzinga:49719405",
+            "title": "Innoviz Technologies Announces First Sensor-Fusion Colored 3D LiDAR and Camera in InnovizThree",
+            "published_at": "2026-01-06T13:00:00Z",
+            "received_at": "2026-01-06T13:00:46.513300",
+            "tickers": [
+              "INVZ"
+            ],
+            "industry": "Auto Parts",
+            "industries": [
+              "Auto Parts"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 1.31,
+            "peak_price": 1.44,
+            "peak_price_timestamp": "2026-01-06T13:01:04.492143+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 9.923664122137396,
+            "session": "premarket",
+            "filter_reason": "spread_too_wide_2.28%",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          }
+        ],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49691035",
+            "title": "Hesai Announces Partnership with MOVIN, Redefining the Future of 3D Motion Capture",
+            "published_at": "2026-01-05T14:00:00Z",
+            "received_at": "2026-01-05T14:00:44.983294",
+            "tickers": [
+              "HSAI"
+            ],
+            "industry": "Auto Parts",
+            "industries": [
+              "Auto Parts"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 24.05,
+            "peak_price": 24.0,
+            "peak_price_timestamp": "2026-01-05T14:08:48.087216+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.20790020790021085,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49691045",
+            "title": "Hesai Announces Plan to Double Annual Lidar Production Capacity at CES 2026",
+            "published_at": "2026-01-05T14:00:00Z",
+            "received_at": "2026-01-05T14:00:47.154866",
+            "tickers": [
+              "HSAI"
+            ],
+            "industry": "Auto Parts",
+            "industries": [
+              "Auto Parts"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 24.05,
+            "peak_price": 24.0,
+            "peak_price_timestamp": "2026-01-05T14:08:48.087216+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.20790020790021085,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49716423",
+            "title": "China Automotive Systems Announces 2026-2030 Strategic Plan",
+            "published_at": "2026-01-06T11:00:00Z",
+            "received_at": "2026-01-06T11:01:07.245098",
+            "tickers": [
+              "CAAS"
+            ],
+            "industry": "Auto Parts",
+            "industries": [
+              "Auto Parts"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 4.43,
+            "peak_price": 4.43,
+            "peak_price_timestamp": "2026-01-06T11:00:58.028327+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.0,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49717569",
+            "title": "Hyliion Successfully Completes Mission-Representative U.S. Navy Load Profile with KARNO\u2122 Power Module",
+            "published_at": "2026-01-06T12:00:00Z",
+            "received_at": "2026-01-06T12:00:11.847308",
+            "tickers": [
+              "HYLN"
+            ],
+            "industry": "Auto Parts",
+            "industries": [
+              "Auto Parts"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 1.95,
+            "peak_price": 1.95,
+            "peak_price_timestamp": "2026-01-06T12:00:00.113230+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.0,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          }
+        ]
+      },
+      "Resorts & Casinos": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49826425",
+            "title": "Craig Fullalove to Succeed Julie Cameron-Doe as Chief Financial Officer at Wynn Resorts",
+            "published_at": "2026-01-09T21:35:00Z",
+            "received_at": "2026-01-09T21:35:01.990525Z",
+            "tickers": [
+              "WYNN"
+            ],
+            "industry": "Resorts & Casinos",
+            "industries": [
+              "Resorts & Casinos"
+            ],
+            "sectors": [
+              "Consumer Cyclical"
+            ],
+            "initial_ask": 118.54,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": 118.54,
+            "max_excursion_pct": 0.0,
+            "session": "postmarket",
+            "filter_reason": "classification_skipped: no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/09/postmarket/postmarket.json"
+          }
+        ]
+      },
+      "Tobacco": {
+        "winners": [
+          {
+            "article_id": "benzinga:49716726",
+            "title": "22nd Century Files VLN\u00ae MRTP Renewal \u2013 Only Combustible Tobacco Product Authorized by the FDA Specifically to Help Smokers Smoke Less",
+            "published_at": "2026-01-06T11:10:00Z",
+            "received_at": "2026-01-06T11:10:02.536861",
+            "tickers": [
+              "XXII"
+            ],
+            "industry": "Tobacco",
+            "industries": [
+              "Tobacco"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 0.9653,
+            "peak_price": 1.13,
+            "peak_price_timestamp": "2026-01-06T11:12:11.956495+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 17.062053247695,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          }
+        ],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49740056",
+            "title": "Universal Corporation to Participate in the ICR Conference 2026",
+            "published_at": "2026-01-06T21:15:00Z",
+            "received_at": "2026-01-06T21:15:05.069901",
+            "tickers": [
+              "UVV"
+            ],
+            "industry": "Tobacco",
+            "industries": [
+              "Tobacco"
+            ],
+            "sectors": [
+              "Consumer Defensive"
+            ],
+            "initial_ask": 53.0,
+            "peak_price": 52.99,
+            "peak_price_timestamp": "2026-01-06T21:24:15.214738+00:00",
+            "final_ask_10min": 53.0,
+            "max_excursion_pct": -0.018867924528298132,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1326,6 +1326,52 @@ class RecallStatsEngine:
                     "price_checked_at": datetime.now()
                 }
                 
+                # CRITICAL FIX: Ensure highest_price_during_hold is at least as high as 10-minute ask
+                # The highest price during the hold period must be >= the 10-minute price
+                # This fixes cases where bar data is missing/incomplete (especially premarket)
+                final_ask = price_check.get("ask")
+                if final_ask and entry_price:
+                    # If we have a 10-minute ask price, ensure highest_price is at least that high
+                    if highest_price_data:
+                        current_highest = highest_price_data.get("price")
+                        if current_highest is None or final_ask > current_highest:
+                            # Update to use 10-minute ask (or keep current if it's higher)
+                            highest_gain_pct = ((final_ask - entry_price) / entry_price) * 100
+                            price_check_time = datetime.now(timezone.utc)
+                            highest_price_data = {
+                                "price": final_ask,
+                                "timestamp": price_check_time.isoformat(),
+                                "percent_gain_from_entry": round(highest_gain_pct, 2),
+                                "minute": price_check_time.minute,
+                                "second": price_check_time.second,
+                                "ticker": best_ticker
+                            }
+                            logger.debug(
+                                "Recall: Updated highest_price_during_hold to match/exceed 10-minute ask",
+                                article_id=article_id,
+                                ticker=best_ticker,
+                                previous_highest=current_highest,
+                                new_highest=final_ask
+                            )
+                    else:
+                        # No highest_price_data from bars, use 10-minute ask as fallback
+                        highest_gain_pct = ((final_ask - entry_price) / entry_price) * 100
+                        price_check_time = datetime.now(timezone.utc)
+                        highest_price_data = {
+                            "price": final_ask,
+                            "timestamp": price_check_time.isoformat(),
+                            "percent_gain_from_entry": round(highest_gain_pct, 2),
+                            "minute": price_check_time.minute,
+                            "second": price_check_time.second,
+                            "ticker": best_ticker
+                        }
+                        logger.debug(
+                            "Recall: Created highest_price_during_hold from 10-minute ask (no bar data)",
+                            article_id=article_id,
+                            ticker=best_ticker,
+                            highest_price=final_ask
+                        )
+                
                 # Add highest price tracking
                 if highest_price_data:
                     updates["highest_price_during_hold"] = highest_price_data

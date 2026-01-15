@@ -1,0 +1,2818 @@
+{
+  "analysis_metadata": {
+    "analysis_date": "2026-01-14T12:21:54.768973+00:00",
+    "period": "2026-01-02 to 2026-01-13",
+    "total_records_processed": 2696,
+    "total_real_estate_records": 125
+  },
+  "summary": {
+    "total_winners": 3,
+    "total_non_movers": 31,
+    "total_non_movers_sampled": 31,
+    "total_losers": 61,
+    "industries_analyzed": 9
+  },
+  "overall_patterns": {
+    "keyword_analysis": {
+      "merge": {
+        "winner_count": 1,
+        "winner_pct": 33.33,
+        "non_mover_count": 0,
+        "non_mover_pct": 0.0,
+        "difference_pct": 33.33
+      },
+      "merger": {
+        "winner_count": 1,
+        "winner_pct": 33.33,
+        "non_mover_count": 0,
+        "non_mover_pct": 0.0,
+        "difference_pct": 33.33
+      },
+      "land": {
+        "winner_count": 1,
+        "winner_pct": 33.33,
+        "non_mover_count": 1,
+        "non_mover_pct": 3.23,
+        "difference_pct": 30.11
+      },
+      "announce": {
+        "winner_count": 2,
+        "winner_pct": 66.67,
+        "non_mover_count": 13,
+        "non_mover_pct": 41.94,
+        "difference_pct": 24.73
+      },
+      "announces": {
+        "winner_count": 2,
+        "winner_pct": 66.67,
+        "non_mover_count": 13,
+        "non_mover_pct": 41.94,
+        "difference_pct": 24.73
+      },
+      "tenant": {
+        "winner_count": 0,
+        "winner_pct": 0.0,
+        "non_mover_count": 1,
+        "non_mover_pct": 3.23,
+        "difference_pct": -3.23
+      },
+      "management": {
+        "winner_count": 0,
+        "winner_pct": 0.0,
+        "non_mover_count": 1,
+        "non_mover_pct": 3.23,
+        "difference_pct": -3.23
+      },
+      "grow": {
+        "winner_count": 0,
+        "winner_pct": 0.0,
+        "non_mover_count": 1,
+        "non_mover_pct": 3.23,
+        "difference_pct": -3.23
+      },
+      "debt": {
+        "winner_count": 0,
+        "winner_pct": 0.0,
+        "non_mover_count": 1,
+        "non_mover_pct": 3.23,
+        "difference_pct": -3.23
+      },
+      "growth": {
+        "winner_count": 0,
+        "winner_pct": 0.0,
+        "non_mover_count": 1,
+        "non_mover_pct": 3.23,
+        "difference_pct": -3.23
+      },
+      "exceed": {
+        "winner_count": 0,
+        "winner_pct": 0.0,
+        "non_mover_count": 1,
+        "non_mover_pct": 3.23,
+        "difference_pct": -3.23
+      },
+      "increase": {
+        "winner_count": 0,
+        "winner_pct": 0.0,
+        "non_mover_count": 1,
+        "non_mover_pct": 3.23,
+        "difference_pct": -3.23
+      },
+      "building": {
+        "winner_count": 0,
+        "winner_pct": 0.0,
+        "non_mover_count": 1,
+        "non_mover_pct": 3.23,
+        "difference_pct": -3.23
+      },
+      "distribution": {
+        "winner_count": 0,
+        "winner_pct": 0.0,
+        "non_mover_count": 1,
+        "non_mover_pct": 3.23,
+        "difference_pct": -3.23
+      },
+      "rises": {
+        "winner_count": 0,
+        "winner_pct": 0.0,
+        "non_mover_count": 1,
+        "non_mover_pct": 3.23,
+        "difference_pct": -3.23
+      },
+      "launch": {
+        "winner_count": 0,
+        "winner_pct": 0.0,
+        "non_mover_count": 1,
+        "non_mover_pct": 3.23,
+        "difference_pct": -3.23
+      },
+      "high": {
+        "winner_count": 0,
+        "winner_pct": 0.0,
+        "non_mover_count": 1,
+        "non_mover_pct": 3.23,
+        "difference_pct": -3.23
+      },
+      "announcement": {
+        "winner_count": 0,
+        "winner_pct": 0.0,
+        "non_mover_count": 1,
+        "non_mover_pct": 3.23,
+        "difference_pct": -3.23
+      },
+      "vacancy": {
+        "winner_count": 0,
+        "winner_pct": 0.0,
+        "non_mover_count": 1,
+        "non_mover_pct": 3.23,
+        "difference_pct": -3.23
+      },
+      "industrial": {
+        "winner_count": 0,
+        "winner_pct": 0.0,
+        "non_mover_count": 1,
+        "non_mover_pct": 3.23,
+        "difference_pct": -3.23
+      }
+    },
+    "total_keywords_analyzed": 57,
+    "winner_keyword_frequency": {
+      "announce": 2,
+      "announces": 2,
+      "land": 1,
+      "merger": 1,
+      "merge": 1
+    },
+    "non_mover_keyword_frequency": {
+      "announce": 13,
+      "announces": 13,
+      "state": 9,
+      "real estate": 8,
+      "quarter": 8,
+      "invest": 7,
+      "dividend": 5,
+      "lease": 5,
+      "earnings": 5,
+      "investment": 4,
+      "reit": 3,
+      "office": 3,
+      "income": 3,
+      "capital": 3,
+      "investor": 3,
+      "investors": 3,
+      "gain": 3,
+      "gains": 3,
+      "revenue": 2,
+      "revenues": 2
+    }
+  },
+  "industry_breakdown": {
+    "Real Estate Services": {
+      "winners_count": 2,
+      "non_movers_count": 3,
+      "patterns": {
+        "keyword_analysis": {
+          "announce": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          },
+          "announces": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          },
+          "merge": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          },
+          "merger": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          },
+          "real estate": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "grow": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "gains": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "office": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "mortgage": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "growth": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "gain": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "launches": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "launch": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "leasing": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "state": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "equity": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "market": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 2,
+            "non_mover_pct": 66.67,
+            "difference_pct": -66.67
+          }
+        },
+        "total_keywords_analyzed": 17,
+        "winner_keyword_frequency": {
+          "merger": 1,
+          "merge": 1,
+          "announce": 1,
+          "announces": 1
+        },
+        "non_mover_keyword_frequency": {
+          "market": 2,
+          "real estate": 1,
+          "mortgage": 1,
+          "state": 1,
+          "office": 1,
+          "leasing": 1,
+          "growth": 1,
+          "grow": 1,
+          "equity": 1,
+          "launch": 1,
+          "launches": 1,
+          "gain": 1,
+          "gains": 1
+        }
+      }
+    },
+    "REIT - Diversified": {
+      "winners_count": 0,
+      "non_movers_count": 1,
+      "patterns": {
+        "keyword_analysis": {
+          "quarter": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "announce": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "earnings": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "lease": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "state": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "announces": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          }
+        },
+        "total_keywords_analyzed": 6,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "lease": 1,
+          "earnings": 1,
+          "quarter": 1,
+          "state": 1,
+          "announce": 1,
+          "announces": 1
+        }
+      }
+    },
+    "Real Estate - Development": {
+      "winners_count": 0,
+      "non_movers_count": 3,
+      "patterns": {
+        "keyword_analysis": {
+          "announce": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "tenant": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "construction": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "rises": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "build": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "rise": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "announces": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "debt": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "high": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "lease": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "building": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "revenue": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 2,
+            "non_mover_pct": 66.67,
+            "difference_pct": -66.67
+          },
+          "revenues": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 2,
+            "non_mover_pct": 66.67,
+            "difference_pct": -66.67
+          }
+        },
+        "total_keywords_analyzed": 13,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "revenue": 2,
+          "revenues": 2,
+          "construction": 1,
+          "announce": 1,
+          "announces": 1,
+          "debt": 1,
+          "rise": 1,
+          "rises": 1,
+          "high": 1,
+          "lease": 1,
+          "build": 1,
+          "building": 1,
+          "tenant": 1
+        }
+      }
+    },
+    "REIT - Retail": {
+      "winners_count": 0,
+      "non_movers_count": 6,
+      "patterns": {
+        "keyword_analysis": {
+          "real estate": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 16.67,
+            "difference_pct": -16.67
+          },
+          "investment": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 16.67,
+            "difference_pct": -16.67
+          },
+          "state": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 16.67,
+            "difference_pct": -16.67
+          },
+          "earnings": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 16.67,
+            "difference_pct": -16.67
+          },
+          "sale": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 16.67,
+            "difference_pct": -16.67
+          },
+          "quarter": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 16.67,
+            "difference_pct": -16.67
+          },
+          "reit": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 16.67,
+            "difference_pct": -16.67
+          },
+          "dividend": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 16.67,
+            "difference_pct": -16.67
+          },
+          "property": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 16.67,
+            "difference_pct": -16.67
+          },
+          "invest": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 16.67,
+            "difference_pct": -16.67
+          },
+          "acquisition": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 2,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "lease": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 2,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "income": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 3,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          },
+          "announce": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 4,
+            "non_mover_pct": 66.67,
+            "difference_pct": -66.67
+          },
+          "announces": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 4,
+            "non_mover_pct": 66.67,
+            "difference_pct": -66.67
+          }
+        },
+        "total_keywords_analyzed": 15,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "announce": 4,
+          "announces": 4,
+          "income": 3,
+          "acquisition": 2,
+          "lease": 2,
+          "real estate": 1,
+          "reit": 1,
+          "state": 1,
+          "investment": 1,
+          "invest": 1,
+          "earnings": 1,
+          "quarter": 1,
+          "property": 1,
+          "sale": 1,
+          "dividend": 1
+        }
+      }
+    },
+    "REIT - Healthcare Facilities": {
+      "winners_count": 0,
+      "non_movers_count": 1,
+      "patterns": {
+        "keyword_analysis": {
+          "office": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "reit": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "invest": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "investment": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          }
+        },
+        "total_keywords_analyzed": 4,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "reit": 1,
+          "office": 1,
+          "investment": 1,
+          "invest": 1
+        }
+      }
+    },
+    "REIT - Mortgage": {
+      "winners_count": 0,
+      "non_movers_count": 6,
+      "patterns": {
+        "keyword_analysis": {
+          "management": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 16.67,
+            "difference_pct": -16.67
+          },
+          "land": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 16.67,
+            "difference_pct": -16.67
+          },
+          "manage": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 16.67,
+            "difference_pct": -16.67
+          },
+          "earnings": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 16.67,
+            "difference_pct": -16.67
+          },
+          "announcement": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 16.67,
+            "difference_pct": -16.67
+          },
+          "lease": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 16.67,
+            "difference_pct": -16.67
+          },
+          "investment": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 2,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "invest": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 2,
+            "non_mover_pct": 33.33,
+            "difference_pct": -33.33
+          },
+          "capital": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 3,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          },
+          "quarter": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 3,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          },
+          "dividend": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 3,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          },
+          "announce": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 4,
+            "non_mover_pct": 66.67,
+            "difference_pct": -66.67
+          },
+          "announces": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 4,
+            "non_mover_pct": 66.67,
+            "difference_pct": -66.67
+          }
+        },
+        "total_keywords_analyzed": 13,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "announce": 4,
+          "announces": 4,
+          "capital": 3,
+          "quarter": 3,
+          "dividend": 3,
+          "investment": 2,
+          "invest": 2,
+          "management": 1,
+          "manage": 1,
+          "land": 1,
+          "announcement": 1,
+          "lease": 1,
+          "earnings": 1
+        }
+      }
+    },
+    "REIT - Office": {
+      "winners_count": 0,
+      "non_movers_count": 8,
+      "patterns": {
+        "keyword_analysis": {
+          "loss": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 12.5,
+            "difference_pct": -12.5
+          },
+          "reit": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 12.5,
+            "difference_pct": -12.5
+          },
+          "office": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 12.5,
+            "difference_pct": -12.5
+          },
+          "exceed": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 12.5,
+            "difference_pct": -12.5
+          },
+          "city": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 12.5,
+            "difference_pct": -12.5
+          },
+          "exceeds": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 12.5,
+            "difference_pct": -12.5
+          },
+          "distribution": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 12.5,
+            "difference_pct": -12.5
+          },
+          "leasing": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 12.5,
+            "difference_pct": -12.5
+          },
+          "losses": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 12.5,
+            "difference_pct": -12.5
+          },
+          "vacancy": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 12.5,
+            "difference_pct": -12.5
+          },
+          "announce": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 2,
+            "non_mover_pct": 25.0,
+            "difference_pct": -25.0
+          },
+          "gains": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 2,
+            "non_mover_pct": 25.0,
+            "difference_pct": -25.0
+          },
+          "announces": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 2,
+            "non_mover_pct": 25.0,
+            "difference_pct": -25.0
+          },
+          "gain": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 2,
+            "non_mover_pct": 25.0,
+            "difference_pct": -25.0
+          },
+          "investors": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 3,
+            "non_mover_pct": 37.5,
+            "difference_pct": -37.5
+          },
+          "invest": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 3,
+            "non_mover_pct": 37.5,
+            "difference_pct": -37.5
+          },
+          "investor": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 3,
+            "non_mover_pct": 37.5,
+            "difference_pct": -37.5
+          },
+          "real estate": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 6,
+            "non_mover_pct": 75.0,
+            "difference_pct": -75.0
+          },
+          "state": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 6,
+            "non_mover_pct": 75.0,
+            "difference_pct": -75.0
+          }
+        },
+        "total_keywords_analyzed": 19,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "real estate": 6,
+          "state": 6,
+          "invest": 3,
+          "investor": 3,
+          "investors": 3,
+          "announce": 2,
+          "announces": 2,
+          "gain": 2,
+          "gains": 2,
+          "leasing": 1,
+          "vacancy": 1,
+          "exceed": 1,
+          "exceeds": 1,
+          "reit": 1,
+          "office": 1,
+          "distribution": 1,
+          "city": 1,
+          "loss": 1,
+          "losses": 1
+        }
+      }
+    },
+    "REIT - Specialty": {
+      "winners_count": 1,
+      "non_movers_count": 1,
+      "patterns": {
+        "keyword_analysis": {
+          "announce": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 100.0
+          },
+          "land": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 100.0
+          },
+          "announces": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 100.0
+          },
+          "quarter": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "properties": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "earnings": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          }
+        },
+        "total_keywords_analyzed": 6,
+        "winner_keyword_frequency": {
+          "land": 1,
+          "announce": 1,
+          "announces": 1
+        },
+        "non_mover_keyword_frequency": {
+          "properties": 1,
+          "earnings": 1,
+          "quarter": 1
+        }
+      }
+    },
+    "REIT - Industrial": {
+      "winners_count": 0,
+      "non_movers_count": 2,
+      "patterns": {
+        "keyword_analysis": {
+          "announce": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          },
+          "industrial": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          },
+          "earnings": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          },
+          "up": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          },
+          "announces": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          },
+          "increases": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          },
+          "dividend": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          },
+          "properties": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          },
+          "increase": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          },
+          "quarter": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 2,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          }
+        },
+        "total_keywords_analyzed": 10,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "quarter": 2,
+          "industrial": 1,
+          "dividend": 1,
+          "increase": 1,
+          "increases": 1,
+          "properties": 1,
+          "earnings": 1,
+          "up": 1,
+          "announce": 1,
+          "announces": 1
+        }
+      }
+    }
+  },
+  "detailed_data": {
+    "winners": [
+      {
+        "article_id": "benzinga:49740682",
+        "title": "Gladstone Land Corporation Announces Redemption of all Outstanding Shares of Its Series D Preferred Stock",
+        "published_at": "2026-01-06T21:30:00Z",
+        "received_at": "2026-01-06T21:30:03.941503",
+        "tickers": [
+          "LAND",
+          "LANDM"
+        ],
+        "industry": "REIT - Specialty",
+        "industries": [
+          "REIT - Specialty"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 9.49,
+        "peak_price": 24.96,
+        "peak_price_timestamp": "2026-01-06T21:30:34.132994+00:00",
+        "final_ask_10min": 25.03,
+        "max_excursion_pct": 163.013698630137,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49767937",
+        "title": "Compass and Anywhere Stockholders Overwhelmingly Approve Merger",
+        "published_at": "2026-01-07T20:37:00Z",
+        "received_at": "2026-01-07T20:45:35.554580",
+        "tickers": [
+          "COMP",
+          "HOUS"
+        ],
+        "industry": "Real Estate Services",
+        "industries": [
+          "Real Estate Services"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 11.98,
+        "peak_price": 17.425,
+        "peak_price_timestamp": "2026-01-07T20:37:08.087064+00:00",
+        "final_ask_10min": 16.86,
+        "max_excursion_pct": 45.45075125208681,
+        "session": "market",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/market_hours/market_hours.json"
+      },
+      {
+        "article_id": "benzinga:49840283",
+        "title": "Offerpad Solutions Inc. Announces Pricing of $18 Million Registered Direct Offering",
+        "published_at": "2026-01-12T13:00:00Z",
+        "received_at": "2026-01-12T13:00:26.375932",
+        "tickers": [
+          "OPAD"
+        ],
+        "industry": "Real Estate Services",
+        "industries": [
+          "Real Estate Services"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 1.88,
+        "peak_price": 2.1516,
+        "peak_price_timestamp": "2026-01-12T13:00:03.245124+00:00",
+        "final_ask_10min": 1.84,
+        "max_excursion_pct": 14.446808510638315,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+      }
+    ],
+    "non_movers_sample": [
+      {
+        "article_id": "benzinga:49691813",
+        "title": "Sabra Health Care REIT, Inc. Appoints Darrin Smith as Chief Investment Officer and Congratulates Talya Nevo-Hacohen on her Retirement",
+        "published_at": "2026-01-05T14:15:00Z",
+        "received_at": "2026-01-05T14:15:01.634093",
+        "tickers": [
+          "SBRA"
+        ],
+        "industry": "REIT - Healthcare Facilities",
+        "industries": [
+          "REIT - Healthcare Facilities"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 19.36,
+        "peak_price": 19.19,
+        "peak_price_timestamp": "2026-01-05T14:25:00.081669+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.8780991735537095,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49717645",
+        "title": "Realty Income Prices $750.0 Million Convertible Senior Notes Offering",
+        "published_at": "2026-01-06T12:00:00Z",
+        "received_at": "2026-01-06T12:00:36.720870",
+        "tickers": [
+          "O"
+        ],
+        "industry": "REIT - Retail",
+        "industries": [
+          "REIT - Retail"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 57.58,
+        "peak_price": 57.57,
+        "peak_price_timestamp": "2026-01-06T12:00:10.714709+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.017367141368527284,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49719319",
+        "title": "JFB Construction Announces Anticipated 2025 Revenues of $32 million",
+        "published_at": "2026-01-06T13:00:00Z",
+        "received_at": "2026-01-06T13:00:22.728477",
+        "tickers": [
+          "JFB"
+        ],
+        "industry": "Real Estate - Development",
+        "industries": [
+          "Real Estate - Development"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 15.85,
+        "peak_price": 15.85,
+        "peak_price_timestamp": "2026-01-06T13:09:32.944108+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.0,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49767918",
+        "title": "Alexandria Real Estate Equities, Inc. (ARE) Shareholders Who Lost Money Have Opportunity to Lead Securities Fraud Lawsuit",
+        "published_at": "2026-01-07T20:37:00Z",
+        "received_at": "2026-01-07T20:45:35.136679",
+        "tickers": [
+          "ARE"
+        ],
+        "industry": "REIT - Office",
+        "industries": [
+          "REIT - Office"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 52.34,
+        "peak_price": 52.42,
+        "peak_price_timestamp": "2026-01-07T20:52:48.064866+00:00",
+        "final_ask_10min": 52.39,
+        "max_excursion_pct": 0.152846771111957,
+        "session": "market",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/market_hours/market_hours.json"
+      },
+      {
+        "article_id": "benzinga:49769801",
+        "title": "Annaly Capital Management, Inc. Announces Dates of Fourth Quarter 2025 Financial Results and Conference Call",
+        "published_at": "2026-01-07T21:15:00Z",
+        "received_at": "2026-01-07T21:15:06.705953",
+        "tickers": [
+          "NLY"
+        ],
+        "industry": "REIT - Mortgage",
+        "industries": [
+          "REIT - Mortgage"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 23.06,
+        "peak_price": 23.0598,
+        "peak_price_timestamp": "2026-01-07T21:19:43.216880+00:00",
+        "final_ask_10min": 23.06,
+        "max_excursion_pct": -0.0008673026886363136,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49769813",
+        "title": "MCB Real Estate Requests Response from Whitestone REIT Board of Trustees Regarding Compelling, All-Cash Acquisition Proposal",
+        "published_at": "2026-01-07T21:15:00Z",
+        "received_at": "2026-01-07T21:15:18.868020",
+        "tickers": [
+          "WSR"
+        ],
+        "industry": "REIT - Retail",
+        "industries": [
+          "REIT - Retail"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 14.13,
+        "peak_price": 14.13,
+        "peak_price_timestamp": "2026-01-07T21:15:23.752150+00:00",
+        "final_ask_10min": 14.8,
+        "max_excursion_pct": 0.0,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49769867",
+        "title": "COPT Defense Completes 557,000 Square Feet of Vacancy Leasing in 2025, Exceeds Revised Target",
+        "published_at": "2026-01-07T21:16:00Z",
+        "received_at": "2026-01-07T21:16:01.557698",
+        "tickers": [
+          "CDP"
+        ],
+        "industry": "REIT - Office",
+        "industries": [
+          "REIT - Office"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 28.47,
+        "peak_price": 28.33,
+        "peak_price_timestamp": "2026-01-07T21:21:03.791663+00:00",
+        "final_ask_10min": 28.47,
+        "max_excursion_pct": -0.49174569722515127,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49771414",
+        "title": "Orchid Island Capital Announces January 2026 Monthly Dividend and Fourth Quarter 2025 Results Announcement Dates",
+        "published_at": "2026-01-07T22:01:59Z",
+        "received_at": "2026-01-07T22:02:02.119015",
+        "tickers": [
+          "ORC"
+        ],
+        "industry": "REIT - Mortgage",
+        "industries": [
+          "REIT - Mortgage"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 7.5,
+        "peak_price": 7.48,
+        "peak_price_timestamp": "2026-01-07T22:10:56.412593+00:00",
+        "final_ask_10min": 7.52,
+        "max_excursion_pct": -0.266666666666661,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49771917",
+        "title": "City Office REIT Announces Tax Treatment of 2025 Distributions",
+        "published_at": "2026-01-07T22:20:00Z",
+        "received_at": "2026-01-07T22:21:35.638817",
+        "tickers": [
+          "CIO"
+        ],
+        "industry": "REIT - Office",
+        "industries": [
+          "REIT - Office"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 7.0,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": 7.0,
+        "max_excursion_pct": -0.42857142857143216,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49799915",
+        "title": "AGNC Investment Corp. Declares Monthly Common Stock Dividend of $0.12 per Common Share for January 2026",
+        "published_at": "2026-01-08T21:01:00Z",
+        "received_at": "2026-01-08T21:01:14.553391",
+        "tickers": [
+          "AGNC"
+        ],
+        "industry": "REIT - Mortgage",
+        "industries": [
+          "REIT - Mortgage"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 11.23,
+        "peak_price": 11.22,
+        "peak_price_timestamp": "2026-01-08T21:06:07.790095+00:00",
+        "final_ask_10min": 11.22,
+        "max_excursion_pct": -0.08904719501335517,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49800195",
+        "title": "Realty Income Announces Closing of $862.5 Million Convertible Senior Notes Offering",
+        "published_at": "2026-01-08T21:05:00Z",
+        "received_at": "2026-01-08T21:05:18.189397",
+        "tickers": [
+          "O"
+        ],
+        "industry": "REIT - Retail",
+        "industries": [
+          "REIT - Retail"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 58.29,
+        "peak_price": 58.29,
+        "peak_price_timestamp": "2026-01-08T21:05:00.740091+00:00",
+        "final_ask_10min": 58.27,
+        "max_excursion_pct": 0.0,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49800196",
+        "title": "Federal Realty Investment Trust Announces Fourth Quarter 2025 Earnings Release Date and Conference Call Information",
+        "published_at": "2026-01-08T21:05:00Z",
+        "received_at": "2026-01-08T21:05:19.283540",
+        "tickers": [
+          "FRT"
+        ],
+        "industry": "REIT - Retail",
+        "industries": [
+          "REIT - Retail"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 103.0,
+        "peak_price": 102.8,
+        "peak_price_timestamp": "2026-01-08T21:06:15.407123+00:00",
+        "final_ask_10min": 103.0,
+        "max_excursion_pct": -0.19417475728155617,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49800264",
+        "title": "STAG INDUSTRIAL INCREASES DIVIDEND AND SHIFTS FROM MONTHLY TO QUARTERLY CADENCE",
+        "published_at": "2026-01-08T21:06:00Z",
+        "received_at": "2026-01-08T21:06:15.594925",
+        "tickers": [
+          "STAG"
+        ],
+        "industry": "REIT - Industrial",
+        "industries": [
+          "REIT - Industrial"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 38.0,
+        "peak_price": 37.93,
+        "peak_price_timestamp": "2026-01-08T21:06:16.468667+00:00",
+        "final_ask_10min": 38.0,
+        "max_excursion_pct": -0.18421052631579024,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49801374",
+        "title": "reAlpha to Host Live X Spaces Fireside Chat on Real-World AI Applications in Mortgage and Real Estate",
+        "published_at": "2026-01-08T21:30:00Z",
+        "received_at": "2026-01-08T21:30:01.901179",
+        "tickers": [
+          "AIRE"
+        ],
+        "industry": "Real Estate Services",
+        "industries": [
+          "Real Estate Services"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 0.453,
+        "peak_price": 0.457,
+        "peak_price_timestamp": "2026-01-08T21:37:53.852451+00:00",
+        "final_ask_10min": 0.457,
+        "max_excursion_pct": 0.8830022075055195,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49801388",
+        "title": "Ellington Financial Declares Monthly Common Dividend",
+        "published_at": "2026-01-08T21:30:00Z",
+        "received_at": "2026-01-08T21:30:06.195900",
+        "tickers": [
+          "EFC"
+        ],
+        "industry": "REIT - Mortgage",
+        "industries": [
+          "REIT - Mortgage"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 13.75,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": 13.75,
+        "max_excursion_pct": -0.7999999999999958,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49828604",
+        "title": "Alexandria Real Estate Shareholder Alert: ClaimsFiler Reminds Investors With Losses In Excess Of $100,000 Of Lead Plaintiff Deadline In Class Action Lawsuits Against Alexandria Real Estate Equities, Inc. - ARE",
+        "published_at": "2026-01-10T03:16:00Z",
+        "received_at": "2026-01-10T03:16:13.769039Z",
+        "tickers": [
+          "ARE"
+        ],
+        "industry": "REIT - Office",
+        "industries": [
+          "REIT - Office"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 55.2,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": 55.2,
+        "max_excursion_pct": 0.0,
+        "session": "closed",
+        "filter_reason": "classification_skipped: no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/09/closed/closed.json"
+      },
+      {
+        "article_id": "benzinga:49825742",
+        "title": "Empire State Realty Trust Announces Dates for Fourth Quarter 2025 Earnings Release and Conference Call",
+        "published_at": "2026-01-09T21:05:00Z",
+        "received_at": "2026-01-09T21:05:03.258551Z",
+        "tickers": [
+          "ESRT"
+        ],
+        "industry": "REIT - Diversified",
+        "industries": [
+          "REIT - Diversified"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 6.57,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.08,
+        "session": "postmarket",
+        "filter_reason": "classification_skipped: no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/09/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49825745",
+        "title": "EastGroup Properties Announces Revised Time for Fourth Quarter 2025 Earnings Conference Call and Webcast",
+        "published_at": "2026-01-09T21:05:00Z",
+        "received_at": "2026-01-09T21:05:15.568222Z",
+        "tickers": [
+          "EGP"
+        ],
+        "industry": "REIT - Industrial",
+        "industries": [
+          "REIT - Industrial"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 194.0,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.0,
+        "session": "postmarket",
+        "filter_reason": "classification_skipped: no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/09/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49827816",
+        "title": "ARE Investors Have Opportunity to Lead Alexandria Real Estate Equities, Inc. Securities Fraud Lawsuit",
+        "published_at": "2026-01-09T23:41:00Z",
+        "received_at": "2026-01-09T23:41:14.565052Z",
+        "tickers": [
+          "ARE"
+        ],
+        "industry": "REIT - Office",
+        "industries": [
+          "REIT - Office"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 54.83,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": 54.83,
+        "max_excursion_pct": 0.0,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/09/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49827836",
+        "title": "FCPT Announces Acquisition via Sale-Leaseback of a GreatWater 360 Auto Care Property for $1.2 Million",
+        "published_at": "2026-01-09T23:49:00Z",
+        "received_at": "2026-01-09T23:49:01.575410Z",
+        "tickers": [
+          "FCPT"
+        ],
+        "industry": "REIT - Retail",
+        "industries": [
+          "REIT - Retail"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 24.27,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": 24.27,
+        "max_excursion_pct": 0.0,
+        "session": "postmarket",
+        "filter_reason": "classification_skipped: no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/09/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49811476",
+        "title": "RenX Enterprises Corp. Highlights Transformational Year with Expected $7 Million in Revenues during 2025, Operating Scale, and Debt Reduction",
+        "published_at": "2026-01-09T14:00:00Z",
+        "received_at": "2026-01-09T14:00:04.443097Z",
+        "tickers": [
+          "SGD",
+          "RENX"
+        ],
+        "industry": "Real Estate - Development",
+        "industries": [
+          "Real Estate - Development"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 0.2251,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.0,
+        "session": "premarket",
+        "filter_reason": "classification_skipped: no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/09/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49811489",
+        "title": "CoStar data shows office leasing activity rose 5% in 2025; Boston ranked as top growth market",
+        "published_at": "2026-01-09T14:00:00Z",
+        "received_at": "2026-01-09T14:00:07.201539Z",
+        "tickers": [
+          "CSGP"
+        ],
+        "industry": "Real Estate Services",
+        "industries": [
+          "Real Estate Services"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 62.99,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.35,
+        "session": "premarket",
+        "filter_reason": "classification_skipped: no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/09/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49859981",
+        "title": "AGNC Investment Corp. Announces Date for Fourth Quarter Earnings Release and Stockholder Call",
+        "published_at": "2026-01-12T21:01:00Z",
+        "received_at": "2026-01-12T21:02:13.341352",
+        "tickers": [
+          "AGNC"
+        ],
+        "industry": "REIT - Mortgage",
+        "industries": [
+          "REIT - Mortgage"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 11.41,
+        "peak_price": 11.4,
+        "peak_price_timestamp": "2026-01-12T21:10:20.918282+00:00",
+        "final_ask_10min": 11.41,
+        "max_excursion_pct": -0.08764241893076062,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_3/12/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49841335",
+        "title": "LPA Secures Anchor Tenant and Breaks Ground on Fully Pre-Leased Building 400 at Parque Log\u00edstico Callao in Peru",
+        "published_at": "2026-01-12T13:15:00Z",
+        "received_at": "2026-01-12T13:15:02.489616",
+        "tickers": [
+          "LPA"
+        ],
+        "industry": "Real Estate - Development",
+        "industries": [
+          "Real Estate - Development"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 2.7,
+        "peak_price": 2.7,
+        "peak_price_timestamp": "2026-01-12T13:15:00.074077+00:00",
+        "final_ask_10min": 2.7,
+        "max_excursion_pct": 0.0,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49841455",
+        "title": "ALEXANDRIA REAL ESTATE CLASS ACTION: Alexandria Real Estate Equities, Inc. Sued for Securities Fraud after Impairment Charge leads to a 19% Stock Drop \u2013 Contact BFA Law",
+        "published_at": "2026-01-12T13:17:00Z",
+        "received_at": "2026-01-12T13:17:01.785032",
+        "tickers": [
+          "ARE"
+        ],
+        "industry": "REIT - Office",
+        "industries": [
+          "REIT - Office"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 53.85,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": 53.85,
+        "max_excursion_pct": -0.8170844939647257,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49842892",
+        "title": "Avalon GloboCare Regains Compliance with Nasdaq Stockholders&#39; Equity Requirement, Launches Marketing for Automated Generative AI Video Platform",
+        "published_at": "2026-01-12T14:00:00Z",
+        "received_at": "2026-01-12T14:00:04.530193",
+        "tickers": [
+          "ALBT"
+        ],
+        "industry": "Real Estate Services",
+        "industries": [
+          "Real Estate Services"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 1.4,
+        "peak_price": 1.4,
+        "peak_price_timestamp": "2026-01-12T14:00:00.294162+00:00",
+        "final_ask_10min": 1.38,
+        "max_excursion_pct": 0.0,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49843589",
+        "title": "SHAREHOLDER ALERT Bernstein Liebhard LLP Announces A Securities Fraud Class Action Lawsuit Has Been Filed Against Alexandria Real Estate Equities, Inc. (NYSE: ARE)",
+        "published_at": "2026-01-12T14:11:13Z",
+        "received_at": "2026-01-12T14:11:14.754319",
+        "tickers": [
+          "ARE"
+        ],
+        "industry": "REIT - Office",
+        "industries": [
+          "REIT - Office"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 53.85,
+        "peak_price": 53.84,
+        "peak_price_timestamp": "2026-01-12T14:20:04.756980+00:00",
+        "final_ask_10min": 53.85,
+        "max_excursion_pct": -0.01857010213555805,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49891645",
+        "title": "ROSEN, TRUSTED INVESTOR COUNSEL, Encourages Alexandria Real Estate Equities, Inc. Investors to Secure Counsel Before Important January 26 Deadline in Securities Class Action \u2013 ARE",
+        "published_at": "2026-01-13T20:58:21Z",
+        "received_at": "2026-01-13T20:58:22.510459",
+        "tickers": [
+          "ARE"
+        ],
+        "industry": "REIT - Office",
+        "industries": [
+          "REIT - Office"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 54.69,
+        "peak_price": 54.67,
+        "peak_price_timestamp": "2026-01-13T20:59:05.261279+00:00",
+        "final_ask_10min": 54.95,
+        "max_excursion_pct": -0.03656975681110993,
+        "session": "market",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_3/13/market_hours/market_hours.json"
+      },
+      {
+        "article_id": "benzinga:49892013",
+        "title": "Realty Income Announces 667th Consecutive Common Stock Monthly Dividend",
+        "published_at": "2026-01-13T21:05:00Z",
+        "received_at": "2026-01-13T21:05:16.515010",
+        "tickers": [
+          "O"
+        ],
+        "industry": "REIT - Retail",
+        "industries": [
+          "REIT - Retail"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 59.23,
+        "peak_price": 59.11,
+        "peak_price_timestamp": "2026-01-13T21:10:00.001319+00:00",
+        "final_ask_10min": 59.21,
+        "max_excursion_pct": -0.202600033766668,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_3/13/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49892381",
+        "title": "EPR Properties Fourth Quarter and Year End 2025 Earnings Conference Call Scheduled for February 26, 2026",
+        "published_at": "2026-01-13T21:15:00Z",
+        "received_at": "2026-01-13T21:15:05.005413",
+        "tickers": [
+          "EPR"
+        ],
+        "industry": "REIT - Specialty",
+        "industries": [
+          "REIT - Specialty"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 54.2,
+        "peak_price": 53.6884,
+        "peak_price_timestamp": "2026-01-13T21:16:01.639788+00:00",
+        "final_ask_10min": 54.2,
+        "max_excursion_pct": -0.9439114391143937,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_3/13/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49894056",
+        "title": "Rithm Capital Corp. Announces Pricing of Public Offering of Preferred Stock",
+        "published_at": "2026-01-13T22:17:00Z",
+        "received_at": "2026-01-13T22:17:01.443920",
+        "tickers": [
+          "RITM"
+        ],
+        "industry": "REIT - Mortgage",
+        "industries": [
+          "REIT - Mortgage"
+        ],
+        "sectors": [
+          "Real Estate"
+        ],
+        "initial_ask": 11.28,
+        "peak_price": 11.28,
+        "peak_price_timestamp": "2026-01-13T22:24:31.409527+00:00",
+        "final_ask_10min": 11.28,
+        "max_excursion_pct": 0.0,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_3/13/postmarket/postmarket.json"
+      }
+    ],
+    "industry_analysis": {
+      "Real Estate Services": {
+        "winners": [
+          {
+            "article_id": "benzinga:49767937",
+            "title": "Compass and Anywhere Stockholders Overwhelmingly Approve Merger",
+            "published_at": "2026-01-07T20:37:00Z",
+            "received_at": "2026-01-07T20:45:35.554580",
+            "tickers": [
+              "COMP",
+              "HOUS"
+            ],
+            "industry": "Real Estate Services",
+            "industries": [
+              "Real Estate Services"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 11.98,
+            "peak_price": 17.425,
+            "peak_price_timestamp": "2026-01-07T20:37:08.087064+00:00",
+            "final_ask_10min": 16.86,
+            "max_excursion_pct": 45.45075125208681,
+            "session": "market",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/market_hours/market_hours.json"
+          },
+          {
+            "article_id": "benzinga:49840283",
+            "title": "Offerpad Solutions Inc. Announces Pricing of $18 Million Registered Direct Offering",
+            "published_at": "2026-01-12T13:00:00Z",
+            "received_at": "2026-01-12T13:00:26.375932",
+            "tickers": [
+              "OPAD"
+            ],
+            "industry": "Real Estate Services",
+            "industries": [
+              "Real Estate Services"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 1.88,
+            "peak_price": 2.1516,
+            "peak_price_timestamp": "2026-01-12T13:00:03.245124+00:00",
+            "final_ask_10min": 1.84,
+            "max_excursion_pct": 14.446808510638315,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+          }
+        ],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49801374",
+            "title": "reAlpha to Host Live X Spaces Fireside Chat on Real-World AI Applications in Mortgage and Real Estate",
+            "published_at": "2026-01-08T21:30:00Z",
+            "received_at": "2026-01-08T21:30:01.901179",
+            "tickers": [
+              "AIRE"
+            ],
+            "industry": "Real Estate Services",
+            "industries": [
+              "Real Estate Services"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 0.453,
+            "peak_price": 0.457,
+            "peak_price_timestamp": "2026-01-08T21:37:53.852451+00:00",
+            "final_ask_10min": 0.457,
+            "max_excursion_pct": 0.8830022075055195,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49811489",
+            "title": "CoStar data shows office leasing activity rose 5% in 2025; Boston ranked as top growth market",
+            "published_at": "2026-01-09T14:00:00Z",
+            "received_at": "2026-01-09T14:00:07.201539Z",
+            "tickers": [
+              "CSGP"
+            ],
+            "industry": "Real Estate Services",
+            "industries": [
+              "Real Estate Services"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 62.99,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.35,
+            "session": "premarket",
+            "filter_reason": "classification_skipped: no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/09/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49842892",
+            "title": "Avalon GloboCare Regains Compliance with Nasdaq Stockholders&#39; Equity Requirement, Launches Marketing for Automated Generative AI Video Platform",
+            "published_at": "2026-01-12T14:00:00Z",
+            "received_at": "2026-01-12T14:00:04.530193",
+            "tickers": [
+              "ALBT"
+            ],
+            "industry": "Real Estate Services",
+            "industries": [
+              "Real Estate Services"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 1.4,
+            "peak_price": 1.4,
+            "peak_price_timestamp": "2026-01-12T14:00:00.294162+00:00",
+            "final_ask_10min": 1.38,
+            "max_excursion_pct": 0.0,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+          }
+        ]
+      },
+      "REIT - Diversified": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49825742",
+            "title": "Empire State Realty Trust Announces Dates for Fourth Quarter 2025 Earnings Release and Conference Call",
+            "published_at": "2026-01-09T21:05:00Z",
+            "received_at": "2026-01-09T21:05:03.258551Z",
+            "tickers": [
+              "ESRT"
+            ],
+            "industry": "REIT - Diversified",
+            "industries": [
+              "REIT - Diversified"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 6.57,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.08,
+            "session": "postmarket",
+            "filter_reason": "classification_skipped: no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/09/postmarket/postmarket.json"
+          }
+        ]
+      },
+      "Real Estate - Development": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49719319",
+            "title": "JFB Construction Announces Anticipated 2025 Revenues of $32 million",
+            "published_at": "2026-01-06T13:00:00Z",
+            "received_at": "2026-01-06T13:00:22.728477",
+            "tickers": [
+              "JFB"
+            ],
+            "industry": "Real Estate - Development",
+            "industries": [
+              "Real Estate - Development"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 15.85,
+            "peak_price": 15.85,
+            "peak_price_timestamp": "2026-01-06T13:09:32.944108+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.0,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49811476",
+            "title": "RenX Enterprises Corp. Highlights Transformational Year with Expected $7 Million in Revenues during 2025, Operating Scale, and Debt Reduction",
+            "published_at": "2026-01-09T14:00:00Z",
+            "received_at": "2026-01-09T14:00:04.443097Z",
+            "tickers": [
+              "SGD",
+              "RENX"
+            ],
+            "industry": "Real Estate - Development",
+            "industries": [
+              "Real Estate - Development"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 0.2251,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.0,
+            "session": "premarket",
+            "filter_reason": "classification_skipped: no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/09/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49841335",
+            "title": "LPA Secures Anchor Tenant and Breaks Ground on Fully Pre-Leased Building 400 at Parque Log\u00edstico Callao in Peru",
+            "published_at": "2026-01-12T13:15:00Z",
+            "received_at": "2026-01-12T13:15:02.489616",
+            "tickers": [
+              "LPA"
+            ],
+            "industry": "Real Estate - Development",
+            "industries": [
+              "Real Estate - Development"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 2.7,
+            "peak_price": 2.7,
+            "peak_price_timestamp": "2026-01-12T13:15:00.074077+00:00",
+            "final_ask_10min": 2.7,
+            "max_excursion_pct": 0.0,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+          }
+        ]
+      },
+      "REIT - Retail": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49717645",
+            "title": "Realty Income Prices $750.0 Million Convertible Senior Notes Offering",
+            "published_at": "2026-01-06T12:00:00Z",
+            "received_at": "2026-01-06T12:00:36.720870",
+            "tickers": [
+              "O"
+            ],
+            "industry": "REIT - Retail",
+            "industries": [
+              "REIT - Retail"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 57.58,
+            "peak_price": 57.57,
+            "peak_price_timestamp": "2026-01-06T12:00:10.714709+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.017367141368527284,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49769813",
+            "title": "MCB Real Estate Requests Response from Whitestone REIT Board of Trustees Regarding Compelling, All-Cash Acquisition Proposal",
+            "published_at": "2026-01-07T21:15:00Z",
+            "received_at": "2026-01-07T21:15:18.868020",
+            "tickers": [
+              "WSR"
+            ],
+            "industry": "REIT - Retail",
+            "industries": [
+              "REIT - Retail"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 14.13,
+            "peak_price": 14.13,
+            "peak_price_timestamp": "2026-01-07T21:15:23.752150+00:00",
+            "final_ask_10min": 14.8,
+            "max_excursion_pct": 0.0,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49800195",
+            "title": "Realty Income Announces Closing of $862.5 Million Convertible Senior Notes Offering",
+            "published_at": "2026-01-08T21:05:00Z",
+            "received_at": "2026-01-08T21:05:18.189397",
+            "tickers": [
+              "O"
+            ],
+            "industry": "REIT - Retail",
+            "industries": [
+              "REIT - Retail"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 58.29,
+            "peak_price": 58.29,
+            "peak_price_timestamp": "2026-01-08T21:05:00.740091+00:00",
+            "final_ask_10min": 58.27,
+            "max_excursion_pct": 0.0,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49800196",
+            "title": "Federal Realty Investment Trust Announces Fourth Quarter 2025 Earnings Release Date and Conference Call Information",
+            "published_at": "2026-01-08T21:05:00Z",
+            "received_at": "2026-01-08T21:05:19.283540",
+            "tickers": [
+              "FRT"
+            ],
+            "industry": "REIT - Retail",
+            "industries": [
+              "REIT - Retail"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 103.0,
+            "peak_price": 102.8,
+            "peak_price_timestamp": "2026-01-08T21:06:15.407123+00:00",
+            "final_ask_10min": 103.0,
+            "max_excursion_pct": -0.19417475728155617,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49827836",
+            "title": "FCPT Announces Acquisition via Sale-Leaseback of a GreatWater 360 Auto Care Property for $1.2 Million",
+            "published_at": "2026-01-09T23:49:00Z",
+            "received_at": "2026-01-09T23:49:01.575410Z",
+            "tickers": [
+              "FCPT"
+            ],
+            "industry": "REIT - Retail",
+            "industries": [
+              "REIT - Retail"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 24.27,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": 24.27,
+            "max_excursion_pct": 0.0,
+            "session": "postmarket",
+            "filter_reason": "classification_skipped: no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/09/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49892013",
+            "title": "Realty Income Announces 667th Consecutive Common Stock Monthly Dividend",
+            "published_at": "2026-01-13T21:05:00Z",
+            "received_at": "2026-01-13T21:05:16.515010",
+            "tickers": [
+              "O"
+            ],
+            "industry": "REIT - Retail",
+            "industries": [
+              "REIT - Retail"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 59.23,
+            "peak_price": 59.11,
+            "peak_price_timestamp": "2026-01-13T21:10:00.001319+00:00",
+            "final_ask_10min": 59.21,
+            "max_excursion_pct": -0.202600033766668,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_3/13/postmarket/postmarket.json"
+          }
+        ]
+      },
+      "REIT - Healthcare Facilities": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49691813",
+            "title": "Sabra Health Care REIT, Inc. Appoints Darrin Smith as Chief Investment Officer and Congratulates Talya Nevo-Hacohen on her Retirement",
+            "published_at": "2026-01-05T14:15:00Z",
+            "received_at": "2026-01-05T14:15:01.634093",
+            "tickers": [
+              "SBRA"
+            ],
+            "industry": "REIT - Healthcare Facilities",
+            "industries": [
+              "REIT - Healthcare Facilities"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 19.36,
+            "peak_price": 19.19,
+            "peak_price_timestamp": "2026-01-05T14:25:00.081669+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.8780991735537095,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          }
+        ]
+      },
+      "REIT - Mortgage": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49769801",
+            "title": "Annaly Capital Management, Inc. Announces Dates of Fourth Quarter 2025 Financial Results and Conference Call",
+            "published_at": "2026-01-07T21:15:00Z",
+            "received_at": "2026-01-07T21:15:06.705953",
+            "tickers": [
+              "NLY"
+            ],
+            "industry": "REIT - Mortgage",
+            "industries": [
+              "REIT - Mortgage"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 23.06,
+            "peak_price": 23.0598,
+            "peak_price_timestamp": "2026-01-07T21:19:43.216880+00:00",
+            "final_ask_10min": 23.06,
+            "max_excursion_pct": -0.0008673026886363136,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49771414",
+            "title": "Orchid Island Capital Announces January 2026 Monthly Dividend and Fourth Quarter 2025 Results Announcement Dates",
+            "published_at": "2026-01-07T22:01:59Z",
+            "received_at": "2026-01-07T22:02:02.119015",
+            "tickers": [
+              "ORC"
+            ],
+            "industry": "REIT - Mortgage",
+            "industries": [
+              "REIT - Mortgage"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 7.5,
+            "peak_price": 7.48,
+            "peak_price_timestamp": "2026-01-07T22:10:56.412593+00:00",
+            "final_ask_10min": 7.52,
+            "max_excursion_pct": -0.266666666666661,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49799915",
+            "title": "AGNC Investment Corp. Declares Monthly Common Stock Dividend of $0.12 per Common Share for January 2026",
+            "published_at": "2026-01-08T21:01:00Z",
+            "received_at": "2026-01-08T21:01:14.553391",
+            "tickers": [
+              "AGNC"
+            ],
+            "industry": "REIT - Mortgage",
+            "industries": [
+              "REIT - Mortgage"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 11.23,
+            "peak_price": 11.22,
+            "peak_price_timestamp": "2026-01-08T21:06:07.790095+00:00",
+            "final_ask_10min": 11.22,
+            "max_excursion_pct": -0.08904719501335517,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49801388",
+            "title": "Ellington Financial Declares Monthly Common Dividend",
+            "published_at": "2026-01-08T21:30:00Z",
+            "received_at": "2026-01-08T21:30:06.195900",
+            "tickers": [
+              "EFC"
+            ],
+            "industry": "REIT - Mortgage",
+            "industries": [
+              "REIT - Mortgage"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 13.75,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": 13.75,
+            "max_excursion_pct": -0.7999999999999958,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49859981",
+            "title": "AGNC Investment Corp. Announces Date for Fourth Quarter Earnings Release and Stockholder Call",
+            "published_at": "2026-01-12T21:01:00Z",
+            "received_at": "2026-01-12T21:02:13.341352",
+            "tickers": [
+              "AGNC"
+            ],
+            "industry": "REIT - Mortgage",
+            "industries": [
+              "REIT - Mortgage"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 11.41,
+            "peak_price": 11.4,
+            "peak_price_timestamp": "2026-01-12T21:10:20.918282+00:00",
+            "final_ask_10min": 11.41,
+            "max_excursion_pct": -0.08764241893076062,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_3/12/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49894056",
+            "title": "Rithm Capital Corp. Announces Pricing of Public Offering of Preferred Stock",
+            "published_at": "2026-01-13T22:17:00Z",
+            "received_at": "2026-01-13T22:17:01.443920",
+            "tickers": [
+              "RITM"
+            ],
+            "industry": "REIT - Mortgage",
+            "industries": [
+              "REIT - Mortgage"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 11.28,
+            "peak_price": 11.28,
+            "peak_price_timestamp": "2026-01-13T22:24:31.409527+00:00",
+            "final_ask_10min": 11.28,
+            "max_excursion_pct": 0.0,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_3/13/postmarket/postmarket.json"
+          }
+        ]
+      },
+      "REIT - Office": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49767918",
+            "title": "Alexandria Real Estate Equities, Inc. (ARE) Shareholders Who Lost Money Have Opportunity to Lead Securities Fraud Lawsuit",
+            "published_at": "2026-01-07T20:37:00Z",
+            "received_at": "2026-01-07T20:45:35.136679",
+            "tickers": [
+              "ARE"
+            ],
+            "industry": "REIT - Office",
+            "industries": [
+              "REIT - Office"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 52.34,
+            "peak_price": 52.42,
+            "peak_price_timestamp": "2026-01-07T20:52:48.064866+00:00",
+            "final_ask_10min": 52.39,
+            "max_excursion_pct": 0.152846771111957,
+            "session": "market",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/market_hours/market_hours.json"
+          },
+          {
+            "article_id": "benzinga:49769867",
+            "title": "COPT Defense Completes 557,000 Square Feet of Vacancy Leasing in 2025, Exceeds Revised Target",
+            "published_at": "2026-01-07T21:16:00Z",
+            "received_at": "2026-01-07T21:16:01.557698",
+            "tickers": [
+              "CDP"
+            ],
+            "industry": "REIT - Office",
+            "industries": [
+              "REIT - Office"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 28.47,
+            "peak_price": 28.33,
+            "peak_price_timestamp": "2026-01-07T21:21:03.791663+00:00",
+            "final_ask_10min": 28.47,
+            "max_excursion_pct": -0.49174569722515127,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49771917",
+            "title": "City Office REIT Announces Tax Treatment of 2025 Distributions",
+            "published_at": "2026-01-07T22:20:00Z",
+            "received_at": "2026-01-07T22:21:35.638817",
+            "tickers": [
+              "CIO"
+            ],
+            "industry": "REIT - Office",
+            "industries": [
+              "REIT - Office"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 7.0,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": 7.0,
+            "max_excursion_pct": -0.42857142857143216,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49828604",
+            "title": "Alexandria Real Estate Shareholder Alert: ClaimsFiler Reminds Investors With Losses In Excess Of $100,000 Of Lead Plaintiff Deadline In Class Action Lawsuits Against Alexandria Real Estate Equities, Inc. - ARE",
+            "published_at": "2026-01-10T03:16:00Z",
+            "received_at": "2026-01-10T03:16:13.769039Z",
+            "tickers": [
+              "ARE"
+            ],
+            "industry": "REIT - Office",
+            "industries": [
+              "REIT - Office"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 55.2,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": 55.2,
+            "max_excursion_pct": 0.0,
+            "session": "closed",
+            "filter_reason": "classification_skipped: no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/09/closed/closed.json"
+          },
+          {
+            "article_id": "benzinga:49827816",
+            "title": "ARE Investors Have Opportunity to Lead Alexandria Real Estate Equities, Inc. Securities Fraud Lawsuit",
+            "published_at": "2026-01-09T23:41:00Z",
+            "received_at": "2026-01-09T23:41:14.565052Z",
+            "tickers": [
+              "ARE"
+            ],
+            "industry": "REIT - Office",
+            "industries": [
+              "REIT - Office"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 54.83,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": 54.83,
+            "max_excursion_pct": 0.0,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/09/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49841455",
+            "title": "ALEXANDRIA REAL ESTATE CLASS ACTION: Alexandria Real Estate Equities, Inc. Sued for Securities Fraud after Impairment Charge leads to a 19% Stock Drop \u2013 Contact BFA Law",
+            "published_at": "2026-01-12T13:17:00Z",
+            "received_at": "2026-01-12T13:17:01.785032",
+            "tickers": [
+              "ARE"
+            ],
+            "industry": "REIT - Office",
+            "industries": [
+              "REIT - Office"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 53.85,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": 53.85,
+            "max_excursion_pct": -0.8170844939647257,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49843589",
+            "title": "SHAREHOLDER ALERT Bernstein Liebhard LLP Announces A Securities Fraud Class Action Lawsuit Has Been Filed Against Alexandria Real Estate Equities, Inc. (NYSE: ARE)",
+            "published_at": "2026-01-12T14:11:13Z",
+            "received_at": "2026-01-12T14:11:14.754319",
+            "tickers": [
+              "ARE"
+            ],
+            "industry": "REIT - Office",
+            "industries": [
+              "REIT - Office"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 53.85,
+            "peak_price": 53.84,
+            "peak_price_timestamp": "2026-01-12T14:20:04.756980+00:00",
+            "final_ask_10min": 53.85,
+            "max_excursion_pct": -0.01857010213555805,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49891645",
+            "title": "ROSEN, TRUSTED INVESTOR COUNSEL, Encourages Alexandria Real Estate Equities, Inc. Investors to Secure Counsel Before Important January 26 Deadline in Securities Class Action \u2013 ARE",
+            "published_at": "2026-01-13T20:58:21Z",
+            "received_at": "2026-01-13T20:58:22.510459",
+            "tickers": [
+              "ARE"
+            ],
+            "industry": "REIT - Office",
+            "industries": [
+              "REIT - Office"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 54.69,
+            "peak_price": 54.67,
+            "peak_price_timestamp": "2026-01-13T20:59:05.261279+00:00",
+            "final_ask_10min": 54.95,
+            "max_excursion_pct": -0.03656975681110993,
+            "session": "market",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_3/13/market_hours/market_hours.json"
+          }
+        ]
+      },
+      "REIT - Specialty": {
+        "winners": [
+          {
+            "article_id": "benzinga:49740682",
+            "title": "Gladstone Land Corporation Announces Redemption of all Outstanding Shares of Its Series D Preferred Stock",
+            "published_at": "2026-01-06T21:30:00Z",
+            "received_at": "2026-01-06T21:30:03.941503",
+            "tickers": [
+              "LAND",
+              "LANDM"
+            ],
+            "industry": "REIT - Specialty",
+            "industries": [
+              "REIT - Specialty"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 9.49,
+            "peak_price": 24.96,
+            "peak_price_timestamp": "2026-01-06T21:30:34.132994+00:00",
+            "final_ask_10min": 25.03,
+            "max_excursion_pct": 163.013698630137,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+          }
+        ],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49892381",
+            "title": "EPR Properties Fourth Quarter and Year End 2025 Earnings Conference Call Scheduled for February 26, 2026",
+            "published_at": "2026-01-13T21:15:00Z",
+            "received_at": "2026-01-13T21:15:05.005413",
+            "tickers": [
+              "EPR"
+            ],
+            "industry": "REIT - Specialty",
+            "industries": [
+              "REIT - Specialty"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 54.2,
+            "peak_price": 53.6884,
+            "peak_price_timestamp": "2026-01-13T21:16:01.639788+00:00",
+            "final_ask_10min": 54.2,
+            "max_excursion_pct": -0.9439114391143937,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_3/13/postmarket/postmarket.json"
+          }
+        ]
+      },
+      "REIT - Industrial": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49800264",
+            "title": "STAG INDUSTRIAL INCREASES DIVIDEND AND SHIFTS FROM MONTHLY TO QUARTERLY CADENCE",
+            "published_at": "2026-01-08T21:06:00Z",
+            "received_at": "2026-01-08T21:06:15.594925",
+            "tickers": [
+              "STAG"
+            ],
+            "industry": "REIT - Industrial",
+            "industries": [
+              "REIT - Industrial"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 38.0,
+            "peak_price": 37.93,
+            "peak_price_timestamp": "2026-01-08T21:06:16.468667+00:00",
+            "final_ask_10min": 38.0,
+            "max_excursion_pct": -0.18421052631579024,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49825745",
+            "title": "EastGroup Properties Announces Revised Time for Fourth Quarter 2025 Earnings Conference Call and Webcast",
+            "published_at": "2026-01-09T21:05:00Z",
+            "received_at": "2026-01-09T21:05:15.568222Z",
+            "tickers": [
+              "EGP"
+            ],
+            "industry": "REIT - Industrial",
+            "industries": [
+              "REIT - Industrial"
+            ],
+            "sectors": [
+              "Real Estate"
+            ],
+            "initial_ask": 194.0,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.0,
+            "session": "postmarket",
+            "filter_reason": "classification_skipped: no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/09/postmarket/postmarket.json"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,3993 @@
+{
+  "analysis_metadata": {
+    "analysis_date": "2026-01-14T12:13:35.366678+00:00",
+    "period": "2026-01-02 to 2026-01-13",
+    "total_records_processed": 2691,
+    "total_technology_records": 422
+  },
+  "summary": {
+    "total_winners": 9,
+    "total_non_movers": 121,
+    "total_non_movers_sampled": 50,
+    "total_losers": 121,
+    "industries_analyzed": 11
+  },
+  "overall_patterns": {
+    "keyword_analysis": {
+      "global": {
+        "winner_count": 4,
+        "winner_pct": 44.44,
+        "non_mover_count": 4,
+        "non_mover_pct": 8.0,
+        "difference_pct": 36.44
+      },
+      "agreement": {
+        "winner_count": 1,
+        "winner_pct": 11.11,
+        "non_mover_count": 0,
+        "non_mover_pct": 0.0,
+        "difference_pct": 11.11
+      },
+      "market": {
+        "winner_count": 1,
+        "winner_pct": 11.11,
+        "non_mover_count": 1,
+        "non_mover_pct": 2.0,
+        "difference_pct": 9.11
+      },
+      "gains": {
+        "winner_count": 1,
+        "winner_pct": 11.11,
+        "non_mover_count": 2,
+        "non_mover_pct": 4.0,
+        "difference_pct": 7.11
+      },
+      "platform": {
+        "winner_count": 1,
+        "winner_pct": 11.11,
+        "non_mover_count": 2,
+        "non_mover_pct": 4.0,
+        "difference_pct": 7.11
+      },
+      "unveil": {
+        "winner_count": 1,
+        "winner_pct": 11.11,
+        "non_mover_count": 2,
+        "non_mover_pct": 4.0,
+        "difference_pct": 7.11
+      },
+      "gain": {
+        "winner_count": 1,
+        "winner_pct": 11.11,
+        "non_mover_count": 2,
+        "non_mover_pct": 4.0,
+        "difference_pct": 7.11
+      },
+      "announce": {
+        "winner_count": 2,
+        "winner_pct": 22.22,
+        "non_mover_count": 9,
+        "non_mover_pct": 18.0,
+        "difference_pct": 4.22
+      },
+      "up": {
+        "winner_count": 2,
+        "winner_pct": 22.22,
+        "non_mover_count": 12,
+        "non_mover_pct": 24.0,
+        "difference_pct": -1.78
+      },
+      "unveils": {
+        "winner_count": 0,
+        "winner_pct": 0.0,
+        "non_mover_count": 1,
+        "non_mover_pct": 2.0,
+        "difference_pct": -2.0
+      },
+      "application": {
+        "winner_count": 0,
+        "winner_pct": 0.0,
+        "non_mover_count": 1,
+        "non_mover_pct": 2.0,
+        "difference_pct": -2.0
+      },
+      "acquisition": {
+        "winner_count": 0,
+        "winner_pct": 0.0,
+        "non_mover_count": 1,
+        "non_mover_pct": 2.0,
+        "difference_pct": -2.0
+      },
+      "api": {
+        "winner_count": 0,
+        "winner_pct": 0.0,
+        "non_mover_count": 1,
+        "non_mover_pct": 2.0,
+        "difference_pct": -2.0
+      },
+      "ml": {
+        "winner_count": 0,
+        "winner_pct": 0.0,
+        "non_mover_count": 1,
+        "non_mover_pct": 2.0,
+        "difference_pct": -2.0
+      },
+      "release": {
+        "winner_count": 0,
+        "winner_pct": 0.0,
+        "non_mover_count": 1,
+        "non_mover_pct": 2.0,
+        "difference_pct": -2.0
+      },
+      "5g": {
+        "winner_count": 0,
+        "winner_pct": 0.0,
+        "non_mover_count": 1,
+        "non_mover_pct": 2.0,
+        "difference_pct": -2.0
+      },
+      "scale": {
+        "winner_count": 0,
+        "winner_pct": 0.0,
+        "non_mover_count": 1,
+        "non_mover_pct": 2.0,
+        "difference_pct": -2.0
+      },
+      "processors": {
+        "winner_count": 0,
+        "winner_pct": 0.0,
+        "non_mover_count": 1,
+        "non_mover_pct": 2.0,
+        "difference_pct": -2.0
+      },
+      "partnership": {
+        "winner_count": 0,
+        "winner_pct": 0.0,
+        "non_mover_count": 1,
+        "non_mover_pct": 2.0,
+        "difference_pct": -2.0
+      },
+      "cloud": {
+        "winner_count": 0,
+        "winner_pct": 0.0,
+        "non_mover_count": 1,
+        "non_mover_pct": 2.0,
+        "difference_pct": -2.0
+      }
+    },
+    "total_keywords_analyzed": 48,
+    "winner_keyword_frequency": {
+      "global": 4,
+      "ai": 3,
+      "up": 2,
+      "announce": 2,
+      "market": 1,
+      "platform": 1,
+      "unveil": 1,
+      "gain": 1,
+      "gains": 1,
+      "agreement": 1,
+      "announces": 1,
+      "growth": 1,
+      "grow": 1
+    },
+    "non_mover_keyword_frequency": {
+      "ai": 21,
+      "up": 12,
+      "announce": 9,
+      "announces": 9,
+      "growth": 7,
+      "grow": 7,
+      "annual": 5,
+      "new": 5,
+      "global": 4,
+      "quarter": 4,
+      "expand": 3,
+      "semiconductor": 3,
+      "gain": 2,
+      "gains": 2,
+      "unveil": 2,
+      "chip": 2,
+      "chips": 2,
+      "platform": 2,
+      "introduce": 2,
+      "introduces": 2
+    }
+  },
+  "industry_breakdown": {
+    "Semiconductors": {
+      "winners_count": 1,
+      "non_movers_count": 14,
+      "patterns": {
+        "keyword_analysis": {
+          "growth": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 7.14,
+            "difference_pct": 92.86
+          },
+          "grow": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 7.14,
+            "difference_pct": 92.86
+          },
+          "announces": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 2,
+            "non_mover_pct": 14.29,
+            "difference_pct": 85.71
+          },
+          "announce": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 2,
+            "non_mover_pct": 14.29,
+            "difference_pct": 85.71
+          },
+          "5g": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 7.14,
+            "difference_pct": -7.14
+          },
+          "annual": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 7.14,
+            "difference_pct": -7.14
+          },
+          "partnership": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 7.14,
+            "difference_pct": -7.14
+          },
+          "win": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 7.14,
+            "difference_pct": -7.14
+          },
+          "introduces": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 7.14,
+            "difference_pct": -7.14
+          },
+          "launches": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 7.14,
+            "difference_pct": -7.14
+          },
+          "market": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 7.14,
+            "difference_pct": -7.14
+          },
+          "releases": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 7.14,
+            "difference_pct": -7.14
+          },
+          "introduce": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 7.14,
+            "difference_pct": -7.14
+          },
+          "global": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 7.14,
+            "difference_pct": -7.14
+          },
+          "quarter": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 7.14,
+            "difference_pct": -7.14
+          },
+          "fiscal": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 7.14,
+            "difference_pct": -7.14
+          },
+          "release": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 7.14,
+            "difference_pct": -7.14
+          },
+          "launch": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 7.14,
+            "difference_pct": -7.14
+          },
+          "collaboration": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 7.14,
+            "difference_pct": -7.14
+          },
+          "unveil": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 7.14,
+            "difference_pct": -7.14
+          }
+        },
+        "total_keywords_analyzed": 27,
+        "winner_keyword_frequency": {
+          "announce": 1,
+          "announces": 1,
+          "growth": 1,
+          "grow": 1
+        },
+        "non_mover_keyword_frequency": {
+          "ai": 7,
+          "new": 3,
+          "semiconductor": 3,
+          "announce": 2,
+          "announces": 2,
+          "chip": 2,
+          "chips": 2,
+          "up": 2,
+          "expand": 2,
+          "release": 1,
+          "releases": 1,
+          "unveil": 1,
+          "global": 1,
+          "partnership": 1,
+          "collaboration": 1,
+          "introduce": 1,
+          "introduces": 1,
+          "annual": 1,
+          "growth": 1,
+          "grow": 1
+        }
+      }
+    },
+    "Solar": {
+      "winners_count": 1,
+      "non_movers_count": 1,
+      "patterns": {
+        "keyword_analysis": {
+          "announce": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "announces": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          }
+        },
+        "total_keywords_analyzed": 2,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "announce": 1,
+          "announces": 1
+        }
+      }
+    },
+    "Information Technology Services": {
+      "winners_count": 0,
+      "non_movers_count": 1,
+      "patterns": {
+        "keyword_analysis": {
+          "ai": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "app": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          }
+        },
+        "total_keywords_analyzed": 2,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "ai": 1,
+          "app": 1
+        }
+      }
+    },
+    "Software - Application": {
+      "winners_count": 1,
+      "non_movers_count": 8,
+      "patterns": {
+        "keyword_analysis": {
+          "gains": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 100.0
+          },
+          "gain": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 100.0
+          },
+          "global": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 12.5,
+            "difference_pct": 87.5
+          },
+          "ai": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 4,
+            "non_mover_pct": 50.0,
+            "difference_pct": 50.0
+          },
+          "annual": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 12.5,
+            "difference_pct": -12.5
+          },
+          "unveils": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 12.5,
+            "difference_pct": -12.5
+          },
+          "rise": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 12.5,
+            "difference_pct": -12.5
+          },
+          "acquisition": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 12.5,
+            "difference_pct": -12.5
+          },
+          "api": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 12.5,
+            "difference_pct": -12.5
+          },
+          "strong": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 12.5,
+            "difference_pct": -12.5
+          },
+          "transaction": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 12.5,
+            "difference_pct": -12.5
+          },
+          "quarter": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 12.5,
+            "difference_pct": -12.5
+          },
+          "platform": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 12.5,
+            "difference_pct": -12.5
+          },
+          "ml": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 12.5,
+            "difference_pct": -12.5
+          },
+          "unveil": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 12.5,
+            "difference_pct": -12.5
+          },
+          "stream": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 12.5,
+            "difference_pct": -12.5
+          },
+          "up": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 2,
+            "non_mover_pct": 25.0,
+            "difference_pct": -25.0
+          },
+          "announces": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 2,
+            "non_mover_pct": 25.0,
+            "difference_pct": -25.0
+          },
+          "grow": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 2,
+            "non_mover_pct": 25.0,
+            "difference_pct": -25.0
+          },
+          "announce": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 2,
+            "non_mover_pct": 25.0,
+            "difference_pct": -25.0
+          }
+        },
+        "total_keywords_analyzed": 21,
+        "winner_keyword_frequency": {
+          "ai": 1,
+          "global": 1,
+          "gain": 1,
+          "gains": 1
+        },
+        "non_mover_keyword_frequency": {
+          "ai": 4,
+          "announce": 2,
+          "announces": 2,
+          "up": 2,
+          "growth": 2,
+          "grow": 2,
+          "strong": 1,
+          "rise": 1,
+          "quarter": 1,
+          "unveil": 1,
+          "unveils": 1,
+          "annual": 1,
+          "platform": 1,
+          "acquisition": 1,
+          "transaction": 1,
+          "ml": 1,
+          "api": 1,
+          "global": 1,
+          "stream": 1
+        }
+      }
+    },
+    "Computer Hardware": {
+      "winners_count": 0,
+      "non_movers_count": 5,
+      "patterns": {
+        "keyword_analysis": {
+          "ai": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 20.0,
+            "difference_pct": -20.0
+          },
+          "scale": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 20.0,
+            "difference_pct": -20.0
+          },
+          "annual": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 20.0,
+            "difference_pct": -20.0
+          },
+          "expand": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 20.0,
+            "difference_pct": -20.0
+          },
+          "growth": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 20.0,
+            "difference_pct": -20.0
+          },
+          "new": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 20.0,
+            "difference_pct": -20.0
+          },
+          "grow": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 20.0,
+            "difference_pct": -20.0
+          },
+          "up": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 2,
+            "non_mover_pct": 40.0,
+            "difference_pct": -40.0
+          },
+          "announce": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 2,
+            "non_mover_pct": 40.0,
+            "difference_pct": -40.0
+          },
+          "announces": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 2,
+            "non_mover_pct": 40.0,
+            "difference_pct": -40.0
+          }
+        },
+        "total_keywords_analyzed": 10,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "announce": 2,
+          "announces": 2,
+          "up": 2,
+          "annual": 1,
+          "growth": 1,
+          "grow": 1,
+          "ai": 1,
+          "expand": 1,
+          "scale": 1,
+          "new": 1
+        }
+      }
+    },
+    "Communication Equipment": {
+      "winners_count": 1,
+      "non_movers_count": 2,
+      "patterns": {
+        "keyword_analysis": {
+          "up": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 100.0
+          },
+          "launches": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          },
+          "processors": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          },
+          "launch": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          },
+          "processor": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          }
+        },
+        "total_keywords_analyzed": 5,
+        "winner_keyword_frequency": {
+          "up": 1
+        },
+        "non_mover_keyword_frequency": {
+          "processor": 1,
+          "processors": 1,
+          "launch": 1,
+          "launches": 1
+        }
+      }
+    },
+    "Auto Manufacturers": {
+      "winners_count": 1,
+      "non_movers_count": 0,
+      "patterns": {
+        "keyword_analysis": {
+          "announce": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0,
+            "difference_pct": 100.0
+          },
+          "global": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0,
+            "difference_pct": 100.0
+          },
+          "unveil": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0,
+            "difference_pct": 100.0
+          }
+        },
+        "total_keywords_analyzed": 3,
+        "winner_keyword_frequency": {
+          "unveil": 1,
+          "announce": 1,
+          "global": 1
+        },
+        "non_mover_keyword_frequency": {}
+      }
+    },
+    "Software - Infrastructure": {
+      "winners_count": 3,
+      "non_movers_count": 15,
+      "patterns": {
+        "keyword_analysis": {
+          "market": {
+            "winner_count": 1,
+            "winner_pct": 33.33,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 33.33
+          },
+          "platform": {
+            "winner_count": 1,
+            "winner_pct": 33.33,
+            "non_mover_count": 1,
+            "non_mover_pct": 6.67,
+            "difference_pct": 26.67
+          },
+          "global": {
+            "winner_count": 1,
+            "winner_pct": 33.33,
+            "non_mover_count": 1,
+            "non_mover_pct": 6.67,
+            "difference_pct": 26.67
+          },
+          "ai": {
+            "winner_count": 2,
+            "winner_pct": 66.67,
+            "non_mover_count": 7,
+            "non_mover_pct": 46.67,
+            "difference_pct": 20.0
+          },
+          "up": {
+            "winner_count": 1,
+            "winner_pct": 33.33,
+            "non_mover_count": 5,
+            "non_mover_pct": 33.33,
+            "difference_pct": 0.0
+          },
+          "cloud": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 6.67,
+            "difference_pct": -6.67
+          },
+          "application": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 6.67,
+            "difference_pct": -6.67
+          },
+          "app": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 6.67,
+            "difference_pct": -6.67
+          },
+          "introduces": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 6.67,
+            "difference_pct": -6.67
+          },
+          "new": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 6.67,
+            "difference_pct": -6.67
+          },
+          "introduce": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 6.67,
+            "difference_pct": -6.67
+          },
+          "applications": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 6.67,
+            "difference_pct": -6.67
+          },
+          "quarter": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 6.67,
+            "difference_pct": -6.67
+          },
+          "fiscal": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 6.67,
+            "difference_pct": -6.67
+          },
+          "stream": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 6.67,
+            "difference_pct": -6.67
+          },
+          "annual": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 2,
+            "non_mover_pct": 13.33,
+            "difference_pct": -13.33
+          },
+          "gains": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 2,
+            "non_mover_pct": 13.33,
+            "difference_pct": -13.33
+          },
+          "loss": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 2,
+            "non_mover_pct": 13.33,
+            "difference_pct": -13.33
+          },
+          "losses": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 2,
+            "non_mover_pct": 13.33,
+            "difference_pct": -13.33
+          },
+          "gain": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 2,
+            "non_mover_pct": 13.33,
+            "difference_pct": -13.33
+          }
+        },
+        "total_keywords_analyzed": 22,
+        "winner_keyword_frequency": {
+          "ai": 2,
+          "market": 1,
+          "global": 1,
+          "up": 1,
+          "platform": 1
+        },
+        "non_mover_keyword_frequency": {
+          "ai": 7,
+          "up": 5,
+          "growth": 3,
+          "grow": 3,
+          "gain": 2,
+          "gains": 2,
+          "annual": 2,
+          "loss": 2,
+          "losses": 2,
+          "platform": 1,
+          "cloud": 1,
+          "new": 1,
+          "global": 1,
+          "stream": 1,
+          "application": 1,
+          "applications": 1,
+          "app": 1,
+          "introduce": 1,
+          "introduces": 1,
+          "quarter": 1
+        }
+      }
+    },
+    "Semiconductor Equipment & Materials": {
+      "winners_count": 1,
+      "non_movers_count": 1,
+      "patterns": {
+        "keyword_analysis": {
+          "agreement": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 100.0
+          },
+          "global": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 100.0
+          },
+          "quarter": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "announce": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "announces": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          }
+        },
+        "total_keywords_analyzed": 5,
+        "winner_keyword_frequency": {
+          "agreement": 1,
+          "global": 1
+        },
+        "non_mover_keyword_frequency": {
+          "announce": 1,
+          "announces": 1,
+          "quarter": 1
+        }
+      }
+    },
+    "Electronic Components": {
+      "winners_count": 0,
+      "non_movers_count": 2,
+      "patterns": {
+        "keyword_analysis": {
+          "announce": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          },
+          "announces": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          },
+          "up": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          }
+        },
+        "total_keywords_analyzed": 3,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "announce": 1,
+          "announces": 1,
+          "up": 1
+        }
+      }
+    },
+    "Consumer Electronics": {
+      "winners_count": 0,
+      "non_movers_count": 1,
+      "patterns": {
+        "keyword_analysis": {
+          "ai": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          },
+          "global": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          }
+        },
+        "total_keywords_analyzed": 2,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "ai": 1,
+          "global": 1
+        }
+      }
+    }
+  },
+  "detailed_data": {
+    "winners": [
+      {
+        "article_id": "benzinga:49707589",
+        "title": "Zeta Global and OpenAI Team Up to Deliver Answer-Driven Marketing with Athena by Zeta\u2122",
+        "published_at": "2026-01-05T21:05:00Z",
+        "received_at": "2026-01-05T21:05:07.337470",
+        "tickers": [
+          "ZETA"
+        ],
+        "industry": "Software - Infrastructure",
+        "industries": [
+          "Software - Infrastructure"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 23.0,
+        "peak_price": 24.17,
+        "peak_price_timestamp": "2026-01-05T21:13:03.131935+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 5.086956521739138,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49711718",
+        "title": "Aeva and NVIDIA to Integrate 4D LiDAR as Reference Sensor within the NVIDIA DRIVE Hyperion Platform Ecosystem",
+        "published_at": "2026-01-05T23:00:00Z",
+        "received_at": "2026-01-05T23:00:03.387131",
+        "tickers": [
+          "AEVA"
+        ],
+        "industry": "Software - Infrastructure",
+        "industries": [
+          "Software - Infrastructure"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 13.33,
+        "peak_price": 18.37,
+        "peak_price_timestamp": "2026-01-05T23:06:56.114237+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 37.80945236309078,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49711734",
+        "title": "Lucid, Nuro, and Uber Unveil Global Robotaxi at CES, Announce Autonomous On-Road Testing",
+        "published_at": "2026-01-05T23:00:00Z",
+        "received_at": "2026-01-05T23:00:23.673074",
+        "tickers": [
+          "LCID",
+          "UBER"
+        ],
+        "industry": "Auto Manufacturers",
+        "industries": [
+          "Auto Manufacturers",
+          "Software - Application"
+        ],
+        "sectors": [
+          "Consumer Cyclical",
+          "Technology"
+        ],
+        "initial_ask": 11.75,
+        "peak_price": 80.9,
+        "peak_price_timestamp": "2026-01-05T23:01:36.292976+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 588.5106382978723,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49690014",
+        "title": "Treasure Global Regains Compliance with Nasdaq Bid Price Requirement",
+        "published_at": "2026-01-05T13:35:00Z",
+        "received_at": "2026-01-05T13:35:01.426343",
+        "tickers": [
+          "TGL"
+        ],
+        "industry": "Software - Application",
+        "industries": [
+          "Software - Application"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 7.25,
+        "peak_price": 7.7486,
+        "peak_price_timestamp": "2026-01-05T13:35:50.279164+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 6.877241379310341,
+        "session": "premarket",
+        "filter_reason": "spread_too_wide_7.03%",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49690869",
+        "title": "SolarMax Technology Awarded $158 Million EPC Contracts for 400 MWh Battery Storage Projects in Puerto Rico",
+        "published_at": "2026-01-05T14:00:00Z",
+        "received_at": "2026-01-05T14:00:14.254415",
+        "tickers": [
+          "SMXT"
+        ],
+        "industry": "Solar",
+        "industries": [
+          "Solar"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 1.0,
+        "peak_price": 1.45,
+        "peak_price_timestamp": "2026-01-05T14:07:20.702408+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 44.99999999999999,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49717532",
+        "title": "Smartkem Signs Proof of Concept Agreement with Global Consumer Electronics Giant for MicroLED Wearables",
+        "published_at": "2026-01-06T12:00:00Z",
+        "received_at": "2026-01-06T12:00:03.667032",
+        "tickers": [
+          "SMTK"
+        ],
+        "industry": "Semiconductor Equipment & Materials",
+        "industries": [
+          "Semiconductor Equipment & Materials"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 1.29,
+        "peak_price": 1.38,
+        "peak_price_timestamp": "2026-01-06T12:00:30.163156+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 6.9767441860465,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49719258",
+        "title": "AEye to Showcase Apollo One Kilometer Lidar Integrated with NVIDIA AGX DRIVE Thor\u2122 at CES to Enable Next-Generation Physical AI",
+        "published_at": "2026-01-06T13:00:00Z",
+        "received_at": "2026-01-06T13:00:16.707967",
+        "tickers": [
+          "LIDR"
+        ],
+        "industry": "Software - Infrastructure",
+        "industries": [
+          "Software - Infrastructure"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 2.52,
+        "peak_price": 2.77,
+        "peak_price_timestamp": "2026-01-06T13:00:03.201027+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 9.920634920634921,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49719296",
+        "title": "Mobix Labs, Inc. Announces Pricing of $6.0 Million Oversubscribed Public Offering of Common Stock to Fast-Track Aggressive Growth Strategy",
+        "published_at": "2026-01-06T13:00:00Z",
+        "received_at": "2026-01-06T13:00:16.709021",
+        "tickers": [
+          "MOBX"
+        ],
+        "industry": "Semiconductors",
+        "industries": [
+          "Semiconductors"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 0.2023,
+        "peak_price": 0.2826,
+        "peak_price_timestamp": "2026-01-06T13:10:52.413632+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 39.69352446861098,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49840160",
+        "title": "AmpliTech Group Receives over $9 million for its $4 Unit Subscription Rights Offering",
+        "published_at": "2026-01-12T13:00:00Z",
+        "received_at": "2026-01-12T13:00:03.983007",
+        "tickers": [
+          "AMPG"
+        ],
+        "industry": "Communication Equipment",
+        "industries": [
+          "Communication Equipment"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 3.24,
+        "peak_price": 3.4999,
+        "peak_price_timestamp": "2026-01-12T13:00:02.606407+00:00",
+        "final_ask_10min": 3.34,
+        "max_excursion_pct": 8.021604938271592,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+      }
+    ],
+    "non_movers_sample": [
+      {
+        "article_id": "benzinga:49706270",
+        "title": "KLAR Stockholder Alert: Robbins LLP Reminds Investors of the Class Action Lawsuit Against Klarna Group plc",
+        "published_at": "2026-01-05T20:24:00Z",
+        "received_at": "2026-01-05T20:24:15.475806",
+        "tickers": [
+          "KLAR"
+        ],
+        "industry": "Software - Infrastructure",
+        "industries": [
+          "Software - Infrastructure"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 29.55,
+        "peak_price": 29.57,
+        "peak_price_timestamp": "2026-01-05T20:25:05.069232+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.06768189509306116,
+        "session": "market",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/market_hours/market_hours.json"
+      },
+      {
+        "article_id": "benzinga:49708552",
+        "title": "Mobix Labs, Inc. Announces Proposed Public Offering of Common Stock",
+        "published_at": "2026-01-05T21:19:57Z",
+        "received_at": "2026-01-05T21:19:58.900598",
+        "tickers": [
+          "MOBX"
+        ],
+        "industry": "Semiconductors",
+        "industries": [
+          "Semiconductors"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 0.2925,
+        "peak_price": 0.2899,
+        "peak_price_timestamp": "2026-01-05T21:20:07.533695+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.888888888888886,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49708984",
+        "title": "Unusual Machines to Participate in the 28th Annual Needham Growth Conference",
+        "published_at": "2026-01-05T21:30:00Z",
+        "received_at": "2026-01-05T21:30:04.413801",
+        "tickers": [
+          "UMAC"
+        ],
+        "industry": "Computer Hardware",
+        "industries": [
+          "Computer Hardware"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 15.5,
+        "peak_price": 15.5,
+        "peak_price_timestamp": "2026-01-05T21:39:25.348613+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.0,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49710054",
+        "title": "NVIDIA Announces Alpamayo Family of Open-Source AI Models and Tools to Accelerate Safe, Reasoning-Based Autonomous Vehicle Development",
+        "published_at": "2026-01-05T21:49:58Z",
+        "received_at": "2026-01-05T21:50:00.173262",
+        "tickers": [
+          "NVDA"
+        ],
+        "industry": "Semiconductors",
+        "industries": [
+          "Semiconductors"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 187.56,
+        "peak_price": 187.74,
+        "peak_price_timestamp": "2026-01-05T21:52:00.102423+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.09596928982725891,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49710227",
+        "title": "NVIDIA Releases New Physical AI Models as Global Partners Unveil Next-Generation Robots",
+        "published_at": "2026-01-05T22:04:49Z",
+        "received_at": "2026-01-05T22:13:45.272778",
+        "tickers": [
+          "NVDA"
+        ],
+        "industry": "Semiconductors",
+        "industries": [
+          "Semiconductors"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 188.45,
+        "peak_price": 189.3,
+        "peak_price_timestamp": "2026-01-05T22:15:13.492449+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.45104802334838034,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49710953",
+        "title": "NVIDIA Kicks Off the Next Generation of AI With Rubin \u2014 Six New Chips, One Incredible AI Supercomputer",
+        "published_at": "2026-01-05T22:20:35Z",
+        "received_at": "2026-01-05T22:20:36.755851",
+        "tickers": [
+          "NVDA"
+        ],
+        "industry": "Semiconductors",
+        "industries": [
+          "Semiconductors"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 188.75,
+        "peak_price": 188.68,
+        "peak_price_timestamp": "2026-01-05T22:21:56.228699+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.037086092715228176,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49711298",
+        "title": "NVIDIA BlueField-4 Powers New Class of AI-Native Storage Infrastructure for the Next Frontier of AI",
+        "published_at": "2026-01-05T22:37:58Z",
+        "received_at": "2026-01-05T22:37:59.816420",
+        "tickers": [
+          "NVDA"
+        ],
+        "industry": "Semiconductors",
+        "industries": [
+          "Semiconductors"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 187.92,
+        "peak_price": 188.12,
+        "peak_price_timestamp": "2026-01-05T22:40:27.616542+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.10642826734781666,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49711709",
+        "title": "Cerence xUI, Leveraging NVIDIA AI Enterprise and Running on Microsoft Azure, Drives Strong Traction with Automakers",
+        "published_at": "2026-01-05T23:00:00Z",
+        "received_at": "2026-01-05T23:00:02.239580",
+        "tickers": [
+          "CRNC"
+        ],
+        "industry": "Software - Application",
+        "industries": [
+          "Software - Application"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 11.3,
+        "peak_price": 11.4,
+        "peak_price_timestamp": "2026-01-05T23:04:38.202448+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.8849557522123862,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49711711",
+        "title": "HP at CES 2026 \u2014 HyperX and OMEN Unite to Power the Future of Play",
+        "published_at": "2026-01-05T23:00:00Z",
+        "received_at": "2026-01-05T23:00:02.705985",
+        "tickers": [
+          "HPQ"
+        ],
+        "industry": "Computer Hardware",
+        "industries": [
+          "Computer Hardware"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 21.7,
+        "peak_price": 21.7,
+        "peak_price_timestamp": "2026-01-05T23:06:52.611922+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.0,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49711708",
+        "title": "HP at CES 2026 \u2014 HP Drives the Next Chapter of Intelligent Work",
+        "published_at": "2026-01-05T23:00:00Z",
+        "received_at": "2026-01-05T23:00:01.804253",
+        "tickers": [
+          "HPQ"
+        ],
+        "industry": "Computer Hardware",
+        "industries": [
+          "Computer Hardware"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 21.7,
+        "peak_price": 21.7,
+        "peak_price_timestamp": "2026-01-05T23:06:52.611922+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.0,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49711716",
+        "title": "CES 2026: Intel Core Ultra Series 3 Debuts as First Built on Intel 18A",
+        "published_at": "2026-01-05T23:00:00Z",
+        "received_at": "2026-01-05T23:00:03.387002",
+        "tickers": [
+          "INTC"
+        ],
+        "industry": "Semiconductors",
+        "industries": [
+          "Semiconductors"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 39.52,
+        "peak_price": 39.6996,
+        "peak_price_timestamp": "2026-01-05T23:06:30.089328+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.4544534412955302,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49711724",
+        "title": "CoreWeave Extends Its Cloud Platform with NVIDIA Rubin Platform",
+        "published_at": "2026-01-05T23:00:00Z",
+        "received_at": "2026-01-05T23:00:07.539013",
+        "tickers": [
+          "CRWV"
+        ],
+        "industry": "Software - Infrastructure",
+        "industries": [
+          "Software - Infrastructure"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 77.1,
+        "peak_price": 77.5,
+        "peak_price_timestamp": "2026-01-05T23:00:41.668580+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.5188067444876858,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49711733",
+        "title": "Supermicro Announces Support for Upcoming NVIDIA Vera Rubin NVL72, HGX Rubin NVL8 and Expanded Rack-Scale Manufacturing Capacity for Liquid-Cooled AI Solutions",
+        "published_at": "2026-01-05T23:00:00Z",
+        "received_at": "2026-01-05T23:00:23.672974",
+        "tickers": [
+          "SMCI"
+        ],
+        "industry": "Computer Hardware",
+        "industries": [
+          "Computer Hardware"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 30.5,
+        "peak_price": 30.49,
+        "peak_price_timestamp": "2026-01-05T23:00:23.784546+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.03278688524590676,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49684738",
+        "title": "Himax Confirm CPO Collaboration and Strategic Partnership with FOCI Remain Ongoing and Unchanged",
+        "published_at": "2026-01-05T09:05:00Z",
+        "received_at": "2026-01-05T09:05:01.876627",
+        "tickers": [
+          "HIMX"
+        ],
+        "industry": "Semiconductors",
+        "industries": [
+          "Semiconductors"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 8.78,
+        "peak_price": 8.79,
+        "peak_price_timestamp": "2026-01-05T09:17:05.299554+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.11389521640090874,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49685660",
+        "title": "Tower Semiconductor Partners with LightIC to Expand Silicon Photonics Beyond AI Infrastructure into Physical AI and Automotive",
+        "published_at": "2026-01-05T11:00:00Z",
+        "received_at": "2026-01-05T11:00:05.026394",
+        "tickers": [
+          "TSEM"
+        ],
+        "industry": "Semiconductors",
+        "industries": [
+          "Semiconductors"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 126.85,
+        "peak_price": 127.68,
+        "peak_price_timestamp": "2026-01-05T11:06:06.194141+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.654316121403242,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49687437",
+        "title": "Allot to Present at the Needham Growth Conference on January 14, 2026",
+        "published_at": "2026-01-05T12:14:46Z",
+        "received_at": "2026-01-05T12:14:50.976523",
+        "tickers": [
+          "ALLT"
+        ],
+        "industry": "Software - Infrastructure",
+        "industries": [
+          "Software - Infrastructure"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 9.94,
+        "peak_price": 9.86,
+        "peak_price_timestamp": "2026-01-05T12:25:42.557135+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.8048289738430591,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49690921",
+        "title": "BOS Secures $2.2 Million in Order from an Indian Customer",
+        "published_at": "2026-01-05T14:00:00Z",
+        "received_at": "2026-01-05T14:00:14.625992",
+        "tickers": [
+          "BOSC"
+        ],
+        "industry": "Communication Equipment",
+        "industries": [
+          "Communication Equipment"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 4.68,
+        "peak_price": 4.68,
+        "peak_price_timestamp": "2026-01-05T14:00:00.056433+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.0,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49690906",
+        "title": "Palladyne AI To Present at the 28th Annual Needham Growth Conference",
+        "published_at": "2026-01-05T14:00:00Z",
+        "received_at": "2026-01-05T14:00:14.625602",
+        "tickers": [
+          "PDYN",
+          "PDYNW"
+        ],
+        "industry": "Software - Infrastructure",
+        "industries": [
+          "Software - Infrastructure"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 4.86,
+        "peak_price": 4.86,
+        "peak_price_timestamp": "2026-01-05T14:00:51.221979+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.0,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49690947",
+        "title": "Nerdy Announces CEO Chuck Cohn Purchased $4.4 million or 3.5 million Shares of Nerdy Common Stock During the Fourth Quarter. Since Becoming a Public Company, Mr. Cohn has Purchased $81.0 million or 51.4 million Shares of Nerdy Common Stock.",
+        "published_at": "2026-01-05T14:00:00Z",
+        "received_at": "2026-01-05T14:00:24.210290",
+        "tickers": [
+          "NRDY"
+        ],
+        "industry": "Software - Application",
+        "industries": [
+          "Software - Application"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 1.11,
+        "peak_price": 1.1,
+        "peak_price_timestamp": "2026-01-05T14:00:37.330565+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.9009009009009016,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49690950",
+        "title": "Qualcomm Introduces a Full Suite of Robotics Technologies, Powering Physical AI from Household Robots up to Full-Size Humanoids",
+        "published_at": "2026-01-05T14:00:00Z",
+        "received_at": "2026-01-05T14:00:29.535054",
+        "tickers": [
+          "QCOM"
+        ],
+        "industry": "Semiconductors",
+        "industries": [
+          "Semiconductors"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 177.99,
+        "peak_price": 178.84,
+        "peak_price_timestamp": "2026-01-05T14:00:07.291748+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.47755491881566065,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49691023",
+        "title": "KLAR LAWSUIT ALERT: The Gross Law Firm Notifies Klarna Group plc Investors of a Class Action Lawsuit and Upcoming Deadline",
+        "published_at": "2026-01-05T14:00:00Z",
+        "received_at": "2026-01-05T14:00:42.363743",
+        "tickers": [
+          "KLAR"
+        ],
+        "industry": "Software - Infrastructure",
+        "industries": [
+          "Software - Infrastructure"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 28.82,
+        "peak_price": 28.77,
+        "peak_price_timestamp": "2026-01-05T14:03:07.838729+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.17349063150590116,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49691187",
+        "title": "CES 2026: SoundHound AI Unveils Agentic Voice Commerce for Vehicles and TVs, With AI Agents that Order Food, Make Dinner Reservations, Pay for Parking, and Book Tickets On the Go",
+        "published_at": "2026-01-05T14:03:00Z",
+        "received_at": "2026-01-05T14:03:02.347385",
+        "tickers": [
+          "SOUN"
+        ],
+        "industry": "Software - Application",
+        "industries": [
+          "Software - Application"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 10.84,
+        "peak_price": 10.88,
+        "peak_price_timestamp": "2026-01-05T14:04:54.243924+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.3690036900369089,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49691259",
+        "title": "Dot Ai Appoints Dr. Ansgar Thiede as Chief Strategy Officer to Lead Product Strategy and Customer Experience",
+        "published_at": "2026-01-05T14:05:00Z",
+        "received_at": "2026-01-05T14:05:01.467891",
+        "tickers": [
+          "DAIC"
+        ],
+        "industry": "Information Technology Services",
+        "industries": [
+          "Information Technology Services"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 0.508,
+        "peak_price": 0.508,
+        "peak_price_timestamp": "2026-01-05T14:05:16.668588+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.0,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49691271",
+        "title": "TI accelerates the shift toward autonomous vehicles with expanded automotive portfolio",
+        "published_at": "2026-01-05T14:05:00Z",
+        "received_at": "2026-01-05T14:05:15.241759",
+        "tickers": [
+          "TXN"
+        ],
+        "industry": "Semiconductors",
+        "industries": [
+          "Semiconductors"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 178.0,
+        "peak_price": 177.66,
+        "peak_price_timestamp": "2026-01-05T14:08:58.444846+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.1910112359550581,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49691829",
+        "title": "Vuzix Showcases AI-Powered Smart Glasses and Waveguide Solutions with its Global Ecosystem Partners at CES 2026",
+        "published_at": "2026-01-05T14:15:00Z",
+        "received_at": "2026-01-05T14:15:15.859033",
+        "tickers": [
+          "VUZI"
+        ],
+        "industry": "Consumer Electronics",
+        "industries": [
+          "Consumer Electronics"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 3.85,
+        "peak_price": 3.85,
+        "peak_price_timestamp": "2026-01-05T14:23:09.805682+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.0,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49738432",
+        "title": "Rosen Law Firm Encourages New Era Energy &amp; Digital, Inc. Investors to Inquire About Securities Class Action Investigation - NUAI",
+        "published_at": "2026-01-06T20:40:00Z",
+        "received_at": "2026-01-06T20:45:53.477176",
+        "tickers": [
+          "NUAI"
+        ],
+        "industry": "Software - Infrastructure",
+        "industries": [
+          "Software - Infrastructure"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 3.37,
+        "peak_price": 3.375,
+        "peak_price_timestamp": "2026-01-06T20:52:46.996426+00:00",
+        "final_ask_10min": 3.32,
+        "max_excursion_pct": 0.14836795252225204,
+        "session": "market",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/market_hours/market_hours.json"
+      },
+      {
+        "article_id": "benzinga:49738488",
+        "title": "Gauzy Ltd. (GAUZ) Shareholders Who Lost Money Have Opportunity to Lead Securities Fraud Lawsuit",
+        "published_at": "2026-01-06T20:42:00Z",
+        "received_at": "2026-01-06T20:45:54.401541",
+        "tickers": [
+          "GAUZ"
+        ],
+        "industry": "Electronic Components",
+        "industries": [
+          "Electronic Components"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 1.14,
+        "peak_price": 1.14,
+        "peak_price_timestamp": "2026-01-06T20:45:01.741499+00:00",
+        "final_ask_10min": 1.13,
+        "max_excursion_pct": 0.0,
+        "session": "market",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/market_hours/market_hours.json"
+      },
+      {
+        "article_id": "benzinga:49739126",
+        "title": "INVESTOR ALERT: Class Action Lawsuit Filed on Behalf of Klarna Group plc (KLAR) Investors \u2013 Holzer &amp; Holzer, LLC Encourages Investors With Significant Losses to Contact the Firm",
+        "published_at": "2026-01-06T20:58:56Z",
+        "received_at": "2026-01-06T20:58:57.823566",
+        "tickers": [
+          "KLAR"
+        ],
+        "industry": "Software - Infrastructure",
+        "industries": [
+          "Software - Infrastructure"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 29.71,
+        "peak_price": 29.79,
+        "peak_price_timestamp": "2026-01-06T20:59:30.133711+00:00",
+        "final_ask_10min": 29.84,
+        "max_excursion_pct": 0.2692696061931952,
+        "session": "market",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/market_hours/market_hours.json"
+      },
+      {
+        "article_id": "benzinga:49739181",
+        "title": "Class Action Filed Against Klarna Group plc (KLAR) - February 20, 2026 Deadline to Join \u2013 Contact Levi &amp; Korsinsky",
+        "published_at": "2026-01-06T21:00:00Z",
+        "received_at": "2026-01-06T21:00:03.106182",
+        "tickers": [
+          "KLAR"
+        ],
+        "industry": "Software - Infrastructure",
+        "industries": [
+          "Software - Infrastructure"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 30.0,
+        "peak_price": 29.83,
+        "peak_price_timestamp": "2026-01-06T21:09:36.531441+00:00",
+        "final_ask_10min": 29.8,
+        "max_excursion_pct": -0.5666666666666723,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49739575",
+        "title": "Zeta Global to Participate in Upcoming Investor Conference",
+        "published_at": "2026-01-06T21:05:00Z",
+        "received_at": "2026-01-06T21:05:03.849436",
+        "tickers": [
+          "ZETA"
+        ],
+        "industry": "Software - Infrastructure",
+        "industries": [
+          "Software - Infrastructure"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 23.72,
+        "peak_price": 23.78,
+        "peak_price_timestamp": "2026-01-06T21:07:54.822774+00:00",
+        "final_ask_10min": 23.75,
+        "max_excursion_pct": 0.25295109612142613,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49739579",
+        "title": "Credo to Present at 28th Annual Needham Growth Conference",
+        "published_at": "2026-01-06T21:05:00Z",
+        "received_at": "2026-01-06T21:05:08.686222",
+        "tickers": [
+          "CRDO"
+        ],
+        "industry": "Semiconductors",
+        "industries": [
+          "Semiconductors"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 132.95,
+        "peak_price": 132.95,
+        "peak_price_timestamp": "2026-01-06T21:05:03.637584+00:00",
+        "final_ask_10min": 132.94,
+        "max_excursion_pct": 0.0,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49739883",
+        "title": "UiPath to Participate in the 28th Annual Needham Growth Conference",
+        "published_at": "2026-01-06T21:10:00Z",
+        "received_at": "2026-01-06T21:10:02.247482",
+        "tickers": [
+          "PATH"
+        ],
+        "industry": "Software - Infrastructure",
+        "industries": [
+          "Software - Infrastructure"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 17.31,
+        "peak_price": 17.4,
+        "peak_price_timestamp": "2026-01-06T21:19:37.260125+00:00",
+        "final_ask_10min": 17.45,
+        "max_excursion_pct": 0.519930675909878,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49740041",
+        "title": "AMD to Report Fiscal Fourth Quarter and Full Year 2025 Financial Results",
+        "published_at": "2026-01-06T21:15:00Z",
+        "received_at": "2026-01-06T21:15:02.414375",
+        "tickers": [
+          "AMD"
+        ],
+        "industry": "Semiconductors",
+        "industries": [
+          "Semiconductors"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 214.1,
+        "peak_price": 214.1,
+        "peak_price_timestamp": "2026-01-06T21:15:00.011640+00:00",
+        "final_ask_10min": 214.0,
+        "max_excursion_pct": 0.0,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49740183",
+        "title": "Shareholder Alert: The Ademi Firm investigates whether OneStream Inc. is obtaining a Fair Price for its Public Shareholders",
+        "published_at": "2026-01-06T21:17:00Z",
+        "received_at": "2026-01-06T21:17:15.754013",
+        "tickers": [
+          "OS"
+        ],
+        "industry": "Software - Infrastructure",
+        "industries": [
+          "Software - Infrastructure"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 23.6,
+        "peak_price": 23.58,
+        "peak_price_timestamp": "2026-01-06T21:22:30.321147+00:00",
+        "final_ask_10min": 23.59,
+        "max_excursion_pct": -0.08474576271187766,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49740184",
+        "title": "BTDR Investors Have Opportunity to Lead Bitdeer Technologies Group Securities Fraud Lawsuit",
+        "published_at": "2026-01-06T21:17:00Z",
+        "received_at": "2026-01-06T21:17:16.754452",
+        "tickers": [
+          "BTDR"
+        ],
+        "industry": "Software - Application",
+        "industries": [
+          "Software - Application"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 12.17,
+        "peak_price": 12.16,
+        "peak_price_timestamp": "2026-01-06T21:17:08.386564+00:00",
+        "final_ask_10min": 12.1,
+        "max_excursion_pct": -0.08216926869350688,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49741785",
+        "title": "Super Micro Computer Announces Entry Into New Revolving Credit Facility",
+        "published_at": "2026-01-06T22:01:00Z",
+        "received_at": "2026-01-06T22:01:02.179226",
+        "tickers": [
+          "SMCI"
+        ],
+        "industry": "Computer Hardware",
+        "industries": [
+          "Computer Hardware"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 30.47,
+        "peak_price": 30.52,
+        "peak_price_timestamp": "2026-01-06T22:01:34.551809+00:00",
+        "final_ask_10min": 30.51,
+        "max_excursion_pct": 0.1640958319658704,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49717609",
+        "title": "Aeva Introduces Omni, the First Compact Wide-View Short-Range 4D LiDAR Sensor for Physical AI Applications",
+        "published_at": "2026-01-06T12:00:00Z",
+        "received_at": "2026-01-06T12:00:22.841359",
+        "tickers": [
+          "AEVA"
+        ],
+        "industry": "Software - Infrastructure",
+        "industries": [
+          "Software - Infrastructure"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 17.0,
+        "peak_price": 17.05,
+        "peak_price_timestamp": "2026-01-06T12:00:00.490009+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.2941176470588277,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49719273",
+        "title": "GCT Semiconductor Launches Commercial Shipments of 5G Chipset",
+        "published_at": "2026-01-06T13:00:00Z",
+        "received_at": "2026-01-06T13:00:16.708505",
+        "tickers": [
+          "GCTS"
+        ],
+        "industry": "Semiconductors",
+        "industries": [
+          "Semiconductors"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 1.21,
+        "peak_price": 1.21,
+        "peak_price_timestamp": "2026-01-06T13:00:02.105449+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.0,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49719282",
+        "title": "Cerence AI to Participate in 28th Annual Needham Growth Conference",
+        "published_at": "2026-01-06T13:00:00Z",
+        "received_at": "2026-01-06T13:00:16.708740",
+        "tickers": [
+          "CRNC"
+        ],
+        "industry": "Software - Application",
+        "industries": [
+          "Software - Application"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 11.45,
+        "peak_price": 11.36,
+        "peak_price_timestamp": "2026-01-06T13:05:51.148697+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.7860262008733613,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49719324",
+        "title": "CommScope Launches Secure Boot Solution for Texas Instruments&#39; Arm-based AM6x Processors",
+        "published_at": "2026-01-06T13:00:00Z",
+        "received_at": "2026-01-06T13:00:22.729024",
+        "tickers": [
+          "COMM"
+        ],
+        "industry": "Communication Equipment",
+        "industries": [
+          "Communication Equipment"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 18.75,
+        "peak_price": 18.75,
+        "peak_price_timestamp": "2026-01-06T13:06:59.391661+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.0,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49719333",
+        "title": "Roadzen Announces Major Strategic Acquisition of AI-Powered Vehicle Repair Platform VehicleCare at CES 2026; Transaction Consideration Values Standalone India Business at ~$277 Million",
+        "published_at": "2026-01-06T13:00:00Z",
+        "received_at": "2026-01-06T13:00:26.482136",
+        "tickers": [
+          "RDZN"
+        ],
+        "industry": "Software - Application",
+        "industries": [
+          "Software - Application"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 2.72,
+        "peak_price": 2.72,
+        "peak_price_timestamp": "2026-01-06T13:00:21.951950+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.0,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49719358",
+        "title": "ZenaTech&#39;s ZenaDrone Subsidiary Positioned for U.S. Defense and Government Demand for NDAA-Compliant Drones from Recent FCC Public Notice",
+        "published_at": "2026-01-06T13:00:00Z",
+        "received_at": "2026-01-06T13:00:40.375283",
+        "tickers": [
+          "ZENA"
+        ],
+        "industry": "Software - Infrastructure",
+        "industries": [
+          "Software - Infrastructure"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 3.51,
+        "peak_price": 3.5,
+        "peak_price_timestamp": "2026-01-06T13:00:34.713649+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.28490028490027886,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49719427",
+        "title": "Valens Semiconductor Secures 4th VA7000 MIPI A-PHY Design Win with a Premium Carmaker Serving the Chinese Market",
+        "published_at": "2026-01-06T13:00:00Z",
+        "received_at": "2026-01-06T13:00:58.349504",
+        "tickers": [
+          "VLN"
+        ],
+        "industry": "Semiconductors",
+        "industries": [
+          "Semiconductors"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 1.62,
+        "peak_price": 1.61,
+        "peak_price_timestamp": "2026-01-06T13:00:01.246086+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.6172839506172845,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49719559",
+        "title": "Treasure Global Concludes Alumni Capital Equity Line Facility to Streamline Capital Structure and Focus on Fintech &amp; Digital-Asset Growth",
+        "published_at": "2026-01-06T13:03:00Z",
+        "received_at": "2026-01-06T13:03:01.832735",
+        "tickers": [
+          "TGL"
+        ],
+        "industry": "Software - Application",
+        "industries": [
+          "Software - Application"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 7.12,
+        "peak_price": 7.1499,
+        "peak_price_timestamp": "2026-01-06T13:04:04.063689+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.4199438202247134,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49767925",
+        "title": "SHAREHOLDER ALERT: Levi &amp; Korsinsky, LLP Notifies Investors It Has Filed a Complaint to Recover Losses Suffered by Purchasers of Varonis Systems, Inc. Common Stock and Sets a Lead Plaintiff Deadline of March 9, 2026",
+        "published_at": "2026-01-07T20:37:36Z",
+        "received_at": "2026-01-07T20:45:35.142056",
+        "tickers": [
+          "VRNS"
+        ],
+        "industry": "Software - Infrastructure",
+        "industries": [
+          "Software - Infrastructure"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 35.44,
+        "peak_price": 35.71,
+        "peak_price_timestamp": "2026-01-07T20:38:00.543686+00:00",
+        "final_ask_10min": 35.4,
+        "max_excursion_pct": 0.7618510158013633,
+        "session": "market",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/market_hours/market_hours.json"
+      },
+      {
+        "article_id": "benzinga:49768374",
+        "title": "ROSEN, A LONGSTANDING LAW FIRM, Encourages Bitdeer Technologies Group Investors to Secure Counsel Before Important Deadline in Securities Class Action - BTDR",
+        "published_at": "2026-01-07T20:50:50Z",
+        "received_at": "2026-01-07T20:50:51.631917",
+        "tickers": [
+          "BTDR"
+        ],
+        "industry": "Software - Application",
+        "industries": [
+          "Software - Application"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 11.47,
+        "peak_price": 11.51,
+        "peak_price_timestamp": "2026-01-07T20:59:08.006804+00:00",
+        "final_ask_10min": 11.66,
+        "max_excursion_pct": 0.3487358326067929,
+        "session": "market",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/market_hours/market_hours.json"
+      },
+      {
+        "article_id": "benzinga:49743775",
+        "title": "TTM Technologies, Inc. Announces Upcoming Conference Participation",
+        "published_at": "2026-01-07T00:49:34Z",
+        "received_at": "2026-01-07T00:49:35.814662",
+        "tickers": [
+          "TTMI"
+        ],
+        "industry": "Electronic Components",
+        "industries": [
+          "Electronic Components"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 70.48,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": 70.48,
+        "max_excursion_pct": -0.6810442678774177,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49768813",
+        "title": "CANADIAN SOLAR ANNOUNCES PROPOSED OFFERING OF US$200 MILLION CONVERTIBLE SENIOR NOTES DUE 2031",
+        "published_at": "2026-01-07T21:00:00Z",
+        "received_at": "2026-01-07T21:00:19.793999",
+        "tickers": [
+          "CSIQ"
+        ],
+        "industry": "Solar",
+        "industries": [
+          "Solar"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 21.81,
+        "peak_price": 22.02,
+        "peak_price_timestamp": "2026-01-07T21:00:00.367031+00:00",
+        "final_ask_10min": 20.67,
+        "max_excursion_pct": 0.9628610729023425,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49769255",
+        "title": "F5 to Report First Quarter Fiscal Year 2026 Financial Results",
+        "published_at": "2026-01-07T21:05:00Z",
+        "received_at": "2026-01-07T21:05:09.567099",
+        "tickers": [
+          "FFIV"
+        ],
+        "industry": "Software - Infrastructure",
+        "industries": [
+          "Software - Infrastructure"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 269.99,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": 268.9,
+        "max_excursion_pct": -0.7481758583651178,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49769266",
+        "title": "Lam Research Corporation Announces December Quarter Financial Conference Call",
+        "published_at": "2026-01-07T21:05:00Z",
+        "received_at": "2026-01-07T21:05:22.125228",
+        "tickers": [
+          "LRCX"
+        ],
+        "industry": "Semiconductor Equipment & Materials",
+        "industries": [
+          "Semiconductor Equipment & Materials"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "initial_ask": 203.08,
+        "peak_price": 203.08,
+        "peak_price_timestamp": "2026-01-07T21:06:56.242063+00:00",
+        "final_ask_10min": 202.99,
+        "max_excursion_pct": 0.0,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+      }
+    ],
+    "industry_analysis": {
+      "Semiconductors": {
+        "winners": [
+          {
+            "article_id": "benzinga:49719296",
+            "title": "Mobix Labs, Inc. Announces Pricing of $6.0 Million Oversubscribed Public Offering of Common Stock to Fast-Track Aggressive Growth Strategy",
+            "published_at": "2026-01-06T13:00:00Z",
+            "received_at": "2026-01-06T13:00:16.709021",
+            "tickers": [
+              "MOBX"
+            ],
+            "industry": "Semiconductors",
+            "industries": [
+              "Semiconductors"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 0.2023,
+            "peak_price": 0.2826,
+            "peak_price_timestamp": "2026-01-06T13:10:52.413632+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 39.69352446861098,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          }
+        ],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49708552",
+            "title": "Mobix Labs, Inc. Announces Proposed Public Offering of Common Stock",
+            "published_at": "2026-01-05T21:19:57Z",
+            "received_at": "2026-01-05T21:19:58.900598",
+            "tickers": [
+              "MOBX"
+            ],
+            "industry": "Semiconductors",
+            "industries": [
+              "Semiconductors"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 0.2925,
+            "peak_price": 0.2899,
+            "peak_price_timestamp": "2026-01-05T21:20:07.533695+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.888888888888886,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49710054",
+            "title": "NVIDIA Announces Alpamayo Family of Open-Source AI Models and Tools to Accelerate Safe, Reasoning-Based Autonomous Vehicle Development",
+            "published_at": "2026-01-05T21:49:58Z",
+            "received_at": "2026-01-05T21:50:00.173262",
+            "tickers": [
+              "NVDA"
+            ],
+            "industry": "Semiconductors",
+            "industries": [
+              "Semiconductors"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 187.56,
+            "peak_price": 187.74,
+            "peak_price_timestamp": "2026-01-05T21:52:00.102423+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.09596928982725891,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49710227",
+            "title": "NVIDIA Releases New Physical AI Models as Global Partners Unveil Next-Generation Robots",
+            "published_at": "2026-01-05T22:04:49Z",
+            "received_at": "2026-01-05T22:13:45.272778",
+            "tickers": [
+              "NVDA"
+            ],
+            "industry": "Semiconductors",
+            "industries": [
+              "Semiconductors"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 188.45,
+            "peak_price": 189.3,
+            "peak_price_timestamp": "2026-01-05T22:15:13.492449+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.45104802334838034,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49710953",
+            "title": "NVIDIA Kicks Off the Next Generation of AI With Rubin \u2014 Six New Chips, One Incredible AI Supercomputer",
+            "published_at": "2026-01-05T22:20:35Z",
+            "received_at": "2026-01-05T22:20:36.755851",
+            "tickers": [
+              "NVDA"
+            ],
+            "industry": "Semiconductors",
+            "industries": [
+              "Semiconductors"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 188.75,
+            "peak_price": 188.68,
+            "peak_price_timestamp": "2026-01-05T22:21:56.228699+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.037086092715228176,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49711298",
+            "title": "NVIDIA BlueField-4 Powers New Class of AI-Native Storage Infrastructure for the Next Frontier of AI",
+            "published_at": "2026-01-05T22:37:58Z",
+            "received_at": "2026-01-05T22:37:59.816420",
+            "tickers": [
+              "NVDA"
+            ],
+            "industry": "Semiconductors",
+            "industries": [
+              "Semiconductors"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 187.92,
+            "peak_price": 188.12,
+            "peak_price_timestamp": "2026-01-05T22:40:27.616542+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.10642826734781666,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49711716",
+            "title": "CES 2026: Intel Core Ultra Series 3 Debuts as First Built on Intel 18A",
+            "published_at": "2026-01-05T23:00:00Z",
+            "received_at": "2026-01-05T23:00:03.387002",
+            "tickers": [
+              "INTC"
+            ],
+            "industry": "Semiconductors",
+            "industries": [
+              "Semiconductors"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 39.52,
+            "peak_price": 39.6996,
+            "peak_price_timestamp": "2026-01-05T23:06:30.089328+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.4544534412955302,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49684738",
+            "title": "Himax Confirm CPO Collaboration and Strategic Partnership with FOCI Remain Ongoing and Unchanged",
+            "published_at": "2026-01-05T09:05:00Z",
+            "received_at": "2026-01-05T09:05:01.876627",
+            "tickers": [
+              "HIMX"
+            ],
+            "industry": "Semiconductors",
+            "industries": [
+              "Semiconductors"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 8.78,
+            "peak_price": 8.79,
+            "peak_price_timestamp": "2026-01-05T09:17:05.299554+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.11389521640090874,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49685660",
+            "title": "Tower Semiconductor Partners with LightIC to Expand Silicon Photonics Beyond AI Infrastructure into Physical AI and Automotive",
+            "published_at": "2026-01-05T11:00:00Z",
+            "received_at": "2026-01-05T11:00:05.026394",
+            "tickers": [
+              "TSEM"
+            ],
+            "industry": "Semiconductors",
+            "industries": [
+              "Semiconductors"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 126.85,
+            "peak_price": 127.68,
+            "peak_price_timestamp": "2026-01-05T11:06:06.194141+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.654316121403242,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49690950",
+            "title": "Qualcomm Introduces a Full Suite of Robotics Technologies, Powering Physical AI from Household Robots up to Full-Size Humanoids",
+            "published_at": "2026-01-05T14:00:00Z",
+            "received_at": "2026-01-05T14:00:29.535054",
+            "tickers": [
+              "QCOM"
+            ],
+            "industry": "Semiconductors",
+            "industries": [
+              "Semiconductors"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 177.99,
+            "peak_price": 178.84,
+            "peak_price_timestamp": "2026-01-05T14:00:07.291748+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.47755491881566065,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49691271",
+            "title": "TI accelerates the shift toward autonomous vehicles with expanded automotive portfolio",
+            "published_at": "2026-01-05T14:05:00Z",
+            "received_at": "2026-01-05T14:05:15.241759",
+            "tickers": [
+              "TXN"
+            ],
+            "industry": "Semiconductors",
+            "industries": [
+              "Semiconductors"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 178.0,
+            "peak_price": 177.66,
+            "peak_price_timestamp": "2026-01-05T14:08:58.444846+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.1910112359550581,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49739579",
+            "title": "Credo to Present at 28th Annual Needham Growth Conference",
+            "published_at": "2026-01-06T21:05:00Z",
+            "received_at": "2026-01-06T21:05:08.686222",
+            "tickers": [
+              "CRDO"
+            ],
+            "industry": "Semiconductors",
+            "industries": [
+              "Semiconductors"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 132.95,
+            "peak_price": 132.95,
+            "peak_price_timestamp": "2026-01-06T21:05:03.637584+00:00",
+            "final_ask_10min": 132.94,
+            "max_excursion_pct": 0.0,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49740041",
+            "title": "AMD to Report Fiscal Fourth Quarter and Full Year 2025 Financial Results",
+            "published_at": "2026-01-06T21:15:00Z",
+            "received_at": "2026-01-06T21:15:02.414375",
+            "tickers": [
+              "AMD"
+            ],
+            "industry": "Semiconductors",
+            "industries": [
+              "Semiconductors"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 214.1,
+            "peak_price": 214.1,
+            "peak_price_timestamp": "2026-01-06T21:15:00.011640+00:00",
+            "final_ask_10min": 214.0,
+            "max_excursion_pct": 0.0,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49719273",
+            "title": "GCT Semiconductor Launches Commercial Shipments of 5G Chipset",
+            "published_at": "2026-01-06T13:00:00Z",
+            "received_at": "2026-01-06T13:00:16.708505",
+            "tickers": [
+              "GCTS"
+            ],
+            "industry": "Semiconductors",
+            "industries": [
+              "Semiconductors"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 1.21,
+            "peak_price": 1.21,
+            "peak_price_timestamp": "2026-01-06T13:00:02.105449+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.0,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49719427",
+            "title": "Valens Semiconductor Secures 4th VA7000 MIPI A-PHY Design Win with a Premium Carmaker Serving the Chinese Market",
+            "published_at": "2026-01-06T13:00:00Z",
+            "received_at": "2026-01-06T13:00:58.349504",
+            "tickers": [
+              "VLN"
+            ],
+            "industry": "Semiconductors",
+            "industries": [
+              "Semiconductors"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 1.62,
+            "peak_price": 1.61,
+            "peak_price_timestamp": "2026-01-06T13:00:01.246086+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.6172839506172845,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          }
+        ]
+      },
+      "Solar": {
+        "winners": [
+          {
+            "article_id": "benzinga:49690869",
+            "title": "SolarMax Technology Awarded $158 Million EPC Contracts for 400 MWh Battery Storage Projects in Puerto Rico",
+            "published_at": "2026-01-05T14:00:00Z",
+            "received_at": "2026-01-05T14:00:14.254415",
+            "tickers": [
+              "SMXT"
+            ],
+            "industry": "Solar",
+            "industries": [
+              "Solar"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 1.0,
+            "peak_price": 1.45,
+            "peak_price_timestamp": "2026-01-05T14:07:20.702408+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 44.99999999999999,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          }
+        ],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49768813",
+            "title": "CANADIAN SOLAR ANNOUNCES PROPOSED OFFERING OF US$200 MILLION CONVERTIBLE SENIOR NOTES DUE 2031",
+            "published_at": "2026-01-07T21:00:00Z",
+            "received_at": "2026-01-07T21:00:19.793999",
+            "tickers": [
+              "CSIQ"
+            ],
+            "industry": "Solar",
+            "industries": [
+              "Solar"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 21.81,
+            "peak_price": 22.02,
+            "peak_price_timestamp": "2026-01-07T21:00:00.367031+00:00",
+            "final_ask_10min": 20.67,
+            "max_excursion_pct": 0.9628610729023425,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+          }
+        ]
+      },
+      "Information Technology Services": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49691259",
+            "title": "Dot Ai Appoints Dr. Ansgar Thiede as Chief Strategy Officer to Lead Product Strategy and Customer Experience",
+            "published_at": "2026-01-05T14:05:00Z",
+            "received_at": "2026-01-05T14:05:01.467891",
+            "tickers": [
+              "DAIC"
+            ],
+            "industry": "Information Technology Services",
+            "industries": [
+              "Information Technology Services"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 0.508,
+            "peak_price": 0.508,
+            "peak_price_timestamp": "2026-01-05T14:05:16.668588+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.0,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          }
+        ]
+      },
+      "Software - Application": {
+        "winners": [
+          {
+            "article_id": "benzinga:49690014",
+            "title": "Treasure Global Regains Compliance with Nasdaq Bid Price Requirement",
+            "published_at": "2026-01-05T13:35:00Z",
+            "received_at": "2026-01-05T13:35:01.426343",
+            "tickers": [
+              "TGL"
+            ],
+            "industry": "Software - Application",
+            "industries": [
+              "Software - Application"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 7.25,
+            "peak_price": 7.7486,
+            "peak_price_timestamp": "2026-01-05T13:35:50.279164+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 6.877241379310341,
+            "session": "premarket",
+            "filter_reason": "spread_too_wide_7.03%",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          }
+        ],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49711709",
+            "title": "Cerence xUI, Leveraging NVIDIA AI Enterprise and Running on Microsoft Azure, Drives Strong Traction with Automakers",
+            "published_at": "2026-01-05T23:00:00Z",
+            "received_at": "2026-01-05T23:00:02.239580",
+            "tickers": [
+              "CRNC"
+            ],
+            "industry": "Software - Application",
+            "industries": [
+              "Software - Application"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 11.3,
+            "peak_price": 11.4,
+            "peak_price_timestamp": "2026-01-05T23:04:38.202448+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.8849557522123862,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49690947",
+            "title": "Nerdy Announces CEO Chuck Cohn Purchased $4.4 million or 3.5 million Shares of Nerdy Common Stock During the Fourth Quarter. Since Becoming a Public Company, Mr. Cohn has Purchased $81.0 million or 51.4 million Shares of Nerdy Common Stock.",
+            "published_at": "2026-01-05T14:00:00Z",
+            "received_at": "2026-01-05T14:00:24.210290",
+            "tickers": [
+              "NRDY"
+            ],
+            "industry": "Software - Application",
+            "industries": [
+              "Software - Application"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 1.11,
+            "peak_price": 1.1,
+            "peak_price_timestamp": "2026-01-05T14:00:37.330565+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.9009009009009016,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49691187",
+            "title": "CES 2026: SoundHound AI Unveils Agentic Voice Commerce for Vehicles and TVs, With AI Agents that Order Food, Make Dinner Reservations, Pay for Parking, and Book Tickets On the Go",
+            "published_at": "2026-01-05T14:03:00Z",
+            "received_at": "2026-01-05T14:03:02.347385",
+            "tickers": [
+              "SOUN"
+            ],
+            "industry": "Software - Application",
+            "industries": [
+              "Software - Application"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 10.84,
+            "peak_price": 10.88,
+            "peak_price_timestamp": "2026-01-05T14:04:54.243924+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.3690036900369089,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49740184",
+            "title": "BTDR Investors Have Opportunity to Lead Bitdeer Technologies Group Securities Fraud Lawsuit",
+            "published_at": "2026-01-06T21:17:00Z",
+            "received_at": "2026-01-06T21:17:16.754452",
+            "tickers": [
+              "BTDR"
+            ],
+            "industry": "Software - Application",
+            "industries": [
+              "Software - Application"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 12.17,
+            "peak_price": 12.16,
+            "peak_price_timestamp": "2026-01-06T21:17:08.386564+00:00",
+            "final_ask_10min": 12.1,
+            "max_excursion_pct": -0.08216926869350688,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49719282",
+            "title": "Cerence AI to Participate in 28th Annual Needham Growth Conference",
+            "published_at": "2026-01-06T13:00:00Z",
+            "received_at": "2026-01-06T13:00:16.708740",
+            "tickers": [
+              "CRNC"
+            ],
+            "industry": "Software - Application",
+            "industries": [
+              "Software - Application"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 11.45,
+            "peak_price": 11.36,
+            "peak_price_timestamp": "2026-01-06T13:05:51.148697+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.7860262008733613,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49719333",
+            "title": "Roadzen Announces Major Strategic Acquisition of AI-Powered Vehicle Repair Platform VehicleCare at CES 2026; Transaction Consideration Values Standalone India Business at ~$277 Million",
+            "published_at": "2026-01-06T13:00:00Z",
+            "received_at": "2026-01-06T13:00:26.482136",
+            "tickers": [
+              "RDZN"
+            ],
+            "industry": "Software - Application",
+            "industries": [
+              "Software - Application"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 2.72,
+            "peak_price": 2.72,
+            "peak_price_timestamp": "2026-01-06T13:00:21.951950+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.0,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49719559",
+            "title": "Treasure Global Concludes Alumni Capital Equity Line Facility to Streamline Capital Structure and Focus on Fintech &amp; Digital-Asset Growth",
+            "published_at": "2026-01-06T13:03:00Z",
+            "received_at": "2026-01-06T13:03:01.832735",
+            "tickers": [
+              "TGL"
+            ],
+            "industry": "Software - Application",
+            "industries": [
+              "Software - Application"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 7.12,
+            "peak_price": 7.1499,
+            "peak_price_timestamp": "2026-01-06T13:04:04.063689+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.4199438202247134,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49768374",
+            "title": "ROSEN, A LONGSTANDING LAW FIRM, Encourages Bitdeer Technologies Group Investors to Secure Counsel Before Important Deadline in Securities Class Action - BTDR",
+            "published_at": "2026-01-07T20:50:50Z",
+            "received_at": "2026-01-07T20:50:51.631917",
+            "tickers": [
+              "BTDR"
+            ],
+            "industry": "Software - Application",
+            "industries": [
+              "Software - Application"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 11.47,
+            "peak_price": 11.51,
+            "peak_price_timestamp": "2026-01-07T20:59:08.006804+00:00",
+            "final_ask_10min": 11.66,
+            "max_excursion_pct": 0.3487358326067929,
+            "session": "market",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/market_hours/market_hours.json"
+          }
+        ]
+      },
+      "Computer Hardware": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49708984",
+            "title": "Unusual Machines to Participate in the 28th Annual Needham Growth Conference",
+            "published_at": "2026-01-05T21:30:00Z",
+            "received_at": "2026-01-05T21:30:04.413801",
+            "tickers": [
+              "UMAC"
+            ],
+            "industry": "Computer Hardware",
+            "industries": [
+              "Computer Hardware"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 15.5,
+            "peak_price": 15.5,
+            "peak_price_timestamp": "2026-01-05T21:39:25.348613+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.0,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49711711",
+            "title": "HP at CES 2026 \u2014 HyperX and OMEN Unite to Power the Future of Play",
+            "published_at": "2026-01-05T23:00:00Z",
+            "received_at": "2026-01-05T23:00:02.705985",
+            "tickers": [
+              "HPQ"
+            ],
+            "industry": "Computer Hardware",
+            "industries": [
+              "Computer Hardware"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 21.7,
+            "peak_price": 21.7,
+            "peak_price_timestamp": "2026-01-05T23:06:52.611922+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.0,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49711708",
+            "title": "HP at CES 2026 \u2014 HP Drives the Next Chapter of Intelligent Work",
+            "published_at": "2026-01-05T23:00:00Z",
+            "received_at": "2026-01-05T23:00:01.804253",
+            "tickers": [
+              "HPQ"
+            ],
+            "industry": "Computer Hardware",
+            "industries": [
+              "Computer Hardware"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 21.7,
+            "peak_price": 21.7,
+            "peak_price_timestamp": "2026-01-05T23:06:52.611922+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.0,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49711733",
+            "title": "Supermicro Announces Support for Upcoming NVIDIA Vera Rubin NVL72, HGX Rubin NVL8 and Expanded Rack-Scale Manufacturing Capacity for Liquid-Cooled AI Solutions",
+            "published_at": "2026-01-05T23:00:00Z",
+            "received_at": "2026-01-05T23:00:23.672974",
+            "tickers": [
+              "SMCI"
+            ],
+            "industry": "Computer Hardware",
+            "industries": [
+              "Computer Hardware"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 30.5,
+            "peak_price": 30.49,
+            "peak_price_timestamp": "2026-01-05T23:00:23.784546+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.03278688524590676,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49741785",
+            "title": "Super Micro Computer Announces Entry Into New Revolving Credit Facility",
+            "published_at": "2026-01-06T22:01:00Z",
+            "received_at": "2026-01-06T22:01:02.179226",
+            "tickers": [
+              "SMCI"
+            ],
+            "industry": "Computer Hardware",
+            "industries": [
+              "Computer Hardware"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 30.47,
+            "peak_price": 30.52,
+            "peak_price_timestamp": "2026-01-06T22:01:34.551809+00:00",
+            "final_ask_10min": 30.51,
+            "max_excursion_pct": 0.1640958319658704,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+          }
+        ]
+      },
+      "Communication Equipment": {
+        "winners": [
+          {
+            "article_id": "benzinga:49840160",
+            "title": "AmpliTech Group Receives over $9 million for its $4 Unit Subscription Rights Offering",
+            "published_at": "2026-01-12T13:00:00Z",
+            "received_at": "2026-01-12T13:00:03.983007",
+            "tickers": [
+              "AMPG"
+            ],
+            "industry": "Communication Equipment",
+            "industries": [
+              "Communication Equipment"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 3.24,
+            "peak_price": 3.4999,
+            "peak_price_timestamp": "2026-01-12T13:00:02.606407+00:00",
+            "final_ask_10min": 3.34,
+            "max_excursion_pct": 8.021604938271592,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+          }
+        ],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49690921",
+            "title": "BOS Secures $2.2 Million in Order from an Indian Customer",
+            "published_at": "2026-01-05T14:00:00Z",
+            "received_at": "2026-01-05T14:00:14.625992",
+            "tickers": [
+              "BOSC"
+            ],
+            "industry": "Communication Equipment",
+            "industries": [
+              "Communication Equipment"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 4.68,
+            "peak_price": 4.68,
+            "peak_price_timestamp": "2026-01-05T14:00:00.056433+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.0,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49719324",
+            "title": "CommScope Launches Secure Boot Solution for Texas Instruments&#39; Arm-based AM6x Processors",
+            "published_at": "2026-01-06T13:00:00Z",
+            "received_at": "2026-01-06T13:00:22.729024",
+            "tickers": [
+              "COMM"
+            ],
+            "industry": "Communication Equipment",
+            "industries": [
+              "Communication Equipment"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 18.75,
+            "peak_price": 18.75,
+            "peak_price_timestamp": "2026-01-06T13:06:59.391661+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.0,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          }
+        ]
+      },
+      "Auto Manufacturers": {
+        "winners": [
+          {
+            "article_id": "benzinga:49711734",
+            "title": "Lucid, Nuro, and Uber Unveil Global Robotaxi at CES, Announce Autonomous On-Road Testing",
+            "published_at": "2026-01-05T23:00:00Z",
+            "received_at": "2026-01-05T23:00:23.673074",
+            "tickers": [
+              "LCID",
+              "UBER"
+            ],
+            "industry": "Auto Manufacturers",
+            "industries": [
+              "Auto Manufacturers",
+              "Software - Application"
+            ],
+            "sectors": [
+              "Consumer Cyclical",
+              "Technology"
+            ],
+            "initial_ask": 11.75,
+            "peak_price": 80.9,
+            "peak_price_timestamp": "2026-01-05T23:01:36.292976+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 588.5106382978723,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          }
+        ],
+        "non_movers_sample": []
+      },
+      "Software - Infrastructure": {
+        "winners": [
+          {
+            "article_id": "benzinga:49707589",
+            "title": "Zeta Global and OpenAI Team Up to Deliver Answer-Driven Marketing with Athena by Zeta\u2122",
+            "published_at": "2026-01-05T21:05:00Z",
+            "received_at": "2026-01-05T21:05:07.337470",
+            "tickers": [
+              "ZETA"
+            ],
+            "industry": "Software - Infrastructure",
+            "industries": [
+              "Software - Infrastructure"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 23.0,
+            "peak_price": 24.17,
+            "peak_price_timestamp": "2026-01-05T21:13:03.131935+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 5.086956521739138,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49711718",
+            "title": "Aeva and NVIDIA to Integrate 4D LiDAR as Reference Sensor within the NVIDIA DRIVE Hyperion Platform Ecosystem",
+            "published_at": "2026-01-05T23:00:00Z",
+            "received_at": "2026-01-05T23:00:03.387131",
+            "tickers": [
+              "AEVA"
+            ],
+            "industry": "Software - Infrastructure",
+            "industries": [
+              "Software - Infrastructure"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 13.33,
+            "peak_price": 18.37,
+            "peak_price_timestamp": "2026-01-05T23:06:56.114237+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 37.80945236309078,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49719258",
+            "title": "AEye to Showcase Apollo One Kilometer Lidar Integrated with NVIDIA AGX DRIVE Thor\u2122 at CES to Enable Next-Generation Physical AI",
+            "published_at": "2026-01-06T13:00:00Z",
+            "received_at": "2026-01-06T13:00:16.707967",
+            "tickers": [
+              "LIDR"
+            ],
+            "industry": "Software - Infrastructure",
+            "industries": [
+              "Software - Infrastructure"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 2.52,
+            "peak_price": 2.77,
+            "peak_price_timestamp": "2026-01-06T13:00:03.201027+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 9.920634920634921,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          }
+        ],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49706270",
+            "title": "KLAR Stockholder Alert: Robbins LLP Reminds Investors of the Class Action Lawsuit Against Klarna Group plc",
+            "published_at": "2026-01-05T20:24:00Z",
+            "received_at": "2026-01-05T20:24:15.475806",
+            "tickers": [
+              "KLAR"
+            ],
+            "industry": "Software - Infrastructure",
+            "industries": [
+              "Software - Infrastructure"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 29.55,
+            "peak_price": 29.57,
+            "peak_price_timestamp": "2026-01-05T20:25:05.069232+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.06768189509306116,
+            "session": "market",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/market_hours/market_hours.json"
+          },
+          {
+            "article_id": "benzinga:49711724",
+            "title": "CoreWeave Extends Its Cloud Platform with NVIDIA Rubin Platform",
+            "published_at": "2026-01-05T23:00:00Z",
+            "received_at": "2026-01-05T23:00:07.539013",
+            "tickers": [
+              "CRWV"
+            ],
+            "industry": "Software - Infrastructure",
+            "industries": [
+              "Software - Infrastructure"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 77.1,
+            "peak_price": 77.5,
+            "peak_price_timestamp": "2026-01-05T23:00:41.668580+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.5188067444876858,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49687437",
+            "title": "Allot to Present at the Needham Growth Conference on January 14, 2026",
+            "published_at": "2026-01-05T12:14:46Z",
+            "received_at": "2026-01-05T12:14:50.976523",
+            "tickers": [
+              "ALLT"
+            ],
+            "industry": "Software - Infrastructure",
+            "industries": [
+              "Software - Infrastructure"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 9.94,
+            "peak_price": 9.86,
+            "peak_price_timestamp": "2026-01-05T12:25:42.557135+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.8048289738430591,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49690906",
+            "title": "Palladyne AI To Present at the 28th Annual Needham Growth Conference",
+            "published_at": "2026-01-05T14:00:00Z",
+            "received_at": "2026-01-05T14:00:14.625602",
+            "tickers": [
+              "PDYN",
+              "PDYNW"
+            ],
+            "industry": "Software - Infrastructure",
+            "industries": [
+              "Software - Infrastructure"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 4.86,
+            "peak_price": 4.86,
+            "peak_price_timestamp": "2026-01-05T14:00:51.221979+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.0,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49691023",
+            "title": "KLAR LAWSUIT ALERT: The Gross Law Firm Notifies Klarna Group plc Investors of a Class Action Lawsuit and Upcoming Deadline",
+            "published_at": "2026-01-05T14:00:00Z",
+            "received_at": "2026-01-05T14:00:42.363743",
+            "tickers": [
+              "KLAR"
+            ],
+            "industry": "Software - Infrastructure",
+            "industries": [
+              "Software - Infrastructure"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 28.82,
+            "peak_price": 28.77,
+            "peak_price_timestamp": "2026-01-05T14:03:07.838729+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.17349063150590116,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49738432",
+            "title": "Rosen Law Firm Encourages New Era Energy &amp; Digital, Inc. Investors to Inquire About Securities Class Action Investigation - NUAI",
+            "published_at": "2026-01-06T20:40:00Z",
+            "received_at": "2026-01-06T20:45:53.477176",
+            "tickers": [
+              "NUAI"
+            ],
+            "industry": "Software - Infrastructure",
+            "industries": [
+              "Software - Infrastructure"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 3.37,
+            "peak_price": 3.375,
+            "peak_price_timestamp": "2026-01-06T20:52:46.996426+00:00",
+            "final_ask_10min": 3.32,
+            "max_excursion_pct": 0.14836795252225204,
+            "session": "market",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/market_hours/market_hours.json"
+          },
+          {
+            "article_id": "benzinga:49739126",
+            "title": "INVESTOR ALERT: Class Action Lawsuit Filed on Behalf of Klarna Group plc (KLAR) Investors \u2013 Holzer &amp; Holzer, LLC Encourages Investors With Significant Losses to Contact the Firm",
+            "published_at": "2026-01-06T20:58:56Z",
+            "received_at": "2026-01-06T20:58:57.823566",
+            "tickers": [
+              "KLAR"
+            ],
+            "industry": "Software - Infrastructure",
+            "industries": [
+              "Software - Infrastructure"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 29.71,
+            "peak_price": 29.79,
+            "peak_price_timestamp": "2026-01-06T20:59:30.133711+00:00",
+            "final_ask_10min": 29.84,
+            "max_excursion_pct": 0.2692696061931952,
+            "session": "market",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/market_hours/market_hours.json"
+          },
+          {
+            "article_id": "benzinga:49739181",
+            "title": "Class Action Filed Against Klarna Group plc (KLAR) - February 20, 2026 Deadline to Join \u2013 Contact Levi &amp; Korsinsky",
+            "published_at": "2026-01-06T21:00:00Z",
+            "received_at": "2026-01-06T21:00:03.106182",
+            "tickers": [
+              "KLAR"
+            ],
+            "industry": "Software - Infrastructure",
+            "industries": [
+              "Software - Infrastructure"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 30.0,
+            "peak_price": 29.83,
+            "peak_price_timestamp": "2026-01-06T21:09:36.531441+00:00",
+            "final_ask_10min": 29.8,
+            "max_excursion_pct": -0.5666666666666723,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49739575",
+            "title": "Zeta Global to Participate in Upcoming Investor Conference",
+            "published_at": "2026-01-06T21:05:00Z",
+            "received_at": "2026-01-06T21:05:03.849436",
+            "tickers": [
+              "ZETA"
+            ],
+            "industry": "Software - Infrastructure",
+            "industries": [
+              "Software - Infrastructure"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 23.72,
+            "peak_price": 23.78,
+            "peak_price_timestamp": "2026-01-06T21:07:54.822774+00:00",
+            "final_ask_10min": 23.75,
+            "max_excursion_pct": 0.25295109612142613,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49739883",
+            "title": "UiPath to Participate in the 28th Annual Needham Growth Conference",
+            "published_at": "2026-01-06T21:10:00Z",
+            "received_at": "2026-01-06T21:10:02.247482",
+            "tickers": [
+              "PATH"
+            ],
+            "industry": "Software - Infrastructure",
+            "industries": [
+              "Software - Infrastructure"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 17.31,
+            "peak_price": 17.4,
+            "peak_price_timestamp": "2026-01-06T21:19:37.260125+00:00",
+            "final_ask_10min": 17.45,
+            "max_excursion_pct": 0.519930675909878,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49740183",
+            "title": "Shareholder Alert: The Ademi Firm investigates whether OneStream Inc. is obtaining a Fair Price for its Public Shareholders",
+            "published_at": "2026-01-06T21:17:00Z",
+            "received_at": "2026-01-06T21:17:15.754013",
+            "tickers": [
+              "OS"
+            ],
+            "industry": "Software - Infrastructure",
+            "industries": [
+              "Software - Infrastructure"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 23.6,
+            "peak_price": 23.58,
+            "peak_price_timestamp": "2026-01-06T21:22:30.321147+00:00",
+            "final_ask_10min": 23.59,
+            "max_excursion_pct": -0.08474576271187766,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49717609",
+            "title": "Aeva Introduces Omni, the First Compact Wide-View Short-Range 4D LiDAR Sensor for Physical AI Applications",
+            "published_at": "2026-01-06T12:00:00Z",
+            "received_at": "2026-01-06T12:00:22.841359",
+            "tickers": [
+              "AEVA"
+            ],
+            "industry": "Software - Infrastructure",
+            "industries": [
+              "Software - Infrastructure"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 17.0,
+            "peak_price": 17.05,
+            "peak_price_timestamp": "2026-01-06T12:00:00.490009+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.2941176470588277,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49719358",
+            "title": "ZenaTech&#39;s ZenaDrone Subsidiary Positioned for U.S. Defense and Government Demand for NDAA-Compliant Drones from Recent FCC Public Notice",
+            "published_at": "2026-01-06T13:00:00Z",
+            "received_at": "2026-01-06T13:00:40.375283",
+            "tickers": [
+              "ZENA"
+            ],
+            "industry": "Software - Infrastructure",
+            "industries": [
+              "Software - Infrastructure"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 3.51,
+            "peak_price": 3.5,
+            "peak_price_timestamp": "2026-01-06T13:00:34.713649+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.28490028490027886,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49767925",
+            "title": "SHAREHOLDER ALERT: Levi &amp; Korsinsky, LLP Notifies Investors It Has Filed a Complaint to Recover Losses Suffered by Purchasers of Varonis Systems, Inc. Common Stock and Sets a Lead Plaintiff Deadline of March 9, 2026",
+            "published_at": "2026-01-07T20:37:36Z",
+            "received_at": "2026-01-07T20:45:35.142056",
+            "tickers": [
+              "VRNS"
+            ],
+            "industry": "Software - Infrastructure",
+            "industries": [
+              "Software - Infrastructure"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 35.44,
+            "peak_price": 35.71,
+            "peak_price_timestamp": "2026-01-07T20:38:00.543686+00:00",
+            "final_ask_10min": 35.4,
+            "max_excursion_pct": 0.7618510158013633,
+            "session": "market",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/market_hours/market_hours.json"
+          },
+          {
+            "article_id": "benzinga:49769255",
+            "title": "F5 to Report First Quarter Fiscal Year 2026 Financial Results",
+            "published_at": "2026-01-07T21:05:00Z",
+            "received_at": "2026-01-07T21:05:09.567099",
+            "tickers": [
+              "FFIV"
+            ],
+            "industry": "Software - Infrastructure",
+            "industries": [
+              "Software - Infrastructure"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 269.99,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": 268.9,
+            "max_excursion_pct": -0.7481758583651178,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+          }
+        ]
+      },
+      "Semiconductor Equipment & Materials": {
+        "winners": [
+          {
+            "article_id": "benzinga:49717532",
+            "title": "Smartkem Signs Proof of Concept Agreement with Global Consumer Electronics Giant for MicroLED Wearables",
+            "published_at": "2026-01-06T12:00:00Z",
+            "received_at": "2026-01-06T12:00:03.667032",
+            "tickers": [
+              "SMTK"
+            ],
+            "industry": "Semiconductor Equipment & Materials",
+            "industries": [
+              "Semiconductor Equipment & Materials"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 1.29,
+            "peak_price": 1.38,
+            "peak_price_timestamp": "2026-01-06T12:00:30.163156+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 6.9767441860465,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          }
+        ],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49769266",
+            "title": "Lam Research Corporation Announces December Quarter Financial Conference Call",
+            "published_at": "2026-01-07T21:05:00Z",
+            "received_at": "2026-01-07T21:05:22.125228",
+            "tickers": [
+              "LRCX"
+            ],
+            "industry": "Semiconductor Equipment & Materials",
+            "industries": [
+              "Semiconductor Equipment & Materials"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 203.08,
+            "peak_price": 203.08,
+            "peak_price_timestamp": "2026-01-07T21:06:56.242063+00:00",
+            "final_ask_10min": 202.99,
+            "max_excursion_pct": 0.0,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+          }
+        ]
+      },
+      "Electronic Components": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49738488",
+            "title": "Gauzy Ltd. (GAUZ) Shareholders Who Lost Money Have Opportunity to Lead Securities Fraud Lawsuit",
+            "published_at": "2026-01-06T20:42:00Z",
+            "received_at": "2026-01-06T20:45:54.401541",
+            "tickers": [
+              "GAUZ"
+            ],
+            "industry": "Electronic Components",
+            "industries": [
+              "Electronic Components"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 1.14,
+            "peak_price": 1.14,
+            "peak_price_timestamp": "2026-01-06T20:45:01.741499+00:00",
+            "final_ask_10min": 1.13,
+            "max_excursion_pct": 0.0,
+            "session": "market",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/market_hours/market_hours.json"
+          },
+          {
+            "article_id": "benzinga:49743775",
+            "title": "TTM Technologies, Inc. Announces Upcoming Conference Participation",
+            "published_at": "2026-01-07T00:49:34Z",
+            "received_at": "2026-01-07T00:49:35.814662",
+            "tickers": [
+              "TTMI"
+            ],
+            "industry": "Electronic Components",
+            "industries": [
+              "Electronic Components"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 70.48,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": 70.48,
+            "max_excursion_pct": -0.6810442678774177,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+          }
+        ]
+      },
+      "Consumer Electronics": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49691829",
+            "title": "Vuzix Showcases AI-Powered Smart Glasses and Waveguide Solutions with its Global Ecosystem Partners at CES 2026",
+            "published_at": "2026-01-05T14:15:00Z",
+            "received_at": "2026-01-05T14:15:15.859033",
+            "tickers": [
+              "VUZI"
+            ],
+            "industry": "Consumer Electronics",
+            "industries": [
+              "Consumer Electronics"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "initial_ask": 3.85,
+            "peak_price": 3.85,
+            "peak_price_timestamp": "2026-01-05T14:23:09.805682+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.0,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          }
+        ]
+      }
+    }
+  }
+}

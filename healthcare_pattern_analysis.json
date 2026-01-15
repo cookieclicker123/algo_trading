@@ -1,0 +1,4897 @@
+{
+  "analysis_metadata": {
+    "analysis_date": "2026-01-13T23:29:20.228455+00:00",
+    "period": "2026-01-02 to 2026-01-13",
+    "total_records_processed": 3017,
+    "total_healthcare_records": 746
+  },
+  "summary": {
+    "total_winners": 34,
+    "total_non_movers": 178,
+    "total_non_movers_sampled": 50,
+    "total_losers": 249,
+    "industries_analyzed": 9
+  },
+  "overall_patterns": {
+    "keyword_analysis": {
+      "fda": {
+        "winner_count": 6,
+        "winner_pct": 17.65,
+        "non_mover_count": 2,
+        "non_mover_pct": 4.0,
+        "difference_pct": 13.65
+      },
+      "therapeutics": {
+        "winner_count": 10,
+        "winner_pct": 29.41,
+        "non_mover_count": 8,
+        "non_mover_pct": 16.0,
+        "difference_pct": 13.41
+      },
+      "therapeutic": {
+        "winner_count": 10,
+        "winner_pct": 29.41,
+        "non_mover_count": 8,
+        "non_mover_pct": 16.0,
+        "difference_pct": 13.41
+      },
+      "update": {
+        "winner_count": 5,
+        "winner_pct": 14.71,
+        "non_mover_count": 1,
+        "non_mover_pct": 2.0,
+        "difference_pct": 12.71
+      },
+      "revenue": {
+        "winner_count": 4,
+        "winner_pct": 11.76,
+        "non_mover_count": 0,
+        "non_mover_pct": 0.0,
+        "difference_pct": 11.76
+      },
+      "results": {
+        "winner_count": 6,
+        "winner_pct": 17.65,
+        "non_mover_count": 3,
+        "non_mover_pct": 6.0,
+        "difference_pct": 11.65
+      },
+      "announces": {
+        "winner_count": 11,
+        "winner_pct": 32.35,
+        "non_mover_count": 11,
+        "non_mover_pct": 22.0,
+        "difference_pct": 10.35
+      },
+      "data": {
+        "winner_count": 4,
+        "winner_pct": 11.76,
+        "non_mover_count": 1,
+        "non_mover_pct": 2.0,
+        "difference_pct": 9.76
+      },
+      "guidance": {
+        "winner_count": 2,
+        "winner_pct": 5.88,
+        "non_mover_count": 0,
+        "non_mover_pct": 0.0,
+        "difference_pct": 5.88
+      },
+      "disease": {
+        "winner_count": 2,
+        "winner_pct": 5.88,
+        "non_mover_count": 0,
+        "non_mover_pct": 0.0,
+        "difference_pct": 5.88
+      },
+      "drug": {
+        "winner_count": 2,
+        "winner_pct": 5.88,
+        "non_mover_count": 0,
+        "non_mover_pct": 0.0,
+        "difference_pct": 5.88
+      },
+      "bla": {
+        "winner_count": 2,
+        "winner_pct": 5.88,
+        "non_mover_count": 0,
+        "non_mover_pct": 0.0,
+        "difference_pct": 5.88
+      },
+      "clinical": {
+        "winner_count": 4,
+        "winner_pct": 11.76,
+        "non_mover_count": 3,
+        "non_mover_pct": 6.0,
+        "difference_pct": 5.76
+      },
+      "treatment": {
+        "winner_count": 3,
+        "winner_pct": 8.82,
+        "non_mover_count": 2,
+        "non_mover_pct": 4.0,
+        "difference_pct": 4.82
+      },
+      "study": {
+        "winner_count": 3,
+        "winner_pct": 8.82,
+        "non_mover_count": 2,
+        "non_mover_pct": 4.0,
+        "difference_pct": 4.82
+      },
+      "approval": {
+        "winner_count": 2,
+        "winner_pct": 5.88,
+        "non_mover_count": 1,
+        "non_mover_pct": 2.0,
+        "difference_pct": 3.88
+      },
+      "designation": {
+        "winner_count": 2,
+        "winner_pct": 5.88,
+        "non_mover_count": 1,
+        "non_mover_pct": 2.0,
+        "difference_pct": 3.88
+      },
+      "launch": {
+        "winner_count": 2,
+        "winner_pct": 5.88,
+        "non_mover_count": 1,
+        "non_mover_pct": 2.0,
+        "difference_pct": 3.88
+      },
+      "positive": {
+        "winner_count": 4,
+        "winner_pct": 11.76,
+        "non_mover_count": 4,
+        "non_mover_pct": 8.0,
+        "difference_pct": 3.76
+      },
+      "phase": {
+        "winner_count": 6,
+        "winner_pct": 17.65,
+        "non_mover_count": 7,
+        "non_mover_pct": 14.0,
+        "difference_pct": 3.65
+      }
+    },
+    "total_keywords_analyzed": 38,
+    "winner_keyword_frequency": {
+      "announces": 11,
+      "therapeutic": 10,
+      "therapeutics": 10,
+      "phase": 6,
+      "results": 6,
+      "fda": 6,
+      "update": 5,
+      "positive": 4,
+      "clinical": 4,
+      "data": 4,
+      "revenue": 4,
+      "study": 3,
+      "treatment": 3,
+      "trial": 2,
+      "disease": 2,
+      "approval": 2,
+      "bla": 2,
+      "launch": 2,
+      "therapy": 2,
+      "designation": 2
+    },
+    "non_mover_keyword_frequency": {
+      "conference": 14,
+      "announces": 11,
+      "therapeutic": 8,
+      "therapeutics": 8,
+      "phase": 7,
+      "patient": 6,
+      "trial": 4,
+      "positive": 4,
+      "results": 3,
+      "patients": 3,
+      "clinical": 3,
+      "study": 2,
+      "fda": 2,
+      "treatment": 2,
+      "therapy": 2,
+      "earnings": 1,
+      "presentation": 1,
+      "launch": 1,
+      "collaboration": 1,
+      "data": 1
+    }
+  },
+  "industry_breakdown": {
+    "Drug Manufacturers - Specialty & Generic": {
+      "winners_count": 2,
+      "non_movers_count": 5,
+      "patterns": {
+        "keyword_analysis": {
+          "guidance": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          },
+          "revenue": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          },
+          "announces": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 20.0,
+            "difference_pct": 30.0
+          },
+          "breakthrough therapy": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 20.0,
+            "difference_pct": -20.0
+          },
+          "therapeutics": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 20.0,
+            "difference_pct": -20.0
+          },
+          "conference": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 20.0,
+            "difference_pct": -20.0
+          },
+          "designation": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 20.0,
+            "difference_pct": -20.0
+          },
+          "therapeutic": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 20.0,
+            "difference_pct": -20.0
+          },
+          "fda": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 20.0,
+            "difference_pct": -20.0
+          },
+          "trial": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 20.0,
+            "difference_pct": -20.0
+          },
+          "therapy": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 20.0,
+            "difference_pct": -20.0
+          },
+          "breakthrough": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 20.0,
+            "difference_pct": -20.0
+          },
+          "phase": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 20.0,
+            "difference_pct": -20.0
+          },
+          "clinical": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 20.0,
+            "difference_pct": -20.0
+          },
+          "patient": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 20.0,
+            "difference_pct": -20.0
+          },
+          "treatment": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 2,
+            "non_mover_pct": 40.0,
+            "difference_pct": -40.0
+          }
+        },
+        "total_keywords_analyzed": 16,
+        "winner_keyword_frequency": {
+          "revenue": 1,
+          "guidance": 1,
+          "announces": 1
+        },
+        "non_mover_keyword_frequency": {
+          "treatment": 2,
+          "conference": 1,
+          "fda": 1,
+          "therapy": 1,
+          "breakthrough": 1,
+          "designation": 1,
+          "breakthrough therapy": 1,
+          "phase": 1,
+          "trial": 1,
+          "clinical": 1,
+          "therapeutic": 1,
+          "therapeutics": 1,
+          "announces": 1,
+          "patient": 1
+        }
+      }
+    },
+    "Health Information Services": {
+      "winners_count": 1,
+      "non_movers_count": 2,
+      "patterns": {
+        "keyword_analysis": {
+          "update": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 100.0
+          },
+          "announces": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          },
+          "conference": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          }
+        },
+        "total_keywords_analyzed": 3,
+        "winner_keyword_frequency": {
+          "update": 1
+        },
+        "non_mover_keyword_frequency": {
+          "conference": 1,
+          "announces": 1
+        }
+      }
+    },
+    "Medical Instruments & Supplies": {
+      "winners_count": 2,
+      "non_movers_count": 1,
+      "patterns": {
+        "keyword_analysis": {
+          "bla": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          },
+          "approval": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          },
+          "sales": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          },
+          "announces": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          },
+          "fda": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          }
+        },
+        "total_keywords_analyzed": 5,
+        "winner_keyword_frequency": {
+          "fda": 1,
+          "approval": 1,
+          "bla": 1,
+          "announces": 1,
+          "sales": 1
+        },
+        "non_mover_keyword_frequency": {}
+      }
+    },
+    "Biotechnology": {
+      "winners_count": 25,
+      "non_movers_count": 30,
+      "patterns": {
+        "keyword_analysis": {
+          "fda": {
+            "winner_count": 5,
+            "winner_pct": 20.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 20.0
+          },
+          "therapeutics": {
+            "winner_count": 10,
+            "winner_pct": 40.0,
+            "non_mover_count": 7,
+            "non_mover_pct": 23.33,
+            "difference_pct": 16.67
+          },
+          "therapeutic": {
+            "winner_count": 10,
+            "winner_pct": 40.0,
+            "non_mover_count": 7,
+            "non_mover_pct": 23.33,
+            "difference_pct": 16.67
+          },
+          "update": {
+            "winner_count": 4,
+            "winner_pct": 16.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 3.33,
+            "difference_pct": 12.67
+          },
+          "data": {
+            "winner_count": 4,
+            "winner_pct": 16.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 3.33,
+            "difference_pct": 12.67
+          },
+          "treatment": {
+            "winner_count": 3,
+            "winner_pct": 12.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 12.0
+          },
+          "clinical": {
+            "winner_count": 4,
+            "winner_pct": 16.0,
+            "non_mover_count": 2,
+            "non_mover_pct": 6.67,
+            "difference_pct": 9.33
+          },
+          "designation": {
+            "winner_count": 2,
+            "winner_pct": 8.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 8.0
+          },
+          "disease": {
+            "winner_count": 2,
+            "winner_pct": 8.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 8.0
+          },
+          "drug": {
+            "winner_count": 2,
+            "winner_pct": 8.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 8.0
+          },
+          "revenue": {
+            "winner_count": 2,
+            "winner_pct": 8.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 8.0
+          },
+          "results": {
+            "winner_count": 4,
+            "winner_pct": 16.0,
+            "non_mover_count": 3,
+            "non_mover_pct": 10.0,
+            "difference_pct": 6.0
+          },
+          "study": {
+            "winner_count": 3,
+            "winner_pct": 12.0,
+            "non_mover_count": 2,
+            "non_mover_pct": 6.67,
+            "difference_pct": 5.33
+          },
+          "launch": {
+            "winner_count": 2,
+            "winner_pct": 8.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 3.33,
+            "difference_pct": 4.67
+          },
+          "therapy": {
+            "winner_count": 2,
+            "winner_pct": 8.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 3.33,
+            "difference_pct": 4.67
+          },
+          "agreement": {
+            "winner_count": 1,
+            "winner_pct": 4.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 4.0
+          },
+          "guidance": {
+            "winner_count": 1,
+            "winner_pct": 4.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 4.0
+          },
+          "phase": {
+            "winner_count": 6,
+            "winner_pct": 24.0,
+            "non_mover_count": 6,
+            "non_mover_pct": 20.0,
+            "difference_pct": 4.0
+          },
+          "successful": {
+            "winner_count": 1,
+            "winner_pct": 4.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 4.0
+          },
+          "orphan": {
+            "winner_count": 1,
+            "winner_pct": 4.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 4.0
+          }
+        },
+        "total_keywords_analyzed": 33,
+        "winner_keyword_frequency": {
+          "therapeutic": 10,
+          "therapeutics": 10,
+          "announces": 7,
+          "phase": 6,
+          "fda": 5,
+          "results": 4,
+          "positive": 4,
+          "clinical": 4,
+          "data": 4,
+          "update": 4,
+          "study": 3,
+          "treatment": 3,
+          "trial": 2,
+          "disease": 2,
+          "launch": 2,
+          "therapy": 2,
+          "designation": 2,
+          "revenue": 2,
+          "drug": 2,
+          "conference": 2
+        },
+        "non_mover_keyword_frequency": {
+          "announces": 9,
+          "conference": 7,
+          "therapeutic": 7,
+          "therapeutics": 7,
+          "phase": 6,
+          "patient": 4,
+          "positive": 4,
+          "trial": 3,
+          "results": 3,
+          "patients": 3,
+          "study": 2,
+          "clinical": 2,
+          "presentation": 1,
+          "launch": 1,
+          "data": 1,
+          "approval": 1,
+          "update": 1,
+          "partnership": 1,
+          "therapy": 1,
+          "nda": 1
+        }
+      }
+    },
+    "Diagnostics & Research": {
+      "winners_count": 1,
+      "non_movers_count": 1,
+      "patterns": {
+        "keyword_analysis": {
+          "announces": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 100.0
+          },
+          "results": {
+            "winner_count": 1,
+            "winner_pct": 100.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 100.0
+          },
+          "conference": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          }
+        },
+        "total_keywords_analyzed": 3,
+        "winner_keyword_frequency": {
+          "results": 1,
+          "announces": 1
+        },
+        "non_mover_keyword_frequency": {
+          "conference": 1
+        }
+      }
+    },
+    "Medical Care Facilities": {
+      "winners_count": 0,
+      "non_movers_count": 4,
+      "patterns": {
+        "keyword_analysis": {
+          "collaboration": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 25.0,
+            "difference_pct": -25.0
+          },
+          "patient": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 25.0,
+            "difference_pct": -25.0
+          }
+        },
+        "total_keywords_analyzed": 2,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "collaboration": 1,
+          "patient": 1
+        }
+      }
+    },
+    "Drug Manufacturers - General": {
+      "winners_count": 0,
+      "non_movers_count": 1,
+      "patterns": {
+        "keyword_analysis": {
+          "conference": {
+            "winner_count": 0,
+            "winner_pct": 0,
+            "non_mover_count": 1,
+            "non_mover_pct": 100.0,
+            "difference_pct": -100.0
+          }
+        },
+        "total_keywords_analyzed": 1,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {
+          "conference": 1
+        }
+      }
+    },
+    "Leisure": {
+      "winners_count": 1,
+      "non_movers_count": 0,
+      "patterns": {
+        "keyword_analysis": {},
+        "total_keywords_analyzed": 0,
+        "winner_keyword_frequency": {},
+        "non_mover_keyword_frequency": {}
+      }
+    },
+    "Medical Devices": {
+      "winners_count": 2,
+      "non_movers_count": 6,
+      "patterns": {
+        "keyword_analysis": {
+          "results": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          },
+          "revenue": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          },
+          "announces": {
+            "winner_count": 1,
+            "winner_pct": 50.0,
+            "non_mover_count": 0,
+            "non_mover_pct": 0.0,
+            "difference_pct": 50.0
+          },
+          "fda": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 16.67,
+            "difference_pct": -16.67
+          },
+          "earnings": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 1,
+            "non_mover_pct": 16.67,
+            "difference_pct": -16.67
+          },
+          "conference": {
+            "winner_count": 0,
+            "winner_pct": 0.0,
+            "non_mover_count": 3,
+            "non_mover_pct": 50.0,
+            "difference_pct": -50.0
+          }
+        },
+        "total_keywords_analyzed": 6,
+        "winner_keyword_frequency": {
+          "results": 1,
+          "announces": 1,
+          "revenue": 1
+        },
+        "non_mover_keyword_frequency": {
+          "conference": 3,
+          "earnings": 1,
+          "fda": 1
+        }
+      }
+    }
+  },
+  "detailed_data": {
+    "winners": [
+      {
+        "article_id": "benzinga:49706571",
+        "title": "DEADLINE ALERT for FUN, TLX, LRN, PRMB: Law Offices of Howard G. Smith Reminds Shareholders of Opportunity to Lead Securities Fraud Class Actions",
+        "published_at": "2026-01-05T20:35:00Z",
+        "received_at": "2026-01-05T20:35:15.570750",
+        "tickers": [
+          "FUN",
+          "TLX",
+          "LRN",
+          "PRMB"
+        ],
+        "industry": "Leisure",
+        "industries": [
+          "Leisure",
+          "Education & Training Services",
+          "Beverages - Non-Alcoholic",
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Consumer Cyclical",
+          "Healthcare",
+          "Consumer Defensive"
+        ],
+        "initial_ask": 14.79,
+        "peak_price": 16.68,
+        "peak_price_timestamp": "2026-01-05T20:35:23.404519+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 12.778904665314405,
+        "session": "market",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/market_hours/market_hours.json"
+      },
+      {
+        "article_id": "benzinga:49707360",
+        "title": "Cyclerion Therapeutics Announces Strategic Agreement with Medsteer and Progress Toward Initiating Phase 2 Proof-of-Concept Study for CYC-126 in Treatment-Resistant Depression",
+        "published_at": "2026-01-05T21:01:00Z",
+        "received_at": "2026-01-05T21:01:03.574576",
+        "tickers": [
+          "CYCN"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 1.83,
+        "peak_price": 2.08,
+        "peak_price_timestamp": "2026-01-05T21:09:37.314334+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 13.661202185792348,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49707956",
+        "title": "KALA BIO Settles Approximately $10.6 million of Debt",
+        "published_at": "2026-01-05T21:10:05Z",
+        "received_at": "2026-01-05T21:10:06.861756",
+        "tickers": [
+          "KALA"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 0.69,
+        "peak_price": 0.8,
+        "peak_price_timestamp": "2026-01-05T21:19:40.074845+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 15.942028985507262,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49708977",
+        "title": "Bright Minds to Announce Topline Results for BMB-101 Phase 2 Trial in Absence Seizures and Developmental and Epileptic Encephalopathies on Tuesday, January 6, 2026",
+        "published_at": "2026-01-05T21:30:00Z",
+        "received_at": "2026-01-05T21:30:02.505675",
+        "tickers": [
+          "DRUG"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 81.0,
+        "peak_price": 87.8,
+        "peak_price_timestamp": "2026-01-05T21:30:16.807010+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 8.395061728395058,
+        "session": "postmarket",
+        "filter_reason": "prefilter_nbbo_unavailable",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49686287",
+        "title": "Neumora Therapeutics Announces Positive Results from NMRA-511 Phase 1b Signal-Seeking Study in Alzheimer&#39;s Disease Agitation",
+        "published_at": "2026-01-05T11:30:00Z",
+        "received_at": "2026-01-05T11:30:02.437773",
+        "tickers": [
+          "NMRA"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 1.83,
+        "peak_price": 1.97,
+        "peak_price_timestamp": "2026-01-05T11:34:37.216962+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 7.65027322404371,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49686360",
+        "title": "Neumora Therapeutics Highlights 2026 Pipeline Strategy and Anticipated Upcoming Milestones",
+        "published_at": "2026-01-05T11:35:00Z",
+        "received_at": "2026-01-05T11:35:01.721016",
+        "tickers": [
+          "NMRA"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 1.87,
+        "peak_price": 1.97,
+        "peak_price_timestamp": "2026-01-05T11:39:17.102537+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 5.347593582887693,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49690927",
+        "title": "Alpha Tau Submits First Pre-Market Approval Module to the FDA for Alpha DaRT\u00ae for the Treatment of Recurrent Cutaneous Squamous Cell Carcinoma (cSCC)",
+        "published_at": "2026-01-05T14:00:00Z",
+        "received_at": "2026-01-05T14:00:15.229423",
+        "tickers": [
+          "DRTSW",
+          "DRTS"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 0.592,
+        "peak_price": 4.95,
+        "peak_price_timestamp": "2026-01-05T14:09:13.092604+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 736.1486486486488,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49717630",
+        "title": "Genprex Announces Positive Preliminary Preclinical Data from Study of GPX-002 in Type 2 Diabetic Animal Studies",
+        "published_at": "2026-01-06T12:00:00Z",
+        "received_at": "2026-01-06T12:00:35.820607",
+        "tickers": [
+          "GNPX"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 2.16,
+        "peak_price": 2.27,
+        "peak_price_timestamp": "2026-01-06T12:00:42.651441+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 5.092592592592586,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49718485",
+        "title": "Anavex Life Sciences Receives FDA Feedback on Alzheimer&#39;s Disease Program",
+        "published_at": "2026-01-06T12:30:00Z",
+        "received_at": "2026-01-06T12:30:03.990982",
+        "tickers": [
+          "AVXL"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 4.02,
+        "peak_price": 5.35,
+        "peak_price_timestamp": "2026-01-06T12:30:59.593388+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 33.084577114427866,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49719356",
+        "title": "SpyGlass Pharma Appoints Jean-Fr\u00e9d\u00e9ric Viret as Chief Financial Officer",
+        "published_at": "2026-01-06T13:00:00Z",
+        "received_at": "2026-01-06T13:00:40.375038",
+        "tickers": [
+          "CHRS"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 1.49,
+        "peak_price": 1.6,
+        "peak_price_timestamp": "2026-01-06T13:01:35.176704+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 7.382550335570476,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49719461",
+        "title": "Stereotaxis Receives FDA Approval for MAGiC Ablation Catheter",
+        "published_at": "2026-01-06T13:01:00Z",
+        "received_at": "2026-01-06T13:01:09.328716",
+        "tickers": [
+          "STXS"
+        ],
+        "industry": "Medical Instruments & Supplies",
+        "industries": [
+          "Medical Instruments & Supplies"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 2.45,
+        "peak_price": 2.62,
+        "peak_price_timestamp": "2026-01-06T13:03:44.078943+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 6.938775510204079,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49719486",
+        "title": "TransCode Therapeutics Announces Publication of Preclinical Data Supporting Therapeutic Potential of TTX-MC138 in Glioblastoma",
+        "published_at": "2026-01-06T13:01:00Z",
+        "received_at": "2026-01-06T13:01:16.617260",
+        "tickers": [
+          "RNAZ"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 7.8,
+        "peak_price": 10.35,
+        "peak_price_timestamp": "2026-01-06T13:07:31.465861+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 32.69230769230769,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49770397",
+        "title": "Jasper Therapeutics Appoints Jeet Mahal as Chief Executive Officer to Lead Next Phase of Clinical Growth",
+        "published_at": "2026-01-07T21:30:00Z",
+        "received_at": "2026-01-07T21:30:01.648026",
+        "tickers": [
+          "JSPR"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 2.06,
+        "peak_price": 2.19,
+        "peak_price_timestamp": "2026-01-07T21:38:58.791436+00:00",
+        "final_ask_10min": 2.15,
+        "max_excursion_pct": 6.31067961165048,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49747832",
+        "title": "Cardio Diagnostics, Aimil Ltd. and Dr. Lal PathLabs Limited Partner to Launch the PrecisionCHD\u2122 Test in India",
+        "published_at": "2026-01-07T11:25:00Z",
+        "received_at": "2026-01-07T11:25:01.414285",
+        "tickers": [
+          "CDIO"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 3.1,
+        "peak_price": 3.85,
+        "peak_price_timestamp": "2026-01-07T11:34:16.410139+00:00",
+        "final_ask_10min": 3.58,
+        "max_excursion_pct": 24.193548387096772,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49748583",
+        "title": "Monte Rosa Therapeutics Announces Positive Interim Phase 1 Data of MRT-8102 Demonstrating Profound CRP Reductions in Elevated CVD-risk Subjects",
+        "published_at": "2026-01-07T12:00:00Z",
+        "received_at": "2026-01-07T12:00:02.613073",
+        "tickers": [
+          "GLUE"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 17.5,
+        "peak_price": 18.5,
+        "peak_price_timestamp": "2026-01-07T12:05:53.506487+00:00",
+        "final_ask_10min": 18.45,
+        "max_excursion_pct": 5.714285714285714,
+        "session": "premarket",
+        "filter_reason": "spread_too_wide_5.13%",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49750393",
+        "title": "Aspire Biopharma Announces Successful Pre-IND Meeting with FDA for High-Dose Sublingual Aspirin (OTASA)",
+        "published_at": "2026-01-07T13:00:00Z",
+        "received_at": "2026-01-07T13:00:06.457118",
+        "tickers": [
+          "ASBP"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 0.108,
+        "peak_price": 0.1523,
+        "peak_price_timestamp": "2026-01-07T13:07:04.980263+00:00",
+        "final_ask_10min": 0.1468,
+        "max_excursion_pct": 41.01851851851851,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49750446",
+        "title": "iECURE Receives FDA Regenerative Medicine Advanced Therapy (RMAT) Designation for ECUR-506 for Neonatal Onset Ornithine Transcarbamylase (OTC) Deficiency",
+        "published_at": "2026-01-07T13:00:00Z",
+        "received_at": "2026-01-07T13:00:21.946531",
+        "tickers": [
+          "DTIL"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 4.37,
+        "peak_price": 4.8773,
+        "peak_price_timestamp": "2026-01-07T13:01:36.666584+00:00",
+        "final_ask_10min": 4.4,
+        "max_excursion_pct": 11.60869565217391,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49750531",
+        "title": "Innovative Eyewear, Inc. Announces Record-Breaking 65% Annual Sales Growth in 2025 &amp; Insider Buying Intent",
+        "published_at": "2026-01-07T13:00:00Z",
+        "received_at": "2026-01-07T13:00:48.215067",
+        "tickers": [
+          "LUCY"
+        ],
+        "industry": "Medical Instruments & Supplies",
+        "industries": [
+          "Medical Instruments & Supplies"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 1.33,
+        "peak_price": 1.58,
+        "peak_price_timestamp": "2026-01-07T13:11:15.729181+00:00",
+        "final_ask_10min": 1.51,
+        "max_excursion_pct": 18.796992481203006,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49800160",
+        "title": "KalVista Pharmaceuticals Provides Update on Strong EKTERLY\u00ae Launch with Preliminary Fourth Quarter and Full Year 2025 Revenue Results",
+        "published_at": "2026-01-08T21:05:00Z",
+        "received_at": "2026-01-08T21:05:05.286368",
+        "tickers": [
+          "KALV"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 17.0,
+        "peak_price": 18.0,
+        "peak_price_timestamp": "2026-01-08T21:09:13.403774+00:00",
+        "final_ask_10min": 18.5,
+        "max_excursion_pct": 5.88235294117647,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49800157",
+        "title": "Tilray Brands Delivers Record Q2 Fiscal 2026 Net Revenue of $218 Million, Moves to Net Cash Position and Reaffirms Full-Year Adjusted EBITDA Guidance",
+        "published_at": "2026-01-08T21:05:00Z",
+        "received_at": "2026-01-08T21:05:05.286218",
+        "tickers": [
+          "TLRY"
+        ],
+        "industry": "Drug Manufacturers - Specialty & Generic",
+        "industries": [
+          "Drug Manufacturers - Specialty & Generic"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 9.46,
+        "peak_price": 9.98,
+        "peak_price_timestamp": "2026-01-08T21:07:36.781462+00:00",
+        "final_ask_10min": 9.75,
+        "max_excursion_pct": 5.496828752642701,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49776701",
+        "title": "Aclarion Provides 2025 Update and 2026 Corporate Outlook",
+        "published_at": "2026-01-08T11:00:00Z",
+        "received_at": "2026-01-08T11:00:02.755330",
+        "tickers": [
+          "ACONW",
+          "ACON"
+        ],
+        "industry": "Health Information Services",
+        "industries": [
+          "Health Information Services"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 0.389,
+        "peak_price": 5.9,
+        "peak_price_timestamp": "2026-01-08T11:00:00.099180+00:00",
+        "final_ask_10min": 6.19,
+        "max_excursion_pct": 1416.7095115681234,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/08/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49777987",
+        "title": "Neogen Announces Second-Quarter 2026 Results",
+        "published_at": "2026-01-08T12:00:00Z",
+        "received_at": "2026-01-08T12:00:09.793294",
+        "tickers": [
+          "NEOG"
+        ],
+        "industry": "Diagnostics & Research",
+        "industries": [
+          "Diagnostics & Research"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 8.05,
+        "peak_price": 8.75,
+        "peak_price_timestamp": "2026-01-08T12:09:42.125448+00:00",
+        "final_ask_10min": 8.95,
+        "max_excursion_pct": 8.695652173913034,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/08/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49779049",
+        "title": "Acrivon Therapeutics Announces Positive ACR-368 Phase 2b Endometrial Cancer Clinical Data with EU Expansion to Accelerate Enrollment, Initial ACR-2316 Clinical Data, and ACR-6840, its Next AP3-Enabled Development Candidate, Targeting CDK11",
+        "published_at": "2026-01-08T12:30:00Z",
+        "received_at": "2026-01-08T12:30:03.679301",
+        "tickers": [
+          "ACRV"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 3.27,
+        "peak_price": 3.67,
+        "peak_price_timestamp": "2026-01-08T12:31:08.364129+00:00",
+        "final_ask_10min": 3.28,
+        "max_excursion_pct": 12.23241590214067,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/08/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49860737",
+        "title": "Solid Biosciences Receives FDA Orphan Drug Designation for SGT-212 Dual-Route Gene Therapy for the Treatment of Friedreich&#39;s Ataxia",
+        "published_at": "2026-01-12T21:15:00Z",
+        "received_at": "2026-01-12T21:15:01.993657",
+        "tickers": [
+          "SLDB"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 5.45,
+        "peak_price": 6.12,
+        "peak_price_timestamp": "2026-01-12T21:15:31.850035+00:00",
+        "final_ask_10min": 5.79,
+        "max_excursion_pct": 12.293577981651374,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_3/12/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49840183",
+        "title": "Galecto Highlights Key Strategic Priorities and Anticipated 2026 Milestones",
+        "published_at": "2026-01-12T13:00:00Z",
+        "received_at": "2026-01-12T13:00:06.895254",
+        "tickers": [
+          "GLTO"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 22.0,
+        "peak_price": 23.94,
+        "peak_price_timestamp": "2026-01-12T13:01:40.664822+00:00",
+        "final_ask_10min": 23.0,
+        "max_excursion_pct": 8.818181818181824,
+        "session": "premarket",
+        "filter_reason": "spread_too_wide_9.22%",
+        "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49840200",
+        "title": "Mereo BioPharma Provides Corporate Update",
+        "published_at": "2026-01-12T13:00:00Z",
+        "received_at": "2026-01-12T13:00:09.720295",
+        "tickers": [
+          "MREO"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 0.556,
+        "peak_price": 0.5916,
+        "peak_price_timestamp": "2026-01-12T13:02:17.679191+00:00",
+        "final_ask_10min": 0.547,
+        "max_excursion_pct": 6.402877697841721,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49840290",
+        "title": "Atara Biotherapeutics Provides Regulatory and Business Update on EBVALLO\u2122 (tabelecleucel)",
+        "published_at": "2026-01-12T13:00:00Z",
+        "received_at": "2026-01-12T13:00:29.467872",
+        "tickers": [
+          "ATRA"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 13.01,
+        "peak_price": 15.1628,
+        "peak_price_timestamp": "2026-01-12T13:00:04.808331+00:00",
+        "final_ask_10min": 6.39,
+        "max_excursion_pct": 16.54727132974636,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49840300",
+        "title": "Nuvation Bio Reports Preliminary Fourth Quarter and Full Year 2025 Financial Results and Provides 2026 Outlook Ahead of 44th Annual J.P. Morgan Healthcare Conference",
+        "published_at": "2026-01-12T13:00:00Z",
+        "received_at": "2026-01-12T13:00:32.910623",
+        "tickers": [
+          "NUVB"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 7.95,
+        "peak_price": 8.38,
+        "peak_price_timestamp": "2026-01-12T13:00:00.830540+00:00",
+        "final_ask_10min": 7.94,
+        "max_excursion_pct": 5.408805031446549,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49840646",
+        "title": "PIERRE FABRE PHARMACEUTICALS STATEMENT REGARDING RECEIPT OF COMPLETE RESPONSE LETTER FOR TABELECLEUCEL BIOLOGICS LICENSE APPLICATION FROM THE U.S. FOOD AND DRUG ADMINISTRATION",
+        "published_at": "2026-01-12T13:05:00Z",
+        "received_at": "2026-01-12T13:05:19.024324",
+        "tickers": [
+          "ATRA"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 6.79,
+        "peak_price": 14.5397,
+        "peak_price_timestamp": "2026-01-12T13:08:29.514202+00:00",
+        "final_ask_10min": 6.18,
+        "max_excursion_pct": 114.1340206185567,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49841790",
+        "title": "Outset Medical Reports Unaudited Fourth Quarter and 2025 Results",
+        "published_at": "2026-01-12T13:30:00Z",
+        "received_at": "2026-01-12T13:30:03.986930",
+        "tickers": [
+          "OM"
+        ],
+        "industry": "Medical Devices",
+        "industries": [
+          "Medical Devices"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 4.7,
+        "peak_price": 5.97,
+        "peak_price_timestamp": "2026-01-12T13:35:22.374511+00:00",
+        "final_ask_10min": 5.37,
+        "max_excursion_pct": 27.02127659574467,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49841836",
+        "title": "PTC Therapeutics Provides Update at J.P. Morgan Annual Healthcare Conference",
+        "published_at": "2026-01-12T13:30:00Z",
+        "received_at": "2026-01-12T13:30:26.763475",
+        "tickers": [
+          "PTCT"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 72.2,
+        "peak_price": 83.0,
+        "peak_price_timestamp": "2026-01-12T13:38:33.003577+00:00",
+        "final_ask_10min": 80.83,
+        "max_excursion_pct": 14.9584487534626,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49892364",
+        "title": "Rapid Micro Biosystems Announces Record Preliminary Unaudited Fourth Quarter and Full Year 2025 Revenue",
+        "published_at": "2026-01-13T21:15:00Z",
+        "received_at": "2026-01-13T21:15:01.803789",
+        "tickers": [
+          "RPID"
+        ],
+        "industry": "Medical Devices",
+        "industries": [
+          "Medical Devices"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 3.12,
+        "peak_price": 4.0,
+        "peak_price_timestamp": "2026-01-13T21:17:45.510938+00:00",
+        "final_ask_10min": 3.65,
+        "max_excursion_pct": 28.2051282051282,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_3/13/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49892719",
+        "title": "TG Therapeutics Provides Preliminary Fourth Quarter and Full Year 2025 Net Product Revenue and 2026 Revenue Guidance and Anticipated Development Milestones",
+        "published_at": "2026-01-13T21:25:00Z",
+        "received_at": "2026-01-13T21:25:02.655698",
+        "tickers": [
+          "TGTX"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 28.58,
+        "peak_price": 30.07,
+        "peak_price_timestamp": "2026-01-13T21:31:58.697513+00:00",
+        "final_ask_10min": 29.65,
+        "max_excursion_pct": 5.213435969209244,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_3/13/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49893713",
+        "title": "Univest Securities, LLC Announces Closing of $10 Million Registered Direct Offering for its Client China SXT Pharmaceuticals, Inc. (NASDAQ: SXTC)",
+        "published_at": "2026-01-13T22:00:00Z",
+        "received_at": "2026-01-13T22:00:03.010750",
+        "tickers": [
+          "SXTC"
+        ],
+        "industry": "Drug Manufacturers - Specialty & Generic",
+        "industries": [
+          "Drug Manufacturers - Specialty & Generic"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 0.1024,
+        "peak_price": 0.1218,
+        "peak_price_timestamp": "2026-01-13T22:00:28.926213+00:00",
+        "final_ask_10min": 0.1168,
+        "max_excursion_pct": 18.9453125,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_3/13/postmarket/postmarket.json"
+      }
+    ],
+    "non_movers_sample": [
+      {
+        "article_id": "benzinga:49706061",
+        "title": "AGL Stockholder Alert: Robbins LLP Reminds Investors of the Securities Fraud Class Action Against Agilon Health, Inc.",
+        "published_at": "2026-01-05T20:15:00Z",
+        "received_at": "2026-01-05T20:15:14.636979",
+        "tickers": [
+          "AGL"
+        ],
+        "industry": "Medical Care Facilities",
+        "industries": [
+          "Medical Care Facilities"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 0.6897,
+        "peak_price": 0.6899,
+        "peak_price_timestamp": "2026-01-05T20:15:01.297146+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.028998115122513844,
+        "session": "market",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/market_hours/market_hours.json"
+      },
+      {
+        "article_id": "benzinga:49707308",
+        "title": "Cytokinetics to Present at the 44th Annual J.P. Morgan Healthcare Conference",
+        "published_at": "2026-01-05T21:00:00Z",
+        "received_at": "2026-01-05T21:00:02.165760",
+        "tickers": [
+          "CYTK"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 61.44,
+        "peak_price": 61.26,
+        "peak_price_timestamp": "2026-01-05T21:00:00.023923+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.29296874999999956,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49707509",
+        "title": "Viking Therapeutics to Present at the 44th Annual J.P. Morgan Healthcare Conference",
+        "published_at": "2026-01-05T21:03:00Z",
+        "received_at": "2026-01-05T21:03:15.753677",
+        "tickers": [
+          "VKTX"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 32.2,
+        "peak_price": 32.15,
+        "peak_price_timestamp": "2026-01-05T21:03:07.277770+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.1552795031056033,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49708973",
+        "title": "Teladoc Health to Participate in Upcoming Investor Conference",
+        "published_at": "2026-01-05T21:30:00Z",
+        "received_at": "2026-01-05T21:30:02.406743",
+        "tickers": [
+          "TDOC"
+        ],
+        "industry": "Health Information Services",
+        "industries": [
+          "Health Information Services"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 7.35,
+        "peak_price": 7.32,
+        "peak_price_timestamp": "2026-01-05T21:30:23.825441+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.40816326530611374,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49708978",
+        "title": "Teva to Present at the 44th Annual J.P. Morgan Healthcare Conference",
+        "published_at": "2026-01-05T21:30:00Z",
+        "received_at": "2026-01-05T21:30:02.505706",
+        "tickers": [
+          "TEVA"
+        ],
+        "industry": "Drug Manufacturers - Specialty & Generic",
+        "industries": [
+          "Drug Manufacturers - Specialty & Generic"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 31.14,
+        "peak_price": 31.0,
+        "peak_price_timestamp": "2026-01-05T21:31:48.604217+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.4495825305073878,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49709006",
+        "title": "Abbott hosts conference call for fourth-quarter earnings",
+        "published_at": "2026-01-05T21:30:00Z",
+        "received_at": "2026-01-05T21:30:18.423712",
+        "tickers": [
+          "ABT"
+        ],
+        "industry": "Medical Devices",
+        "industries": [
+          "Medical Devices"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 126.5,
+        "peak_price": 126.45,
+        "peak_price_timestamp": "2026-01-05T21:30:47.569715+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.039525691699602496,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49709361",
+        "title": "Veeva Announces Share Repurchase Program",
+        "published_at": "2026-01-05T21:35:00Z",
+        "received_at": "2026-01-05T21:35:54.575203",
+        "tickers": [
+          "VEEV"
+        ],
+        "industry": "Health Information Services",
+        "industries": [
+          "Health Information Services"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 224.98,
+        "peak_price": 224.98,
+        "peak_price_timestamp": "2026-01-05T21:35:38.945632+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.0,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49709890",
+        "title": "Medtronic Chairman and CEO Geoff Martha to speak at J.P. Morgan healthcare conference",
+        "published_at": "2026-01-05T21:43:00Z",
+        "received_at": "2026-01-05T21:44:33.444291",
+        "tickers": [
+          "MDT"
+        ],
+        "industry": "Medical Devices",
+        "industries": [
+          "Medical Devices"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 97.35,
+        "peak_price": 97.36,
+        "peak_price_timestamp": "2026-01-05T21:44:42.240852+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.010272213662049426,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49690809",
+        "title": "Zentek&#39;s Albany Graphite Has Demonstrated Nuclear Grade Performance in Independent Testing, Opening Pathways Into a Range of High-Return Commercial Markets",
+        "published_at": "2026-01-05T13:58:00Z",
+        "received_at": "2026-01-05T13:58:02.789819",
+        "tickers": [
+          "ZTEK"
+        ],
+        "industry": "Medical Instruments & Supplies",
+        "industries": [
+          "Medical Instruments & Supplies"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 0.7,
+        "peak_price": 0.7064,
+        "peak_price_timestamp": "2026-01-05T14:02:56.194952+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.9142857142857246,
+        "session": "premarket",
+        "filter_reason": "prefilter_nbbo_unavailable",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49690885",
+        "title": "IGC Pharma Raises Capital to Advance IGC-AD1 Phase 2 Trial",
+        "published_at": "2026-01-05T14:00:00Z",
+        "received_at": "2026-01-05T14:00:14.624392",
+        "tickers": [
+          "IGC"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 0.29,
+        "peak_price": 0.29,
+        "peak_price_timestamp": "2026-01-05T14:01:14.608814+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.0,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49691029",
+        "title": "The Gross Law Firm Notifies Shareholders of Skye Bioscience, Inc.(SKYE) of a Class Action Lawsuit and an Upcoming Deadline",
+        "published_at": "2026-01-05T14:00:00Z",
+        "received_at": "2026-01-05T14:00:43.638373",
+        "tickers": [
+          "SKYE"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 0.94,
+        "peak_price": 0.932,
+        "peak_price_timestamp": "2026-01-05T14:06:38.195002+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.851063829787223,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49691814",
+        "title": "Psyence BioMed Achieves Milestone in Natural Ibogaine HCl Production and Strengthens Balance Sheet With No Debt and $12m Cash",
+        "published_at": "2026-01-05T14:15:00Z",
+        "received_at": "2026-01-05T14:15:01.823941",
+        "tickers": [
+          "PBM"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 0.8555,
+        "peak_price": 0.8555,
+        "peak_price_timestamp": "2026-01-05T14:15:01.144029+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.0,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49691815",
+        "title": "Processa Pharmaceuticals Completes Enrollment of 20th Patient for Formal Interim Analysis in Phase 2 NGC-Cap Breast Cancer Study",
+        "published_at": "2026-01-05T14:15:00Z",
+        "received_at": "2026-01-05T14:15:01.998281",
+        "tickers": [
+          "PCSA"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 3.24,
+        "peak_price": 3.23,
+        "peak_price_timestamp": "2026-01-05T14:19:40.193443+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.30864197530864906,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49691818",
+        "title": "Alnylam to Webcast Presentation at 44th Annual J.P. Morgan Healthcare Conference",
+        "published_at": "2026-01-05T14:15:00Z",
+        "received_at": "2026-01-05T14:15:02.113011",
+        "tickers": [
+          "ALNY"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 401.0,
+        "peak_price": 401.02,
+        "peak_price_timestamp": "2026-01-05T14:28:34.397258+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.004987531172065289,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49738392",
+        "title": "ROSEN, A RANKED AND LEADING FIRM, Encourages Integer Holdings Corporation Investors to Secure Counsel Before Important Deadline in Securities Class Action - ITGR",
+        "published_at": "2026-01-06T20:39:11Z",
+        "received_at": "2026-01-06T20:45:53.465823",
+        "tickers": [
+          "ITGR"
+        ],
+        "industry": "Medical Devices",
+        "industries": [
+          "Medical Devices"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 80.84,
+        "peak_price": 80.975,
+        "peak_price_timestamp": "2026-01-06T20:50:50.040281+00:00",
+        "final_ask_10min": 80.96,
+        "max_excursion_pct": 0.16699653636812334,
+        "session": "market",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/market_hours/market_hours.json"
+      },
+      {
+        "article_id": "benzinga:49738433",
+        "title": "TLX Deadline: TLX Investors Have Opportunity to Lead Telix Pharmaceuticals Ltd. Securities Fraud Lawsuit Filed by The Rosen Law Firm",
+        "published_at": "2026-01-06T20:40:00Z",
+        "received_at": "2026-01-06T20:45:53.477852",
+        "tickers": [
+          "TLX"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 7.47,
+        "peak_price": 7.46,
+        "peak_price_timestamp": "2026-01-06T20:47:17.088110+00:00",
+        "final_ask_10min": 7.44,
+        "max_excursion_pct": -0.13386880856760092,
+        "session": "market",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/market_hours/market_hours.json"
+      },
+      {
+        "article_id": "benzinga:49738894",
+        "title": "ROSEN, A TOP-RANKED LAW FIRM, Encourages Skye Bioscience, Inc. Investors to Secure Counsel Before Important Deadline in Securities Class Action \u2013 SKYE",
+        "published_at": "2026-01-06T20:51:30Z",
+        "received_at": "2026-01-06T20:51:31.597732",
+        "tickers": [
+          "SKYE"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 1.03,
+        "peak_price": 1.03,
+        "peak_price_timestamp": "2026-01-06T20:53:30.054541+00:00",
+        "final_ask_10min": 1.03,
+        "max_excursion_pct": 0.0,
+        "session": "market",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/market_hours/market_hours.json"
+      },
+      {
+        "article_id": "benzinga:49739177",
+        "title": "Bright Minds Biosciences Announces Launch of US$100 Million Public Offering",
+        "published_at": "2026-01-06T21:00:00Z",
+        "received_at": "2026-01-06T21:00:03.106067",
+        "tickers": [
+          "DRUG"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 93.86,
+        "peak_price": 93.21,
+        "peak_price_timestamp": "2026-01-06T21:00:00.428750+00:00",
+        "final_ask_10min": 93.25,
+        "max_excursion_pct": -0.6925207756232747,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49739179",
+        "title": "Levi &amp; Korsinsky Notifies Skye Bioscience, Inc. Investors of a Class Action Lawsuit and Upcoming Deadline \u2013 SKYE",
+        "published_at": "2026-01-06T21:00:00Z",
+        "received_at": "2026-01-06T21:00:03.106234",
+        "tickers": [
+          "SKYE"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 1.02,
+        "peak_price": 1.02,
+        "peak_price_timestamp": "2026-01-06T21:00:00.086134+00:00",
+        "final_ask_10min": 1.03,
+        "max_excursion_pct": 0.0,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49739178",
+        "title": "Perrigo Company plc Sued for Securities Law Violations \u2013 Investors Should Contact Levi &amp; Korsinsky Before January 16, 2026 to Discuss Your Rights \u2013 PRGO",
+        "published_at": "2026-01-06T21:00:00Z",
+        "received_at": "2026-01-06T21:00:04.178275",
+        "tickers": [
+          "PRGO"
+        ],
+        "industry": "Drug Manufacturers - Specialty & Generic",
+        "industries": [
+          "Drug Manufacturers - Specialty & Generic"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 14.85,
+        "peak_price": 14.75,
+        "peak_price_timestamp": "2026-01-06T21:00:00.120309+00:00",
+        "final_ask_10min": 14.85,
+        "max_excursion_pct": -0.673400673400671,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49739187",
+        "title": "Levi &amp; Korsinsky Notifies Shareholders of Telix Pharmaceuticals Ltd. (TLX) of a Class Action Lawsuit and an Upcoming Deadline",
+        "published_at": "2026-01-06T21:00:00Z",
+        "received_at": "2026-01-06T21:00:04.178747",
+        "tickers": [
+          "TLX"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 7.48,
+        "peak_price": 7.48,
+        "peak_price_timestamp": "2026-01-06T21:01:30.020676+00:00",
+        "final_ask_10min": 8.2,
+        "max_excursion_pct": 0.0,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49739569",
+        "title": "Nuvation Bio to Present at the 44th Annual J.P. Morgan Healthcare Conference",
+        "published_at": "2026-01-06T21:05:00Z",
+        "received_at": "2026-01-06T21:05:02.658062",
+        "tickers": [
+          "NUVB"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 8.55,
+        "peak_price": 8.54,
+        "peak_price_timestamp": "2026-01-06T21:05:00.281908+00:00",
+        "final_ask_10min": 8.55,
+        "max_excursion_pct": -0.11695906432750366,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49739581",
+        "title": "Exelixis to Present at the J.P. Morgan 2026 Healthcare Conference on January 12, 2026",
+        "published_at": "2026-01-06T21:05:00Z",
+        "received_at": "2026-01-06T21:05:08.686274",
+        "tickers": [
+          "EXEL"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 44.0,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": 44.0,
+        "max_excursion_pct": -0.7954545454545486,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49740556",
+        "title": "INVESTOR ALERT: Pomerantz Law Firm Reminds Investors with Losses on their Investment in agilon health, inc. of Class Action Lawsuit and Upcoming Deadlines - AGL",
+        "published_at": "2026-01-06T21:25:51Z",
+        "received_at": "2026-01-06T21:25:52.752021",
+        "tickers": [
+          "AGL"
+        ],
+        "industry": "Medical Care Facilities",
+        "industries": [
+          "Medical Care Facilities"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 0.84,
+        "peak_price": 0.84,
+        "peak_price_timestamp": "2026-01-06T21:27:27.250539+00:00",
+        "final_ask_10min": 0.84,
+        "max_excursion_pct": 0.0,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49740763",
+        "title": "AGL Investors Have Opportunity to Lead agilon health, inc. Securities Fraud Lawsuit First Filed by the Rosen Law Firm",
+        "published_at": "2026-01-06T21:31:00Z",
+        "received_at": "2026-01-06T21:31:14.829080",
+        "tickers": [
+          "AGL"
+        ],
+        "industry": "Medical Care Facilities",
+        "industries": [
+          "Medical Care Facilities"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 0.84,
+        "peak_price": null,
+        "peak_price_timestamp": null,
+        "final_ask_10min": 0.84,
+        "max_excursion_pct": -0.47619047619047666,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49742898",
+        "title": "Arrowhead Pharmaceuticals Announces Proposed Offerings of Convertible Senior Notes and Common Stock",
+        "published_at": "2026-01-06T23:14:00Z",
+        "received_at": "2026-01-06T23:14:01.513028",
+        "tickers": [
+          "ARWR"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 71.21,
+        "peak_price": 71.31,
+        "peak_price_timestamp": "2026-01-06T23:14:00.037133+00:00",
+        "final_ask_10min": 71.06,
+        "max_excursion_pct": 0.14042971492769069,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49716388",
+        "title": "Apogee Therapeutics Announces Positive Interim Results from Phase 1b Trial of Zumilokibart (APG777), its Potentially Best-in-Class Anti-IL-13 Antibody, in Patients with Mild-to-Moderate Asthma and Highlights 2026 Anticipated Milestones and Outlook",
+        "published_at": "2026-01-06T11:00:00Z",
+        "received_at": "2026-01-06T11:00:02.795261",
+        "tickers": [
+          "APGE"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 78.46,
+        "peak_price": 79.01,
+        "peak_price_timestamp": "2026-01-06T11:06:43.241435+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.7009941371399584,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49717047",
+        "title": "Compass Pathways Establishes Strategic Collaboration with Radial to Innovate Patient Experience and Inform Potential Delivery Model of COMP360",
+        "published_at": "2026-01-06T11:30:00Z",
+        "received_at": "2026-01-06T11:30:01.640473",
+        "tickers": [
+          "CMPS"
+        ],
+        "industry": "Medical Care Facilities",
+        "industries": [
+          "Medical Care Facilities"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 6.75,
+        "peak_price": 6.74,
+        "peak_price_timestamp": "2026-01-06T11:30:09.817002+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.148148148148145,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49717513",
+        "title": "Aclaris Therapeutics Announces Positive Interim Results of Phase 1a Trial of Anti-TSLP/IL-4R\u03b1 Bispecific Antibody ATI-052 Supporting Expedited Clinical Development",
+        "published_at": "2026-01-06T11:59:00Z",
+        "received_at": "2026-01-06T11:59:01.894285",
+        "tickers": [
+          "ACRS"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 2.83,
+        "peak_price": 2.82,
+        "peak_price_timestamp": "2026-01-06T11:59:57.313607+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.35335689045937213,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49717523",
+        "title": "Tilray Brands Expands Dry January Offerings with Zero-Proof Spirits, Non-Alcoholic Beers and Hemp-Derived THC Beverages",
+        "published_at": "2026-01-06T12:00:00Z",
+        "received_at": "2026-01-06T12:00:02.955410",
+        "tickers": [
+          "TLRY"
+        ],
+        "industry": "Drug Manufacturers - Specialty & Generic",
+        "industries": [
+          "Drug Manufacturers - Specialty & Generic"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 9.6,
+        "peak_price": 9.53,
+        "peak_price_timestamp": "2026-01-06T12:00:00.100093+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.7291666666666696,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49717535",
+        "title": "NovaBridge Presents Positive Givastomig Dose Expansion Data from the Phase 1b Combination Study in Patients with 1L Metastatic Gastric Cancer",
+        "published_at": "2026-01-06T12:00:00Z",
+        "received_at": "2026-01-06T12:00:03.668005",
+        "tickers": [
+          "NBP"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 4.58,
+        "peak_price": 4.56,
+        "peak_price_timestamp": "2026-01-06T12:00:00.140064+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.4366812227074336,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49717536",
+        "title": "Fractyl Health Appoints Lara Smith Weber as Chief Financial Officer to Support Commercial-Stage Preparedness",
+        "published_at": "2026-01-06T12:00:00Z",
+        "received_at": "2026-01-06T12:00:03.759040",
+        "tickers": [
+          "GUTS"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 2.09,
+        "peak_price": 2.1,
+        "peak_price_timestamp": "2026-01-06T12:00:00.099586+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.4784688995215422,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49717575",
+        "title": "Alixorexton Granted Breakthrough Therapy Designation by U.S. FDA for the Treatment of Narcolepsy Type 1",
+        "published_at": "2026-01-06T12:00:00Z",
+        "received_at": "2026-01-06T12:00:12.958528",
+        "tickers": [
+          "ALKS"
+        ],
+        "industry": "Drug Manufacturers - Specialty & Generic",
+        "industries": [
+          "Drug Manufacturers - Specialty & Generic"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 28.82,
+        "peak_price": 28.82,
+        "peak_price_timestamp": "2026-01-06T12:02:49.399712+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.0,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49718487",
+        "title": "Cognition Therapeutics Publishes Phase 2 Clinical Results Showing Zervimesine&#39;s Potential to Slow the Progression of Dementia with Lewy Bodies",
+        "published_at": "2026-01-06T12:30:00Z",
+        "received_at": "2026-01-06T12:30:03.991030",
+        "tickers": [
+          "CGTX"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 1.45,
+        "peak_price": 1.46,
+        "peak_price_timestamp": "2026-01-06T12:35:09.539751+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.6896551724137937,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49718490",
+        "title": "Zai Lab Announces National Medical Products Administration (NMPA) Approval of AUGTYRO\u2122 (repotrectinib) for Patients with NTRK-Positive Solid Tumors",
+        "published_at": "2026-01-06T12:30:00Z",
+        "received_at": "2026-01-06T12:30:03.991203",
+        "tickers": [
+          "ZLAB"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 18.5,
+        "peak_price": 18.35,
+        "peak_price_timestamp": "2026-01-06T12:30:00.222055+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.8108108108108031,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49718500",
+        "title": "Summit Therapeutics to Present at the 44th Annual J.P. Morgan Healthcare Conference",
+        "published_at": "2026-01-06T12:30:00Z",
+        "received_at": "2026-01-06T12:30:03.991358",
+        "tickers": [
+          "SMMT"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 17.68,
+        "peak_price": 17.54,
+        "peak_price_timestamp": "2026-01-06T12:30:00.350261+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.7918552036199128,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49719239",
+        "title": "Recursion to Present at 44th Annual J.P. Morgan Healthcare Conference",
+        "published_at": "2026-01-06T12:59:00Z",
+        "received_at": "2026-01-06T12:59:01.730817",
+        "tickers": [
+          "RXRX"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 4.37,
+        "peak_price": 4.39,
+        "peak_price_timestamp": "2026-01-06T13:00:26.905621+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.4576659038901504,
+        "session": "premarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49719248",
+        "title": "Akebia Therapeutics Announces First Patient Dosed in Phase 2 Clinical Trial of Praliciguat for the Treatment of Focal Segmental Glomerulosclerosis (FSGS)",
+        "published_at": "2026-01-06T13:00:00Z",
+        "received_at": "2026-01-06T13:00:16.707808",
+        "tickers": [
+          "AKBA"
+        ],
+        "industry": "Drug Manufacturers - Specialty & Generic",
+        "industries": [
+          "Drug Manufacturers - Specialty & Generic"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 1.53,
+        "peak_price": 1.5291,
+        "peak_price_timestamp": "2026-01-06T13:07:59.981866+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.05882352941177273,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49719245",
+        "title": "Picard Medical to Begin Rollout of FDA-Cleared Accessory for its SynCardia Total Artificial Heart",
+        "published_at": "2026-01-06T13:00:00Z",
+        "received_at": "2026-01-06T13:00:16.707834",
+        "tickers": [
+          "PMI"
+        ],
+        "industry": "Medical Devices",
+        "industries": [
+          "Medical Devices"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 1.69,
+        "peak_price": 1.7,
+        "peak_price_timestamp": "2026-01-06T13:00:25.967730+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.5917159763313614,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49719251",
+        "title": "Mineralys Therapeutics Provides Corporate Update and Announces Participation in Upcoming LifeSci Partners Corporate Access Event in January 2026",
+        "published_at": "2026-01-06T13:00:00Z",
+        "received_at": "2026-01-06T13:00:16.707924",
+        "tickers": [
+          "MLYS"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 35.84,
+        "peak_price": 35.73,
+        "peak_price_timestamp": "2026-01-06T13:02:48.333228+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.30691964285716106,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49719263",
+        "title": "Thermo Fisher Scientific to Present at the J.P. Morgan 2026 Healthcare Conference",
+        "published_at": "2026-01-06T13:00:00Z",
+        "received_at": "2026-01-06T13:00:16.708299",
+        "tickers": [
+          "TMO"
+        ],
+        "industry": "Diagnostics & Research",
+        "industries": [
+          "Diagnostics & Research"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 610.95,
+        "peak_price": 609.18,
+        "peak_price_timestamp": "2026-01-06T13:01:50.467062+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": -0.28971274245029793,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49719264",
+        "title": "Lineage Takes Delivery of Gene-edited Hypoimmune Cell Line Under Partnership With Factor Bioscience",
+        "published_at": "2026-01-06T13:00:00Z",
+        "received_at": "2026-01-06T13:00:16.708321",
+        "tickers": [
+          "LCTX"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 1.71,
+        "peak_price": 1.71,
+        "peak_price_timestamp": "2026-01-06T13:00:01.809385+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.0,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49719350",
+        "title": "Taysha Gene Therapies Announces Progress Across TSHA-102 Pivotal Gene Therapy Program in Rett Syndrome",
+        "published_at": "2026-01-06T13:00:00Z",
+        "received_at": "2026-01-06T13:00:40.290488",
+        "tickers": [
+          "TSHA"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 4.96,
+        "peak_price": 5.0,
+        "peak_price_timestamp": "2026-01-06T13:00:59.495296+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.8064516129032264,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49719635",
+        "title": "Butterfly Network to Extend its Proprietary 3D Imaging Capabilities to Butterfly Garden Developers",
+        "published_at": "2026-01-06T13:05:00Z",
+        "received_at": "2026-01-06T13:05:02.513354",
+        "tickers": [
+          "BFLY"
+        ],
+        "industry": "Medical Devices",
+        "industries": [
+          "Medical Devices"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 3.92,
+        "peak_price": 3.92,
+        "peak_price_timestamp": "2026-01-06T13:05:30.554084+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.0,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49719642",
+        "title": "IGC Pharma Aligns Fiscal Year with Calendar Year to Enhance U.S. Investor Transparency and Comparability",
+        "published_at": "2026-01-06T13:00:00Z",
+        "received_at": "2026-01-06T13:05:14.855344",
+        "tickers": [
+          "IGC"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 0.297,
+        "peak_price": 0.297,
+        "peak_price_timestamp": "2026-01-06T13:13:48.537269+00:00",
+        "final_ask_10min": null,
+        "max_excursion_pct": 0.0,
+        "session": "premarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+      },
+      {
+        "article_id": "benzinga:49743615",
+        "title": "SKYE Investors Have Opportunity to Lead Skye Bioscience, Inc. Securities Fraud Lawsuit",
+        "published_at": "2026-01-07T00:30:00Z",
+        "received_at": "2026-01-07T00:30:21.961853",
+        "tickers": [
+          "SKYE"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 1.08,
+        "peak_price": 1.08,
+        "peak_price_timestamp": "2026-01-07T00:33:22.461709+00:00",
+        "final_ask_10min": 1.07,
+        "max_excursion_pct": 0.0,
+        "session": "postmarket",
+        "filter_reason": "prefilter_no_volume_since_publication",
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49768862",
+        "title": "Bruker Corporation to Present at the J.P. Morgan Healthcare Conference",
+        "published_at": "2026-01-07T21:01:00Z",
+        "received_at": "2026-01-07T21:01:01.895226",
+        "tickers": [
+          "BRKR"
+        ],
+        "industry": "Medical Devices",
+        "industries": [
+          "Medical Devices"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 53.38,
+        "peak_price": 53.1,
+        "peak_price_timestamp": "2026-01-07T21:01:00.153869+00:00",
+        "final_ask_10min": 53.38,
+        "max_excursion_pct": -0.5245410266017256,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49768865",
+        "title": "Monte Rosa Therapeutics Announces Proposed Public Offering of Common Stock and Pre-Funded Warrants",
+        "published_at": "2026-01-07T21:01:00Z",
+        "received_at": "2026-01-07T21:01:02.169277",
+        "tickers": [
+          "GLUE"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 23.07,
+        "peak_price": 23.28,
+        "peak_price_timestamp": "2026-01-07T21:01:00.002153+00:00",
+        "final_ask_10min": 23.25,
+        "max_excursion_pct": 0.910273081924581,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49768892",
+        "title": "AMGEN TO PRESENT AT THE 44TH ANNUAL J.P. MORGAN HEALTHCARE CONFERENCE",
+        "published_at": "2026-01-07T21:01:00Z",
+        "received_at": "2026-01-07T21:01:14.853227",
+        "tickers": [
+          "AMGN"
+        ],
+        "industry": "Drug Manufacturers - General",
+        "industries": [
+          "Drug Manufacturers - General"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 342.08,
+        "peak_price": 341.0,
+        "peak_price_timestamp": "2026-01-07T21:01:12.507236+00:00",
+        "final_ask_10min": 342.08,
+        "max_excursion_pct": -0.31571562207670256,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+      },
+      {
+        "article_id": "benzinga:49769246",
+        "title": "Phathom Pharmaceuticals Announces Proposed Public Offering of Common Stock and Pre-Funded Warrants",
+        "published_at": "2026-01-07T21:05:00Z",
+        "received_at": "2026-01-07T21:05:03.222763",
+        "tickers": [
+          "PHAT"
+        ],
+        "industry": "Biotechnology",
+        "industries": [
+          "Biotechnology"
+        ],
+        "sectors": [
+          "Healthcare"
+        ],
+        "initial_ask": 16.66,
+        "peak_price": 16.63,
+        "peak_price_timestamp": "2026-01-07T21:06:34.891802+00:00",
+        "final_ask_10min": 16.3,
+        "max_excursion_pct": -0.18007202881153145,
+        "session": "postmarket",
+        "filter_reason": null,
+        "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+      }
+    ],
+    "industry_analysis": {
+      "Drug Manufacturers - Specialty & Generic": {
+        "winners": [
+          {
+            "article_id": "benzinga:49800157",
+            "title": "Tilray Brands Delivers Record Q2 Fiscal 2026 Net Revenue of $218 Million, Moves to Net Cash Position and Reaffirms Full-Year Adjusted EBITDA Guidance",
+            "published_at": "2026-01-08T21:05:00Z",
+            "received_at": "2026-01-08T21:05:05.286218",
+            "tickers": [
+              "TLRY"
+            ],
+            "industry": "Drug Manufacturers - Specialty & Generic",
+            "industries": [
+              "Drug Manufacturers - Specialty & Generic"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 9.46,
+            "peak_price": 9.98,
+            "peak_price_timestamp": "2026-01-08T21:07:36.781462+00:00",
+            "final_ask_10min": 9.75,
+            "max_excursion_pct": 5.496828752642701,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49893713",
+            "title": "Univest Securities, LLC Announces Closing of $10 Million Registered Direct Offering for its Client China SXT Pharmaceuticals, Inc. (NASDAQ: SXTC)",
+            "published_at": "2026-01-13T22:00:00Z",
+            "received_at": "2026-01-13T22:00:03.010750",
+            "tickers": [
+              "SXTC"
+            ],
+            "industry": "Drug Manufacturers - Specialty & Generic",
+            "industries": [
+              "Drug Manufacturers - Specialty & Generic"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 0.1024,
+            "peak_price": 0.1218,
+            "peak_price_timestamp": "2026-01-13T22:00:28.926213+00:00",
+            "final_ask_10min": 0.1168,
+            "max_excursion_pct": 18.9453125,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_3/13/postmarket/postmarket.json"
+          }
+        ],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49708978",
+            "title": "Teva to Present at the 44th Annual J.P. Morgan Healthcare Conference",
+            "published_at": "2026-01-05T21:30:00Z",
+            "received_at": "2026-01-05T21:30:02.505706",
+            "tickers": [
+              "TEVA"
+            ],
+            "industry": "Drug Manufacturers - Specialty & Generic",
+            "industries": [
+              "Drug Manufacturers - Specialty & Generic"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 31.14,
+            "peak_price": 31.0,
+            "peak_price_timestamp": "2026-01-05T21:31:48.604217+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.4495825305073878,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49739178",
+            "title": "Perrigo Company plc Sued for Securities Law Violations \u2013 Investors Should Contact Levi &amp; Korsinsky Before January 16, 2026 to Discuss Your Rights \u2013 PRGO",
+            "published_at": "2026-01-06T21:00:00Z",
+            "received_at": "2026-01-06T21:00:04.178275",
+            "tickers": [
+              "PRGO"
+            ],
+            "industry": "Drug Manufacturers - Specialty & Generic",
+            "industries": [
+              "Drug Manufacturers - Specialty & Generic"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 14.85,
+            "peak_price": 14.75,
+            "peak_price_timestamp": "2026-01-06T21:00:00.120309+00:00",
+            "final_ask_10min": 14.85,
+            "max_excursion_pct": -0.673400673400671,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49717523",
+            "title": "Tilray Brands Expands Dry January Offerings with Zero-Proof Spirits, Non-Alcoholic Beers and Hemp-Derived THC Beverages",
+            "published_at": "2026-01-06T12:00:00Z",
+            "received_at": "2026-01-06T12:00:02.955410",
+            "tickers": [
+              "TLRY"
+            ],
+            "industry": "Drug Manufacturers - Specialty & Generic",
+            "industries": [
+              "Drug Manufacturers - Specialty & Generic"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 9.6,
+            "peak_price": 9.53,
+            "peak_price_timestamp": "2026-01-06T12:00:00.100093+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.7291666666666696,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49717575",
+            "title": "Alixorexton Granted Breakthrough Therapy Designation by U.S. FDA for the Treatment of Narcolepsy Type 1",
+            "published_at": "2026-01-06T12:00:00Z",
+            "received_at": "2026-01-06T12:00:12.958528",
+            "tickers": [
+              "ALKS"
+            ],
+            "industry": "Drug Manufacturers - Specialty & Generic",
+            "industries": [
+              "Drug Manufacturers - Specialty & Generic"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 28.82,
+            "peak_price": 28.82,
+            "peak_price_timestamp": "2026-01-06T12:02:49.399712+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.0,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49719248",
+            "title": "Akebia Therapeutics Announces First Patient Dosed in Phase 2 Clinical Trial of Praliciguat for the Treatment of Focal Segmental Glomerulosclerosis (FSGS)",
+            "published_at": "2026-01-06T13:00:00Z",
+            "received_at": "2026-01-06T13:00:16.707808",
+            "tickers": [
+              "AKBA"
+            ],
+            "industry": "Drug Manufacturers - Specialty & Generic",
+            "industries": [
+              "Drug Manufacturers - Specialty & Generic"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 1.53,
+            "peak_price": 1.5291,
+            "peak_price_timestamp": "2026-01-06T13:07:59.981866+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.05882352941177273,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          }
+        ]
+      },
+      "Health Information Services": {
+        "winners": [
+          {
+            "article_id": "benzinga:49776701",
+            "title": "Aclarion Provides 2025 Update and 2026 Corporate Outlook",
+            "published_at": "2026-01-08T11:00:00Z",
+            "received_at": "2026-01-08T11:00:02.755330",
+            "tickers": [
+              "ACONW",
+              "ACON"
+            ],
+            "industry": "Health Information Services",
+            "industries": [
+              "Health Information Services"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 0.389,
+            "peak_price": 5.9,
+            "peak_price_timestamp": "2026-01-08T11:00:00.099180+00:00",
+            "final_ask_10min": 6.19,
+            "max_excursion_pct": 1416.7095115681234,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/08/premarket/premarket.json"
+          }
+        ],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49708973",
+            "title": "Teladoc Health to Participate in Upcoming Investor Conference",
+            "published_at": "2026-01-05T21:30:00Z",
+            "received_at": "2026-01-05T21:30:02.406743",
+            "tickers": [
+              "TDOC"
+            ],
+            "industry": "Health Information Services",
+            "industries": [
+              "Health Information Services"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 7.35,
+            "peak_price": 7.32,
+            "peak_price_timestamp": "2026-01-05T21:30:23.825441+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.40816326530611374,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49709361",
+            "title": "Veeva Announces Share Repurchase Program",
+            "published_at": "2026-01-05T21:35:00Z",
+            "received_at": "2026-01-05T21:35:54.575203",
+            "tickers": [
+              "VEEV"
+            ],
+            "industry": "Health Information Services",
+            "industries": [
+              "Health Information Services"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 224.98,
+            "peak_price": 224.98,
+            "peak_price_timestamp": "2026-01-05T21:35:38.945632+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.0,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          }
+        ]
+      },
+      "Medical Instruments & Supplies": {
+        "winners": [
+          {
+            "article_id": "benzinga:49719461",
+            "title": "Stereotaxis Receives FDA Approval for MAGiC Ablation Catheter",
+            "published_at": "2026-01-06T13:01:00Z",
+            "received_at": "2026-01-06T13:01:09.328716",
+            "tickers": [
+              "STXS"
+            ],
+            "industry": "Medical Instruments & Supplies",
+            "industries": [
+              "Medical Instruments & Supplies"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 2.45,
+            "peak_price": 2.62,
+            "peak_price_timestamp": "2026-01-06T13:03:44.078943+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 6.938775510204079,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49750531",
+            "title": "Innovative Eyewear, Inc. Announces Record-Breaking 65% Annual Sales Growth in 2025 &amp; Insider Buying Intent",
+            "published_at": "2026-01-07T13:00:00Z",
+            "received_at": "2026-01-07T13:00:48.215067",
+            "tickers": [
+              "LUCY"
+            ],
+            "industry": "Medical Instruments & Supplies",
+            "industries": [
+              "Medical Instruments & Supplies"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 1.33,
+            "peak_price": 1.58,
+            "peak_price_timestamp": "2026-01-07T13:11:15.729181+00:00",
+            "final_ask_10min": 1.51,
+            "max_excursion_pct": 18.796992481203006,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/premarket/premarket.json"
+          }
+        ],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49690809",
+            "title": "Zentek&#39;s Albany Graphite Has Demonstrated Nuclear Grade Performance in Independent Testing, Opening Pathways Into a Range of High-Return Commercial Markets",
+            "published_at": "2026-01-05T13:58:00Z",
+            "received_at": "2026-01-05T13:58:02.789819",
+            "tickers": [
+              "ZTEK"
+            ],
+            "industry": "Medical Instruments & Supplies",
+            "industries": [
+              "Medical Instruments & Supplies"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 0.7,
+            "peak_price": 0.7064,
+            "peak_price_timestamp": "2026-01-05T14:02:56.194952+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.9142857142857246,
+            "session": "premarket",
+            "filter_reason": "prefilter_nbbo_unavailable",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          }
+        ]
+      },
+      "Biotechnology": {
+        "winners": [
+          {
+            "article_id": "benzinga:49707360",
+            "title": "Cyclerion Therapeutics Announces Strategic Agreement with Medsteer and Progress Toward Initiating Phase 2 Proof-of-Concept Study for CYC-126 in Treatment-Resistant Depression",
+            "published_at": "2026-01-05T21:01:00Z",
+            "received_at": "2026-01-05T21:01:03.574576",
+            "tickers": [
+              "CYCN"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 1.83,
+            "peak_price": 2.08,
+            "peak_price_timestamp": "2026-01-05T21:09:37.314334+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 13.661202185792348,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49707956",
+            "title": "KALA BIO Settles Approximately $10.6 million of Debt",
+            "published_at": "2026-01-05T21:10:05Z",
+            "received_at": "2026-01-05T21:10:06.861756",
+            "tickers": [
+              "KALA"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 0.69,
+            "peak_price": 0.8,
+            "peak_price_timestamp": "2026-01-05T21:19:40.074845+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 15.942028985507262,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49708977",
+            "title": "Bright Minds to Announce Topline Results for BMB-101 Phase 2 Trial in Absence Seizures and Developmental and Epileptic Encephalopathies on Tuesday, January 6, 2026",
+            "published_at": "2026-01-05T21:30:00Z",
+            "received_at": "2026-01-05T21:30:02.505675",
+            "tickers": [
+              "DRUG"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 81.0,
+            "peak_price": 87.8,
+            "peak_price_timestamp": "2026-01-05T21:30:16.807010+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 8.395061728395058,
+            "session": "postmarket",
+            "filter_reason": "prefilter_nbbo_unavailable",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49686287",
+            "title": "Neumora Therapeutics Announces Positive Results from NMRA-511 Phase 1b Signal-Seeking Study in Alzheimer&#39;s Disease Agitation",
+            "published_at": "2026-01-05T11:30:00Z",
+            "received_at": "2026-01-05T11:30:02.437773",
+            "tickers": [
+              "NMRA"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 1.83,
+            "peak_price": 1.97,
+            "peak_price_timestamp": "2026-01-05T11:34:37.216962+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 7.65027322404371,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49686360",
+            "title": "Neumora Therapeutics Highlights 2026 Pipeline Strategy and Anticipated Upcoming Milestones",
+            "published_at": "2026-01-05T11:35:00Z",
+            "received_at": "2026-01-05T11:35:01.721016",
+            "tickers": [
+              "NMRA"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 1.87,
+            "peak_price": 1.97,
+            "peak_price_timestamp": "2026-01-05T11:39:17.102537+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 5.347593582887693,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49690927",
+            "title": "Alpha Tau Submits First Pre-Market Approval Module to the FDA for Alpha DaRT\u00ae for the Treatment of Recurrent Cutaneous Squamous Cell Carcinoma (cSCC)",
+            "published_at": "2026-01-05T14:00:00Z",
+            "received_at": "2026-01-05T14:00:15.229423",
+            "tickers": [
+              "DRTSW",
+              "DRTS"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 0.592,
+            "peak_price": 4.95,
+            "peak_price_timestamp": "2026-01-05T14:09:13.092604+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 736.1486486486488,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49717630",
+            "title": "Genprex Announces Positive Preliminary Preclinical Data from Study of GPX-002 in Type 2 Diabetic Animal Studies",
+            "published_at": "2026-01-06T12:00:00Z",
+            "received_at": "2026-01-06T12:00:35.820607",
+            "tickers": [
+              "GNPX"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 2.16,
+            "peak_price": 2.27,
+            "peak_price_timestamp": "2026-01-06T12:00:42.651441+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 5.092592592592586,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49718485",
+            "title": "Anavex Life Sciences Receives FDA Feedback on Alzheimer&#39;s Disease Program",
+            "published_at": "2026-01-06T12:30:00Z",
+            "received_at": "2026-01-06T12:30:03.990982",
+            "tickers": [
+              "AVXL"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 4.02,
+            "peak_price": 5.35,
+            "peak_price_timestamp": "2026-01-06T12:30:59.593388+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 33.084577114427866,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49719356",
+            "title": "SpyGlass Pharma Appoints Jean-Fr\u00e9d\u00e9ric Viret as Chief Financial Officer",
+            "published_at": "2026-01-06T13:00:00Z",
+            "received_at": "2026-01-06T13:00:40.375038",
+            "tickers": [
+              "CHRS"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 1.49,
+            "peak_price": 1.6,
+            "peak_price_timestamp": "2026-01-06T13:01:35.176704+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 7.382550335570476,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49719486",
+            "title": "TransCode Therapeutics Announces Publication of Preclinical Data Supporting Therapeutic Potential of TTX-MC138 in Glioblastoma",
+            "published_at": "2026-01-06T13:01:00Z",
+            "received_at": "2026-01-06T13:01:16.617260",
+            "tickers": [
+              "RNAZ"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 7.8,
+            "peak_price": 10.35,
+            "peak_price_timestamp": "2026-01-06T13:07:31.465861+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 32.69230769230769,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49770397",
+            "title": "Jasper Therapeutics Appoints Jeet Mahal as Chief Executive Officer to Lead Next Phase of Clinical Growth",
+            "published_at": "2026-01-07T21:30:00Z",
+            "received_at": "2026-01-07T21:30:01.648026",
+            "tickers": [
+              "JSPR"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 2.06,
+            "peak_price": 2.19,
+            "peak_price_timestamp": "2026-01-07T21:38:58.791436+00:00",
+            "final_ask_10min": 2.15,
+            "max_excursion_pct": 6.31067961165048,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49747832",
+            "title": "Cardio Diagnostics, Aimil Ltd. and Dr. Lal PathLabs Limited Partner to Launch the PrecisionCHD\u2122 Test in India",
+            "published_at": "2026-01-07T11:25:00Z",
+            "received_at": "2026-01-07T11:25:01.414285",
+            "tickers": [
+              "CDIO"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 3.1,
+            "peak_price": 3.85,
+            "peak_price_timestamp": "2026-01-07T11:34:16.410139+00:00",
+            "final_ask_10min": 3.58,
+            "max_excursion_pct": 24.193548387096772,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49748583",
+            "title": "Monte Rosa Therapeutics Announces Positive Interim Phase 1 Data of MRT-8102 Demonstrating Profound CRP Reductions in Elevated CVD-risk Subjects",
+            "published_at": "2026-01-07T12:00:00Z",
+            "received_at": "2026-01-07T12:00:02.613073",
+            "tickers": [
+              "GLUE"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 17.5,
+            "peak_price": 18.5,
+            "peak_price_timestamp": "2026-01-07T12:05:53.506487+00:00",
+            "final_ask_10min": 18.45,
+            "max_excursion_pct": 5.714285714285714,
+            "session": "premarket",
+            "filter_reason": "spread_too_wide_5.13%",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49750393",
+            "title": "Aspire Biopharma Announces Successful Pre-IND Meeting with FDA for High-Dose Sublingual Aspirin (OTASA)",
+            "published_at": "2026-01-07T13:00:00Z",
+            "received_at": "2026-01-07T13:00:06.457118",
+            "tickers": [
+              "ASBP"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 0.108,
+            "peak_price": 0.1523,
+            "peak_price_timestamp": "2026-01-07T13:07:04.980263+00:00",
+            "final_ask_10min": 0.1468,
+            "max_excursion_pct": 41.01851851851851,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49750446",
+            "title": "iECURE Receives FDA Regenerative Medicine Advanced Therapy (RMAT) Designation for ECUR-506 for Neonatal Onset Ornithine Transcarbamylase (OTC) Deficiency",
+            "published_at": "2026-01-07T13:00:00Z",
+            "received_at": "2026-01-07T13:00:21.946531",
+            "tickers": [
+              "DTIL"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 4.37,
+            "peak_price": 4.8773,
+            "peak_price_timestamp": "2026-01-07T13:01:36.666584+00:00",
+            "final_ask_10min": 4.4,
+            "max_excursion_pct": 11.60869565217391,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49800160",
+            "title": "KalVista Pharmaceuticals Provides Update on Strong EKTERLY\u00ae Launch with Preliminary Fourth Quarter and Full Year 2025 Revenue Results",
+            "published_at": "2026-01-08T21:05:00Z",
+            "received_at": "2026-01-08T21:05:05.286368",
+            "tickers": [
+              "KALV"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 17.0,
+            "peak_price": 18.0,
+            "peak_price_timestamp": "2026-01-08T21:09:13.403774+00:00",
+            "final_ask_10min": 18.5,
+            "max_excursion_pct": 5.88235294117647,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/08/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49779049",
+            "title": "Acrivon Therapeutics Announces Positive ACR-368 Phase 2b Endometrial Cancer Clinical Data with EU Expansion to Accelerate Enrollment, Initial ACR-2316 Clinical Data, and ACR-6840, its Next AP3-Enabled Development Candidate, Targeting CDK11",
+            "published_at": "2026-01-08T12:30:00Z",
+            "received_at": "2026-01-08T12:30:03.679301",
+            "tickers": [
+              "ACRV"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 3.27,
+            "peak_price": 3.67,
+            "peak_price_timestamp": "2026-01-08T12:31:08.364129+00:00",
+            "final_ask_10min": 3.28,
+            "max_excursion_pct": 12.23241590214067,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/08/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49860737",
+            "title": "Solid Biosciences Receives FDA Orphan Drug Designation for SGT-212 Dual-Route Gene Therapy for the Treatment of Friedreich&#39;s Ataxia",
+            "published_at": "2026-01-12T21:15:00Z",
+            "received_at": "2026-01-12T21:15:01.993657",
+            "tickers": [
+              "SLDB"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 5.45,
+            "peak_price": 6.12,
+            "peak_price_timestamp": "2026-01-12T21:15:31.850035+00:00",
+            "final_ask_10min": 5.79,
+            "max_excursion_pct": 12.293577981651374,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_3/12/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49840183",
+            "title": "Galecto Highlights Key Strategic Priorities and Anticipated 2026 Milestones",
+            "published_at": "2026-01-12T13:00:00Z",
+            "received_at": "2026-01-12T13:00:06.895254",
+            "tickers": [
+              "GLTO"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 22.0,
+            "peak_price": 23.94,
+            "peak_price_timestamp": "2026-01-12T13:01:40.664822+00:00",
+            "final_ask_10min": 23.0,
+            "max_excursion_pct": 8.818181818181824,
+            "session": "premarket",
+            "filter_reason": "spread_too_wide_9.22%",
+            "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49840200",
+            "title": "Mereo BioPharma Provides Corporate Update",
+            "published_at": "2026-01-12T13:00:00Z",
+            "received_at": "2026-01-12T13:00:09.720295",
+            "tickers": [
+              "MREO"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 0.556,
+            "peak_price": 0.5916,
+            "peak_price_timestamp": "2026-01-12T13:02:17.679191+00:00",
+            "final_ask_10min": 0.547,
+            "max_excursion_pct": 6.402877697841721,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49840290",
+            "title": "Atara Biotherapeutics Provides Regulatory and Business Update on EBVALLO\u2122 (tabelecleucel)",
+            "published_at": "2026-01-12T13:00:00Z",
+            "received_at": "2026-01-12T13:00:29.467872",
+            "tickers": [
+              "ATRA"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 13.01,
+            "peak_price": 15.1628,
+            "peak_price_timestamp": "2026-01-12T13:00:04.808331+00:00",
+            "final_ask_10min": 6.39,
+            "max_excursion_pct": 16.54727132974636,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49840300",
+            "title": "Nuvation Bio Reports Preliminary Fourth Quarter and Full Year 2025 Financial Results and Provides 2026 Outlook Ahead of 44th Annual J.P. Morgan Healthcare Conference",
+            "published_at": "2026-01-12T13:00:00Z",
+            "received_at": "2026-01-12T13:00:32.910623",
+            "tickers": [
+              "NUVB"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 7.95,
+            "peak_price": 8.38,
+            "peak_price_timestamp": "2026-01-12T13:00:00.830540+00:00",
+            "final_ask_10min": 7.94,
+            "max_excursion_pct": 5.408805031446549,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49840646",
+            "title": "PIERRE FABRE PHARMACEUTICALS STATEMENT REGARDING RECEIPT OF COMPLETE RESPONSE LETTER FOR TABELECLEUCEL BIOLOGICS LICENSE APPLICATION FROM THE U.S. FOOD AND DRUG ADMINISTRATION",
+            "published_at": "2026-01-12T13:05:00Z",
+            "received_at": "2026-01-12T13:05:19.024324",
+            "tickers": [
+              "ATRA"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 6.79,
+            "peak_price": 14.5397,
+            "peak_price_timestamp": "2026-01-12T13:08:29.514202+00:00",
+            "final_ask_10min": 6.18,
+            "max_excursion_pct": 114.1340206185567,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49841836",
+            "title": "PTC Therapeutics Provides Update at J.P. Morgan Annual Healthcare Conference",
+            "published_at": "2026-01-12T13:30:00Z",
+            "received_at": "2026-01-12T13:30:26.763475",
+            "tickers": [
+              "PTCT"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 72.2,
+            "peak_price": 83.0,
+            "peak_price_timestamp": "2026-01-12T13:38:33.003577+00:00",
+            "final_ask_10min": 80.83,
+            "max_excursion_pct": 14.9584487534626,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49892719",
+            "title": "TG Therapeutics Provides Preliminary Fourth Quarter and Full Year 2025 Net Product Revenue and 2026 Revenue Guidance and Anticipated Development Milestones",
+            "published_at": "2026-01-13T21:25:00Z",
+            "received_at": "2026-01-13T21:25:02.655698",
+            "tickers": [
+              "TGTX"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 28.58,
+            "peak_price": 30.07,
+            "peak_price_timestamp": "2026-01-13T21:31:58.697513+00:00",
+            "final_ask_10min": 29.65,
+            "max_excursion_pct": 5.213435969209244,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_3/13/postmarket/postmarket.json"
+          }
+        ],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49707308",
+            "title": "Cytokinetics to Present at the 44th Annual J.P. Morgan Healthcare Conference",
+            "published_at": "2026-01-05T21:00:00Z",
+            "received_at": "2026-01-05T21:00:02.165760",
+            "tickers": [
+              "CYTK"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 61.44,
+            "peak_price": 61.26,
+            "peak_price_timestamp": "2026-01-05T21:00:00.023923+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.29296874999999956,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49707509",
+            "title": "Viking Therapeutics to Present at the 44th Annual J.P. Morgan Healthcare Conference",
+            "published_at": "2026-01-05T21:03:00Z",
+            "received_at": "2026-01-05T21:03:15.753677",
+            "tickers": [
+              "VKTX"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 32.2,
+            "peak_price": 32.15,
+            "peak_price_timestamp": "2026-01-05T21:03:07.277770+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.1552795031056033,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49690885",
+            "title": "IGC Pharma Raises Capital to Advance IGC-AD1 Phase 2 Trial",
+            "published_at": "2026-01-05T14:00:00Z",
+            "received_at": "2026-01-05T14:00:14.624392",
+            "tickers": [
+              "IGC"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 0.29,
+            "peak_price": 0.29,
+            "peak_price_timestamp": "2026-01-05T14:01:14.608814+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.0,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49691029",
+            "title": "The Gross Law Firm Notifies Shareholders of Skye Bioscience, Inc.(SKYE) of a Class Action Lawsuit and an Upcoming Deadline",
+            "published_at": "2026-01-05T14:00:00Z",
+            "received_at": "2026-01-05T14:00:43.638373",
+            "tickers": [
+              "SKYE"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 0.94,
+            "peak_price": 0.932,
+            "peak_price_timestamp": "2026-01-05T14:06:38.195002+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.851063829787223,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49691814",
+            "title": "Psyence BioMed Achieves Milestone in Natural Ibogaine HCl Production and Strengthens Balance Sheet With No Debt and $12m Cash",
+            "published_at": "2026-01-05T14:15:00Z",
+            "received_at": "2026-01-05T14:15:01.823941",
+            "tickers": [
+              "PBM"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 0.8555,
+            "peak_price": 0.8555,
+            "peak_price_timestamp": "2026-01-05T14:15:01.144029+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.0,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49691815",
+            "title": "Processa Pharmaceuticals Completes Enrollment of 20th Patient for Formal Interim Analysis in Phase 2 NGC-Cap Breast Cancer Study",
+            "published_at": "2026-01-05T14:15:00Z",
+            "received_at": "2026-01-05T14:15:01.998281",
+            "tickers": [
+              "PCSA"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 3.24,
+            "peak_price": 3.23,
+            "peak_price_timestamp": "2026-01-05T14:19:40.193443+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.30864197530864906,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49691818",
+            "title": "Alnylam to Webcast Presentation at 44th Annual J.P. Morgan Healthcare Conference",
+            "published_at": "2026-01-05T14:15:00Z",
+            "received_at": "2026-01-05T14:15:02.113011",
+            "tickers": [
+              "ALNY"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 401.0,
+            "peak_price": 401.02,
+            "peak_price_timestamp": "2026-01-05T14:28:34.397258+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.004987531172065289,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49738433",
+            "title": "TLX Deadline: TLX Investors Have Opportunity to Lead Telix Pharmaceuticals Ltd. Securities Fraud Lawsuit Filed by The Rosen Law Firm",
+            "published_at": "2026-01-06T20:40:00Z",
+            "received_at": "2026-01-06T20:45:53.477852",
+            "tickers": [
+              "TLX"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 7.47,
+            "peak_price": 7.46,
+            "peak_price_timestamp": "2026-01-06T20:47:17.088110+00:00",
+            "final_ask_10min": 7.44,
+            "max_excursion_pct": -0.13386880856760092,
+            "session": "market",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/market_hours/market_hours.json"
+          },
+          {
+            "article_id": "benzinga:49738894",
+            "title": "ROSEN, A TOP-RANKED LAW FIRM, Encourages Skye Bioscience, Inc. Investors to Secure Counsel Before Important Deadline in Securities Class Action \u2013 SKYE",
+            "published_at": "2026-01-06T20:51:30Z",
+            "received_at": "2026-01-06T20:51:31.597732",
+            "tickers": [
+              "SKYE"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 1.03,
+            "peak_price": 1.03,
+            "peak_price_timestamp": "2026-01-06T20:53:30.054541+00:00",
+            "final_ask_10min": 1.03,
+            "max_excursion_pct": 0.0,
+            "session": "market",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/market_hours/market_hours.json"
+          },
+          {
+            "article_id": "benzinga:49739177",
+            "title": "Bright Minds Biosciences Announces Launch of US$100 Million Public Offering",
+            "published_at": "2026-01-06T21:00:00Z",
+            "received_at": "2026-01-06T21:00:03.106067",
+            "tickers": [
+              "DRUG"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 93.86,
+            "peak_price": 93.21,
+            "peak_price_timestamp": "2026-01-06T21:00:00.428750+00:00",
+            "final_ask_10min": 93.25,
+            "max_excursion_pct": -0.6925207756232747,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49739179",
+            "title": "Levi &amp; Korsinsky Notifies Skye Bioscience, Inc. Investors of a Class Action Lawsuit and Upcoming Deadline \u2013 SKYE",
+            "published_at": "2026-01-06T21:00:00Z",
+            "received_at": "2026-01-06T21:00:03.106234",
+            "tickers": [
+              "SKYE"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 1.02,
+            "peak_price": 1.02,
+            "peak_price_timestamp": "2026-01-06T21:00:00.086134+00:00",
+            "final_ask_10min": 1.03,
+            "max_excursion_pct": 0.0,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49739187",
+            "title": "Levi &amp; Korsinsky Notifies Shareholders of Telix Pharmaceuticals Ltd. (TLX) of a Class Action Lawsuit and an Upcoming Deadline",
+            "published_at": "2026-01-06T21:00:00Z",
+            "received_at": "2026-01-06T21:00:04.178747",
+            "tickers": [
+              "TLX"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 7.48,
+            "peak_price": 7.48,
+            "peak_price_timestamp": "2026-01-06T21:01:30.020676+00:00",
+            "final_ask_10min": 8.2,
+            "max_excursion_pct": 0.0,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49739569",
+            "title": "Nuvation Bio to Present at the 44th Annual J.P. Morgan Healthcare Conference",
+            "published_at": "2026-01-06T21:05:00Z",
+            "received_at": "2026-01-06T21:05:02.658062",
+            "tickers": [
+              "NUVB"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 8.55,
+            "peak_price": 8.54,
+            "peak_price_timestamp": "2026-01-06T21:05:00.281908+00:00",
+            "final_ask_10min": 8.55,
+            "max_excursion_pct": -0.11695906432750366,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49739581",
+            "title": "Exelixis to Present at the J.P. Morgan 2026 Healthcare Conference on January 12, 2026",
+            "published_at": "2026-01-06T21:05:00Z",
+            "received_at": "2026-01-06T21:05:08.686274",
+            "tickers": [
+              "EXEL"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 44.0,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": 44.0,
+            "max_excursion_pct": -0.7954545454545486,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49742898",
+            "title": "Arrowhead Pharmaceuticals Announces Proposed Offerings of Convertible Senior Notes and Common Stock",
+            "published_at": "2026-01-06T23:14:00Z",
+            "received_at": "2026-01-06T23:14:01.513028",
+            "tickers": [
+              "ARWR"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 71.21,
+            "peak_price": 71.31,
+            "peak_price_timestamp": "2026-01-06T23:14:00.037133+00:00",
+            "final_ask_10min": 71.06,
+            "max_excursion_pct": 0.14042971492769069,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49716388",
+            "title": "Apogee Therapeutics Announces Positive Interim Results from Phase 1b Trial of Zumilokibart (APG777), its Potentially Best-in-Class Anti-IL-13 Antibody, in Patients with Mild-to-Moderate Asthma and Highlights 2026 Anticipated Milestones and Outlook",
+            "published_at": "2026-01-06T11:00:00Z",
+            "received_at": "2026-01-06T11:00:02.795261",
+            "tickers": [
+              "APGE"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 78.46,
+            "peak_price": 79.01,
+            "peak_price_timestamp": "2026-01-06T11:06:43.241435+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.7009941371399584,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49717513",
+            "title": "Aclaris Therapeutics Announces Positive Interim Results of Phase 1a Trial of Anti-TSLP/IL-4R\u03b1 Bispecific Antibody ATI-052 Supporting Expedited Clinical Development",
+            "published_at": "2026-01-06T11:59:00Z",
+            "received_at": "2026-01-06T11:59:01.894285",
+            "tickers": [
+              "ACRS"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 2.83,
+            "peak_price": 2.82,
+            "peak_price_timestamp": "2026-01-06T11:59:57.313607+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.35335689045937213,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49717535",
+            "title": "NovaBridge Presents Positive Givastomig Dose Expansion Data from the Phase 1b Combination Study in Patients with 1L Metastatic Gastric Cancer",
+            "published_at": "2026-01-06T12:00:00Z",
+            "received_at": "2026-01-06T12:00:03.668005",
+            "tickers": [
+              "NBP"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 4.58,
+            "peak_price": 4.56,
+            "peak_price_timestamp": "2026-01-06T12:00:00.140064+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.4366812227074336,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49717536",
+            "title": "Fractyl Health Appoints Lara Smith Weber as Chief Financial Officer to Support Commercial-Stage Preparedness",
+            "published_at": "2026-01-06T12:00:00Z",
+            "received_at": "2026-01-06T12:00:03.759040",
+            "tickers": [
+              "GUTS"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 2.09,
+            "peak_price": 2.1,
+            "peak_price_timestamp": "2026-01-06T12:00:00.099586+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.4784688995215422,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49718487",
+            "title": "Cognition Therapeutics Publishes Phase 2 Clinical Results Showing Zervimesine&#39;s Potential to Slow the Progression of Dementia with Lewy Bodies",
+            "published_at": "2026-01-06T12:30:00Z",
+            "received_at": "2026-01-06T12:30:03.991030",
+            "tickers": [
+              "CGTX"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 1.45,
+            "peak_price": 1.46,
+            "peak_price_timestamp": "2026-01-06T12:35:09.539751+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.6896551724137937,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49718490",
+            "title": "Zai Lab Announces National Medical Products Administration (NMPA) Approval of AUGTYRO\u2122 (repotrectinib) for Patients with NTRK-Positive Solid Tumors",
+            "published_at": "2026-01-06T12:30:00Z",
+            "received_at": "2026-01-06T12:30:03.991203",
+            "tickers": [
+              "ZLAB"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 18.5,
+            "peak_price": 18.35,
+            "peak_price_timestamp": "2026-01-06T12:30:00.222055+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.8108108108108031,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49718500",
+            "title": "Summit Therapeutics to Present at the 44th Annual J.P. Morgan Healthcare Conference",
+            "published_at": "2026-01-06T12:30:00Z",
+            "received_at": "2026-01-06T12:30:03.991358",
+            "tickers": [
+              "SMMT"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 17.68,
+            "peak_price": 17.54,
+            "peak_price_timestamp": "2026-01-06T12:30:00.350261+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.7918552036199128,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49719239",
+            "title": "Recursion to Present at 44th Annual J.P. Morgan Healthcare Conference",
+            "published_at": "2026-01-06T12:59:00Z",
+            "received_at": "2026-01-06T12:59:01.730817",
+            "tickers": [
+              "RXRX"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 4.37,
+            "peak_price": 4.39,
+            "peak_price_timestamp": "2026-01-06T13:00:26.905621+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.4576659038901504,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49719251",
+            "title": "Mineralys Therapeutics Provides Corporate Update and Announces Participation in Upcoming LifeSci Partners Corporate Access Event in January 2026",
+            "published_at": "2026-01-06T13:00:00Z",
+            "received_at": "2026-01-06T13:00:16.707924",
+            "tickers": [
+              "MLYS"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 35.84,
+            "peak_price": 35.73,
+            "peak_price_timestamp": "2026-01-06T13:02:48.333228+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.30691964285716106,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49719264",
+            "title": "Lineage Takes Delivery of Gene-edited Hypoimmune Cell Line Under Partnership With Factor Bioscience",
+            "published_at": "2026-01-06T13:00:00Z",
+            "received_at": "2026-01-06T13:00:16.708321",
+            "tickers": [
+              "LCTX"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 1.71,
+            "peak_price": 1.71,
+            "peak_price_timestamp": "2026-01-06T13:00:01.809385+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.0,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49719350",
+            "title": "Taysha Gene Therapies Announces Progress Across TSHA-102 Pivotal Gene Therapy Program in Rett Syndrome",
+            "published_at": "2026-01-06T13:00:00Z",
+            "received_at": "2026-01-06T13:00:40.290488",
+            "tickers": [
+              "TSHA"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 4.96,
+            "peak_price": 5.0,
+            "peak_price_timestamp": "2026-01-06T13:00:59.495296+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.8064516129032264,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49719642",
+            "title": "IGC Pharma Aligns Fiscal Year with Calendar Year to Enhance U.S. Investor Transparency and Comparability",
+            "published_at": "2026-01-06T13:00:00Z",
+            "received_at": "2026-01-06T13:05:14.855344",
+            "tickers": [
+              "IGC"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 0.297,
+            "peak_price": 0.297,
+            "peak_price_timestamp": "2026-01-06T13:13:48.537269+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.0,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49743615",
+            "title": "SKYE Investors Have Opportunity to Lead Skye Bioscience, Inc. Securities Fraud Lawsuit",
+            "published_at": "2026-01-07T00:30:00Z",
+            "received_at": "2026-01-07T00:30:21.961853",
+            "tickers": [
+              "SKYE"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 1.08,
+            "peak_price": 1.08,
+            "peak_price_timestamp": "2026-01-07T00:33:22.461709+00:00",
+            "final_ask_10min": 1.07,
+            "max_excursion_pct": 0.0,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49768865",
+            "title": "Monte Rosa Therapeutics Announces Proposed Public Offering of Common Stock and Pre-Funded Warrants",
+            "published_at": "2026-01-07T21:01:00Z",
+            "received_at": "2026-01-07T21:01:02.169277",
+            "tickers": [
+              "GLUE"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 23.07,
+            "peak_price": 23.28,
+            "peak_price_timestamp": "2026-01-07T21:01:00.002153+00:00",
+            "final_ask_10min": 23.25,
+            "max_excursion_pct": 0.910273081924581,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49769246",
+            "title": "Phathom Pharmaceuticals Announces Proposed Public Offering of Common Stock and Pre-Funded Warrants",
+            "published_at": "2026-01-07T21:05:00Z",
+            "received_at": "2026-01-07T21:05:03.222763",
+            "tickers": [
+              "PHAT"
+            ],
+            "industry": "Biotechnology",
+            "industries": [
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 16.66,
+            "peak_price": 16.63,
+            "peak_price_timestamp": "2026-01-07T21:06:34.891802+00:00",
+            "final_ask_10min": 16.3,
+            "max_excursion_pct": -0.18007202881153145,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+          }
+        ]
+      },
+      "Diagnostics & Research": {
+        "winners": [
+          {
+            "article_id": "benzinga:49777987",
+            "title": "Neogen Announces Second-Quarter 2026 Results",
+            "published_at": "2026-01-08T12:00:00Z",
+            "received_at": "2026-01-08T12:00:09.793294",
+            "tickers": [
+              "NEOG"
+            ],
+            "industry": "Diagnostics & Research",
+            "industries": [
+              "Diagnostics & Research"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 8.05,
+            "peak_price": 8.75,
+            "peak_price_timestamp": "2026-01-08T12:09:42.125448+00:00",
+            "final_ask_10min": 8.95,
+            "max_excursion_pct": 8.695652173913034,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/08/premarket/premarket.json"
+          }
+        ],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49719263",
+            "title": "Thermo Fisher Scientific to Present at the J.P. Morgan 2026 Healthcare Conference",
+            "published_at": "2026-01-06T13:00:00Z",
+            "received_at": "2026-01-06T13:00:16.708299",
+            "tickers": [
+              "TMO"
+            ],
+            "industry": "Diagnostics & Research",
+            "industries": [
+              "Diagnostics & Research"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 610.95,
+            "peak_price": 609.18,
+            "peak_price_timestamp": "2026-01-06T13:01:50.467062+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.28971274245029793,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          }
+        ]
+      },
+      "Medical Care Facilities": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49706061",
+            "title": "AGL Stockholder Alert: Robbins LLP Reminds Investors of the Securities Fraud Class Action Against Agilon Health, Inc.",
+            "published_at": "2026-01-05T20:15:00Z",
+            "received_at": "2026-01-05T20:15:14.636979",
+            "tickers": [
+              "AGL"
+            ],
+            "industry": "Medical Care Facilities",
+            "industries": [
+              "Medical Care Facilities"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 0.6897,
+            "peak_price": 0.6899,
+            "peak_price_timestamp": "2026-01-05T20:15:01.297146+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.028998115122513844,
+            "session": "market",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/market_hours/market_hours.json"
+          },
+          {
+            "article_id": "benzinga:49740556",
+            "title": "INVESTOR ALERT: Pomerantz Law Firm Reminds Investors with Losses on their Investment in agilon health, inc. of Class Action Lawsuit and Upcoming Deadlines - AGL",
+            "published_at": "2026-01-06T21:25:51Z",
+            "received_at": "2026-01-06T21:25:52.752021",
+            "tickers": [
+              "AGL"
+            ],
+            "industry": "Medical Care Facilities",
+            "industries": [
+              "Medical Care Facilities"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 0.84,
+            "peak_price": 0.84,
+            "peak_price_timestamp": "2026-01-06T21:27:27.250539+00:00",
+            "final_ask_10min": 0.84,
+            "max_excursion_pct": 0.0,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49740763",
+            "title": "AGL Investors Have Opportunity to Lead agilon health, inc. Securities Fraud Lawsuit First Filed by the Rosen Law Firm",
+            "published_at": "2026-01-06T21:31:00Z",
+            "received_at": "2026-01-06T21:31:14.829080",
+            "tickers": [
+              "AGL"
+            ],
+            "industry": "Medical Care Facilities",
+            "industries": [
+              "Medical Care Facilities"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 0.84,
+            "peak_price": null,
+            "peak_price_timestamp": null,
+            "final_ask_10min": 0.84,
+            "max_excursion_pct": -0.47619047619047666,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49717047",
+            "title": "Compass Pathways Establishes Strategic Collaboration with Radial to Innovate Patient Experience and Inform Potential Delivery Model of COMP360",
+            "published_at": "2026-01-06T11:30:00Z",
+            "received_at": "2026-01-06T11:30:01.640473",
+            "tickers": [
+              "CMPS"
+            ],
+            "industry": "Medical Care Facilities",
+            "industries": [
+              "Medical Care Facilities"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 6.75,
+            "peak_price": 6.74,
+            "peak_price_timestamp": "2026-01-06T11:30:09.817002+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.148148148148145,
+            "session": "premarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          }
+        ]
+      },
+      "Drug Manufacturers - General": {
+        "winners": [],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49768892",
+            "title": "AMGEN TO PRESENT AT THE 44TH ANNUAL J.P. MORGAN HEALTHCARE CONFERENCE",
+            "published_at": "2026-01-07T21:01:00Z",
+            "received_at": "2026-01-07T21:01:14.853227",
+            "tickers": [
+              "AMGN"
+            ],
+            "industry": "Drug Manufacturers - General",
+            "industries": [
+              "Drug Manufacturers - General"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 342.08,
+            "peak_price": 341.0,
+            "peak_price_timestamp": "2026-01-07T21:01:12.507236+00:00",
+            "final_ask_10min": 342.08,
+            "max_excursion_pct": -0.31571562207670256,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+          }
+        ]
+      },
+      "Leisure": {
+        "winners": [
+          {
+            "article_id": "benzinga:49706571",
+            "title": "DEADLINE ALERT for FUN, TLX, LRN, PRMB: Law Offices of Howard G. Smith Reminds Shareholders of Opportunity to Lead Securities Fraud Class Actions",
+            "published_at": "2026-01-05T20:35:00Z",
+            "received_at": "2026-01-05T20:35:15.570750",
+            "tickers": [
+              "FUN",
+              "TLX",
+              "LRN",
+              "PRMB"
+            ],
+            "industry": "Leisure",
+            "industries": [
+              "Leisure",
+              "Education & Training Services",
+              "Beverages - Non-Alcoholic",
+              "Biotechnology"
+            ],
+            "sectors": [
+              "Consumer Cyclical",
+              "Healthcare",
+              "Consumer Defensive"
+            ],
+            "initial_ask": 14.79,
+            "peak_price": 16.68,
+            "peak_price_timestamp": "2026-01-05T20:35:23.404519+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 12.778904665314405,
+            "session": "market",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/market_hours/market_hours.json"
+          }
+        ],
+        "non_movers_sample": []
+      },
+      "Medical Devices": {
+        "winners": [
+          {
+            "article_id": "benzinga:49841790",
+            "title": "Outset Medical Reports Unaudited Fourth Quarter and 2025 Results",
+            "published_at": "2026-01-12T13:30:00Z",
+            "received_at": "2026-01-12T13:30:03.986930",
+            "tickers": [
+              "OM"
+            ],
+            "industry": "Medical Devices",
+            "industries": [
+              "Medical Devices"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 4.7,
+            "peak_price": 5.97,
+            "peak_price_timestamp": "2026-01-12T13:35:22.374511+00:00",
+            "final_ask_10min": 5.37,
+            "max_excursion_pct": 27.02127659574467,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_3/12/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49892364",
+            "title": "Rapid Micro Biosystems Announces Record Preliminary Unaudited Fourth Quarter and Full Year 2025 Revenue",
+            "published_at": "2026-01-13T21:15:00Z",
+            "received_at": "2026-01-13T21:15:01.803789",
+            "tickers": [
+              "RPID"
+            ],
+            "industry": "Medical Devices",
+            "industries": [
+              "Medical Devices"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 3.12,
+            "peak_price": 4.0,
+            "peak_price_timestamp": "2026-01-13T21:17:45.510938+00:00",
+            "final_ask_10min": 3.65,
+            "max_excursion_pct": 28.2051282051282,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_3/13/postmarket/postmarket.json"
+          }
+        ],
+        "non_movers_sample": [
+          {
+            "article_id": "benzinga:49709006",
+            "title": "Abbott hosts conference call for fourth-quarter earnings",
+            "published_at": "2026-01-05T21:30:00Z",
+            "received_at": "2026-01-05T21:30:18.423712",
+            "tickers": [
+              "ABT"
+            ],
+            "industry": "Medical Devices",
+            "industries": [
+              "Medical Devices"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 126.5,
+            "peak_price": 126.45,
+            "peak_price_timestamp": "2026-01-05T21:30:47.569715+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": -0.039525691699602496,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49709890",
+            "title": "Medtronic Chairman and CEO Geoff Martha to speak at J.P. Morgan healthcare conference",
+            "published_at": "2026-01-05T21:43:00Z",
+            "received_at": "2026-01-05T21:44:33.444291",
+            "tickers": [
+              "MDT"
+            ],
+            "industry": "Medical Devices",
+            "industries": [
+              "Medical Devices"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 97.35,
+            "peak_price": 97.36,
+            "peak_price_timestamp": "2026-01-05T21:44:42.240852+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.010272213662049426,
+            "session": "postmarket",
+            "filter_reason": "prefilter_no_volume_since_publication",
+            "source_file": "tmp/statistics/recall/2026/01/week_2/05/postmarket/postmarket.json"
+          },
+          {
+            "article_id": "benzinga:49738392",
+            "title": "ROSEN, A RANKED AND LEADING FIRM, Encourages Integer Holdings Corporation Investors to Secure Counsel Before Important Deadline in Securities Class Action - ITGR",
+            "published_at": "2026-01-06T20:39:11Z",
+            "received_at": "2026-01-06T20:45:53.465823",
+            "tickers": [
+              "ITGR"
+            ],
+            "industry": "Medical Devices",
+            "industries": [
+              "Medical Devices"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 80.84,
+            "peak_price": 80.975,
+            "peak_price_timestamp": "2026-01-06T20:50:50.040281+00:00",
+            "final_ask_10min": 80.96,
+            "max_excursion_pct": 0.16699653636812334,
+            "session": "market",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/market_hours/market_hours.json"
+          },
+          {
+            "article_id": "benzinga:49719245",
+            "title": "Picard Medical to Begin Rollout of FDA-Cleared Accessory for its SynCardia Total Artificial Heart",
+            "published_at": "2026-01-06T13:00:00Z",
+            "received_at": "2026-01-06T13:00:16.707834",
+            "tickers": [
+              "PMI"
+            ],
+            "industry": "Medical Devices",
+            "industries": [
+              "Medical Devices"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 1.69,
+            "peak_price": 1.7,
+            "peak_price_timestamp": "2026-01-06T13:00:25.967730+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.5917159763313614,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49719635",
+            "title": "Butterfly Network to Extend its Proprietary 3D Imaging Capabilities to Butterfly Garden Developers",
+            "published_at": "2026-01-06T13:05:00Z",
+            "received_at": "2026-01-06T13:05:02.513354",
+            "tickers": [
+              "BFLY"
+            ],
+            "industry": "Medical Devices",
+            "industries": [
+              "Medical Devices"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 3.92,
+            "peak_price": 3.92,
+            "peak_price_timestamp": "2026-01-06T13:05:30.554084+00:00",
+            "final_ask_10min": null,
+            "max_excursion_pct": 0.0,
+            "session": "premarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/06/premarket/premarket.json"
+          },
+          {
+            "article_id": "benzinga:49768862",
+            "title": "Bruker Corporation to Present at the J.P. Morgan Healthcare Conference",
+            "published_at": "2026-01-07T21:01:00Z",
+            "received_at": "2026-01-07T21:01:01.895226",
+            "tickers": [
+              "BRKR"
+            ],
+            "industry": "Medical Devices",
+            "industries": [
+              "Medical Devices"
+            ],
+            "sectors": [
+              "Healthcare"
+            ],
+            "initial_ask": 53.38,
+            "peak_price": 53.1,
+            "peak_price_timestamp": "2026-01-07T21:01:00.153869+00:00",
+            "final_ask_10min": 53.38,
+            "max_excursion_pct": -0.5245410266017256,
+            "session": "postmarket",
+            "filter_reason": null,
+            "source_file": "tmp/statistics/recall/2026/01/week_2/07/postmarket/postmarket.json"
+          }
+        ]
+      }
+    }
+  }
+}
