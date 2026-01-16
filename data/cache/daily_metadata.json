@@ -1,0 +1,8081 @@
+{
+  "date": "2026-01-16",
+  "data": {
+    "ORCL": {
+      "market_cap_millions": 545463.730176
+    },
+    "RZLT": {
+      "market_cap_millions": 229.964288
+    },
+    "UNH": {
+      "market_cap_millions": 309624.700928
+    },
+    "MLTX": {
+      "market_cap_millions": 799.867136
+    },
+    "CNNE": {
+      "market_cap_millions": 884.415424
+    },
+    "PRTA": {
+      "market_cap_millions": 557.678592
+    },
+    "AMZE": {
+      "market_cap_millions": 7.693552
+    },
+    "AVXL": {
+      "market_cap_millions": 352.925024
+    },
+    "PRZO": {
+      "market_cap_millions": 31.761546
+    },
+    "ALEC": {
+      "market_cap_millions": 162.635696
+    },
+    "GRI": {
+      "market_cap_millions": 3.016076
+    },
+    "TELA": {
+      "market_cap_millions": 51.210116
+    },
+    "MRVL": {
+      "market_cap_millions": 77787.283456
+    },
+    "TRTX": {
+      "market_cap_millions": 719.889728
+    },
+    "TPG": {
+      "market_cap_millions": 25932.630016
+    },
+    "BGX": {
+      "market_cap_millions": 150.338912
+    },
+    "BGB": {
+      "market_cap_millions": 529.27296
+    },
+    "INDI": {
+      "market_cap_millions": 869.20224
+    },
+    "STWD": {
+      "market_cap_millions": 7002.134528
+    },
+    "AVTR": {
+      "market_cap_millions": 7813.598208
+    },
+    "FHN": {
+      "market_cap_millions": 12211.330048
+    },
+    "AMR": {
+      "market_cap_millions": 2415.348992
+    },
+    "SKYE": {
+      "market_cap_millions": 24.033478
+    },
+    "VTLE": {
+      "market_cap_millions": 693.443072
+    },
+    "CRGY": {
+      "market_cap_millions": 2666.464768
+    },
+    "SNPS": {
+      "market_cap_millions": 94547.542016
+    },
+    "FCX": {
+      "market_cap_millions": 72930.9184
+    },
+    "INSP": {
+      "market_cap_millions": 2727.639296
+    },
+    "KBH": {
+      "market_cap_millions": 4069.165312
+    },
+    "ZVRA": {
+      "market_cap_millions": 477.403072
+    },
+    "BHK": {
+      "market_cap_millions": 692.630336
+    },
+    "BIT": {
+      "market_cap_millions": 573.392832
+    },
+    "MPA": {
+      "market_cap_millions": 146.408528
+    },
+    "MQY": {
+      "market_cap_millions": 815.311552
+    },
+    "MYI": {
+      "market_cap_millions": 726.487104
+    },
+    "BKT": {
+      "market_cap_millions": 357.574016
+    },
+    "CII": {
+      "market_cap_millions": 980.772736
+    },
+    "MYN": {
+      "market_cap_millions": 386.19712
+    },
+    "DSU": {
+      "market_cap_millions": 630.948288
+    },
+    "BNY": {
+      "market_cap_millions": 244.788624
+    },
+    "BSTZ": {
+      "market_cap_millions": 1594.159104
+    },
+    "MHD": {
+      "market_cap_millions": 607.971264
+    },
+    "BTX": {
+      "market_cap_millions": 1405.898368
+    },
+    "MIY": {
+      "market_cap_millions": 341.32064
+    },
+    "BMEZ": {
+      "market_cap_millions": 1523.889536
+    },
+    "BCAT": {
+      "market_cap_millions": 1483.617792
+    },
+    "BGY": {
+      "market_cap_millions": 546.47488
+    },
+    "BLW": {
+      "market_cap_millions": 532.199104
+    },
+    "BTZ": {
+      "market_cap_millions": 1010.703872
+    },
+    "BOE": {
+      "market_cap_millions": 667.771776
+    },
+    "HYT": {
+      "market_cap_millions": 1425.509376
+    },
+    "BGT": {
+      "market_cap_millions": 337.91408
+    },
+    "BME": {
+      "market_cap_millions": 531.568384
+    },
+    "MVF": {
+      "market_cap_millions": 395.61632
+    },
+    "BKN": {
+      "market_cap_millions": 193.049616
+    },
+    "MQT": {
+      "market_cap_millions": 220.88248
+    },
+    "MVT": {
+      "market_cap_millions": 221.54832
+    },
+    "DXCM": {
+      "market_cap_millions": 0.02576447797070824
+    },
+    "LRN": {
+      "market_cap_millions": 2847.819008
+    },
+    "JHX": {
+      "market_cap_millions": 0.017448275291
+    },
+    "TLX": {
+      "market_cap_millions": 2507.086336
+    },
+    "OWL": {
+      "market_cap_millions": 23354.406912
+    },
+    "STUB": {
+      "market_cap_millions": 4976.513536
+    },
+    "SHCO": {
+      "market_cap_millions": 1747.150464
+    },
+    "COMP": {
+      "market_cap_millions": 6928.292864
+    },
+    "ASST": {
+      "market_cap_millions": 867.884864
+    },
+    "ALKS": {
+      "market_cap_millions": 4623.290368
+    },
+    "AVDL": {
+      "market_cap_millions": 2110.034432
+    },
+    "DENN": {
+      "market_cap_millions": 319.29376
+    },
+    "PRGO": {
+      "market_cap_millions": 1915.726336
+    },
+    "GIFI": {
+      "market_cap_millions": 191.66336
+    },
+    "CART": {
+      "market_cap_millions": 11580.745728
+    },
+    "KLAR": {
+      "market_cap_millions": 10906.442752
+    },
+    "BLCO": {
+      "market_cap_millions": 5872.466944
+    },
+    "INVA": {
+      "market_cap_millions": 1542.48576
+    },
+    "TU": {
+      "market_cap_millions": 21093.005312
+    },
+    "ASBP": {
+      "market_cap_millions": 13.152379
+    },
+    "TECK": {
+      "market_cap_millions": 24475.369472
+    },
+    "DOMH": {
+      "market_cap_millions": 71.255336
+    },
+    "ALE": {
+      "market_cap_millions": 3944.881408
+    },
+    "CRBG": {
+      "market_cap_millions": 15146.543104
+    },
+    "DEFT": {
+      "market_cap_millions": 311.549056
+    },
+    "BTDR": {
+      "market_cap_millions": 2708.153088
+    },
+    "TAC": {
+      "market_cap_millions": 3729.518848
+    },
+    "SFM": {
+      "market_cap_millions": 7926.569472
+    },
+    "FER": {
+      "market_cap_millions": 47811.8912
+    },
+    "PRMB": {
+      "market_cap_millions": 6054.173184
+    },
+    "GMGI": {
+      "market_cap_millions": 105.984904
+    },
+    "CBLL": {
+      "market_cap_millions": 790.138112
+    },
+    "ABT": {
+      "market_cap_millions": 216147.607552
+    },
+    "MDT": {
+      "market_cap_millions": 125093.543936
+    },
+    "HTFL": {
+      "market_cap_millions": 2589.676544
+    },
+    "DOCS": {
+      "market_cap_millions": 8381.8368
+    },
+    "CERT": {
+      "market_cap_millions": 1415.143808
+    },
+    "CTSH": {
+      "market_cap_millions": 40930.021376
+    },
+    "OSCR": {
+      "market_cap_millions": 4739.774976
+    },
+    "SUN": {
+      "market_cap_millions": 10053.680128
+    },
+    "ET": {
+      "market_cap_millions": 56376.209408
+    },
+    "DUK": {
+      "market_cap_millions": 91149.672448
+    },
+    "LYV": {
+      "market_cap_millions": 33340.604416
+    },
+    "ARMK": {
+      "market_cap_millions": 9833.735168
+    },
+    "SAFX": {
+      "market_cap_millions": 56.434852
+    },
+    "ABSI": {
+      "market_cap_millions": 555.622784
+    },
+    "AMZN": {
+      "market_cap_millions": 2491461.664768
+    },
+    "RDI": {
+      "market_cap_millions": 41.703368
+    },
+    "GILD": {
+      "market_cap_millions": 146787.467264
+    },
+    "EXEL": {
+      "market_cap_millions": 11758.76608
+    },
+    "CRDF": {
+      "market_cap_millions": 165.706976
+    },
+    "AGEN": {
+      "market_cap_millions": 159.159056
+    },
+    "KMX": {
+      "market_cap_millions": 5674.092032
+    },
+    "RPRX": {
+      "market_cap_millions": 23426.10944
+    },
+    "MRNA": {
+      "market_cap_millions": 12058.04032
+    },
+    "IMRX": {
+      "market_cap_millions": 537.86784
+    },
+    "TNGX": {
+      "market_cap_millions": 1202.666496
+    },
+    "FFWM": {
+      "market_cap_millions": 511.396768
+    },
+    "KVUE": {
+      "market_cap_millions": 32072.245248
+    },
+    "ALB": {
+      "market_cap_millions": 20818.33984
+    },
+    "SMX": {
+      "market_cap_millions": 237.153232
+    },
+    "HRL": {
+      "market_cap_millions": 12927.520768
+    },
+    "PSX": {
+      "market_cap_millions": 56581.435392
+    },
+    "UBER": {
+      "market_cap_millions": 178115.608576
+    },
+    "WRD": {
+      "market_cap_millions": 3052.472576
+    },
+    "ATPC": {
+      "market_cap_millions": 6.838691
+    },
+    "IRRX": {
+      "market_cap_millions": 57.755608
+    },
+    "ARDT": {
+      "market_cap_millions": 1244.300928
+    },
+    "DVS": {
+      "market_cap_millions": 429.017888
+    },
+    "ALEX": {
+      "market_cap_millions": 1522.834688
+    },
+    "CFLT": {
+      "market_cap_millions": 10746.382336
+    },
+    "UHAL": {
+      "market_cap_millions": 10072.6272
+    },
+    "PLCE": {
+      "market_cap_millions": 96.43032
+    },
+    "EIX": {
+      "market_cap_millions": 23128.522752
+    },
+    "RBLX": {
+      "market_cap_millions": 53756.964864
+    },
+    "ERO": {
+      "market_cap_millions": 2727.79776
+    },
+    "UHS": {
+      "market_cap_millions": 14306.295808
+    },
+    "DCX": {
+      "market_cap_millions": 2.540595
+    },
+    "GDOT": {
+      "market_cap_millions": 714.3552
+    },
+    "SWK": {
+      "market_cap_millions": 11304.27904
+    },
+    "LFS": {
+      "market_cap_millions": 99.67196
+    },
+    "BEAM": {
+      "market_cap_millions": 2655.59936
+    },
+    "GLPG": {
+      "market_cap_millions": 2157.470208
+    },
+    "SCHL": {
+      "market_cap_millions": 723.242048
+    },
+    "CUE": {
+      "market_cap_millions": 26.928306
+    },
+    "RNAC": {
+      "market_cap_millions": 179.684912
+    },
+    "RCUS": {
+      "market_cap_millions": 2872.357888
+    },
+    "RMD": {
+      "market_cap_millions": 36618.563584
+    },
+    "SHFS": {
+      "market_cap_millions": 3.450806
+    },
+    "HFFG": {
+      "market_cap_millions": 120.409496
+    },
+    "CRNX": {
+      "market_cap_millions": 5674.03008
+    },
+    "ABVX": {
+      "market_cap_millions": 9979.89888
+    },
+    "MDLN": {
+      "market_cap_millions": 32948.760576
+    },
+    "MDGL": {
+      "market_cap_millions": 12364.32384
+    },
+    "AVO": {
+      "market_cap_millions": 896.8624
+    },
+    "APLD": {
+      "market_cap_millions": 10093.047808
+    },
+    "GANX": {
+      "market_cap_millions": 114.232392
+    },
+    "PSN": {
+      "market_cap_millions": 7388.5312
+    },
+    "VTVT": {
+      "market_cap_millions": 136.727984
+    },
+    "NNE": {
+      "market_cap_millions": 1615.682176
+    },
+    "ADC": {
+      "market_cap_millions": 8233.440768
+    },
+    "HEI": {
+      "market_cap_millions": 42967.474176
+    },
+    "PHR": {
+      "market_cap_millions": 988.40544
+    },
+    "FAST": {
+      "market_cap_millions": 47689.404416
+    },
+    "ACAD": {
+      "market_cap_millions": 4500.2368
+    },
+    "OMI": {
+      "market_cap_millions": 215.796992
+    },
+    "LIDR": {
+      "market_cap_millions": 101.824288
+    },
+    "ACM": {
+      "market_cap_millions": 12880.384
+    },
+    "NEM": {
+      "market_cap_millions": 125915.283456
+    },
+    "AAPL": {
+      "market_cap_millions": 4065227.702272
+    },
+    "ADTX": {
+      "market_cap_millions": 2.237789
+    },
+    "ISPO": {
+      "market_cap_millions": 52.791308
+    },
+    "MYSE": {
+      "market_cap_millions": 8.58836
+    },
+    "UDMY": {
+      "market_cap_millions": 759.695424
+    },
+    "VYNE": {
+      "market_cap_millions": 19.469228
+    },
+    "YCBD": {
+      "market_cap_millions": 13.512906
+    },
+    "RXRX": {
+      "market_cap_millions": 2277.918208
+    },
+    "LNKB": {
+      "market_cap_millions": 325.489568
+    },
+    "CARS": {
+      "market_cap_millions": 829.514176
+    },
+    "IRBT": {
+      "market_cap_millions": 21.221714
+    },
+    "FDX": {
+      "market_cap_millions": 73891.815424
+    },
+    "CODI": {
+      "market_cap_millions": 407.02656
+    },
+    "PAHC": {
+      "market_cap_millions": 1637.963136
+    },
+    "AA": {
+      "market_cap_millions": 12479.476736
+    },
+    "DIT": {
+      "market_cap_millions": 74.226376
+    },
+    "FBIN": {
+      "market_cap_millions": 6190.729728
+    },
+    "FTHY": {
+      "market_cap_millions": 513.350976
+    },
+    "FCT": {
+      "market_cap_millions": 259.574048
+    },
+    "BLIN": {
+      "market_cap_millions": 10.209818
+    },
+    "FMY": {
+      "market_cap_millions": 49.946476
+    },
+    "FPF": {
+      "market_cap_millions": 1129.33568
+    },
+    "FG": {
+      "market_cap_millions": 4435.331072
+    },
+    "FNF": {
+      "market_cap_millions": 15810.25792
+    },
+    "CPT": {
+      "market_cap_millions": 11475.448832
+    },
+    "KYN": {
+      "market_cap_millions": 1969.472768
+    },
+    "RCEL": {
+      "market_cap_millions": 100.017408
+    },
+    "CBIO": {
+      "market_cap_millions": 185.9508
+    },
+    "SF": {
+      "market_cap_millions": 12766.567424
+    },
+    "FTI": {
+      "market_cap_millions": 19868.536832
+    },
+    "SSP": {
+      "market_cap_millions": 327.679872
+    },
+    "BXP": {
+      "market_cap_millions": 11740.623872
+    },
+    "LINE": {
+      "market_cap_millions": 8570.543616
+    },
+    "PEB": {
+      "market_cap_millions": 1360.04736
+    },
+    "NKE": {
+      "market_cap_millions": 97014.349824
+    },
+    "FNLC": {
+      "market_cap_millions": 317.843328
+    },
+    "RITM": {
+      "market_cap_millions": 6182.063616
+    },
+    "TWO": {
+      "market_cap_millions": 1179.04384
+    },
+    "LOKV": {
+      "market_cap_millions": 295.40624
+    },
+    "USAC": {
+      "market_cap_millions": 3081.859072
+    },
+    "CUZ": {
+      "market_cap_millions": 4339.250176
+    },
+    "ACP": {
+      "market_cap_millions": 702.635776
+    },
+    "TCBX": {
+      "market_cap_millions": 528.151904
+    },
+    "AHR": {
+      "market_cap_millions": 8774.923264
+    },
+    "UDR": {
+      "market_cap_millions": 13598.784512
+    },
+    "CMC": {
+      "market_cap_millions": 8130.930688
+    },
+    "IVR": {
+      "market_cap_millions": 596.652224
+    },
+    "CME": {
+      "market_cap_millions": 99247.88224
+    },
+    "PX": {
+      "market_cap_millions": 1155.1584
+    },
+    "MERC": {
+      "market_cap_millions": 133.295192
+    },
+    "TOL": {
+      "market_cap_millions": 14342.754304
+    },
+    "WSBF": {
+      "market_cap_millions": 320.908064
+    },
+    "RRBI": {
+      "market_cap_millions": 502.42144
+    },
+    "TII": {
+      "market_cap_millions": 272.178752
+    },
+    "GERN": {
+      "market_cap_millions": 855.396096
+    },
+    "STT": {
+      "market_cap_millions": 38664.835072
+    },
+    "BBAI": {
+      "market_cap_millions": 2732.810752
+    },
+    "CIM": {
+      "market_cap_millions": 1079.305216
+    },
+    "WM": {
+      "market_cap_millions": 87953.932288
+    },
+    "PERF": {
+      "market_cap_millions": 180.272144
+    },
+    "FULT": {
+      "market_cap_millions": 3689.629952
+    },
+    "PANL": {
+      "market_cap_millions": 474.308704
+    },
+    "MPTI": {
+      "market_cap_millions": 155.923856
+    },
+    "DOUG": {
+      "market_cap_millions": 225.600176
+    },
+    "WYFI": {
+      "market_cap_millions": 547.117824
+    },
+    "PB": {
+      "market_cap_millions": 6781.130752
+    },
+    "WY": {
+      "market_cap_millions": 17027.659776
+    },
+    "PGZ": {
+      "market_cap_millions": 67.008044
+    },
+    "NXC": {
+      "market_cap_millions": 85.773992
+    },
+    "NXP": {
+      "market_cap_millions": 738.493504
+    },
+    "NXN": {
+      "market_cap_millions": 47.648216
+    },
+    "DC": {
+      "market_cap_millions": 646.726592
+    },
+    "FOF": {
+      "market_cap_millions": 361.721312
+    },
+    "CNS": {
+      "market_cap_millions": 3501.157632
+    },
+    "SOC": {
+      "market_cap_millions": 1195.93472
+    },
+    "CEE": {
+      "market_cap_millions": 108.629696
+    },
+    "GF": {
+      "market_cap_millions": 183.640512
+    },
+    "EEA": {
+      "market_cap_millions": 72.97412
+    },
+    "ANVS": {
+      "market_cap_millions": 97.2656
+    },
+    "KTF": {
+      "market_cap_millions": 357.648032
+    },
+    "CHTR": {
+      "market_cap_millions": 27029.991424
+    },
+    "RNP": {
+      "market_cap_millions": 945.56416
+    },
+    "RFI": {
+      "market_cap_millions": 290.4784
+    },
+    "AL": {
+      "market_cap_millions": 7175.314944
+    },
+    "SVC": {
+      "market_cap_millions": 361.385376
+    },
+    "RMR": {
+      "market_cap_millions": 278.442048
+    },
+    "SLNG": {
+      "market_cap_millions": 84.613176
+    },
+    "CUK": {
+      "market_cap_millions": 39611.895808
+    },
+    "VIRT": {
+      "market_cap_millions": 7157.845504
+    },
+    "EGAN": {
+      "market_cap_millions": 276.733312
+    },
+    "SBUX": {
+      "market_cap_millions": 103646.666752
+    },
+    "FLY": {
+      "market_cap_millions": 3562.447616
+    },
+    "LNTH": {
+      "market_cap_millions": 4525.010944
+    },
+    "FLYE": {
+      "market_cap_millions": 10.789847
+    },
+    "QMCO": {
+      "market_cap_millions": 122.645744
+    },
+    "UNCY": {
+      "market_cap_millions": 116.053544
+    },
+    "RQI": {
+      "market_cap_millions": 1539.239936
+    },
+    "DMA": {
+      "market_cap_millions": 81.565488
+    },
+    "EMBC": {
+      "market_cap_millions": 685.185344
+    },
+    "DGNX": {
+      "market_cap_millions": 539.994304
+    },
+    "PTRN": {
+      "market_cap_millions": 2284.082688
+    },
+    "CDNA": {
+      "market_cap_millions": 1036.860928
+    },
+    "ADBE": {
+      "market_cap_millions": 150934.601728
+    },
+    "CVLT": {
+      "market_cap_millions": 5588.134912
+    },
+    "NHI": {
+      "market_cap_millions": 3732.476672
+    },
+    "OII": {
+      "market_cap_millions": 0.0023556927099999993
+    },
+    "UTF": {
+      "market_cap_millions": 2334.372864
+    },
+    "MAT": {
+      "market_cap_millions": 6914.41152
+    },
+    "NOA": {
+      "market_cap_millions": 401.810144
+    },
+    "BB": {
+      "market_cap_millions": 2289.772544
+    },
+    "ITGR": {
+      "market_cap_millions": 2748.063488
+    },
+    "AIRT": {
+      "market_cap_millions": 51.890692
+    },
+    "MSM": {
+      "market_cap_millions": 4812.02432
+    },
+    "PBF": {
+      "market_cap_millions": 3014.351616
+    },
+    "FRMI": {
+      "market_cap_millions": 6330.601984
+    },
+    "WULF": {
+      "market_cap_millions": 4936.259584
+    },
+    "BLK": {
+      "market_cap_millions": 169401.516032
+    },
+    "ITUB": {
+      "market_cap_millions": 76115.140608
+    },
+    "PMT": {
+      "market_cap_millions": 1147.748992
+    },
+    "PFSI": {
+      "market_cap_millions": 6880.748544
+    },
+    "SNTI": {
+      "market_cap_millions": 28.394106
+    },
+    "FRST": {
+      "market_cap_millions": 333.192096
+    },
+    "LWAY": {
+      "market_cap_millions": 345.388352
+    },
+    "CRWV": {
+      "market_cap_millions": 38470.111232
+    },
+    "BHR": {
+      "market_cap_millions": 222.239856
+    },
+    "AHT": {
+      "market_cap_millions": 28.697214
+    },
+    "CNC": {
+      "market_cap_millions": 22491.86304
+    },
+    "TGE": {
+      "market_cap_millions": 69.783944
+    },
+    "AIG": {
+      "market_cap_millions": 41012.903936
+    },
+    "CSQ": {
+      "market_cap_millions": 3032.589824
+    },
+    "CCD": {
+      "market_cap_millions": 560.037184
+    },
+    "CGO": {
+      "market_cap_millions": 109.181248
+    },
+    "CPZ": {
+      "market_cap_millions": 293.697632
+    },
+    "CHY": {
+      "market_cap_millions": 897.695808
+    },
+    "CHI": {
+      "market_cap_millions": 820.765888
+    },
+    "CHW": {
+      "market_cap_millions": 458.546304
+    },
+    "WLFC": {
+      "market_cap_millions": 1084.943232
+    },
+    "GBX": {
+      "market_cap_millions": 1509.638784
+    },
+    "AMCI": {
+      "market_cap_millions": 151.48888
+    },
+    "UBFO": {
+      "market_cap_millions": 182.085824
+    },
+    "RPTX": {
+      "market_cap_millions": 92.682976
+    },
+    "CWBC": {
+      "market_cap_millions": 446.582944
+    },
+    "KALU": {
+      "market_cap_millions": 2048.308608
+    },
+    "THS": {
+      "market_cap_millions": 1202.909952
+    },
+    "SNDA": {
+      "market_cap_millions": 599.326336
+    },
+    "AWK": {
+      "market_cap_millions": 26026.876928
+    },
+    "FRGE": {
+      "market_cap_millions": 618.023232
+    },
+    "CTS": {
+      "market_cap_millions": 1295.498112
+    },
+    "BANX": {
+      "market_cap_millions": 171.999616
+    },
+    "CPNG": {
+      "market_cap_millions": 43090.61632
+    },
+    "LSF": {
+      "market_cap_millions": 23.832136
+    },
+    "FOUR": {
+      "market_cap_millions": 5668.08576
+    },
+    "WLDBF": {
+      "market_cap_millions": 232.324752
+    },
+    "CMP": {
+      "market_cap_millions": 785.370176
+    },
+    "VIK": {
+      "market_cap_millions": 31509.639168
+    },
+    "DGICB": {
+      "market_cap_millions": 735.762176
+    },
+    "DGICA": {
+      "market_cap_millions": 768.373504
+    },
+    "VFF": {
+      "market_cap_millions": 419.329504
+    },
+    "MS": {
+      "market_cap_millions": 288585.580544
+    },
+    "ELF": {
+      "market_cap_millions": 4586.663936
+    },
+    "GDDY": {
+      "market_cap_millions": 17501.341696
+    },
+    "TALK": {
+      "market_cap_millions": 0.0005880792388194444
+    },
+    "METC": {
+      "market_cap_millions": 1345.665792
+    },
+    "MRSN": {
+      "market_cap_millions": 145.363648
+    },
+    "CSGS": {
+      "market_cap_millions": 2195.79392
+    },
+    "RYI": {
+      "market_cap_millions": 835.349824
+    },
+    "WBD": {
+      "market_cap_millions": 71619.977216
+    },
+    "CDTX": {
+      "market_cap_millions": 6928.250368
+    },
+    "EB": {
+      "market_cap_millions": 434.626176
+    },
+    "KPLT": {
+      "market_cap_millions": 30.58862
+    },
+    "ABVE": {
+      "market_cap_millions": 104.943288
+    },
+    "PRU": {
+      "market_cap_millions": 40547.344384
+    },
+    "ACN": {
+      "market_cap_millions": 178934.874112
+    },
+    "MLAB": {
+      "market_cap_millions": 485.354848
+    },
+    "FUN": {
+      "market_cap_millions": 1556.616576
+    },
+    "IAUX": {
+      "market_cap_millions": 1231.160192
+    },
+    "NVA": {
+      "market_cap_millions": 251.076816
+    },
+    "CYTK": {
+      "market_cap_millions": 7768.713728
+    },
+    "TRST": {
+      "market_cap_millions": 784.579264
+    },
+    "PDEX": {
+      "market_cap_millions": 126.870592
+    },
+    "IVZ": {
+      "market_cap_millions": 11916.151808
+    },
+    "OKTA": {
+      "market_cap_millions": 15325.097984
+    },
+    "ACRS": {
+      "market_cap_millions": 287.114912
+    },
+    "MTW": {
+      "market_cap_millions": 462.363744
+    },
+    "TBLD": {
+      "market_cap_millions": 636.504576
+    },
+    "BHRB": {
+      "market_cap_millions": 994.437376
+    },
+    "COF": {
+      "market_cap_millions": 155866.365952
+    },
+    "NYXH": {
+      "market_cap_millions": 218.574416
+    },
+    "MDRR": {
+      "market_cap_millions": 14.461265
+    },
+    "RKLB": {
+      "market_cap_millions": 38929.1008
+    },
+    "CCTG": {
+      "market_cap_millions": 7.572613
+    },
+    "LFWD": {
+      "market_cap_millions": 11.896443
+    },
+    "PLSE": {
+      "market_cap_millions": 989.406656
+    },
+    "PXLW": {
+      "market_cap_millions": 40.089888
+    },
+    "INO": {
+      "market_cap_millions": 109.9254
+    },
+    "TKLF": {
+      "market_cap_millions": 12.232738
+    },
+    "BEN": {
+      "market_cap_millions": 13363.243008
+    },
+    "FIX": {
+      "market_cap_millions": 33201.963008
+    },
+    "ZBIO": {
+      "market_cap_millions": 1147.392256
+    },
+    "SBFG": {
+      "market_cap_millions": 133.057352
+    },
+    "ECO": {
+      "market_cap_millions": 1201.905792
+    },
+    "PVL": {
+      "market_cap_millions": 58.41
+    },
+    "MTR": {
+      "market_cap_millions": 8.1998
+    },
+    "PSNY": {
+      "market_cap_millions": 27105.742848
+    },
+    "AKR": {
+      "market_cap_millions": 2958.53568
+    },
+    "ARDC": {
+      "market_cap_millions": 316.790816
+    },
+    "MOS": {
+      "market_cap_millions": 8754.10944
+    },
+    "KKR": {
+      "market_cap_millions": 125758.734336
+    },
+    "AXP": {
+      "market_cap_millions": 266508.992512
+    },
+    "ULS": {
+      "market_cap_millions": 16684.015616
+    },
+    "ACV": {
+      "market_cap_millions": 270.206336
+    },
+    "VRTS": {
+      "market_cap_millions": 1173.5104
+    },
+    "AIO": {
+      "market_cap_millions": 781.91552
+    },
+    "IBCP": {
+      "market_cap_millions": 673.680384
+    },
+    "NIE": {
+      "market_cap_millions": 692.44704
+    },
+    "RBKB": {
+      "market_cap_millions": 137.87208
+    },
+    "RARE": {
+      "market_cap_millions": 2326.074112
+    },
+    "MASK": {
+      "market_cap_millions": 8.428783
+    },
+    "LOBO": {
+      "market_cap_millions": 8.803143
+    },
+    "AGMH": {
+      "market_cap_millions": 4.171875
+    },
+    "RPT": {
+      "market_cap_millions": 126.29112
+    },
+    "GPUS": {
+      "market_cap_millions": 99.086128
+    },
+    "PTCT": {
+      "market_cap_millions": 6224.752128
+    },
+    "SRV": {
+      "market_cap_millions": 180.30968
+    },
+    "PAX": {
+      "market_cap_millions": 2498.847744
+    },
+    "SWZ": {
+      "market_cap_millions": 80.283216
+    },
+    "PINE": {
+      "market_cap_millions": 257.295984
+    },
+    "CTO": {
+      "market_cap_millions": 605.100672
+    },
+    "HPI": {
+      "market_cap_millions": 442.193568
+    },
+    "QNTM": {
+      "market_cap_millions": 27.477286
+    },
+    "MNTS": {
+      "market_cap_millions": 15.377397
+    },
+    "LIF": {
+      "market_cap_millions": 5045.85728
+    },
+    "CNI": {
+      "market_cap_millions": 61986.963456
+    },
+    "MWA": {
+      "market_cap_millions": 3828.99072
+    },
+    "UP": {
+      "market_cap_millions": 476.976704
+    },
+    "CIVB": {
+      "market_cap_millions": 461.770944
+    },
+    "ATXS": {
+      "market_cap_millions": 753.519872
+    },
+    "MBCN": {
+      "market_cap_millions": 279.107296
+    },
+    "SEMR": {
+      "market_cap_millions": 1771.552256
+    },
+    "FMNB": {
+      "market_cap_millions": 494.386304
+    },
+    "SBCF": {
+      "market_cap_millions": 3165.71904
+    },
+    "IOVA": {
+      "market_cap_millions": 984.480576
+    },
+    "GFR": {
+      "market_cap_millions": 551.77568
+    },
+    "TZOO": {
+      "market_cap_millions": 75.329248
+    },
+    "ALK": {
+      "market_cap_millions": 6031.408128
+    },
+    "FFIV": {
+      "market_cap_millions": 15096.329216
+    },
+    "ARE": {
+      "market_cap_millions": 8458.05824
+    },
+    "AEON": {
+      "market_cap_millions": 14.904001
+    },
+    "BTE": {
+      "market_cap_millions": 2377.923584
+    },
+    "MCTA": {
+      "market_cap_millions": 504.260192
+    },
+    "ALVO": {
+      "market_cap_millions": 1542.4256
+    },
+    "GPK": {
+      "market_cap_millions": 4606.667264
+    },
+    "MGRX": {
+      "market_cap_millions": 8.345332
+    },
+    "HHH": {
+      "market_cap_millions": 4785.176576
+    },
+    "FLD": {
+      "market_cap_millions": 142.990624
+    },
+    "FOLD": {
+      "market_cap_millions": 4412.192256
+    },
+    "STLA": {
+      "market_cap_millions": 30187.165696
+    },
+    "BMY": {
+      "market_cap_millions": 109808.51712
+    },
+    "GAUZ": {
+      "market_cap_millions": 23.616352
+    },
+    "VMAR": {
+      "market_cap_millions": 4.735305
+    },
+    "DGX": {
+      "market_cap_millions": 20885.264384
+    },
+    "EFT": {
+      "market_cap_millions": 299.003168
+    },
+    "NMG": {
+      "market_cap_millions": 400.436192
+    },
+    "BMO": {
+      "market_cap_millions": 95021.776896
+    },
+    "JYD": {
+      "market_cap_millions": 10.935476
+    },
+    "MXF": {
+      "market_cap_millions": 295.467136
+    },
+    "VSTM": {
+      "market_cap_millions": 535.523776
+    },
+    "PSEC": {
+      "market_cap_millions": 1295.005184
+    },
+    "BLBD": {
+      "market_cap_millions": 1588.602368
+    },
+    "HTO": {
+      "market_cap_millions": 1924.52352
+    },
+    "EPRT": {
+      "market_cap_millions": 5926.17984
+    },
+    "AMPY": {
+      "market_cap_millions": 188.213392
+    },
+    "FCHL": {
+      "market_cap_millions": 4.352
+    },
+    "CV": {
+      "market_cap_millions": 542.444544
+    },
+    "FWRG": {
+      "market_cap_millions": 980.78592
+    },
+    "ACMR": {
+      "market_cap_millions": 2593.111808
+    },
+    "GH": {
+      "market_cap_millions": 14277.095424
+    },
+    "SG": {
+      "market_cap_millions": 823.879872
+    },
+    "SFIX": {
+      "market_cap_millions": 719.306624
+    },
+    "DRMA": {
+      "market_cap_millions": 1.90921
+    },
+    "LAES": {
+      "market_cap_millions": 744.227328
+    },
+    "COLA": {
+      "market_cap_millions": 82.14396
+    },
+    "WKEY": {
+      "market_cap_millions": 90.336184
+    },
+    "STKS": {
+      "market_cap_millions": 63.453752
+    },
+    "PEBO": {
+      "market_cap_millions": 1086.798208
+    },
+    "TXG": {
+      "market_cap_millions": 2589.275136
+    },
+    "XHLD": {
+      "market_cap_millions": 3.762918
+    },
+    "AWF": {
+      "market_cap_millions": 925.123712
+    },
+    "AFB": {
+      "market_cap_millions": 308.28944
+    },
+    "RBOT": {
+      "market_cap_millions": 18.575998
+    },
+    "CETX": {
+      "market_cap_millions": 24.941604
+    },
+    "CETXP": {
+      "market_cap_millions": 1.117403
+    },
+    "SIDU": {
+      "market_cap_millions": 282.654976
+    },
+    "WRB": {
+      "market_cap_millions": 26647.087104
+    },
+    "COO": {
+      "market_cap_millions": 16680.06912
+    },
+    "KRG": {
+      "market_cap_millions": 5473.8816
+    },
+    "ABR": {
+      "market_cap_millions": 1657.995392
+    },
+    "NLY": {
+      "market_cap_millions": 15737.039872
+    },
+    "ZTR": {
+      "market_cap_millions": 297.639744
+    },
+    "PII": {
+      "market_cap_millions": 3665.70368
+    },
+    "SRL": {
+      "market_cap_millions": 107.49804
+    },
+    "VCYT": {
+      "market_cap_millions": 3389.628672
+    },
+    "NEXN": {
+      "market_cap_millions": 414.747136
+    },
+    "HII": {
+      "market_cap_millions": 16154.128384
+    },
+    "DJCO": {
+      "market_cap_millions": 699.264064
+    },
+    "IRTC": {
+      "market_cap_millions": 6037.545472
+    },
+    "MKDW": {
+      "market_cap_millions": 25.46371
+    },
+    "ALRS": {
+      "market_cap_millions": 593.53504
+    },
+    "REED": {
+      "market_cap_millions": 26.324544
+    },
+    "PEN": {
+      "market_cap_millions": 12274.60096
+    },
+    "CADE": {
+      "market_cap_millions": 8428.529152
+    },
+    "NTRS": {
+      "market_cap_millions": 26637.193216
+    },
+    "FONR": {
+      "market_cap_millions": 92.303408
+    },
+    "SLM": {
+      "market_cap_millions": 5641.505792
+    },
+    "HUN": {
+      "market_cap_millions": 1867.835392
+    },
+    "EKSO": {
+      "market_cap_millions": 23.136924
+    },
+    "OWLS": {
+      "market_cap_millions": 0.000532917374
+    },
+    "BAP": {
+      "market_cap_millions": 23099.56608
+    },
+    "FMFC": {
+      "market_cap_millions": 6.3135
+    },
+    "PAPL": {
+      "market_cap_millions": 2.284063
+    },
+    "FFAI": {
+      "market_cap_millions": 182.852256
+    },
+    "DFH": {
+      "market_cap_millions": 1617.998848
+    },
+    "CWT": {
+      "market_cap_millions": 2576.7296
+    },
+    "BGIN": {
+      "market_cap_millions": 363.924384
+    },
+    "LGL": {
+      "market_cap_millions": 31.585076
+    },
+    "DVAX": {
+      "market_cap_millions": 1807.170304
+    },
+    "SNY": {
+      "market_cap_millions": 117141.38112
+    },
+    "FFIC": {
+      "market_cap_millions": 570.517824
+    },
+    "OCFC": {
+      "market_cap_millions": 990.561216
+    },
+    "TRNR": {
+      "market_cap_millions": 3.319368
+    },
+    "DBRG": {
+      "market_cap_millions": 2994.036736
+    },
+    "MESO": {
+      "market_cap_millions": 2322.573312
+    },
+    "WOK": {
+      "market_cap_millions": 0.030576
+    },
+    "BNAI": {
+      "market_cap_millions": 12.303972
+    },
+    "SOPA": {
+      "market_cap_millions": 14.288149
+    },
+    "ANL": {
+      "market_cap_millions": 60.51644
+    },
+    "MMC": {
+      "market_cap_millions": 92371.238912
+    },
+    "MBWM": {
+      "market_cap_millions": 781.798144
+    },
+    "NWGL": {
+      "market_cap_millions": 21.969362
+    },
+    "KR": {
+      "market_cap_millions": 40734.830592
+    },
+    "IMG": {
+      "market_cap_millions": 17.805902
+    },
+    "DTCK": {
+      "market_cap_millions": 11.356039
+    },
+    "AVAV": {
+      "market_cap_millions": 18168.332288
+    },
+    "LHX": {
+      "market_cap_millions": 56108.793856
+    },
+    "VWAV": {
+      "market_cap_millions": 225.838496
+    },
+    "IMKTA": {
+      "market_cap_millions": 1329.002368
+    },
+    "XEL": {
+      "market_cap_millions": 44081.54112
+    },
+    "CP": {
+      "market_cap_millions": 65931.800576
+    },
+    "IMNN": {
+      "market_cap_millions": 11.145385
+    },
+    "MMM": {
+      "market_cap_millions": 85732.081664
+    },
+    "AVA": {
+      "market_cap_millions": 3147.866112
+    },
+    "CCS": {
+      "market_cap_millions": 1753.184768
+    },
+    "NOMA": {
+      "market_cap_millions": 83.37784
+    },
+    "PKG": {
+      "market_cap_millions": 18652.602368
+    },
+    "META": {
+      "market_cap_millions": 1551435.169792
+    },
+    "GOOGL": {
+      "market_cap_millions": 3786612.670464
+    },
+    "MSFT": {
+      "market_cap_millions": 3594976.755712
+    },
+    "VVPR": {
+      "market_cap_millions": 45.669464
+    },
+    "HFWA": {
+      "market_cap_millions": 827.52576
+    },
+    "AAON": {
+      "market_cap_millions": 6153.574912
+    },
+    "XFLT": {
+      "market_cap_millions": 352.595776
+    },
+    "MCN": {
+      "market_cap_millions": 125.538928
+    },
+    "IH": {
+      "market_cap_millions": 112.832264
+    },
+    "ALV": {
+      "market_cap_millions": 9245.284352
+    },
+    "PLRZ": {
+      "market_cap_millions": 8.843837
+    },
+    "HTOO": {
+      "market_cap_millions": 7.878043
+    },
+    "TNXP": {
+      "market_cap_millions": 194.634432
+    },
+    "DVLT": {
+      "market_cap_millions": 662.826944
+    },
+    "GEHC": {
+      "market_cap_millions": 39597.62944
+    },
+    "TOVX": {
+      "market_cap_millions": 6.454394
+    },
+    "RZLV": {
+      "market_cap_millions": 954.561984
+    },
+    "CCHH": {
+      "market_cap_millions": 11.165
+    },
+    "TLSA": {
+      "market_cap_millions": 174.300736
+    },
+    "KTOS": {
+      "market_cap_millions": 13259.060224
+    },
+    "RVPH": {
+      "market_cap_millions": 40.453448
+    },
+    "SPRY": {
+      "market_cap_millions": 1124.897152
+    },
+    "PRAX": {
+      "market_cap_millions": 7789.912576
+    },
+    "CVKD": {
+      "market_cap_millions": 19.102498
+    },
+    "PHGE": {
+      "market_cap_millions": 2.946415
+    },
+    "NIPG": {
+      "market_cap_millions": 129.452112
+    },
+    "VCIG": {
+      "market_cap_millions": 3.919615
+    },
+    "XOM": {
+      "market_cap_millions": 534440.67328
+    },
+    "NMAX": {
+      "market_cap_millions": 1119.54944
+    },
+    "BGC": {
+      "market_cap_millions": 4128.200192
+    },
+    "JNJ": {
+      "market_cap_millions": 498603.6224
+    },
+    "ENVB": {
+      "market_cap_millions": 4.206042
+    },
+    "ESTA": {
+      "market_cap_millions": 1985.814656
+    },
+    "CCLD": {
+      "market_cap_millions": 128.039056
+    },
+    "NVMI": {
+      "market_cap_millions": 11238.284288
+    },
+    "IQST": {
+      "market_cap_millions": 13.946275
+    },
+    "AZTA": {
+      "market_cap_millions": 1598.137728
+    },
+    "BTQ": {
+      "market_cap_millions": 775.74368
+    },
+    "ECCX": {
+      "market_cap_millions": 456.609248
+    },
+    "ECC": {
+      "market_cap_millions": 750.980992
+    },
+    "OOMA": {
+      "market_cap_millions": 313.641056
+    },
+    "SXTP": {
+      "market_cap_millions": 2.017923
+    },
+    "CHAI": {
+      "market_cap_millions": 41.637864
+    },
+    "MYSZ": {
+      "market_cap_millions": 3.166171
+    },
+    "GMAB": {
+      "market_cap_millions": 20718.204928
+    },
+    "FRSX": {
+      "market_cap_millions": 6.537838
+    },
+    "MRM": {
+      "market_cap_millions": 15.250765
+    },
+    "NITO": {
+      "market_cap_millions": 4.503387
+    },
+    "VITL": {
+      "market_cap_millions": 1420.695552
+    },
+    "IPST": {
+      "market_cap_millions": 14.338982
+    },
+    "ALCO": {
+      "market_cap_millions": 290.799424
+    },
+    "TRON": {
+      "market_cap_millions": 370.246176
+    },
+    "AMTM": {
+      "market_cap_millions": 7245.559296
+    },
+    "IPDN": {
+      "market_cap_millions": 6.932387
+    },
+    "DBGI": {
+      "market_cap_millions": 95.55788
+    },
+    "RELI": {
+      "market_cap_millions": 5.506978
+    },
+    "SOAR": {
+      "market_cap_millions": 5.076568
+    },
+    "YYGH": {
+      "market_cap_millions": 12.914636
+    },
+    "ORBS": {
+      "market_cap_millions": 332.35712
+    },
+    "LULU": {
+      "market_cap_millions": 24781.576192
+    },
+    "TAOP": {
+      "market_cap_millions": 13.58087
+    },
+    "BMNR": {
+      "market_cap_millions": 13022.245888
+    },
+    "SCWO": {
+      "market_cap_millions": 42.481448
+    },
+    "MREO": {
+      "market_cap_millions": 105.02692
+    },
+    "MTVA": {
+      "market_cap_millions": 21.220536
+    },
+    "SLS": {
+      "market_cap_millions": 423.1592
+    },
+    "ALX": {
+      "market_cap_millions": 1114.206464
+    },
+    "VRSK": {
+      "market_cap_millions": 31135.483904
+    },
+    "FISV": {
+      "market_cap_millions": 35866.279936
+    },
+    "CNTM": {
+      "market_cap_millions": 4.788744e-05
+    },
+    "MOH": {
+      "market_cap_millions": 9405.868032
+    },
+    "WBTN": {
+      "market_cap_millions": 1703.876736
+    },
+    "HUBC": {
+      "market_cap_millions": 14.114568
+    },
+    "EC": {
+      "market_cap_millions": 25057.46432
+    },
+    "KNRX": {
+      "market_cap_millions": 47.457016
+    },
+    "ICE": {
+      "market_cap_millions": 92709.650432
+    },
+    "BPOP": {
+      "market_cap_millions": 8516.790272
+    },
+    "CCEC": {
+      "market_cap_millions": 1222.413184
+    },
+    "NXXT": {
+      "market_cap_millions": 191.35624
+    },
+    "AGPU": {
+      "market_cap_millions": 23.160752
+    },
+    "VZ": {
+      "market_cap_millions": 165958.516736
+    },
+    "MLCI": {
+      "market_cap_millions": 110.57104
+    },
+    "CVM": {
+      "market_cap_millions": 37.648708
+    },
+    "IBRX": {
+      "market_cap_millions": 2294.968832
+    },
+    "INTC": {
+      "market_cap_millions": 190990.794752
+    },
+    "NTRB": {
+      "market_cap_millions": 56.978456
+    },
+    "CODX": {
+      "market_cap_millions": 12.968242
+    },
+    "ARBE": {
+      "market_cap_millions": 130.631408
+    },
+    "UCAR": {
+      "market_cap_millions": 8.379438
+    },
+    "WAY": {
+      "market_cap_millions": 6309.620736
+    },
+    "BRBR": {
+      "market_cap_millions": 3198.834688
+    },
+    "JEF": {
+      "market_cap_millions": 12783.190016
+    },
+    "CHGG": {
+      "market_cap_millions": 108.420776
+    },
+    "MMA": {
+      "market_cap_millions": 16.171099
+    },
+    "TRNO": {
+      "market_cap_millions": 6106.157056
+    },
+    "LGVN": {
+      "market_cap_millions": 11.359759
+    },
+    "CETY": {
+      "market_cap_millions": 6.418354
+    },
+    "IPW": {
+      "market_cap_millions": 6.84427
+    },
+    "ECDA": {
+      "market_cap_millions": 0.580315
+    },
+    "XBP": {
+      "market_cap_millions": 86.609272
+    },
+    "TNDM": {
+      "market_cap_millions": 1525.553152
+    },
+    "CBNK": {
+      "market_cap_millions": 469.977568
+    },
+    "ATAI": {
+      "market_cap_millions": 1347.526144
+    },
+    "ONTF": {
+      "market_cap_millions": 247.91488
+    },
+    "NUAI": {
+      "market_cap_millions": 235.710848
+    },
+    "SITC": {
+      "market_cap_millions": 337.711072
+    },
+    "ZOOZ": {
+      "market_cap_millions": 0.00028955
+    },
+    "CVGW": {
+      "market_cap_millions": 403.128064
+    },
+    "WTFC": {
+      "market_cap_millions": 9363.907584
+    },
+    "WFF": {
+      "market_cap_millions": 11.5874
+    },
+    "NVVE": {
+      "market_cap_millions": 2.99
+    },
+    "FFA": {
+      "market_cap_millions": 439.378112
+    },
+    "CACI": {
+      "market_cap_millions": 13855.017984
+    },
+    "OTLK": {
+      "market_cap_millions": 116.688208
+    },
+    "USDP": {
+      "market_cap_millions": 0.1047
+    },
+    "HRZN": {
+      "market_cap_millions": 286.272224
+    },
+    "KDK": {
+      "market_cap_millions": 1962.476032
+    },
+    "TOPS": {
+      "market_cap_millions": 20.866466
+    },
+    "RUBI": {
+      "market_cap_millions": 2.784136
+    },
+    "BDJ": {
+      "market_cap_millions": 1677.43552
+    },
+    "BUI": {
+      "market_cap_millions": 583.541376
+    },
+    "FRA": {
+      "market_cap_millions": 417.421472
+    },
+    "BCX": {
+      "market_cap_millions": 858.558144
+    },
+    "BST": {
+      "market_cap_millions": 1407.549696
+    },
+    "BBN": {
+      "market_cap_millions": 1008.453824
+    },
+    "ECAT": {
+      "market_cap_millions": 1527.938304
+    },
+    "BGR": {
+      "market_cap_millions": 353.5144
+    },
+    "NBXG": {
+      "market_cap_millions": 1137.315968
+    },
+    "NRO": {
+      "market_cap_millions": 192.619968
+    },
+    "NML": {
+      "market_cap_millions": 481.600896
+    },
+    "NHS": {
+      "market_cap_millions": 227.969792
+    },
+    "GVH": {
+      "market_cap_millions": 2.457042
+    },
+    "PCG": {
+      "market_cap_millions": 34683.027456
+    },
+    "ELAN": {
+      "market_cap_millions": 11452.70272
+    },
+    "CRMT": {
+      "market_cap_millions": 229.019632
+    },
+    "AGL": {
+      "market_cap_millions": 282.7032
+    },
+    "WTO": {
+      "market_cap_millions": 1.155238
+    },
+    "NAAS": {
+      "market_cap_millions": 33.645984
+    },
+    "OGI": {
+      "market_cap_millions": 228.583744
+    },
+    "EM": {
+      "market_cap_millions": 296.710336
+    },
+    "MRT": {
+      "market_cap_millions": 159.778192
+    },
+    "CABO": {
+      "market_cap_millions": 565.659072
+    },
+    "STRW": {
+      "market_cap_millions": 736.684736
+    },
+    "SBC": {
+      "market_cap_millions": 444.158144
+    },
+    "BRO": {
+      "market_cap_millions": 26907.37152
+    },
+    "AXSM": {
+      "market_cap_millions": 8923.541504
+    },
+    "GLV": {
+      "market_cap_millions": 73.96296
+    },
+    "GLO": {
+      "market_cap_millions": 242.912144
+    },
+    "GLQ": {
+      "market_cap_millions": 144.470928
+    },
+    "BCAB": {
+      "market_cap_millions": 42.153928
+    },
+    "LASE": {
+      "market_cap_millions": 44.955136
+    },
+    "LTH": {
+      "market_cap_millions": 5980.292096
+    },
+    "SUUN": {
+      "market_cap_millions": 54.960732
+    },
+    "MUX": {
+      "market_cap_millions": 1325.901056
+    },
+    "HCA": {
+      "market_cap_millions": 112045.449216
+    },
+    "FVCB": {
+      "market_cap_millions": 251.257984
+    },
+    "DCBO": {
+      "market_cap_millions": 643.517568
+    },
+    "OSS": {
+      "market_cap_millions": 175.285776
+    },
+    "OZK": {
+      "market_cap_millions": 5262.733824
+    },
+    "SCL": {
+      "market_cap_millions": 1071.689024
+    },
+    "HERZ": {
+      "market_cap_millions": 30.520118
+    },
+    "NTST": {
+      "market_cap_millions": 1743.26272
+    },
+    "DVN": {
+      "market_cap_millions": 22678.228992
+    },
+    "AX": {
+      "market_cap_millions": 4949.55264
+    },
+    "IVF": {
+      "market_cap_millions": 12.132974
+    },
+    "PACB": {
+      "market_cap_millions": 585.700416
+    },
+    "ADPT": {
+      "market_cap_millions": 2506.76224
+    },
+    "KEX": {
+      "market_cap_millions": 6189.336064
+    },
+    "TMCI": {
+      "market_cap_millions": 188.605488
+    },
+    "WERN": {
+      "market_cap_millions": 1814.055168
+    },
+    "AXTI": {
+      "market_cap_millions": 1400.22848
+    },
+    "DAIC": {
+      "market_cap_millions": 14.306038
+    },
+    "KRMD": {
+      "market_cap_millions": 261.723008
+    },
+    "TMDX": {
+      "market_cap_millions": 4684.274688
+    },
+    "METCB": {
+      "market_cap_millions": 1695.934976
+    },
+    "PLUG": {
+      "market_cap_millions": 3298.175232
+    },
+    "BABA": {
+      "market_cap_millions": 351677.874176
+    },
+    "RVP": {
+      "market_cap_millions": 23.204292
+    },
+    "LEO": {
+      "market_cap_millions": 405.33392
+    },
+    "BK": {
+      "market_cap_millions": 85355.298816
+    },
+    "DSM": {
+      "market_cap_millions": 307.515968
+    },
+    "RELL": {
+      "market_cap_millions": 169.278496
+    },
+    "ORIS": {
+      "market_cap_millions": 41.23
+    },
+    "H": {
+      "market_cap_millions": 16093.996032
+    },
+    "EFC": {
+      "market_cap_millions": 1518.637312
+    },
+    "ASB": {
+      "market_cap_millions": 4302.49472
+    },
+    "LH": {
+      "market_cap_millions": 21030.117376
+    },
+    "LOB": {
+      "market_cap_millions": 1635.28256
+    },
+    "PETS": {
+      "market_cap_millions": 69.450944
+    },
+    "OM": {
+      "market_cap_millions": 82.778088
+    },
+    "CM": {
+      "market_cap_millions": 85658.304512
+    },
+    "PROF": {
+      "market_cap_millions": 306.312672
+    },
+    "ALC": {
+      "market_cap_millions": 39106.596864
+    },
+    "SAIA": {
+      "market_cap_millions": 8854.41536
+    },
+    "BKU": {
+      "market_cap_millions": 3355.994112
+    },
+    "EMMA": {
+      "market_cap_millions": 0.912577
+    },
+    "EQBK": {
+      "market_cap_millions": 858.085312
+    },
+    "SLAI": {
+      "market_cap_millions": 13.730591
+    },
+    "ISOU": {
+      "market_cap_millions": 491.39808
+    },
+    "FCNCA": {
+      "market_cap_millions": 27672.539136
+    },
+    "VTSI": {
+      "market_cap_millions": 48.479604
+    },
+    "ELLO": {
+      "market_cap_millions": 361.025152
+    },
+    "ORGO": {
+      "market_cap_millions": 517.801536
+    },
+    "SLNO": {
+      "market_cap_millions": 2443.806208
+    },
+    "AIRE": {
+      "market_cap_millions": 59.356264
+    },
+    "SNDK": {
+      "market_cap_millions": 40337.297408
+    },
+    "WXM": {
+      "market_cap_millions": 4.568102
+    },
+    "FCPT": {
+      "market_cap_millions": 2536.420864
+    },
+    "AIM": {
+      "market_cap_millions": 3.702738
+    },
+    "ANGH": {
+      "market_cap_millions": 21.03053
+    },
+    "ETHZ": {
+      "market_cap_millions": 97.913
+    },
+    "PXED": {
+      "market_cap_millions": 1136.537984
+    },
+    "VIVK": {
+      "market_cap_millions": 1.960846
+    },
+    "NTNX": {
+      "market_cap_millions": 14225.7408
+    },
+    "ANIK": {
+      "market_cap_millions": 141.9048
+    },
+    "NUS": {
+      "market_cap_millions": 538.200832
+    },
+    "VNDA": {
+      "market_cap_millions": 438.201536
+    },
+    "VSME": {
+      "market_cap_millions": 4.287259
+    },
+    "MCY": {
+      "market_cap_millions": 5215.681024
+    },
+    "TEI": {
+      "market_cap_millions": 304.146272
+    },
+    "TDF": {
+      "market_cap_millions": 296.630464
+    },
+    "FTF": {
+      "market_cap_millions": 248.897104
+    },
+    "FT": {
+      "market_cap_millions": 201.934768
+    },
+    "EMF": {
+      "market_cap_millions": 259.570224
+    },
+    "UUUU": {
+      "market_cap_millions": 4961.666048
+    },
+    "RXST": {
+      "market_cap_millions": 426.79072
+    },
+    "ATHR": {
+      "market_cap_millions": 70.88788
+    },
+    "DLTH": {
+      "market_cap_millions": 81.899408
+    },
+    "CCOI": {
+      "market_cap_millions": 1119.3984
+    },
+    "INSM": {
+      "market_cap_millions": 37118.111744
+    },
+    "GALT": {
+      "market_cap_millions": 197.951168
+    },
+    "NKTR": {
+      "market_cap_millions": 744.095296
+    },
+    "DEVS": {
+      "market_cap_millions": 5.737815
+    },
+    "LENZ": {
+      "market_cap_millions": 519.413472
+    },
+    "XOMA": {
+      "market_cap_millions": 336.077408
+    },
+    "LAKE": {
+      "market_cap_millions": 88.941576
+    },
+    "APD": {
+      "market_cap_millions": 59249.471488
+    },
+    "SNDL": {
+      "market_cap_millions": 424.875008
+    },
+    "ADCT": {
+      "market_cap_millions": 436.666816
+    },
+    "RJF": {
+      "market_cap_millions": 34018.142208
+    },
+    "ZG": {
+      "market_cap_millions": 16757.587968
+    },
+    "Z": {
+      "market_cap_millions": 16350.52032
+    },
+    "SMR": {
+      "market_cap_millions": 4029.105408
+    },
+    "DJT": {
+      "market_cap_millions": 3684.768768
+    },
+    "CEG": {
+      "market_cap_millions": 105789.898752
+    },
+    "GRND": {
+      "market_cap_millions": 2534.104832
+    },
+    "ISPC": {
+      "market_cap_millions": 3.054428
+    },
+    "SFBS": {
+      "market_cap_millions": 3974.284544
+    },
+    "GV": {
+      "market_cap_millions": 4.907179
+    },
+    "BGL": {
+      "market_cap_millions": 61.626708
+    },
+    "CYBN": {
+      "market_cap_millions": 413.123392
+    },
+    "VTYX": {
+      "market_cap_millions": 994.45696
+    },
+    "LOGI": {
+      "market_cap_millions": 14186.44992
+    },
+    "CMCL": {
+      "market_cap_millions": 520.74656
+    },
+    "WALD": {
+      "market_cap_millions": 242.95416
+    },
+    "BYND": {
+      "market_cap_millions": 436.289152
+    },
+    "HD": {
+      "market_cap_millions": 345104.023552
+    },
+    "BIDU": {
+      "market_cap_millions": 45548.81024
+    },
+    "VENU": {
+      "market_cap_millions": 371.974816
+    },
+    "SHMD": {
+      "market_cap_millions": 268.49424
+    },
+    "EDU": {
+      "market_cap_millions": 9234.184192
+    },
+    "HCM": {
+      "market_cap_millions": 2483.269888
+    },
+    "RH": {
+      "market_cap_millions": 3588.13696
+    },
+    "TE": {
+      "market_cap_millions": 1363.388544
+    },
+    "KMTS": {
+      "market_cap_millions": 1542.165504
+    },
+    "WD": {
+      "market_cap_millions": 2067.654784
+    },
+    "DNUT": {
+      "market_cap_millions": 698.904
+    },
+    "BRN": {
+      "market_cap_millions": 14.168012
+    },
+    "DLXY": {
+      "market_cap_millions": 13.734
+    },
+    "CLWT": {
+      "market_cap_millions": 9.491049
+    },
+    "CANG": {
+      "market_cap_millions": 488.354016
+    },
+    "FTAI": {
+      "market_cap_millions": 17727.678464
+    },
+    "SOUL": {
+      "market_cap_millions": 344.286784
+    },
+    "PLTR": {
+      "market_cap_millions": 427612.307456
+    },
+    "SRFM": {
+      "market_cap_millions": 192.83152
+    },
+    "CNL": {
+      "market_cap_millions": 1363.402368
+    },
+    "TNMG": {
+      "market_cap_millions": 114.844312
+    },
+    "BAER": {
+      "market_cap_millions": 104.421032
+    },
+    "UTG": {
+      "market_cap_millions": 3464.084736
+    },
+    "EUDA": {
+      "market_cap_millions": 72.212312
+    },
+    "BMR": {
+      "market_cap_millions": 27.177244
+    },
+    "NBP": {
+      "market_cap_millions": 421.965184
+    },
+    "REE": {
+      "market_cap_millions": 22.924838
+    },
+    "RVYL": {
+      "market_cap_millions": 5.647455
+    },
+    "BURU": {
+      "market_cap_millions": 72.092712
+    },
+    "CYPH": {
+      "market_cap_millions": 66.849168
+    },
+    "EVGN": {
+      "market_cap_millions": 8.835697
+    },
+    "NEO": {
+      "market_cap_millions": 1521.600512
+    },
+    "UEIC": {
+      "market_cap_millions": 41.835912
+    },
+    "ZENA": {
+      "market_cap_millions": 176.673488
+    },
+    "PFSA": {
+      "market_cap_millions": 8.45996
+    },
+    "IFRX": {
+      "market_cap_millions": 81.29656
+    },
+    "XAIR": {
+      "market_cap_millions": 5.643485
+    },
+    "AEHR": {
+      "market_cap_millions": 704.854784
+    },
+    "MFC": {
+      "market_cap_millions": 61636.542464
+    },
+    "MOGO": {
+      "market_cap_millions": 24.966118
+    },
+    "IMCC": {
+      "market_cap_millions": 7.81775
+    },
+    "DNLI": {
+      "market_cap_millions": 2501.657088
+    },
+    "NA": {
+      "market_cap_millions": 71.894464
+    },
+    "UNP": {
+      "market_cap_millions": 134730.563584
+    },
+    "OFAL": {
+      "market_cap_millions": 7.056333
+    },
+    "GCTK": {
+      "market_cap_millions": 3.524366
+    },
+    "COGT": {
+      "market_cap_millions": 5426.42176
+    },
+    "UPXI": {
+      "market_cap_millions": 115.6708
+    },
+    "NLST": {
+      "market_cap_millions": 273.451904
+    },
+    "NTIC": {
+      "market_cap_millions": 82.861216
+    },
+    "WGS": {
+      "market_cap_millions": 3738.519552
+    },
+    "GNTX": {
+      "market_cap_millions": 5335.785984
+    },
+    "EFTY": {
+      "market_cap_millions": 302.052224
+    },
+    "AUB": {
+      "market_cap_millions": 5153.456128
+    },
+    "ONDS": {
+      "market_cap_millions": 3705.466368
+    },
+    "DUOT": {
+      "market_cap_millions": 207.623488
+    },
+    "COLL": {
+      "market_cap_millions": 1472.123136
+    },
+    "PMI": {
+      "market_cap_millions": 123.817968
+    },
+    "RKT": {
+      "market_cap_millions": 63836.225536
+    },
+    "AMTX": {
+      "market_cap_millions": 86.55048
+    },
+    "AMPG": {
+      "market_cap_millions": 67.840552
+    },
+    "EDBL": {
+      "market_cap_millions": 3.478435
+    },
+    "INNV": {
+      "market_cap_millions": 729.96608
+    },
+    "PRE": {
+      "market_cap_millions": 266.730752
+    },
+    "YETI": {
+      "market_cap_millions": 3672.959488
+    },
+    "PEG": {
+      "market_cap_millions": 40276.738048
+    },
+    "CAPT": {
+      "market_cap_millions": 10.480719
+    },
+    "SILO": {
+      "market_cap_millions": 4.45363
+    },
+    "BFRG": {
+      "market_cap_millions": 9.949297
+    },
+    "SPRC": {
+      "market_cap_millions": 4.769047
+    },
+    "ZTS": {
+      "market_cap_millions": 55832.256512
+    },
+    "BITF": {
+      "market_cap_millions": 1405.120128
+    },
+    "VHAI": {
+      "market_cap_millions": 1.094281
+    },
+    "SRXH": {
+      "market_cap_millions": 13.236431
+    },
+    "SGBX": {
+      "market_cap_millions": 10.199907
+    },
+    "SNAL": {
+      "market_cap_millions": 28.695504
+    },
+    "PCYO": {
+      "market_cap_millions": 272.464736
+    },
+    "ALTS": {
+      "market_cap_millions": 201.16424
+    },
+    "AMIX": {
+      "market_cap_millions": 3.441405
+    },
+    "ADSE": {
+      "market_cap_millions": 764.758656
+    },
+    "CXAI": {
+      "market_cap_millions": 9.772913
+    },
+    "FRGT": {
+      "market_cap_millions": 3.003354
+    },
+    "LRHC": {
+      "market_cap_millions": 1.150733
+    },
+    "AMTD": {
+      "market_cap_millions": 81.833112
+    },
+    "GWRS": {
+      "market_cap_millions": 244.664752
+    },
+    "LEE": {
+      "market_cap_millions": 23.356608
+    },
+    "CYCU": {
+      "market_cap_millions": 10.103178
+    },
+    "PRFX": {
+      "market_cap_millions": 3.328039
+    },
+    "ALBT": {
+      "market_cap_millions": 5.400051
+    },
+    "JACK": {
+      "market_cap_millions": 434.248992
+    },
+    "IBKR": {
+      "market_cap_millions": 111792.996352
+    },
+    "DLPN": {
+      "market_cap_millions": 19.759548
+    },
+    "VOYG": {
+      "market_cap_millions": 1695.920768
+    },
+    "CCCX": {
+      "market_cap_millions": 968.65056
+    },
+    "CSGP": {
+      "market_cap_millions": 26005.766144
+    },
+    "CRDO": {
+      "market_cap_millions": 24014.985216
+    },
+    "JBLU": {
+      "market_cap_millions": 1760.359936
+    },
+    "ANGX": {
+      "market_cap_millions": 794.26176
+    },
+    "BYD": {
+      "market_cap_millions": 6911.076864
+    },
+    "BNS": {
+      "market_cap_millions": 92109.12768
+    },
+    "MIGI": {
+      "market_cap_millions": 5.281861
+    },
+    "LUCD": {
+      "market_cap_millions": 140.27568
+    },
+    "PAVM": {
+      "market_cap_millions": 7.862483
+    },
+    "NTES": {
+      "market_cap_millions": 88808.28416
+    },
+    "IMMR": {
+      "market_cap_millions": 225.204768
+    },
+    "RA": {
+      "market_cap_millions": 716.100864
+    },
+    "FENC": {
+      "market_cap_millions": 276.301792
+    },
+    "OMER": {
+      "market_cap_millions": 1113.846144
+    },
+    "HKD": {
+      "market_cap_millions": 449.419456
+    },
+    "BMRN": {
+      "market_cap_millions": 11086.918656
+    },
+    "CWAN": {
+      "market_cap_millions": 7176.225792
+    },
+    "LSCC": {
+      "market_cap_millions": 0.010465526529340591
+    },
+    "VRTX": {
+      "market_cap_millions": 0.11556384729884547
+    },
+    "BKNG": {
+      "market_cap_millions": 168110.73536
+    },
+    "SPH": {
+      "market_cap_millions": 0.001226556597
+    },
+    "FBRX": {
+      "market_cap_millions": 0.0003719246857905359
+    },
+    "FIVE": {
+      "market_cap_millions": 0.010042450171501483
+    },
+    "AMRX": {
+      "market_cap_millions": 0.003951541949349683
+    },
+    "BBIO": {
+      "market_cap_millions": 14740.296704
+    },
+    "CELU": {
+      "market_cap_millions": 4.1076878e-05
+    },
+    "TTEK": {
+      "market_cap_millions": 9514.534912
+    },
+    "UMAC": {
+      "market_cap_millions": 571.571072
+    },
+    "ENGN": {
+      "market_cap_millions": 0.0005611844420624235
+    },
+    "REGN": {
+      "market_cap_millions": 82279.112704
+    },
+    "HBNC": {
+      "market_cap_millions": 847.442496
+    },
+    "HELE": {
+      "market_cap_millions": 485.44752
+    },
+    "TOMZ": {
+      "market_cap_millions": 1.5575430000000002e-05
+    },
+    "PBHC": {
+      "market_cap_millions": 8.7369289e-05
+    },
+    "PR": {
+      "market_cap_millions": 10054.97856
+    },
+    "MSS": {
+      "market_cap_millions": 1.1931402e-05
+    },
+    "APLM": {
+      "market_cap_millions": 1.845349556547619e-05
+    },
+    "NBIX": {
+      "market_cap_millions": 13493.172224
+    },
+    "ZIM": {
+      "market_cap_millions": 0.0024573299999999998
+    },
+    "ITRG": {
+      "market_cap_millions": 761.813248
+    },
+    "PBYI": {
+      "market_cap_millions": 306.881856
+    },
+    "FLGT": {
+      "market_cap_millions": 0.0008534911180092658
+    },
+    "FC": {
+      "market_cap_millions": 216.616928
+    },
+    "ASIX": {
+      "market_cap_millions": 0.000444868415868453
+    },
+    "BL": {
+      "market_cap_millions": 0.0034407088650000002
+    },
+    "OLP": {
+      "market_cap_millions": 0.000450435822
+    },
+    "BCSF": {
+      "market_cap_millions": 0.0009010235899999998
+    },
+    "MGF": {
+      "market_cap_millions": 0.00010136
+    },
+    "MCR": {
+      "market_cap_millions": 0.00026513999999999997
+    },
+    "MMT": {
+      "market_cap_millions": 0.00025931
+    },
+    "CIF": {
+      "market_cap_millions": 3.133e-05
+    },
+    "MIN": {
+      "market_cap_millions": 0.0003027
+    },
+    "ZION": {
+      "market_cap_millions": 0.00822803
+    },
+    "STRS": {
+      "market_cap_millions": 0.00020130771200000002
+    },
+    "NEXA": {
+      "market_cap_millions": 0.001084672192
+    },
+    "ASRT": {
+      "market_cap_millions": 59.804628
+    },
+    "WWD": {
+      "market_cap_millions": 0.01805888
+    },
+    "UCB": {
+      "market_cap_millions": 0.003921425637
+    },
+    "ELBM": {
+      "market_cap_millions": 87.565776
+    },
+    "MRP": {
+      "market_cap_millions": 0.004536084033
+    },
+    "ELV": {
+      "market_cap_millions": 0.07571452693399999
+    },
+    "LGPS": {
+      "market_cap_millions": 2.4361671999999998e-05
+    },
+    "PAVS": {
+      "market_cap_millions": 1.38714
+    },
+    "FMC": {
+      "market_cap_millions": 0.0016639353039618488
+    },
+    "HAFN": {
+      "market_cap_millions": 0.02745750164
+    },
+    "NB": {
+      "market_cap_millions": 0.000683936959
+    },
+    "EOSE": {
+      "market_cap_millions": 0.0042359632924427295
+    },
+    "MSEX": {
+      "market_cap_millions": 0.000948065212
+    },
+    "LIXT": {
+      "market_cap_millions": 2.708873412244898e-05
+    },
+    "TDY": {
+      "market_cap_millions": 26073.2928
+    },
+    "BDL": {
+      "market_cap_millions": 5.2042116e-05
+    },
+    "MMI": {
+      "market_cap_millions": 0.0010657008540000002
+    },
+    "EXLS": {
+      "market_cap_millions": 0.006840008428
+    },
+    "LNZA": {
+      "market_cap_millions": 32.34381
+    },
+    "SPHL": {
+      "market_cap_millions": 3.717459
+    },
+    "ILAG": {
+      "market_cap_millions": 8.143596
+    },
+    "IAG": {
+      "market_cap_millions": 0.013323947630000001
+    },
+    "SVM": {
+      "market_cap_millions": 2247.174912
+    },
+    "SPGI": {
+      "market_cap_millions": 166443.450368
+    },
+    "HBAN": {
+      "market_cap_millions": 28818.896896
+    },
+    "SABA": {
+      "market_cap_millions": 232.116944
+    },
+    "PSKY": {
+      "market_cap_millions": 13326.258176
+    },
+    "JHG": {
+      "market_cap_millions": 0.007109004455000001
+    },
+    "MCS": {
+      "market_cap_millions": 477.49392
+    },
+    "ADUR": {
+      "market_cap_millions": 483.699776
+    },
+    "ROKU": {
+      "market_cap_millions": 16944.17408
+    },
+    "RIME": {
+      "market_cap_millions": 3.674400213523132e-06
+    },
+    "UNIT": {
+      "market_cap_millions": 1792.772352
+    },
+    "SIF": {
+      "market_cap_millions": 4.1068677195278966e-05
+    },
+    "USAU": {
+      "market_cap_millions": 0.000271543134
+    },
+    "NAT": {
+      "market_cap_millions": 866.060224
+    },
+    "MDXG": {
+      "market_cap_millions": 0.001044120239
+    },
+    "NESR": {
+      "market_cap_millions": 1624.5376
+    },
+    "OKLO": {
+      "market_cap_millions": 0.013004445135996271
+    },
+    "MMLP": {
+      "market_cap_millions": 8.826448999999999e-05
+    },
+    "CMCSA": {
+      "market_cap_millions": 109067.788288
+    },
+    "CB": {
+      "market_cap_millions": 0.12223688825467073
+    },
+    "ALKT": {
+      "market_cap_millions": 0.002386741100300356
+    },
+    "BRKR": {
+      "market_cap_millions": 8054.4
+    },
+    "SAN": {
+      "market_cap_millions": 0.14862360830299998
+    },
+    "DWTX": {
+      "market_cap_millions": 84.724416
+    },
+    "UNF": {
+      "market_cap_millions": 3612.204032
+    },
+    "CTAS": {
+      "market_cap_millions": 0.07537813652981373
+    },
+    "OFG": {
+      "market_cap_millions": 0.0018593057419999998
+    },
+    "WIMI": {
+      "market_cap_millions": 33.308334
+    },
+    "EVTV": {
+      "market_cap_millions": 1.862261
+    },
+    "MFG": {
+      "market_cap_millions": 94287.355904
+    },
+    "OCSL": {
+      "market_cap_millions": 1136.303232
+    },
+    "DBVT": {
+      "market_cap_millions": 832.428928
+    },
+    "ECL": {
+      "market_cap_millions": 76224.192512
+    },
+    "HWC": {
+      "market_cap_millions": 5759.100416
+    },
+    "APGE": {
+      "market_cap_millions": 5295.501312
+    },
+    "CYCN": {
+      "market_cap_millions": 5.252572
+    },
+    "NAMS": {
+      "market_cap_millions": 3796.32384
+    },
+    "VKTX": {
+      "market_cap_millions": 3660.116992
+    },
+    "LITE": {
+      "market_cap_millions": 24342.165504
+    },
+    "BRX": {
+      "market_cap_millions": 7854.525952
+    },
+    "BSY": {
+      "market_cap_millions": 11559.22944
+    },
+    "BBCP": {
+      "market_cap_millions": 384.487808
+    },
+    "CVLG": {
+      "market_cap_millions": 582.597376
+    },
+    "RVMD": {
+      "market_cap_millions": 19855.878144
+    },
+    "GSBC": {
+      "market_cap_millions": 701.904256
+    },
+    "CNMD": {
+      "market_cap_millions": 1368.783616
+    },
+    "SVCO": {
+      "market_cap_millions": 134.19828
+    },
+    "LOVE": {
+      "market_cap_millions": 211.217184
+    },
+    "ZS": {
+      "market_cap_millions": 34546.245632
+    },
+    "AKBA": {
+      "market_cap_millions": 403.35632
+    },
+    "FATE": {
+      "market_cap_millions": 116.505808
+    },
+    "OXM": {
+      "market_cap_millions": 525.46944
+    },
+    "TEN": {
+      "market_cap_millions": 654.37152
+    },
+    "PNNT": {
+      "market_cap_millions": 394.845504
+    },
+    "BELFB": {
+      "market_cap_millions": 2225.347328
+    },
+    "BELFA": {
+      "market_cap_millions": 2159.439104
+    },
+    "JYNT": {
+      "market_cap_millions": 135.177312
+    },
+    "PFLT": {
+      "market_cap_millions": 939.295808
+    },
+    "SN": {
+      "market_cap_millions": 16632.715264
+    },
+    "ZETA": {
+      "market_cap_millions": 5852.809216
+    },
+    "VIR": {
+      "market_cap_millions": 813.881408
+    },
+    "MEDP": {
+      "market_cap_millions": 16529.958912
+    },
+    "SHAK": {
+      "market_cap_millions": 3562.761984
+    },
+    "BROS": {
+      "market_cap_millions": 9903.357952
+    },
+    "CTRA": {
+      "market_cap_millions": 19715.721216
+    },
+    "CNCK": {
+      "market_cap_millions": 361.566144
+    },
+    "BOH": {
+      "market_cap_millions": 2790.68544
+    },
+    "CLB": {
+      "market_cap_millions": 850.654208
+    },
+    "AFL": {
+      "market_cap_millions": 58927.734784
+    },
+    "O": {
+      "market_cap_millions": 54481.420288
+    },
+    "AIR": {
+      "market_cap_millions": 3999.989248
+    },
+    "PGEN": {
+      "market_cap_millions": 1624.054528
+    },
+    "LMRI": {
+      "market_cap_millions": 1635.985792
+    },
+    "PPG": {
+      "market_cap_millions": 23752.667136
+    },
+    "DDD": {
+      "market_cap_millions": 270.208576
+    },
+    "KALA": {
+      "market_cap_millions": 14.32183
+    },
+    "PATK": {
+      "market_cap_millions": 3760.490496
+    },
+    "DMB": {
+      "market_cap_millions": 201.17728
+    },
+    "CNM": {
+      "market_cap_millions": 10935.3728
+    },
+    "MYGN": {
+      "market_cap_millions": 613.34624
+    },
+    "LE": {
+      "market_cap_millions": 448.795168
+    },
+    "OXY": {
+      "market_cap_millions": 40620.224512
+    },
+    "SLDB": {
+      "market_cap_millions": 402.016832
+    },
+    "ENOV": {
+      "market_cap_millions": 1583.574016
+    },
+    "PENN": {
+      "market_cap_millions": 2210.511616
+    },
+    "MCHP": {
+      "market_cap_millions": 40360.57088
+    },
+    "FINW": {
+      "market_cap_millions": 241.983056
+    },
+    "ONIT": {
+      "market_cap_millions": 376.65632
+    },
+    "RLI": {
+      "market_cap_millions": 5576.393216
+    },
+    "ATRO": {
+      "market_cap_millions": 2071.120768
+    },
+    "ISBA": {
+      "market_cap_millions": 372.705952
+    },
+    "DOC": {
+      "market_cap_millions": 11612.61056
+    },
+    "OLED": {
+      "market_cap_millions": 5927.566848
+    },
+    "KRMN": {
+      "market_cap_millions": 12136.613888
+    },
+    "AII": {
+      "market_cap_millions": 394.472608
+    },
+    "DHR": {
+      "market_cap_millions": 170685.218816
+    },
+    "WSBC": {
+      "market_cap_millions": 3267.462656
+    },
+    "VST": {
+      "market_cap_millions": 56370.397184
+    },
+    "OPLN": {
+      "market_cap_millions": 3157.218304
+    },
+    "POWI": {
+      "market_cap_millions": 2115.925504
+    },
+    "JCAP": {
+      "market_cap_millions": 1341.846656
+    },
+    "MOBX": {
+      "market_cap_millions": 20.193156
+    },
+    "DGLY": {
+      "market_cap_millions": 1.34827
+    },
+    "BQ": {
+      "market_cap_millions": 9.000109
+    },
+    "UAN": {
+      "market_cap_millions": 1105.267072
+    },
+    "CVI": {
+      "market_cap_millions": 2592.684288
+    },
+    "OLMA": {
+      "market_cap_millions": 2026.44288
+    },
+    "TRMK": {
+      "market_cap_millions": 2426.13248
+    },
+    "FTEL": {
+      "market_cap_millions": 1.22816
+    },
+    "TDOC": {
+      "market_cap_millions": 1292.0064
+    },
+    "TSI": {
+      "market_cap_millions": 232.954016
+    },
+    "PDS": {
+      "market_cap_millions": 944.67008
+    },
+    "DRUG": {
+      "market_cap_millions": 623.050752
+    },
+    "TEVA": {
+      "market_cap_millions": 37447.303168
+    },
+    "ROOT": {
+      "market_cap_millions": 1095.863296
+    },
+    "IR": {
+      "market_cap_millions": 34196.813824
+    },
+    "GBCI": {
+      "market_cap_millions": 5973.404672
+    },
+    "CMPX": {
+      "market_cap_millions": 887.53184
+    },
+    "ARES": {
+      "market_cap_millions": 56367.816704
+    },
+    "MTD": {
+      "market_cap_millions": 30592.047104
+    },
+    "ZVIA": {
+      "market_cap_millions": 129.924784
+    },
+    "TVTX": {
+      "market_cap_millions": 2588.434432
+    },
+    "JBHT": {
+      "market_cap_millions": 19555.391488
+    },
+    "ONON": {
+      "market_cap_millions": 16178.185216
+    },
+    "CUBI": {
+      "market_cap_millions": 2641.192448
+    },
+    "JELD": {
+      "market_cap_millions": 210.157088
+    },
+    "RTX": {
+      "market_cap_millions": 252413.722624
+    },
+    "WSR": {
+      "market_cap_millions": 726.383552
+    },
+    "IART": {
+      "market_cap_millions": 978.559552
+    },
+    "BRSL": {
+      "market_cap_millions": 2927.899904
+    },
+    "BGS": {
+      "market_cap_millions": 340.816
+    },
+    "VEEV": {
+      "market_cap_millions": 39344.799744
+    },
+    "PNRG": {
+      "market_cap_millions": 284.782304
+    },
+    "LARK": {
+      "market_cap_millions": 160.697232
+    },
+    "HL": {
+      "market_cap_millions": 12644.762624
+    },
+    "RCI": {
+      "market_cap_millions": 19873.032192
+    },
+    "MPC": {
+      "market_cap_millions": 53185.314816
+    },
+    "MPLX": {
+      "market_cap_millions": 54316.212224
+    },
+    "NVDA": {
+      "market_cap_millions": 4580157.423616
+    },
+    "TSN": {
+      "market_cap_millions": 20971.577344
+    },
+    "ARCC": {
+      "market_cap_millions": 14837.011456
+    },
+    "LAZ": {
+      "market_cap_millions": 4817.895424
+    },
+    "LGI": {
+      "market_cap_millions": 228.116896
+    },
+    "DFIN": {
+      "market_cap_millions": 1310.95104
+    },
+    "ATR": {
+      "market_cap_millions": 8136.244224
+    },
+    "SU": {
+      "market_cap_millions": 54499.008512
+    },
+    "ALMS": {
+      "market_cap_millions": 867.509184
+    },
+    "IPI": {
+      "market_cap_millions": 372.19456
+    },
+    "SMBK": {
+      "market_cap_millions": 622.54368
+    },
+    "EXR": {
+      "market_cap_millions": 29051.953152
+    },
+    "STLD": {
+      "market_cap_millions": 25294.166016
+    },
+    "LMT": {
+      "market_cap_millions": 119433.723904
+    },
+    "DSY": {
+      "market_cap_millions": 25.897704
+    },
+    "CRNC": {
+      "market_cap_millions": 499.227808
+    },
+    "HPQ": {
+      "market_cap_millions": 20245.641216
+    },
+    "MGA": {
+      "market_cap_millions": 15569.697792
+    },
+    "WETO": {
+      "market_cap_millions": 18.9926
+    },
+    "AEVA": {
+      "market_cap_millions": 1243.053312
+    },
+    "QURE": {
+      "market_cap_millions": 1442.051968
+    },
+    "SMCI": {
+      "market_cap_millions": 17950.922752
+    },
+    "LCID": {
+      "market_cap_millions": 3789.529088
+    },
+    "PAGP": {
+      "market_cap_millions": 4545.838592
+    },
+    "PAA": {
+      "market_cap_millions": 12903.555072
+    },
+    "LUMN": {
+      "market_cap_millions": 8429.747712
+    },
+    "STEL": {
+      "market_cap_millions": 1614.527104
+    },
+    "OMC": {
+      "market_cap_millions": 24880.979968
+    },
+    "SSB": {
+      "market_cap_millions": 9680.892928
+    },
+    "NIU": {
+      "market_cap_millions": 244.806864
+    },
+    "CG": {
+      "market_cap_millions": 23659.118592
+    },
+    "HIMX": {
+      "market_cap_millions": 1432.5408
+    },
+    "PRPH": {
+      "market_cap_millions": 1.518533
+    },
+    "AMBA": {
+      "market_cap_millions": 3049.696512
+    },
+    "NUTX": {
+      "market_cap_millions": 1047.987264
+    },
+    "J": {
+      "market_cap_millions": 16244.885504
+    },
+    "KBR": {
+      "market_cap_millions": 5219.37408
+    },
+    "TSEM": {
+      "market_cap_millions": 13649.95072
+    },
+    "RMTI": {
+      "market_cap_millions": 34.0186
+    },
+    "KHC": {
+      "market_cap_millions": 28869.357568
+    },
+    "QXO": {
+      "market_cap_millions": 16877.171712
+    },
+    "APO": {
+      "market_cap_millions": 86924.0832
+    },
+    "CRNT": {
+      "market_cap_millions": 195.960144
+    },
+    "IDYA": {
+      "market_cap_millions": 2967.507712
+    },
+    "TEAD": {
+      "market_cap_millions": 62.991648
+    },
+    "NGVT": {
+      "market_cap_millions": 2191.259136
+    },
+    "LYB": {
+      "market_cap_millions": 14287.940608
+    },
+    "POWW": {
+      "market_cap_millions": 195.575088
+    },
+    "NMRA": {
+      "market_cap_millions": 282.097824
+    },
+    "GIB": {
+      "market_cap_millions": 20619.712512
+    },
+    "MRK": {
+      "market_cap_millions": 265889.021952
+    },
+    "STNG": {
+      "market_cap_millions": 2572.093184
+    },
+    "OSW": {
+      "market_cap_millions": 2119.670784
+    },
+    "BBUC": {
+      "market_cap_millions": 2547.881216
+    },
+    "BBU": {
+      "market_cap_millions": 3177.258752
+    },
+    "CNX": {
+      "market_cap_millions": 5262.703104
+    },
+    "LBRT": {
+      "market_cap_millions": 3244.197888
+    },
+    "BDX": {
+      "market_cap_millions": 57865.760768
+    },
+    "PLX": {
+      "market_cap_millions": 139.932864
+    },
+    "NRXP": {
+      "market_cap_millions": 63.651076
+    },
+    "RIG": {
+      "market_cap_millions": 4670.110208
+    },
+    "GRMN": {
+      "market_cap_millions": 39222.566912
+    },
+    "ENTA": {
+      "market_cap_millions": 400.901536
+    },
+    "BEAT": {
+      "market_cap_millions": 83.697864
+    },
+    "BENF": {
+      "market_cap_millions": 71.729368
+    },
+    "IMDX": {
+      "market_cap_millions": 214.123328
+    },
+    "ADMA": {
+      "market_cap_millions": 4283.421696
+    },
+    "GOGO": {
+      "market_cap_millions": 637.146688
+    },
+    "UPB": {
+      "market_cap_millions": 1462.824704
+    },
+    "MAZE": {
+      "market_cap_millions": 1913.710336
+    },
+    "NRIX": {
+      "market_cap_millions": 1830.72832
+    },
+    "ORN": {
+      "market_cap_millions": 398.610752
+    },
+    "JBIO": {
+      "market_cap_millions": 698.291008
+    },
+    "CBUS": {
+      "market_cap_millions": 102.282304
+    },
+    "MRKR": {
+      "market_cap_millions": 25.676614
+    },
+    "ALTG": {
+      "market_cap_millions": 161.498784
+    },
+    "DNTH": {
+      "market_cap_millions": 1701.32032
+    },
+    "OKYO": {
+      "market_cap_millions": 83.871808
+    },
+    "UMH": {
+      "market_cap_millions": 1355.167616
+    },
+    "CTRE": {
+      "market_cap_millions": 8108.035072
+    },
+    "HALO": {
+      "market_cap_millions": 8832.710656
+    },
+    "GUTS": {
+      "market_cap_millions": 315.9464
+    },
+    "GYRE": {
+      "market_cap_millions": 656.0288
+    },
+    "RCKT": {
+      "market_cap_millions": 374.448896
+    },
+    "LTRX": {
+      "market_cap_millions": 241.66184
+    },
+    "APLS": {
+      "market_cap_millions": 3271.942144
+    },
+    "MPLT": {
+      "market_cap_millions": 760.905792
+    },
+    "AGIO": {
+      "market_cap_millions": 1584.969472
+    },
+    "GHRS": {
+      "market_cap_millions": 821.269184
+    },
+    "SION": {
+      "market_cap_millions": 1749.894784
+    },
+    "UTHR": {
+      "market_cap_millions": 22464.790528
+    },
+    "TLRY": {
+      "market_cap_millions": 1101.420032
+    },
+    "SNDX": {
+      "market_cap_millions": 1851.286016
+    },
+    "MRAM": {
+      "market_cap_millions": 229.936544
+    },
+    "NTRA": {
+      "market_cap_millions": 33108.00896
+    },
+    "PERI": {
+      "market_cap_millions": 387.279456
+    },
+    "MOBBW": {
+      "market_cap_millions": 1036.636224
+    },
+    "MOB": {
+      "market_cap_millions": 81.219928
+    },
+    "SES": {
+      "market_cap_millions": 700.937728
+    },
+    "PTGX": {
+      "market_cap_millions": 5450.115584
+    },
+    "TAK": {
+      "market_cap_millions": 51979.4688
+    },
+    "MBLY": {
+      "market_cap_millions": 9911.76704
+    },
+    "CEVA": {
+      "market_cap_millions": 625.462144
+    },
+    "RDHL": {
+      "market_cap_millions": 5.245095
+    },
+    "AER": {
+      "market_cap_millions": 26281.074688
+    },
+    "NCEL": {
+      "market_cap_millions": 9.527012
+    },
+    "AZ": {
+      "market_cap_millions": 272.920704
+    },
+    "BHC": {
+      "market_cap_millions": 2674.547456
+    },
+    "HLF": {
+      "market_cap_millions": 1324.443392
+    },
+    "SKYT": {
+      "market_cap_millions": 1088.034432
+    },
+    "USNA": {
+      "market_cap_millions": 362.875008
+    },
+    "ALLT": {
+      "market_cap_millions": 467.791456
+    },
+    "NVRI": {
+      "market_cap_millions": 1444.502912
+    },
+    "NGNE": {
+      "market_cap_millions": 312.274368
+    },
+    "KURA": {
+      "market_cap_millions": 899.32608
+    },
+    "USPH": {
+      "market_cap_millions": 1306.33792
+    },
+    "ALT": {
+      "market_cap_millions": 366.24176
+    },
+    "CRBP": {
+      "market_cap_millions": 138.142384
+    },
+    "PTHS": {
+      "market_cap_millions": 90.90276
+    },
+    "MDCX": {
+      "market_cap_millions": 40.067276
+    },
+    "ESI": {
+      "market_cap_millions": 6277.477888
+    },
+    "GPRK": {
+      "market_cap_millions": 376.630464
+    },
+    "AFCG": {
+      "market_cap_millions": 64.394444
+    },
+    "INCY": {
+      "market_cap_millions": 19911.049216
+    },
+    "VNCE": {
+      "market_cap_millions": 55.892196
+    },
+    "ARWR": {
+      "market_cap_millions": 8831.89248
+    },
+    "ZLAB": {
+      "market_cap_millions": 2004.129408
+    },
+    "RYAM": {
+      "market_cap_millions": 392.652768
+    },
+    "CR": {
+      "market_cap_millions": 10801.144832
+    },
+    "BKR": {
+      "market_cap_millions": 44937.682944
+    },
+    "SATS": {
+      "market_cap_millions": 32293.965824
+    },
+    "MODG": {
+      "market_cap_millions": 2155.116288
+    },
+    "DCGO": {
+      "market_cap_millions": 86.85828
+    },
+    "OSTX": {
+      "market_cap_millions": 54.582244
+    },
+    "SIFY": {
+      "market_cap_millions": 1084.53248
+    },
+    "SQNS": {
+      "market_cap_millions": 90.122632
+    },
+    "GNRC": {
+      "market_cap_millions": 8280.321536
+    },
+    "LGO": {
+      "market_cap_millions": 99.800704
+    },
+    "ACFN": {
+      "market_cap_millions": 38.120408
+    },
+    "HUMA": {
+      "market_cap_millions": 231.595824
+    },
+    "MGNI": {
+      "market_cap_millions": 2408.974848
+    },
+    "SYK": {
+      "market_cap_millions": 133152.260096
+    },
+    "HCWC": {
+      "market_cap_millions": 5.102759
+    },
+    "STKH": {
+      "market_cap_millions": 11.724704
+    },
+    "HYPD": {
+      "market_cap_millions": 26.969774
+    },
+    "LPRO": {
+      "market_cap_millions": 184.37552
+    },
+    "GOLD": {
+      "market_cap_millions": 987.993536
+    },
+    "DIN": {
+      "market_cap_millions": 510.90112
+    },
+    "OSUR": {
+      "market_cap_millions": 197.10416
+    },
+    "KRYS": {
+      "market_cap_millions": 7217.773056
+    },
+    "TPET": {
+      "market_cap_millions": 6.913055
+    },
+    "EVR": {
+      "market_cap_millions": 13586.461696
+    },
+    "STGW": {
+      "market_cap_millions": 1223.665024
+    },
+    "CVX": {
+      "market_cap_millions": 314110.803968
+    },
+    "PFS": {
+      "market_cap_millions": 2577.214464
+    },
+    "RDVT": {
+      "market_cap_millions": 716.668288
+    },
+    "SRRK": {
+      "market_cap_millions": 4365.919232
+    },
+    "HOVR": {
+      "market_cap_millions": 70.66896
+    },
+    "TELO": {
+      "market_cap_millions": 46.070504
+    },
+    "GNLX": {
+      "market_cap_millions": 165.905728
+    },
+    "UAMY": {
+      "market_cap_millions": 830.411072
+    },
+    "MORN": {
+      "market_cap_millions": 9279.101952
+    },
+    "LOOP": {
+      "market_cap_millions": 48.763712
+    },
+    "ENSC": {
+      "market_cap_millions": 3.414363
+    },
+    "CAVA": {
+      "market_cap_millions": 8210.657792
+    },
+    "COYA": {
+      "market_cap_millions": 107.760952
+    },
+    "KYTX": {
+      "market_cap_millions": 495.926912
+    },
+    "LCTX": {
+      "market_cap_millions": 389.253536
+    },
+    "GEF": {
+      "market_cap_millions": 3969.05856
+    },
+    "ATGE": {
+      "market_cap_millions": 3795.524352
+    },
+    "EZPW": {
+      "market_cap_millions": 1221.576448
+    },
+    "FJET": {
+      "market_cap_millions": 262.741136
+    },
+    "URGN": {
+      "market_cap_millions": 1063.029888
+    },
+    "QNST": {
+      "market_cap_millions": 799.062208
+    },
+    "ABBV": {
+      "market_cap_millions": 389142.708224
+    },
+    "TRU": {
+      "market_cap_millions": 16655.399936
+    },
+    "VRME": {
+      "market_cap_millions": 13.189758
+    },
+    "ADP": {
+      "market_cap_millions": 104715.640832
+    },
+    "DRS": {
+      "market_cap_millions": 10908.407808
+    },
+    "ALM": {
+      "market_cap_millions": 2464.858112
+    },
+    "DHC": {
+      "market_cap_millions": 1295.486208
+    },
+    "SBR": {
+      "market_cap_millions": 1023.469952
+    },
+    "SHW": {
+      "market_cap_millions": 81741.430784
+    },
+    "EWTX": {
+      "market_cap_millions": 2495.318784
+    },
+    "CRWD": {
+      "market_cap_millions": 114346.8032
+    },
+    "JCSE": {
+      "market_cap_millions": 5.628478
+    },
+    "TEL": {
+      "market_cap_millions": 68696.850432
+    },
+    "HMC": {
+      "market_cap_millions": 38873.6
+    },
+    "BBSI": {
+      "market_cap_millions": 934.8432
+    },
+    "BIP": {
+      "market_cap_millions": 15902.884864
+    },
+    "TARA": {
+      "market_cap_millions": 288.299456
+    },
+    "DFDV": {
+      "market_cap_millions": 207.261728
+    },
+    "GFF": {
+      "market_cap_millions": 3493.761024
+    },
+    "SIMO": {
+      "market_cap_millions": 3186.30912
+    },
+    "ESPR": {
+      "market_cap_millions": 879.526848
+    },
+    "VLN": {
+      "market_cap_millions": 160.713872
+    },
+    "NVO": {
+      "market_cap_millions": 232793.899008
+    },
+    "AIV": {
+      "market_cap_millions": 850.045696
+    },
+    "FROG": {
+      "market_cap_millions": 6668.11136
+    },
+    "FIVN": {
+      "market_cap_millions": 1540.073984
+    },
+    "HPE": {
+      "market_cap_millions": 29586.599936
+    },
+    "EQH": {
+      "market_cap_millions": 14299.872256
+    },
+    "AB": {
+      "market_cap_millions": 4243.526656
+    },
+    "RGTI": {
+      "market_cap_millions": 8158.244352
+    },
+    "BEP": {
+      "market_cap_millions": 19451.328512
+    },
+    "BEPC": {
+      "market_cap_millions": 7056.697856
+    },
+    "BNBX": {
+      "market_cap_millions": 6.461001
+    },
+    "EQIX": {
+      "market_cap_millions": 78452.645888
+    },
+    "CPRX": {
+      "market_cap_millions": 2792.569344
+    },
+    "LFMD": {
+      "market_cap_millions": 167.99424
+    },
+    "WW": {
+      "market_cap_millions": 313.989056
+    },
+    "JBL": {
+      "market_cap_millions": 25476.20864
+    },
+    "GDRX": {
+      "market_cap_millions": 955.487488
+    },
+    "ALGM": {
+      "market_cap_millions": 5672.047104
+    },
+    "AIZ": {
+      "market_cap_millions": 12022.91712
+    },
+    "NWFL": {
+      "market_cap_millions": 259.675536
+    },
+    "OPHC": {
+      "market_cap_millions": 55.016912
+    },
+    "OESX": {
+      "market_cap_millions": 52.715892
+    },
+    "MAMA": {
+      "market_cap_millions": 525.647648
+    },
+    "MPB": {
+      "market_cap_millions": 734.006848
+    },
+    "TGL": {
+      "market_cap_millions": 10.562439
+    },
+    "AQN": {
+      "market_cap_millions": 4704.27648
+    },
+    "ETR": {
+      "market_cap_millions": 41917.58336
+    },
+    "AREC": {
+      "market_cap_millions": 280.396608
+    },
+    "NEOG": {
+      "market_cap_millions": 1603.663872
+    },
+    "DXPE": {
+      "market_cap_millions": 1690.566784
+    },
+    "NIXX": {
+      "market_cap_millions": 25.621842
+    },
+    "CFBK": {
+      "market_cap_millions": 158.00136
+    },
+    "SILC": {
+      "market_cap_millions": 80.948192
+    },
+    "JFBR": {
+      "market_cap_millions": 2.218166
+    },
+    "BNC": {
+      "market_cap_millions": 283.324672
+    },
+    "UAVS": {
+      "market_cap_millions": 35.441892
+    },
+    "SYNA": {
+      "market_cap_millions": 2957.663232
+    },
+    "APEI": {
+      "market_cap_millions": 683.614144
+    },
+    "ZTEK": {
+      "market_cap_millions": 72.109968
+    },
+    "CHKP": {
+      "market_cap_millions": 19434.42432
+    },
+    "FAT": {
+      "market_cap_millions": 6.932614
+    },
+    "SKWD": {
+      "market_cap_millions": 2069.309184
+    },
+    "SMXT": {
+      "market_cap_millions": 55.389012
+    },
+    "WLDS": {
+      "market_cap_millions": 10.896991
+    },
+    "SKYH": {
+      "market_cap_millions": 677.481024
+    },
+    "LINK": {
+      "market_cap_millions": 60.558776
+    },
+    "FTNT": {
+      "market_cap_millions": 59676.798976
+    },
+    "ICHR": {
+      "market_cap_millions": 701.782144
+    },
+    "UFG": {
+      "market_cap_millions": 23.500876
+    },
+    "MKSI": {
+      "market_cap_millions": 12488.147968
+    },
+    "IGC": {
+      "market_cap_millions": 27.182534
+    },
+    "PTEN": {
+      "market_cap_millions": 2746.244352
+    },
+    "CTRM": {
+      "market_cap_millions": 20.48419
+    },
+    "BFST": {
+      "market_cap_millions": 778.291968
+    },
+    "FLYX": {
+      "market_cap_millions": 344.536704
+    },
+    "CLFD": {
+      "market_cap_millions": 449.078688
+    },
+    "WFC": {
+      "market_cap_millions": 304967.581696
+    },
+    "BOSC": {
+      "market_cap_millions": 29.01234
+    },
+    "GEVO": {
+      "market_cap_millions": 489.463776
+    },
+    "INGR": {
+      "market_cap_millions": 7251.606016
+    },
+    "PDYN": {
+      "market_cap_millions": 211.028464
+    },
+    "YDES": {
+      "market_cap_millions": 894.21088
+    },
+    "DRTS": {
+      "market_cap_millions": 445.078816
+    },
+    "MED": {
+      "market_cap_millions": 128.378072
+    },
+    "ABCB": {
+      "market_cap_millions": 5074.055168
+    },
+    "NRDY": {
+      "market_cap_millions": 192.017392
+    },
+    "QCOM": {
+      "market_cap_millions": 174139.817984
+    },
+    "LMB": {
+      "market_cap_millions": 949.561856
+    },
+    "BLZE": {
+      "market_cap_millions": 273.395584
+    },
+    "KRC": {
+      "market_cap_millions": 4670.739968
+    },
+    "GPRE": {
+      "market_cap_millions": 738.156352
+    },
+    "SLAB": {
+      "market_cap_millions": 4878.661632
+    },
+    "SMPL": {
+      "market_cap_millions": 1934.246784
+    },
+    "HSAI": {
+      "market_cap_millions": 3786.44864
+    },
+    "AMTB": {
+      "market_cap_millions": 864.768896
+    },
+    "VC": {
+      "market_cap_millions": 2701.033472
+    },
+    "PIPR": {
+      "market_cap_millions": 6089.88928
+    },
+    "SOUN": {
+      "market_cap_millions": 4453.016576
+    },
+    "ODYS": {
+      "market_cap_millions": 55.77138
+    },
+    "TXN": {
+      "market_cap_millions": 161390.034944
+    },
+    "CAT": {
+      "market_cap_millions": 299325.227008
+    },
+    "DSP": {
+      "market_cap_millions": 722.47936
+    },
+    "VBIX": {
+      "market_cap_millions": 16.325699
+    },
+    "SBRA": {
+      "market_cap_millions": 4775.046144
+    },
+    "PBM": {
+      "market_cap_millions": 5.110883
+    },
+    "PCSA": {
+      "market_cap_millions": 7.61298
+    },
+    "ALNY": {
+      "market_cap_millions": 52867.989504
+    },
+    "NRGV": {
+      "market_cap_millions": 820.493056
+    },
+    "MYNZ": {
+      "market_cap_millions": 10.509764
+    },
+    "VUZI": {
+      "market_cap_millions": 286.051552
+    },
+    "PONY": {
+      "market_cap_millions": 7814.212608
+    },
+    "TTMI": {
+      "market_cap_millions": 7634.074112
+    },
+    "FBIZ": {
+      "market_cap_millions": 451.34128
+    },
+    "RPGL": {
+      "market_cap_millions": 9.093135
+    },
+    "CSIQ": {
+      "market_cap_millions": 1356.188032
+    },
+    "DAN": {
+      "market_cap_millions": 3383.10784
+    },
+    "MIRM": {
+      "market_cap_millions": 4474.269696
+    },
+    "FANG": {
+      "market_cap_millions": 40661.221376
+    },
+    "GLUE": {
+      "market_cap_millions": 1042.53536
+    },
+    "KNSA": {
+      "market_cap_millions": 3215.256064
+    },
+    "PHAT": {
+      "market_cap_millions": 1285.471616
+    },
+    "VNOM": {
+      "market_cap_millions": 11697.734656
+    },
+    "AMGN": {
+      "market_cap_millions": 172701.515776
+    },
+    "OTEX": {
+      "market_cap_millions": 8222.79424
+    },
+    "PSMT": {
+      "market_cap_millions": 3942.025216
+    },
+    "COSO": {
+      "market_cap_millions": 275.910496
+    },
+    "DH": {
+      "market_cap_millions": 266.460688
+    },
+    "DASH": {
+      "market_cap_millions": 99353.780224
+    },
+    "LFVN": {
+      "market_cap_millions": 86.241056
+    },
+    "ETD": {
+      "market_cap_millions": 585.52032
+    },
+    "STRO": {
+      "market_cap_millions": 100.102856
+    },
+    "CXT": {
+      "market_cap_millions": 2860.192
+    },
+    "RAPT": {
+      "market_cap_millions": 897.83232
+    },
+    "KRUS": {
+      "market_cap_millions": 676.06272
+    },
+    "TERN": {
+      "market_cap_millions": 4362.655744
+    },
+    "SMTI": {
+      "market_cap_millions": 217.940672
+    },
+    "SAR": {
+      "market_cap_millions": 362.660928
+    },
+    "TTRX": {
+      "market_cap_millions": 134.564496
+    },
+    "ANNX": {
+      "market_cap_millions": 824.278976
+    },
+    "RCKY": {
+      "market_cap_millions": 217.4668
+    },
+    "STZ": {
+      "market_cap_millions": 24472.037376
+    },
+    "APP": {
+      "market_cap_millions": 214085.14048
+    },
+    "IMSR": {
+      "market_cap_millions": 571.582208
+    },
+    "DIOD": {
+      "market_cap_millions": 2496.761344
+    },
+    "FUBO": {
+      "market_cap_millions": 885.9424
+    },
+    "RGP": {
+      "market_cap_millions": 175.300096
+    },
+    "HBB": {
+      "market_cap_millions": 223.16752
+    },
+    "LRCX": {
+      "market_cap_millions": 256065.224704
+    },
+    "LC": {
+      "market_cap_millions": 2296.804608
+    },
+    "STRL": {
+      "market_cap_millions": 9591.816192
+    },
+    "G": {
+      "market_cap_millions": 8261.970432
+    },
+    "CMBT": {
+      "market_cap_millions": 3138.786816
+    },
+    "BODI": {
+      "market_cap_millions": 69.958928
+    },
+    "VRNS": {
+      "market_cap_millions": 4107.542272
+    },
+    "KNOP": {
+      "market_cap_millions": 354.618304
+    },
+    "COST": {
+      "market_cap_millions": 391828.176896
+    },
+    "HR": {
+      "market_cap_millions": 6066.22464
+    },
+    "RPM": {
+      "market_cap_millions": 13342.406656
+    },
+    "ASUR": {
+      "market_cap_millions": 260.425168
+    },
+    "PLAB": {
+      "market_cap_millions": 2079.075328
+    },
+    "RM": {
+      "market_cap_millions": 374.32432
+    },
+    "XYL": {
+      "market_cap_millions": 33946.888192
+    },
+    "BWB": {
+      "market_cap_millions": 492.939168
+    },
+    "MET": {
+      "market_cap_millions": 53986.816
+    },
+    "GDLC": {
+      "market_cap_millions": 689.4592
+    },
+    "GBTC": {
+      "market_cap_millions": 49158.26688
+    },
+    "BWA": {
+      "market_cap_millions": 10267.84256
+    },
+    "NVST": {
+      "market_cap_millions": 3925.212672
+    },
+    "AZZ": {
+      "market_cap_millions": 3301.169408
+    },
+    "MATW": {
+      "market_cap_millions": 869.982592
+    },
+    "CDP": {
+      "market_cap_millions": 3439.504384
+    },
+    "PK": {
+      "market_cap_millions": 2228.835584
+    },
+    "LLY": {
+      "market_cap_millions": 993354.776576
+    },
+    "SANA": {
+      "market_cap_millions": 1259.91168
+    },
+    "GMED": {
+      "market_cap_millions": 12228.083712
+    },
+    "JSPR": {
+      "market_cap_millions": 57.36728
+    },
+    "MYFW": {
+      "market_cap_millions": 251.985744
+    },
+    "VFC": {
+      "market_cap_millions": 7501.915648
+    },
+    "MNTN": {
+      "market_cap_millions": 887.466176
+    },
+    "ACOG": {
+      "market_cap_millions": 141.32368
+    },
+    "AFBI": {
+      "market_cap_millions": 127.956416
+    },
+    "IBP": {
+      "market_cap_millions": 6956.675072
+    },
+    "FTV": {
+      "market_cap_millions": 18205.88032
+    },
+    "TBRG": {
+      "market_cap_millions": 322.900448
+    },
+    "SRTS": {
+      "market_cap_millions": 72.17176
+    },
+    "ATO": {
+      "market_cap_millions": 26874.42944
+    },
+    "NNN": {
+      "market_cap_millions": 7967.17824
+    },
+    "HIT": {
+      "market_cap_millions": 84.22504
+    },
+    "MXL": {
+      "market_cap_millions": 1622.513408
+    },
+    "PARK": {
+      "market_cap_millions": 57.937564
+    },
+    "DKS": {
+      "market_cap_millions": 18900.668416
+    },
+    "TEX": {
+      "market_cap_millions": 3778.611712
+    },
+    "REVG": {
+      "market_cap_millions": 3175.327488
+    },
+    "CLS": {
+      "market_cap_millions": 35186.249728
+    },
+    "CIVI": {
+      "market_cap_millions": 2182.315776
+    },
+    "SM": {
+      "market_cap_millions": 2012.717056
+    },
+    "KIO": {
+      "market_cap_millions": 477.067328
+    },
+    "NG": {
+      "market_cap_millions": 4028.577024
+    },
+    "TREE": {
+      "market_cap_millions": 860.023488
+    },
+    "ORC": {
+      "market_cap_millions": 1325.320576
+    },
+    "SWKS": {
+      "market_cap_millions": 9769.454592
+    },
+    "QRVO": {
+      "market_cap_millions": 7550.395904
+    },
+    "AEP": {
+      "market_cap_millions": 60859.695104
+    },
+    "KMB": {
+      "market_cap_millions": 32907.20256
+    },
+    "BCRX": {
+      "market_cap_millions": 1561.57632
+    },
+    "HOLX": {
+      "market_cap_millions": 16734.377984
+    },
+    "BKH": {
+      "market_cap_millions": 5428.046336
+    },
+    "ACLS": {
+      "market_cap_millions": 2882.609152
+    },
+    "VECO": {
+      "market_cap_millions": 1994.024704
+    },
+    "VNO": {
+      "market_cap_millions": 7022.795776
+    },
+    "CIO": {
+      "market_cap_millions": 282.545472
+    },
+    "RBB": {
+      "market_cap_millions": 355.539584
+    },
+    "CHDN": {
+      "market_cap_millions": 7590.256128
+    },
+    "AREN": {
+      "market_cap_millions": 192.236288
+    },
+    "JPM": {
+      "market_cap_millions": 838102.87616
+    },
+    "CORT": {
+      "market_cap_millions": 3909.291008
+    },
+    "BGSI": {
+      "market_cap_millions": 4430.278144
+    },
+    "HAE": {
+      "market_cap_millions": 3861.407232
+    },
+    "CLMT": {
+      "market_cap_millions": 1723.808384
+    },
+    "TMUS": {
+      "market_cap_millions": 216102.961152
+    },
+    "WOW": {
+      "market_cap_millions": 445.85552
+    },
+    "TRI": {
+      "market_cap_millions": 59035.205632
+    },
+    "FFBC": {
+      "market_cap_millions": 2679.657216
+    },
+    "HOUS": {
+      "market_cap_millions": 1977.985408
+    },
+    "AES": {
+      "market_cap_millions": 10300.829696
+    },
+    "BOTJ": {
+      "market_cap_millions": 82.23444
+    },
+    "FHB": {
+      "market_cap_millions": 3351.85792
+    },
+    "SLF": {
+      "market_cap_millions": 34514.59584
+    },
+    "CE": {
+      "market_cap_millions": 4871.873024
+    },
+    "AON": {
+      "market_cap_millions": 74343.735296
+    },
+    "TSLX": {
+      "market_cap_millions": 2067.05472
+    },
+    "KWM": {
+      "market_cap_millions": 28.924404
+    },
+    "EFSC": {
+      "market_cap_millions": 2029.678208
+    },
+    "ESRT": {
+      "market_cap_millions": 1894.7584
+    },
+    "AZI": {
+      "market_cap_millions": 8.037827
+    },
+    "MTG": {
+      "market_cap_millions": 6687.47264
+    },
+    "EGP": {
+      "market_cap_millions": 9810.311168
+    },
+    "TFIN": {
+      "market_cap_millions": 1644.546176
+    },
+    "IGR": {
+      "market_cap_millions": 698.810176
+    },
+    "CBRE": {
+      "market_cap_millions": 49239.740416
+    },
+    "COKE": {
+      "market_cap_millions": 10015.4112
+    },
+    "DNP": {
+      "market_cap_millions": 3741.130752
+    },
+    "ROLR": {
+      "market_cap_millions": 160.517984
+    },
+    "WNC": {
+      "market_cap_millions": 422.482464
+    },
+    "VSTA": {
+      "market_cap_millions": 403.63856
+    },
+    "AAT": {
+      "market_cap_millions": 1456.982784
+    },
+    "HLX": {
+      "market_cap_millions": 1039.126656
+    },
+    "MSWV": {
+      "market_cap_millions": 135.835536
+    },
+    "BAC": {
+      "market_cap_millions": 424726.396928
+    },
+    "DPG": {
+      "market_cap_millions": 474.060928
+    },
+    "RGLD": {
+      "market_cap_millions": 20694.40512
+    },
+    "FCF": {
+      "market_cap_millions": 1804.339712
+    },
+    "WBUY": {
+      "market_cap_millions": 2.981366
+    },
+    "FULC": {
+      "market_cap_millions": 649.807424
+    },
+    "AXG": {
+      "market_cap_millions": 784.548352
+    },
+    "WYNN": {
+      "market_cap_millions": 12251.554816
+    },
+    "RY": {
+      "market_cap_millions": 237897.957376
+    },
+    "BOOT": {
+      "market_cap_millions": 5978.819072
+    },
+    "TOI": {
+      "market_cap_millions": 411.234016
+    },
+    "TSLA": {
+      "market_cap_millions": 1495687.364608
+    },
+    "BARK": {
+      "market_cap_millions": 106.164232
+    },
+    "HYTNF": {
+      "market_cap_millions": 14.121032
+    },
+    "PAANF": {
+      "market_cap_millions": 19.00807
+    },
+    "CLLMF": {
+      "market_cap_millions": 1.360631
+    },
+    "WDFC": {
+      "market_cap_millions": 2754.14144
+    },
+    "RECAF": {
+      "market_cap_millions": 245.71664
+    },
+    "ASND": {
+      "market_cap_millions": 12754.240512
+    },
+    "CCB": {
+      "market_cap_millions": 1768.280576
+    },
+    "EW": {
+      "market_cap_millions": 49979.82208
+    },
+    "OCGSF": {
+      "market_cap_millions": 174.427984
+    },
+    "GAU": {
+      "market_cap_millions": 693.199936
+    },
+    "JBS": {
+      "market_cap_millions": 15238.459392
+    },
+    "CLCO": {
+      "market_cap_millions": 511.233824
+    },
+    "PDSB": {
+      "market_cap_millions": 54.354676
+    },
+    "MAR": {
+      "market_cap_millions": 87775.88736
+    },
+    "GPPRF": {
+      "market_cap_millions": 214.16808
+    },
+    "MAGN": {
+      "market_cap_millions": 517.624
+    },
+    "OMGGF": {
+      "market_cap_millions": 667.497344
+    },
+    "ONCY": {
+      "market_cap_millions": 104.130688
+    },
+    "BBWI": {
+      "market_cap_millions": 4746.438144
+    },
+    "AKTX": {
+      "market_cap_millions": 10.092901
+    },
+    "CSAI": {
+      "market_cap_millions": 16.993926
+    },
+    "SGD": {
+      "market_cap_millions": 2.236657
+    },
+    "RENX": {
+      "market_cap_millions": 1.776534
+    },
+    "VYX": {
+      "market_cap_millions": 1490.233344
+    },
+    "MGM": {
+      "market_cap_millions": 9613.751296
+    },
+    "DEO": {
+      "market_cap_millions": 48331.726848
+    },
+    "CVS": {
+      "market_cap_millions": 100704.075776
+    },
+    "FCCO": {
+      "market_cap_millions": 230.613952
+    },
+    "NAMI": {
+      "market_cap_millions": 56.85234
+    },
+    "SPCB": {
+      "market_cap_millions": 39.388284
+    },
+    "GP": {
+      "market_cap_millions": 2.545389
+    },
+    "GRRR": {
+      "market_cap_millions": 284.269472
+    },
+    "TLOFF": {
+      "market_cap_millions": 548.555712
+    },
+    "FEED": {
+      "market_cap_millions": 2.72048
+    },
+    "NAOV": {
+      "market_cap_millions": 4.374532
+    },
+    "JAMF": {
+      "market_cap_millions": 1745.672448
+    },
+    "PASW": {
+      "market_cap_millions": 12.67515
+    },
+    "CBT": {
+      "market_cap_millions": 3820.02048
+    },
+    "HRTX": {
+      "market_cap_millions": 232.8704
+    },
+    "NDAQ": {
+      "market_cap_millions": 56742.612992
+    },
+    "AZN": {
+      "market_cap_millions": 295049.986048
+    },
+    "WMT": {
+      "market_cap_millions": 950363.815936
+    },
+    "AMYZF": {
+      "market_cap_millions": 25.323792
+    },
+    "HYFT": {
+      "market_cap_millions": 127.00028
+    },
+    "SMMT": {
+      "market_cap_millions": 14650.630144
+    },
+    "FHTX": {
+      "market_cap_millions": 377.762592
+    },
+    "TD": {
+      "market_cap_millions": 158824.431616
+    },
+    "RGA": {
+      "market_cap_millions": 13364.156416
+    },
+    "LGN": {
+      "market_cap_millions": 4695.311872
+    },
+    "CRSR": {
+      "market_cap_millions": 609.077312
+    },
+    "SKYW": {
+      "market_cap_millions": 3985.33376
+    },
+    "PCRX": {
+      "market_cap_millions": 1169.14944
+    },
+    "VXRT": {
+      "market_cap_millions": 132.03288
+    },
+    "SENS": {
+      "market_cap_millions": 294.99808
+    },
+    "VRDN": {
+      "market_cap_millions": 2882.3488
+    },
+    "AGNC": {
+      "market_cap_millions": 12411.4176
+    },
+    "AP": {
+      "market_cap_millions": 111.795136
+    },
+    "BBNX": {
+      "market_cap_millions": 886.656064
+    },
+    "IMNM": {
+      "market_cap_millions": 2174.708224
+    },
+    "ICCC": {
+      "market_cap_millions": 59.431244
+    },
+    "COCO": {
+      "market_cap_millions": 3141.835264
+    },
+    "LPLA": {
+      "market_cap_millions": 28799.137792
+    },
+    "ITRI": {
+      "market_cap_millions": 4508.68736
+    },
+    "ELDN": {
+      "market_cap_millions": 129.80928
+    },
+    "SEPN": {
+      "market_cap_millions": 1152.48768
+    },
+    "TVRD": {
+      "market_cap_millions": 36.493428
+    },
+    "SYY": {
+      "market_cap_millions": 34856.296448
+    },
+    "ALAB": {
+      "market_cap_millions": 29147.6992
+    },
+    "CASH": {
+      "market_cap_millions": 1706.3488
+    },
+    "PFBC": {
+      "market_cap_millions": 1212.862592
+    },
+    "SLP": {
+      "market_cap_millions": 363.645824
+    },
+    "SYRE": {
+      "market_cap_millions": 2375.09504
+    },
+    "MMSI": {
+      "market_cap_millions": 5524.665344
+    },
+    "KALV": {
+      "market_cap_millions": 799.642304
+    },
+    "BRSP": {
+      "market_cap_millions": 763.714368
+    },
+    "KE": {
+      "market_cap_millions": 691.135296
+    },
+    "CHPT": {
+      "market_cap_millions": 166.517744
+    },
+    "CIFR": {
+      "market_cap_millions": 6538.773504
+    },
+    "PD": {
+      "market_cap_millions": 1143.200896
+    },
+    "SVRA": {
+      "market_cap_millions": 1171.974784
+    },
+    "JBI": {
+      "market_cap_millions": 967.172416
+    },
+    "OLN": {
+      "market_cap_millions": 2558.22592
+    },
+    "RSG": {
+      "market_cap_millions": 65871.290368
+    },
+    "TRIN": {
+      "market_cap_millions": 1196.553856
+    },
+    "FRT": {
+      "market_cap_millions": 8921.22624
+    },
+    "JAZZ": {
+      "market_cap_millions": 9737.61024
+    },
+    "BBT": {
+      "market_cap_millions": 2312.00896
+    },
+    "HI": {
+      "market_cap_millions": 2243.1744
+    },
+    "GEN": {
+      "market_cap_millions": 16367.645696
+    },
+    "DTE": {
+      "market_cap_millions": 26933.37088
+    },
+    "STAG": {
+      "market_cap_millions": 7040.561152
+    },
+    "NBHC": {
+      "market_cap_millions": 1531.922304
+    },
+    "ACGL": {
+      "market_cap_millions": 35970.9696
+    },
+    "PKE": {
+      "market_cap_millions": 462.8104
+    },
+    "FHI": {
+      "market_cap_millions": 4101.376256
+    },
+    "FR": {
+      "market_cap_millions": 8034.671616
+    },
+    "FRO": {
+      "market_cap_millions": 5439.790592
+    },
+    "ACEL": {
+      "market_cap_millions": 988.344832
+    },
+    "BJRI": {
+      "market_cap_millions": 947.357376
+    },
+    "AXS": {
+      "market_cap_millions": 8119.931904
+    },
+    "AMAL": {
+      "market_cap_millions": 1024.611968
+    },
+    "LNT": {
+      "market_cap_millions": 16849.870848
+    },
+    "AVB": {
+      "market_cap_millions": 26209.867776
+    },
+    "GNW": {
+      "market_cap_millions": 3700.061952
+    },
+    "ACT": {
+      "market_cap_millions": 6000.528384
+    },
+    "DINO": {
+      "market_cap_millions": 9466.27584
+    },
+    "EARN": {
+      "market_cap_millions": 203.25696
+    },
+    "RNR": {
+      "market_cap_millions": 13155.478528
+    },
+    "SEE": {
+      "market_cap_millions": 6108.61056
+    },
+    "NWPX": {
+      "market_cap_millions": 614.469696
+    },
+    "DXC": {
+      "market_cap_millions": 2745.839616
+    },
+    "DOV": {
+      "market_cap_millions": 27902.449664
+    },
+    "AJG": {
+      "market_cap_millions": 67935.195136
+    },
+    "ROAD": {
+      "market_cap_millions": 6347.940352
+    },
+    "RCL": {
+      "market_cap_millions": 76176.908288
+    },
+    "PSTL": {
+      "market_cap_millions": 539.04832
+    },
+    "EDUC": {
+      "market_cap_millions": 12.273977
+    },
+    "CPA": {
+      "market_cap_millions": 5350.00832
+    },
+    "NAVI": {
+      "market_cap_millions": 1304.535296
+    },
+    "EAF": {
+      "market_cap_millions": 439.974688
+    },
+    "CLLS": {
+      "market_cap_millions": 457.584992
+    },
+    "CATY": {
+      "market_cap_millions": 3512.709376
+    },
+    "EBS": {
+      "market_cap_millions": 741.580288
+    },
+    "LNC": {
+      "market_cap_millions": 8387.708928
+    },
+    "HCC": {
+      "market_cap_millions": 5294.340608
+    },
+    "TXT": {
+      "market_cap_millions": 16050.951168
+    },
+    "LYTS": {
+      "market_cap_millions": 593.872256
+    },
+    "QTRX": {
+      "market_cap_millions": 304.087296
+    },
+    "EXAS": {
+      "market_cap_millions": 19314.364416
+    },
+    "PFE": {
+      "market_cap_millions": 143791.55456
+    },
+    "ARVN": {
+      "market_cap_millions": 894.226304
+    },
+    "ILMN": {
+      "market_cap_millions": 22414.071808
+    },
+    "AURE": {
+      "market_cap_millions": 110.79456
+    },
+    "KRP": {
+      "market_cap_millions": 1275.23648
+    },
+    "CWH": {
+      "market_cap_millions": 701.06624
+    },
+    "RGC": {
+      "market_cap_millions": 20481.728512
+    },
+    "SEV": {
+      "market_cap_millions": 127.408544
+    },
+    "TTAM": {
+      "market_cap_millions": 3110.194944
+    },
+    "BHF": {
+      "market_cap_millions": 3702.408192
+    },
+    "PDLB": {
+      "market_cap_millions": 393.1384
+    },
+    "MEG": {
+      "market_cap_millions": 909.94496
+    },
+    "SSII": {
+      "market_cap_millions": 1084.2784
+    },
+    "RSF": {
+      "market_cap_millions": 63.584432
+    },
+    "COTY": {
+      "market_cap_millions": 2728.806912
+    },
+    "DLX": {
+      "market_cap_millions": 1061.730816
+    },
+    "WFG": {
+      "market_cap_millions": 4898.848256
+    },
+    "CWEN": {
+      "market_cap_millions": 6753.05984
+    },
+    "LIN": {
+      "market_cap_millions": 206174.830592
+    },
+    "APH": {
+      "market_cap_millions": 171563.630592
+    },
+    "GWRE": {
+      "market_cap_millions": 15338.309632
+    },
+    "ARMN": {
+      "market_cap_millions": 3494.591744
+    },
+    "ASTL": {
+      "market_cap_millions": 444.919296
+    },
+    "GOSS": {
+      "market_cap_millions": 578.640576
+    },
+    "ARCT": {
+      "market_cap_millions": 192.364672
+    },
+    "TBI": {
+      "market_cap_millions": 136.224592
+    },
+    "OCS": {
+      "market_cap_millions": 1141.6864
+    },
+    "HGTY": {
+      "market_cap_millions": 4490.374656
+    },
+    "FSM": {
+      "market_cap_millions": 3167.202048
+    },
+    "CNEY": {
+      "market_cap_millions": 4.22344
+    },
+    "BEEM": {
+      "market_cap_millions": 31.779008
+    },
+    "JD": {
+      "market_cap_millions": 42831.040512
+    },
+    "GNL": {
+      "market_cap_millions": 1900.32704
+    },
+    "RDWR": {
+      "market_cap_millions": 1050.242816
+    },
+    "TTAN": {
+      "market_cap_millions": 9902.194688
+    },
+    "ACON": {
+      "market_cap_millions": 3.477701
+    },
+    "AYI": {
+      "market_cap_millions": 11362.789376
+    },
+    "ENGS": {
+      "market_cap_millions": 12.154684
+    },
+    "LPX": {
+      "market_cap_millions": 5512.280064
+    },
+    "WWR": {
+      "market_cap_millions": 111.051688
+    },
+    "NABL": {
+      "market_cap_millions": 1391.995008
+    },
+    "EVTL": {
+      "market_cap_millions": 621.67488
+    },
+    "TPR": {
+      "market_cap_millions": 27111.512064
+    },
+    "NWS": {
+      "market_cap_millions": 17079.852032
+    },
+    "NWSA": {
+      "market_cap_millions": 15655.006208
+    },
+    "UK": {
+      "market_cap_millions": 4.945644
+    },
+    "BW": {
+      "market_cap_millions": 657.712576
+    },
+    "RACE": {
+      "market_cap_millions": 63228.88704
+    },
+    "TT": {
+      "market_cap_millions": 83761.455104
+    },
+    "TFX": {
+      "market_cap_millions": 4597.986304
+    },
+    "VIAV": {
+      "market_cap_millions": 3972.93952
+    },
+    "DNN": {
+      "market_cap_millions": 2386.79296
+    },
+    "BAM": {
+      "market_cap_millions": 85756.76416
+    },
+    "LNN": {
+      "market_cap_millions": 1280.732288
+    },
+    "MIAX": {
+      "market_cap_millions": 3622.700544
+    },
+    "BKE": {
+      "market_cap_millions": 2756.83072
+    },
+    "EXK": {
+      "market_cap_millions": 3403.633664
+    },
+    "FURY": {
+      "market_cap_millions": 114.938896
+    },
+    "KGC": {
+      "market_cap_millions": 40697.81504
+    },
+    "LXEO": {
+      "market_cap_millions": 731.333056
+    },
+    "TRDA": {
+      "market_cap_millions": 410.856736
+    },
+    "AMRN": {
+      "market_cap_millions": 291.721344
+    },
+    "CLYM": {
+      "market_cap_millions": 286.374592
+    },
+    "SGMT": {
+      "market_cap_millions": 179.519232
+    },
+    "JG": {
+      "market_cap_millions": 38.720264
+    },
+    "SNX": {
+      "market_cap_millions": 12452.529152
+    },
+    "INDV": {
+      "market_cap_millions": 4487.12704
+    },
+    "GS": {
+      "market_cap_millions": 284866.609152
+    },
+    "RANI": {
+      "market_cap_millions": 170.477296
+    },
+    "AVIR": {
+      "market_cap_millions": 266.4124
+    },
+    "IRD": {
+      "market_cap_millions": 145.514464
+    },
+    "AMLX": {
+      "market_cap_millions": 1316.73664
+    },
+    "LAB": {
+      "market_cap_millions": 492.243712
+    },
+    "CGEM": {
+      "market_cap_millions": 646.294272
+    },
+    "SKT": {
+      "market_cap_millions": 3857.335808
+    },
+    "CCIX": {
+      "market_cap_millions": 391.188864
+    },
+    "CGC": {
+      "market_cap_millions": 438.464384
+    },
+    "SNEX": {
+      "market_cap_millions": 5309.546496
+    },
+    "NIQ": {
+      "market_cap_millions": 5023.849984
+    },
+    "XERS": {
+      "market_cap_millions": 1196.314112
+    },
+    "MAIN": {
+      "market_cap_millions": 5578.61632
+    },
+    "OTIS": {
+      "market_cap_millions": 34702.659584
+    },
+    "VRT": {
+      "market_cap_millions": 65586.311168
+    },
+    "MSIF": {
+      "market_cap_millions": 646.139648
+    },
+    "ORI": {
+      "market_cap_millions": 10558.691328
+    },
+    "INMD": {
+      "market_cap_millions": 1061.467776
+    },
+    "IVVD": {
+      "market_cap_millions": 664.955712
+    },
+    "USAS": {
+      "market_cap_millions": 1791.506432
+    },
+    "NGVC": {
+      "market_cap_millions": 576.978944
+    },
+    "GILT": {
+      "market_cap_millions": 1067.39872
+    },
+    "EXOD": {
+      "market_cap_millions": 475.28672
+    },
+    "KFRC": {
+      "market_cap_millions": 592.006144
+    },
+    "TDAY": {
+      "market_cap_millions": 884.123648
+    },
+    "DFLI": {
+      "market_cap_millions": 47.831676
+    },
+    "VERA": {
+      "market_cap_millions": 3455.641856
+    },
+    "PSTV": {
+      "market_cap_millions": 83.529384
+    },
+    "FCN": {
+      "market_cap_millions": 5695.038464
+    },
+    "SLNH": {
+      "market_cap_millions": 167.576608
+    },
+    "ACRV": {
+      "market_cap_millions": 72.26124
+    },
+    "AMBR": {
+      "market_cap_millions": 235.144144
+    },
+    "LECO": {
+      "market_cap_millions": 14117.747712
+    },
+    "FE": {
+      "market_cap_millions": 26168.24832
+    },
+    "TRVI": {
+      "market_cap_millions": 1501.574912
+    },
+    "AEM": {
+      "market_cap_millions": 91407.622144
+    },
+    "EPRX": {
+      "market_cap_millions": 369.418944
+    },
+    "HUT": {
+      "market_cap_millions": 6253.160448
+    },
+    "TUYA": {
+      "market_cap_millions": 1435.645824
+    },
+    "MUR": {
+      "market_cap_millions": 4359.243776
+    },
+    "SKYX": {
+      "market_cap_millions": 232.04872
+    },
+    "SITM": {
+      "market_cap_millions": 9114.340352
+    },
+    "XWEL": {
+      "market_cap_millions": 2.63596
+    },
+    "ALPS": {
+      "market_cap_millions": 159.096432
+    },
+    "VICI": {
+      "market_cap_millions": 29456.441344
+    },
+    "PRQR": {
+      "market_cap_millions": 227.545616
+    },
+    "CRMD": {
+      "market_cap_millions": 880.073664
+    },
+    "TOST": {
+      "market_cap_millions": 21556.08064
+    },
+    "NAUT": {
+      "market_cap_millions": 280.397376
+    },
+    "SATL": {
+      "market_cap_millions": 407.756128
+    },
+    "GTY": {
+      "market_cap_millions": 1645.107584
+    },
+    "LVO": {
+      "market_cap_millions": 48.958616
+    },
+    "NWTG": {
+      "market_cap_millions": 7.556416
+    },
+    "NRXS": {
+      "market_cap_millions": 47.298484
+    },
+    "KRRO": {
+      "market_cap_millions": 79.952832
+    },
+    "IPSC": {
+      "market_cap_millions": 113.626904
+    },
+    "NPT": {
+      "market_cap_millions": 119.577144
+    },
+    "CCC": {
+      "market_cap_millions": 5496.595456
+    },
+    "AIRJ": {
+      "market_cap_millions": 240.898432
+    },
+    "TRNS": {
+      "market_cap_millions": 561.66368
+    },
+    "FBRT": {
+      "market_cap_millions": 826.039488
+    },
+    "GIG": {
+      "market_cap_millions": 351.666656
+    },
+    "CRL": {
+      "market_cap_millions": 10769.330176
+    },
+    "BIVI": {
+      "market_cap_millions": 10.175597
+    },
+    "PSNL": {
+      "market_cap_millions": 761.053248
+    },
+    "CRC": {
+      "market_cap_millions": 4314.659328
+    },
+    "CTMX": {
+      "market_cap_millions": 728.572224
+    },
+    "EMO": {
+      "market_cap_millions": 829.32992
+    },
+    "ACHR": {
+      "market_cap_millions": 6181.19936
+    },
+    "BBLG": {
+      "market_cap_millions": 2.818558
+    },
+    "WHWK": {
+      "market_cap_millions": 125.832728
+    },
+    "VRRM": {
+      "market_cap_millions": 3662.004224
+    },
+    "KLTO": {
+      "market_cap_millions": 24.539172
+    },
+    "SUIG": {
+      "market_cap_millions": 164.476368
+    },
+    "SPRB": {
+      "market_cap_millions": 83.585192
+    },
+    "ABX": {
+      "market_cap_millions": 802.062208
+    },
+    "EL": {
+      "market_cap_millions": 37935.12448
+    },
+    "ULCC": {
+      "market_cap_millions": 1079.525888
+    },
+    "LSPD": {
+      "market_cap_millions": 1657.640192
+    },
+    "GLOO": {
+      "market_cap_millions": 486.16256
+    },
+    "XNCR": {
+      "market_cap_millions": 1067.58656
+    },
+    "EPAM": {
+      "market_cap_millions": 12153.066496
+    },
+    "LII": {
+      "market_cap_millions": 17736.708096
+    },
+    "AXIL": {
+      "market_cap_millions": 41.69512
+    },
+    "MNKD": {
+      "market_cap_millions": 1796.361088
+    },
+    "SMA": {
+      "market_cap_millions": 1712.558336
+    },
+    "QTWO": {
+      "market_cap_millions": 4390.231552
+    },
+    "TRGP": {
+      "market_cap_millions": 39149.85472
+    },
+    "FIBK": {
+      "market_cap_millions": 3819.046144
+    },
+    "BLND": {
+      "market_cap_millions": 802.61792
+    },
+    "STOK": {
+      "market_cap_millions": 2011.666176
+    },
+    "FWRD": {
+      "market_cap_millions": 809.32928
+    },
+    "QCRH": {
+      "market_cap_millions": 1406.027392
+    },
+    "SGC": {
+      "market_cap_millions": 152.022912
+    },
+    "HIW": {
+      "market_cap_millions": 2980.39808
+    },
+    "ORIC": {
+      "market_cap_millions": 891.111872
+    },
+    "NUVB": {
+      "market_cap_millions": 2756.380928
+    },
+    "CARG": {
+      "market_cap_millions": 3817.547008
+    },
+    "CARL": {
+      "market_cap_millions": 330.682816
+    },
+    "LOCO": {
+      "market_cap_millions": 323.05104
+    },
+    "AMOD": {
+      "market_cap_millions": 20.60234
+    },
+    "RFIL": {
+      "market_cap_millions": 61.604512
+    },
+    "PENG": {
+      "market_cap_millions": 1139.118592
+    },
+    "COHU": {
+      "market_cap_millions": 1261.167616
+    },
+    "EYE": {
+      "market_cap_millions": 2147.702784
+    },
+    "NXT": {
+      "market_cap_millions": 13889.537024
+    },
+    "ONTO": {
+      "market_cap_millions": 9302.974464
+    },
+    "EXTR": {
+      "market_cap_millions": 2194.320128
+    },
+    "REXR": {
+      "market_cap_millions": 9501.764608
+    },
+    "SPSC": {
+      "market_cap_millions": 3467.514624
+    },
+    "PRIM": {
+      "market_cap_millions": 6969.903104
+    },
+    "AROC": {
+      "market_cap_millions": 4631.512576
+    },
+    "EVER": {
+      "market_cap_millions": 911.726016
+    },
+    "PATH": {
+      "market_cap_millions": 8219.10272
+    },
+    "HVT": {
+      "market_cap_millions": 401.546624
+    },
+    "OPK": {
+      "market_cap_millions": 1047.793344
+    },
+    "ANAB": {
+      "market_cap_millions": 1228.2944
+    },
+    "AMD": {
+      "market_cap_millions": 348970.713088
+    },
+    "PECO": {
+      "market_cap_millions": 4833.435136
+    },
+    "REG": {
+      "market_cap_millions": 12809.915392
+    },
+    "RUM": {
+      "market_cap_millions": 2278.558976
+    },
+    "ANIP": {
+      "market_cap_millions": 1740.05888
+    },
+    "XRAY": {
+      "market_cap_millions": 2420.565504
+    },
+    "NPB": {
+      "market_cap_millions": 586.261056
+    },
+    "WBS": {
+      "market_cap_millions": 10918.59456
+    },
+    "UVV": {
+      "market_cap_millions": 1352.471168
+    },
+    "CHRW": {
+      "market_cap_millions": 20356.216832
+    },
+    "DEI": {
+      "market_cap_millions": 2342.182144
+    },
+    "MVO": {
+      "market_cap_millions": 15.41
+    },
+    "CDRE": {
+      "market_cap_millions": 1740.76864
+    },
+    "EG": {
+      "market_cap_millions": 13681.068032
+    },
+    "AVNW": {
+      "market_cap_millions": 286.27552
+    },
+    "OS": {
+      "market_cap_millions": 5773.307904
+    },
+    "NGG": {
+      "market_cap_millions": 78134.411264
+    },
+    "NCPL": {
+      "market_cap_millions": 6.576539
+    },
+    "NWBI": {
+      "market_cap_millions": 1783.782656
+    },
+    "ESTC": {
+      "market_cap_millions": 8035.259392
+    },
+    "OR": {
+      "market_cap_millions": 6927.279616
+    },
+    "USCB": {
+      "market_cap_millions": 380.886944
+    },
+    "CBK": {
+      "market_cap_millions": 335.463712
+    },
+    "COR": {
+      "market_cap_millions": 67154.710528
+    },
+    "UGI": {
+      "market_cap_millions": 7995.094528
+    },
+    "LAND": {
+      "market_cap_millions": 351.79888
+    },
+    "LANDM": {
+      "market_cap_millions": 410.687968
+    },
+    "MMS": {
+      "market_cap_millions": 5021.878784
+    },
+    "SPLP": {
+      "market_cap_millions": 832.86464
+    },
+    "UBS": {
+      "market_cap_millions": 148894.220288
+    },
+    "AOS": {
+      "market_cap_millions": 10087.928832
+    },
+    "CRH": {
+      "market_cap_millions": 86201.475072
+    },
+    "BALL": {
+      "market_cap_millions": 14777.684992
+    },
+    "SIRI": {
+      "market_cap_millions": 7280.328704
+    },
+    "ASR": {
+      "market_cap_millions": 9809.5872
+    },
+    "EHTH": {
+      "market_cap_millions": 129.519744
+    },
+    "CBOE": {
+      "market_cap_millions": 26077.411328
+    },
+    "ORRF": {
+      "market_cap_millions": 697.860992
+    },
+    "PAC": {
+      "market_cap_millions": 13424.164864
+    },
+    "VSH": {
+      "market_cap_millions": 2245.343744
+    },
+    "CNH": {
+      "market_cap_millions": 11532.561408
+    },
+    "BAX": {
+      "market_cap_millions": 10563.846144
+    },
+    "CNK": {
+      "market_cap_millions": 2730.139904
+    },
+    "GATX": {
+      "market_cap_millions": 6249.856
+    },
+    "SPG": {
+      "market_cap_millions": 70273.662976
+    },
+    "LGIH": {
+      "market_cap_millions": 1012.249344
+    },
+    "LEU": {
+      "market_cap_millions": 5788.785664
+    },
+    "FNB": {
+      "market_cap_millions": 6358.636032
+    },
+    "CTEV": {
+      "market_cap_millions": 488.002272
+    },
+    "AMBO": {
+      "market_cap_millions": 8.140674
+    },
+    "NBIS": {
+      "market_cap_millions": 23375.263744
+    },
+    "LAR": {
+      "market_cap_millions": 988.784576
+    },
+    "BRCC": {
+      "market_cap_millions": 124.96524
+    },
+    "DVA": {
+      "market_cap_millions": 8146.710016
+    },
+    "HLNE": {
+      "market_cap_millions": 8124.282368
+    },
+    "KN": {
+      "market_cap_millions": 1923.023488
+    },
+    "APTV": {
+      "market_cap_millions": 17534.019584
+    },
+    "ANGO": {
+      "market_cap_millions": 545.07392
+    },
+    "JXN": {
+      "market_cap_millions": 7641.461248
+    },
+    "CAAS": {
+      "market_cap_millions": 131.544264
+    },
+    "TMHC": {
+      "market_cap_millions": 5760.891392
+    },
+    "AUGO": {
+      "market_cap_millions": 4378.878464
+    },
+    "XXII": {
+      "market_cap_millions": 6.648632
+    },
+    "TRMD": {
+      "market_cap_millions": 2017.53408
+    },
+    "SHEN": {
+      "market_cap_millions": 621.446912
+    },
+    "CMPS": {
+      "market_cap_millions": 629.871808
+    },
+    "GLDG": {
+      "market_cap_millions": 262.223712
+    },
+    "USGO": {
+      "market_cap_millions": 117.069576
+    },
+    "GROY": {
+      "market_cap_millions": 902.437568
+    },
+    "SOGP": {
+      "market_cap_millions": 48.672
+    },
+    "MOV": {
+      "market_cap_millions": 461.797728
+    },
+    "JILL": {
+      "market_cap_millions": 210.903936
+    },
+    "BAH": {
+      "market_cap_millions": 11011.037184
+    },
+    "CAH": {
+      "market_cap_millions": 48813.899776
+    },
+    "KD": {
+      "market_cap_millions": 6298.673152
+    },
+    "LQDT": {
+      "market_cap_millions": 958.349312
+    },
+    "R": {
+      "market_cap_millions": 7634.783232
+    },
+    "BHP": {
+      "market_cap_millions": 162197.979136
+    },
+    "TRN": {
+      "market_cap_millions": 2148.656896
+    },
+    "CODA": {
+      "market_cap_millions": 112.713656
+    },
+    "OPTT": {
+      "market_cap_millions": 67.105208
+    },
+    "SCOR": {
+      "market_cap_millions": 32.651974
+    },
+    "KYMR": {
+      "market_cap_millions": 5792.7296
+    },
+    "PZZA": {
+      "market_cap_millions": 1249.932544
+    },
+    "SMTK": {
+      "market_cap_millions": 7.484655
+    },
+    "TIL": {
+      "market_cap_millions": 48.830224
+    },
+    "CGNT": {
+      "market_cap_millions": 663.185856
+    },
+    "ABP": {
+      "market_cap_millions": 10.579903
+    },
+    "MCRB": {
+      "market_cap_millions": 137.416624
+    },
+    "NJR": {
+      "market_cap_millions": 4608.116736
+    },
+    "FITB": {
+      "market_cap_millions": 32404.658176
+    },
+    "CRWS": {
+      "market_cap_millions": 30.288886
+    },
+    "QBTS": {
+      "market_cap_millions": 10939.147264
+    },
+    "FTRE": {
+      "market_cap_millions": 1535.688064
+    },
+    "LBRX": {
+      "market_cap_millions": 481.44192
+    },
+    "ORKA": {
+      "market_cap_millions": 1301.240064
+    },
+    "HYLN": {
+      "market_cap_millions": 337.870496
+    },
+    "MGY": {
+      "market_cap_millions": 4163.57376
+    },
+    "PODD": {
+      "market_cap_millions": 19956.987904
+    },
+    "AEC": {
+      "market_cap_millions": 96.746488
+    },
+    "HASI": {
+      "market_cap_millions": 3984.1024
+    },
+    "RUN": {
+      "market_cap_millions": 4251.006208
+    },
+    "DLR": {
+      "market_cap_millions": 54473.478144
+    },
+    "BG": {
+      "market_cap_millions": 18059.921408
+    },
+    "RDW": {
+      "market_cap_millions": 1694.447104
+    },
+    "KIDZ": {
+      "market_cap_millions": 5.96382
+    },
+    "TRAK": {
+      "market_cap_millions": 220.010128
+    },
+    "PRTC": {
+      "market_cap_millions": 404.095712
+    },
+    "EP": {
+      "market_cap_millions": 102.127496
+    },
+    "RDCM": {
+      "market_cap_millions": 213.275248
+    },
+    "GNPX": {
+      "market_cap_millions": 4.086622
+    },
+    "IBM": {
+      "market_cap_millions": 275718.864896
+    },
+    "SUNC": {
+      "market_cap_millions": 2568.304896
+    },
+    "IONS": {
+      "market_cap_millions": 12719.849472
+    },
+    "MH": {
+      "market_cap_millions": 3031.194112
+    },
+    "ELAB": {
+      "market_cap_millions": 1.119887
+    },
+    "BFH": {
+      "market_cap_millions": 3479.280128
+    },
+    "VVV": {
+      "market_cap_millions": 3796.900608
+    },
+    "SLG": {
+      "market_cap_millions": 3647.342848
+    },
+    "BVS": {
+      "market_cap_millions": 507.011936
+    },
+    "CGTX": {
+      "market_cap_millions": 123.58396
+    },
+    "RGEN": {
+      "market_cap_millions": 9537.90464
+    },
+    "NYAX": {
+      "market_cap_millions": 1995.300864
+    },
+    "SLXN": {
+      "market_cap_millions": 6.878612
+    },
+    "PROK": {
+      "market_cap_millions": 643.7856
+    },
+    "CGAU": {
+      "market_cap_millions": 2984.793344
+    },
+    "DGXX": {
+      "market_cap_millions": 182.231056
+    },
+    "LGCB": {
+      "market_cap_millions": 20.427416
+    },
+    "SAFE": {
+      "market_cap_millions": 996.695552
+    },
+    "RVSN": {
+      "market_cap_millions": 19.32588
+    },
+    "BRAG": {
+      "market_cap_millions": 54.71638
+    },
+    "IMTE": {
+      "market_cap_millions": 1.990231
+    },
+    "ROP": {
+      "market_cap_millions": 46462.775296
+    },
+    "HNRG": {
+      "market_cap_millions": 903.67168
+    },
+    "MLYS": {
+      "market_cap_millions": 2822.130688
+    },
+    "NCNA": {
+      "market_cap_millions": 15.398923
+    },
+    "MDXH": {
+      "market_cap_millions": 167.448336
+    },
+    "GLTO": {
+      "market_cap_millions": 32.74508
+    },
+    "SNCR": {
+      "market_cap_millions": 99.079008
+    },
+    "TMO": {
+      "market_cap_millions": 231229.538304
+    },
+    "GCTS": {
+      "market_cap_millions": 69.090472
+    },
+    "SLRC": {
+      "market_cap_millions": 846.687936
+    },
+    "CDTG": {
+      "market_cap_millions": 4.572575
+    },
+    "CXW": {
+      "market_cap_millions": 2100.516352
+    },
+    "UTZ": {
+      "market_cap_millions": 860.22112
+    },
+    "SOWG": {
+      "market_cap_millions": 5.683974
+    },
+    "REAX": {
+      "market_cap_millions": 792.132032
+    },
+    "TTWO": {
+      "market_cap_millions": 47545.442304
+    },
+    "SABS": {
+      "market_cap_millions": 178.049632
+    },
+    "HIG": {
+      "market_cap_millions": 38418.51392
+    },
+    "ERAS": {
+      "market_cap_millions": 1917.89184
+    },
+    "JFB": {
+      "market_cap_millions": 93.934448
+    },
+    "ABM": {
+      "market_cap_millions": 2693.066752
+    },
+    "COMM": {
+      "market_cap_millions": 4098.651136
+    },
+    "KEYS": {
+      "market_cap_millions": 35878.85056
+    },
+    "CAMP": {
+      "market_cap_millions": 310.768
+    },
+    "OSPN": {
+      "market_cap_millions": 499.369856
+    },
+    "ZNTL": {
+      "market_cap_millions": 98.98356
+    },
+    "RDZN": {
+      "market_cap_millions": 189.20424
+    },
+    "NSYS": {
+      "market_cap_millions": 20.483666
+    },
+    "CTRI": {
+      "market_cap_millions": 2603.004928
+    },
+    "NICE": {
+      "market_cap_millions": 7144.75008
+    },
+    "BX": {
+      "market_cap_millions": 199213.006848
+    },
+    "TSHA": {
+      "market_cap_millions": 1339.4656
+    },
+    "ICON": {
+      "market_cap_millions": 2.263186
+    },
+    "CHRS": {
+      "market_cap_millions": 200.645888
+    },
+    "CHEF": {
+      "market_cap_millions": 2487.744768
+    },
+    "VOR": {
+      "market_cap_millions": 231.81448
+    },
+    "MAMO": {
+      "market_cap_millions": 154.487936
+    },
+    "WFCF": {
+      "market_cap_millions": 58.348708
+    },
+    "CGON": {
+      "market_cap_millions": 3229.873664
+    },
+    "GNS": {
+      "market_cap_millions": 55.09756
+    },
+    "MIST": {
+      "market_cap_millions": 172.04208
+    },
+    "AERO": {
+      "market_cap_millions": 3187.989504
+    },
+    "CTVA": {
+      "market_cap_millions": 46076.936192
+    },
+    "JOBY": {
+      "market_cap_millions": 14625.002496
+    },
+    "CAE": {
+      "market_cap_millions": 10265.556992
+    },
+    "INVZ": {
+      "market_cap_millions": 256.803728
+    },
+    "SYF": {
+      "market_cap_millions": 32328.07936
+    },
+    "STXS": {
+      "market_cap_millions": 220.246416
+    },
+    "RNAZ": {
+      "market_cap_millions": 6.703043
+    },
+    "AMRC": {
+      "market_cap_millions": 1669.719552
+    },
+    "VIVS": {
+      "market_cap_millions": 5.085526
+    },
+    "BFLY": {
+      "market_cap_millions": 1020.512512
+    },
+    "LASR": {
+      "market_cap_millions": 1934.43904
+    },
+    "GIC": {
+      "market_cap_millions": 1160.593408
+    },
+    "VEEE": {
+      "market_cap_millions": 3.445442
+    },
+    "GAME": {
+      "market_cap_millions": 42.505008
+    },
+    "ASTH": {
+      "market_cap_millions": 1374.263808
+    },
+    "MSCI": {
+      "market_cap_millions": 44686.155776
+    },
+    "DELL": {
+      "market_cap_millions": 83111.5264
+    },
+    "YMAT": {
+      "market_cap_millions": 8.892601
+    },
+    "VTRS": {
+      "market_cap_millions": 14280.759296
+    },
+    "BTOG": {
+      "market_cap_millions": 18.501354
+    },
+    "DV": {
+      "market_cap_millions": 1822.820224
+    },
+    "AUTL": {
+      "market_cap_millions": 495.026496
+    },
+    "JAGX": {
+      "market_cap_millions": 3.888539
+    },
+    "PRGS": {
+      "market_cap_millions": 1754.078592
+    },
+    "ORA": {
+      "market_cap_millions": 7276.796416
+    },
+    "RIOT": {
+      "market_cap_millions": 6160.845312
+    },
+    "SLGB": {
+      "market_cap_millions": 51.25
+    },
+    "FEIM": {
+      "market_cap_millions": 573.165632
+    },
+    "WLK": {
+      "market_cap_millions": 9617.921024
+    },
+    "USB": {
+      "market_cap_millions": 86352.953344
+    },
+    "VERX": {
+      "market_cap_millions": 3176.201728
+    },
+    "TER": {
+      "market_cap_millions": 36470.792192
+    },
+    "REBN": {
+      "market_cap_millions": 10.757381
+    },
+    "LEN": {
+      "market_cap_millions": 26030.737408
+    },
+    "CDNS": {
+      "market_cap_millions": 82079.432704
+    },
+    "SNOW": {
+      "market_cap_millions": 76775.989248
+    },
+    "PYPL": {
+      "market_cap_millions": 56644.386816
+    },
+    "AVGO": {
+      "market_cap_millions": 1628248.211456
+    },
+    "ARRY": {
+      "market_cap_millions": 1379.312256
+    },
+    "ARCB": {
+      "market_cap_millions": 1857.240704
+    },
+    "MNOV": {
+      "market_cap_millions": 67.821824
+    },
+    "BTBD": {
+      "market_cap_millions": 8.493519
+    },
+    "CIEN": {
+      "market_cap_millions": 32569.806848
+    },
+    "RMNI": {
+      "market_cap_millions": 361.745376
+    },
+    "BLLN": {
+      "market_cap_millions": 4319.198208
+    },
+    "ACI": {
+      "market_cap_millions": 9662.9504
+    },
+    "SMSI": {
+      "market_cap_millions": 14.910599
+    },
+    "TTD": {
+      "market_cap_millions": 19611.498496
+    },
+    "ZEPP": {
+      "market_cap_millions": 432.9
+    },
+    "NMRK": {
+      "market_cap_millions": 4354.169856
+    },
+    "UIS": {
+      "market_cap_millions": 200.370144
+    },
+    "GPRO": {
+      "market_cap_millions": 239.592416
+    },
+    "AUDC": {
+      "market_cap_millions": 257.521488
+    },
+    "NCLH": {
+      "market_cap_millions": 10279.714816
+    },
+    "RILY": {
+      "market_cap_millions": 230.39592
+    },
+    "CHH": {
+      "market_cap_millions": 4598.572544
+    },
+    "CBRL": {
+      "market_cap_millions": 592.810944
+    },
+    "TDC": {
+      "market_cap_millions": 2882.249984
+    },
+    "TIPT": {
+      "market_cap_millions": 683.47488
+    },
+    "VREX": {
+      "market_cap_millions": 516.028224
+    },
+    "CAN": {
+      "market_cap_millions": 556.317312
+    },
+    "SLE": {
+      "market_cap_millions": 8.426627
+    },
+    "DAWN": {
+      "market_cap_millions": 877.875584
+    },
+    "NGD": {
+      "market_cap_millions": 8143.461888
+    },
+    "ADX": {
+      "market_cap_millions": 2776.091904
+    },
+    "PEO": {
+      "market_cap_millions": 627.31328
+    },
+    "TCOM": {
+      "market_cap_millions": 41033.224192
+    },
+    "VTGN": {
+      "market_cap_millions": 26.501448
+    },
+    "CL": {
+      "market_cap_millions": 68165.341184
+    },
+    "GNK": {
+      "market_cap_millions": 822.91744
+    },
+    "HOLO": {
+      "market_cap_millions": 39.036036
+    },
+    "CZR": {
+      "market_cap_millions": 4900.28032
+    },
+    "III": {
+      "market_cap_millions": 293.028448
+    },
+    "GTBP": {
+      "market_cap_millions": 7.01985
+    },
+    "PSFE": {
+      "market_cap_millions": 454.296768
+    },
+    "MTB": {
+      "market_cap_millions": 33218.164736
+    },
+    "HBM": {
+      "market_cap_millions": 9016.343552
+    },
+    "NWN": {
+      "market_cap_millions": 1949.585664
+    },
+    "GRVY": {
+      "market_cap_millions": 432.499552
+    },
+    "Q": {
+      "market_cap_millions": 19505.21344
+    },
+    "RF": {
+      "market_cap_millions": 25448.634368
+    },
+    "DQ": {
+      "market_cap_millions": 1715.981312
+    },
+    "SILA": {
+      "market_cap_millions": 1329.942656
+    },
+    "PNC": {
+      "market_cap_millions": 83428.384768
+    },
+    "INVH": {
+      "market_cap_millions": 16588.337152
+    },
+    "CAPL": {
+      "market_cap_millions": 819.97152
+    },
+    "PINS": {
+      "market_cap_millions": 18215.315456
+    },
+    "WLTH": {
+      "market_cap_millions": 1500.71744
+    },
+    "AGI": {
+      "market_cap_millions": 18048.673792
+    },
+    "WTRG": {
+      "market_cap_millions": 11323.312128
+    },
+    "STSS": {
+      "market_cap_millions": 66.689424
+    },
+    "EYPT": {
+      "market_cap_millions": 1311.349504
+    },
+    "ASTS": {
+      "market_cap_millions": 28466.214912
+    },
+    "BLDR": {
+      "market_cap_millions": 14260.472832
+    },
+    "KMI": {
+      "market_cap_millions": 60980.678656
+    },
+    "BKD": {
+      "market_cap_millions": 2673.948672
+    },
+    "MCHB": {
+      "market_cap_millions": 3249.628416
+    },
+    "HLMN": {
+      "market_cap_millions": 1970.463232
+    },
+    "SDM": {
+      "market_cap_millions": 49.441252
+    },
+    "SUGP": {
+      "market_cap_millions": 9.770036
+    },
+    "EFX": {
+      "market_cap_millions": 27006.097408
+    },
+    "WAB": {
+      "market_cap_millions": 39067.136
+    },
+    "SPWR": {
+      "market_cap_millions": 176.783824
+    },
+    "AN": {
+      "market_cap_millions": 7817.810944
+    },
+    "VVOS": {
+      "market_cap_millions": 20.196868
+    },
+    "LCFY": {
+      "market_cap_millions": 5.631042
+    },
+    "ELTX": {
+      "market_cap_millions": 134.790064
+    },
+    "COIN": {
+      "market_cap_millions": 64523.669504
+    },
+    "SBGI": {
+      "market_cap_millions": 1052.222144
+    },
+    "WING": {
+      "market_cap_millions": 7559.798272
+    },
+    "CLX": {
+      "market_cap_millions": 13278.783488
+    },
+    "GIBO": {
+      "market_cap_millions": 7.615999
+    },
+    "SHO": {
+      "market_cap_millions": 1741.411968
+    },
+    "EH": {
+      "market_cap_millions": 1058.897216
+    },
+    "GTX": {
+      "market_cap_millions": 3873.27232
+    },
+    "CRML": {
+      "market_cap_millions": 1765.619968
+    },
+    "TBBK": {
+      "market_cap_millions": 3242.542336
+    },
+    "NUKK": {
+      "market_cap_millions": 70.947152
+    },
+    "IPX": {
+      "market_cap_millions": 1571.63584
+    },
+    "CLNN": {
+      "market_cap_millions": 66.0858
+    },
+    "OTH": {
+      "market_cap_millions": 52.63
+    },
+    "STRR": {
+      "market_cap_millions": 38.0708
+    },
+    "MU": {
+      "market_cap_millions": 378880.196608
+    },
+    "PGY": {
+      "market_cap_millions": 2092.706304
+    },
+    "CSW": {
+      "market_cap_millions": 5527.003648
+    },
+    "PALI": {
+      "market_cap_millions": 261.105632
+    },
+    "UONE": {
+      "market_cap_millions": 46.30312
+    },
+    "UONEK": {
+      "market_cap_millions": 50.399888
+    },
+    "TDG": {
+      "market_cap_millions": 80780.386304
+    },
+    "UAA": {
+      "market_cap_millions": 2441.602816
+    },
+    "UA": {
+      "market_cap_millions": 2440.521728
+    },
+    "ZBAO": {
+      "market_cap_millions": 32.403724
+    },
+    "IESC": {
+      "market_cap_millions": 8622.326784
+    },
+    "DSX": {
+      "market_cap_millions": 211.880608
+    },
+    "SMLR": {
+      "market_cap_millions": 310.74592
+    },
+    "CRDL": {
+      "market_cap_millions": 96.297736
+    },
+    "WOR": {
+      "market_cap_millions": 2707.24224
+    },
+    "VNRX": {
+      "market_cap_millions": 35.808936
+    },
+    "WASH": {
+      "market_cap_millions": 586.149568
+    },
+    "ESGL": {
+      "market_cap_millions": 169.56496
+    },
+    "SCIIU": {
+      "market_cap_millions": 154.228048
+    },
+    "ONMD": {
+      "market_cap_millions": 43.483508
+    },
+    "NYT": {
+      "market_cap_millions": 11652.942848
+    },
+    "FLOC": {
+      "market_cap_millions": 1849.633792
+    },
+    "PRLB": {
+      "market_cap_millions": 1313.11168
+    },
+    "GRBK": {
+      "market_cap_millions": 3232.094976
+    },
+    "NET": {
+      "market_cap_millions": 65989.464064
+    },
+    "TILE": {
+      "market_cap_millions": 1799.014784
+    },
+    "POM": {
+      "market_cap_millions": 36.521212
+    },
+    "LOW": {
+      "market_cap_millions": 135279.058944
+    },
+    "PAYX": {
+      "market_cap_millions": 39669.49376
+    },
+    "OSRH": {
+      "market_cap_millions": 20.070984
+    },
+    "CSL": {
+      "market_cap_millions": 15353.071616
+    },
+    "ALGT": {
+      "market_cap_millions": 1583.94112
+    },
+    "FYBR": {
+      "market_cap_millions": 9622.991872
+    },
+    "GBFH": {
+      "market_cap_millions": 465.21104
+    },
+    "NEOV": {
+      "market_cap_millions": 119.15108
+    },
+    "PH": {
+      "market_cap_millions": 119531.003904
+    },
+    "OCCI": {
+      "market_cap_millions": 136.485744
+    },
+    "WAFD": {
+      "market_cap_millions": 2587.124736
+    },
+    "POST": {
+      "market_cap_millions": 5116.385792
+    },
+    "CNO": {
+      "market_cap_millions": 4080.834304
+    },
+    "NEU": {
+      "market_cap_millions": 6108.12928
+    },
+    "CC": {
+      "market_cap_millions": 2332.31872
+    },
+    "IDA": {
+      "market_cap_millions": 7173.422592
+    },
+    "BSET": {
+      "market_cap_millions": 147.462224
+    },
+    "WS": {
+      "market_cap_millions": 1969.780864
+    },
+    "TTEC": {
+      "market_cap_millions": 161.18488
+    },
+    "MHK": {
+      "market_cap_millions": 7684.47488
+    },
+    "CSV": {
+      "market_cap_millions": 693.2608
+    },
+    "GTLB": {
+      "market_cap_millions": 5959.675904
+    },
+    "MUFG": {
+      "market_cap_millions": 213375.123456
+    },
+    "ACU": {
+      "market_cap_millions": 167.191312
+    },
+    "YUMC": {
+      "market_cap_millions": 16735.157248
+    },
+    "MRSH": {
+      "market_cap_millions": 90099.941376
+    },
+    "THH": {
+      "market_cap_millions": 1601.479936
+    },
+    "OMSE": {
+      "market_cap_millions": 212.24352
+    },
+    "PT": {
+      "market_cap_millions": 15.429651
+    },
+    "TTGT": {
+      "market_cap_millions": 373.77792
+    },
+    "GEL": {
+      "market_cap_millions": 2031.683072
+    },
+    "INTU": {
+      "market_cap_millions": 157741.432832
+    },
+    "TGT": {
+      "market_cap_millions": 49902.112768
+    },
+    "ORLA": {
+      "market_cap_millions": 5023.666176
+    },
+    "TRX": {
+      "market_cap_millions": 264.229664
+    },
+    "BZH": {
+      "market_cap_millions": 707.394048
+    },
+    "LODE": {
+      "market_cap_millions": 191.728288
+    },
+    "APOG": {
+      "market_cap_millions": 744.493376
+    },
+    "OMF": {
+      "market_cap_millions": 7857.330176
+    },
+    "IIIN": {
+      "market_cap_millions": 654.334848
+    },
+    "NXE": {
+      "market_cap_millions": 7547.089408
+    },
+    "BLSH": {
+      "market_cap_millions": 5976.117248
+    },
+    "CBU": {
+      "market_cap_millions": 3239.610368
+    },
+    "GCO": {
+      "market_cap_millions": 384.748928
+    },
+    "SLMBP": {
+      "market_cap_millions": 4802.45504
+    },
+    "SGI": {
+      "market_cap_millions": 19227.541504
+    },
+    "AME": {
+      "market_cap_millions": 48758.996992
+    },
+    "IDXX": {
+      "market_cap_millions": 56841.736192
+    },
+    "CNOB": {
+      "market_cap_millions": 1322.684928
+    },
+    "MRCY": {
+      "market_cap_millions": 5958.327296
+    },
+    "KYIV": {
+      "market_cap_millions": 2788.831232
+    },
+    "VEON": {
+      "market_cap_millions": 3731.282176
+    },
+    "SLQT": {
+      "market_cap_millions": 270.99648
+    },
+    "OSK": {
+      "market_cap_millions": 9649.327104
+    },
+    "TLN": {
+      "market_cap_millions": 17125.168128
+    },
+    "CLF": {
+      "market_cap_millions": 7953.11616
+    },
+    "GOOS": {
+      "market_cap_millions": 1297.052288
+    },
+    "ONEW": {
+      "market_cap_millions": 222.978112
+    },
+    "CRGO": {
+      "market_cap_millions": 108.213136
+    },
+    "BBW": {
+      "market_cap_millions": 926.050432
+    },
+    "GLXY": {
+      "market_cap_millions": 11385.406464
+    },
+    "BSX": {
+      "market_cap_millions": 141350.846464
+    },
+    "AG": {
+      "market_cap_millions": 9723.76064
+    },
+    "HLT": {
+      "market_cap_millions": 70588.70272
+    },
+    "ANPA": {
+      "market_cap_millions": 1790.500096
+    },
+    "AEE": {
+      "market_cap_millions": 27736.549376
+    },
+    "ARAI": {
+      "market_cap_millions": 93.402552
+    },
+    "WRAP": {
+      "market_cap_millions": 156.19376
+    },
+    "AKAM": {
+      "market_cap_millions": 13041.383424
+    },
+    "BLX": {
+      "market_cap_millions": 1605.885056
+    },
+    "ZBH": {
+      "market_cap_millions": 17685.721088
+    },
+    "LITM": {
+      "market_cap_millions": 65.976148
+    },
+    "API": {
+      "market_cap_millions": 404.633504
+    },
+    "FDP": {
+      "market_cap_millions": 1774.593152
+    },
+    "CMG": {
+      "market_cap_millions": 53782.89664
+    },
+    "UMC": {
+      "market_cap_millions": 22129.979392
+    },
+    "ALL": {
+      "market_cap_millions": 51652.317184
+    },
+    "BWFG": {
+      "market_cap_millions": 369.530848
+    },
+    "WT": {
+      "market_cap_millions": 2049.202176
+    },
+    "ALRM": {
+      "market_cap_millions": 2553.640448
+    },
+    "NVNO": {
+      "market_cap_millions": 7.300061
+    },
+    "STRD": {
+      "market_cap_millions": 916.940736
+    },
+    "MSTR": {
+      "market_cap_millions": 51888.173056
+    },
+    "XRX": {
+      "market_cap_millions": 320.100032
+    },
+    "BNKK": {
+      "market_cap_millions": 14.993224
+    },
+    "STN": {
+      "market_cap_millions": 11237.203968
+    },
+    "GSIT": {
+      "market_cap_millions": 261.141024
+    },
+    "SEVN": {
+      "market_cap_millions": 137.574448
+    },
+    "IGTA": {
+      "market_cap_millions": 30.954682
+    },
+    "AUID": {
+      "market_cap_millions": 14.957156
+    },
+    "LZ": {
+      "market_cap_millions": 1669.109248
+    },
+    "ILPT": {
+      "market_cap_millions": 399.955424
+    },
+    "XYZ": {
+      "market_cap_millions": 39994.806272
+    },
+    "FSLY": {
+      "market_cap_millions": 1375.227008
+    },
+    "NXPI": {
+      "market_cap_millions": 60711.714816
+    },
+    "IXHL": {
+      "market_cap_millions": 134.577856
+    },
+    "PODC": {
+      "market_cap_millions": 71.31344
+    },
+    "CGNX": {
+      "market_cap_millions": 6713.977856
+    },
+    "LION": {
+      "market_cap_millions": 2601.769216
+    },
+    "BSVN": {
+      "market_cap_millions": 407.819296
+    },
+    "HWM": {
+      "market_cap_millions": 88650.620928
+    },
+    "MTN": {
+      "market_cap_millions": 5127.286784
+    },
+    "DDC": {
+      "market_cap_millions": 69.114616
+    },
+    "CMLS": {
+      "market_cap_millions": 1.744008
+    },
+    "PMEC": {
+      "market_cap_millions": 37.991548
+    },
+    "OPRA": {
+      "market_cap_millions": 1205.7664
+    },
+    "SSYS": {
+      "market_cap_millions": 865.466688
+    },
+    "OCGN": {
+      "market_cap_millions": 587.161856
+    },
+    "HYPR": {
+      "market_cap_millions": 98.140344
+    },
+    "HOTH": {
+      "market_cap_millions": 15.359169
+    },
+    "CISO": {
+      "market_cap_millions": 21.124628
+    },
+    "BLNE": {
+      "market_cap_millions": 64.947064
+    },
+    "HTLM": {
+      "market_cap_millions": 226.012512
+    },
+    "RMCF": {
+      "market_cap_millions": 19.903088
+    },
+    "KBDC": {
+      "market_cap_millions": 1044.539264
+    },
+    "FMST": {
+      "market_cap_millions": 31.948894
+    },
+    "GFS": {
+      "market_cap_millions": 22977.437696
+    },
+    "AMKR": {
+      "market_cap_millions": 12030.90432
+    },
+    "SKIL": {
+      "market_cap_millions": 76.987344
+    },
+    "SCHW": {
+      "market_cap_millions": 185007.14496
+    },
+    "STAA": {
+      "market_cap_millions": 1077.165056
+    },
+    "PM": {
+      "market_cap_millions": 266309.763072
+    },
+    "PTC": {
+      "market_cap_millions": 19891.720192
+    },
+    "BCE": {
+      "market_cap_millions": 22585.77408
+    },
+    "TROW": {
+      "market_cap_millions": 23307.393024
+    },
+    "SPAI": {
+      "market_cap_millions": 119.547648
+    },
+    "DPRO": {
+      "market_cap_millions": 242.771296
+    },
+    "RCAT": {
+      "market_cap_millions": 1630.609664
+    },
+    "GFL": {
+      "market_cap_millions": 15451.759616
+    },
+    "GPC": {
+      "market_cap_millions": 18612.983808
+    },
+    "MSA": {
+      "market_cap_millions": 7052.068864
+    },
+    "WAVE": {
+      "market_cap_millions": 35.111144
+    },
+    "NAGE": {
+      "market_cap_millions": 503.576704
+    },
+    "SKYQ": {
+      "market_cap_millions": 9.624968
+    },
+    "TTE": {
+      "market_cap_millions": 142541.029376
+    },
+    "PPCB": {
+      "market_cap_millions": 5.665103
+    },
+    "AMP": {
+      "market_cap_millions": 47839.04768
+    },
+    "CJMB": {
+      "market_cap_millions": 5.17779
+    },
+    "LAC": {
+      "market_cap_millions": 1839.138944
+    },
+    "SLI": {
+      "market_cap_millions": 1255.719936
+    },
+    "PHIO": {
+      "market_cap_millions": 12.364725
+    },
+    "VSNT": {
+      "market_cap_millions": 4929.8432
+    },
+    "TFC": {
+      "market_cap_millions": 64252.555264
+    },
+    "GETY": {
+      "market_cap_millions": 540.61824
+    },
+    "GTM": {
+      "market_cap_millions": 3211.798272
+    },
+    "PRPO": {
+      "market_cap_millions": 42.048168
+    },
+    "CMI": {
+      "market_cap_millions": 78015.332352
+    },
+    "FLNC": {
+      "market_cap_millions": 4141.974528
+    },
+    "ORLY": {
+      "market_cap_millions": 80389.988352
+    },
+    "XPEV": {
+      "market_cap_millions": 19632.52736
+    },
+    "SYNX": {
+      "market_cap_millions": 7.165152
+    },
+    "TBMC": {
+      "market_cap_millions": 56.531404
+    },
+    "FORR": {
+      "market_cap_millions": 158.579744
+    },
+    "RAY": {
+      "market_cap_millions": 9.106003
+    },
+    "CASI": {
+      "market_cap_millions": 20.959238
+    },
+    "BOX": {
+      "market_cap_millions": 3907.25504
+    },
+    "ASNS": {
+      "market_cap_millions": 3.523934
+    },
+    "MEGI": {
+      "market_cap_millions": 719.29696
+    },
+    "GIS": {
+      "market_cap_millions": 24342.013952
+    },
+    "HPP": {
+      "market_cap_millions": 4205.285632
+    },
+    "EA": {
+      "market_cap_millions": 51104.186368
+    },
+    "PG": {
+      "market_cap_millions": 337591.631872
+    },
+    "TRV": {
+      "market_cap_millions": 61403.000832
+    },
+    "SEIC": {
+      "market_cap_millions": 10547.690496
+    },
+    "FMN": {
+      "market_cap_millions": 87.334904
+    },
+    "BA": {
+      "market_cap_millions": 189980.91776
+    },
+    "CI": {
+      "market_cap_millions": 72391.098368
+    },
+    "AUR": {
+      "market_cap_millions": 8941.413376
+    },
+    "APPN": {
+      "market_cap_millions": 2254.27328
+    },
+    "M": {
+      "market_cap_millions": 5634.06336
+    },
+    "AGCO": {
+      "market_cap_millions": 8368.28672
+    },
+    "CCL": {
+      "market_cap_millions": 39612.489728
+    },
+    "CSCO": {
+      "market_cap_millions": 294000.951296
+    },
+    "CXM": {
+      "market_cap_millions": 1756.405376
+    },
+    "XMTR": {
+      "market_cap_millions": 3257.300992
+    },
+    "GAP": {
+      "market_cap_millions": 9911.713792
+    },
+    "FNGR": {
+      "market_cap_millions": 71.011976
+    },
+    "COHR": {
+      "market_cap_millions": 28906.835968
+    },
+    "REX": {
+      "market_cap_millions": 1108.089856
+    },
+    "HGBL": {
+      "market_cap_millions": 47.248512
+    },
+    "W": {
+      "market_cap_millions": 15009.733632
+    },
+    "RRX": {
+      "market_cap_millions": 10116.12672
+    },
+    "DXLG": {
+      "market_cap_millions": 50.830468
+    },
+    "PAR": {
+      "market_cap_millions": 1539.61792
+    },
+    "IVT": {
+      "market_cap_millions": 2226.744576
+    },
+    "SPT": {
+      "market_cap_millions": 600.180032
+    },
+    "XPO": {
+      "market_cap_millions": 17279.229952
+    },
+    "WSFS": {
+      "market_cap_millions": 3122.518272
+    },
+    "POOL": {
+      "market_cap_millions": 9645.211648
+    },
+    "SSSS": {
+      "market_cap_millions": 238.882576
+    },
+    "CCI": {
+      "market_cap_millions": 37009.18272
+    },
+    "BCIC": {
+      "market_cap_millions": 158.435072
+    },
+    "UPST": {
+      "market_cap_millions": 4402.213376
+    },
+    "RMBS": {
+      "market_cap_millions": 10000.697344
+    },
+    "SONO": {
+      "market_cap_millions": 2053.755904
+    },
+    "SSNC": {
+      "market_cap_millions": 21256.964096
+    },
+    "NTAP": {
+      "market_cap_millions": 21365.15584
+    },
+    "AGYS": {
+      "market_cap_millions": 3270.631168
+    },
+    "AMSF": {
+      "market_cap_millions": 720.125504
+    },
+    "FVR": {
+      "market_cap_millions": 345.159456
+    },
+    "INLX": {
+      "market_cap_millions": 35.385072
+    },
+    "ELVR": {
+      "market_cap_millions": 1128.78464
+    },
+    "INDB": {
+      "market_cap_millions": 3697.557248
+    },
+    "BNL": {
+      "market_cap_millions": 3547.243776
+    },
+    "LXP": {
+      "market_cap_millions": 2970.957312
+    },
+    "MFIN": {
+      "market_cap_millions": 236.984672
+    },
+    "PFG": {
+      "market_cap_millions": 19650.404352
+    },
+    "RVTY": {
+      "market_cap_millions": 12062.262272
+    },
+    "PACS": {
+      "market_cap_millions": 6501.093888
+    },
+    "RYAN": {
+      "market_cap_millions": 13425.549312
+    },
+    "SIGI": {
+      "market_cap_millions": 5057.877504
+    },
+    "FSCO": {
+      "market_cap_millions": 1265.510528
+    },
+    "MKL": {
+      "market_cap_millions": 26814.902272
+    },
+    "PDM": {
+      "market_cap_millions": 1045.96192
+    },
+    "THQ": {
+      "market_cap_millions": 819.461952
+    },
+    "HQH": {
+      "market_cap_millions": 1064.132928
+    },
+    "ASGI": {
+      "market_cap_millions": 676.084224
+    },
+    "IFN": {
+      "market_cap_millions": 567.244672
+    },
+    "HQL": {
+      "market_cap_millions": 495.77808
+    },
+    "IAF": {
+      "market_cap_millions": 119.52044
+    },
+    "VFL": {
+      "market_cap_millions": 125.849544
+    },
+    "AOD": {
+      "market_cap_millions": 1068.016064
+    },
+    "THW": {
+      "market_cap_millions": 517.16704
+    },
+    "FAX": {
+      "market_cap_millions": 629.147264
+    },
+    "AGD": {
+      "market_cap_millions": 302.511072
+    },
+    "FCO": {
+      "market_cap_millions": 39.7558
+    },
+    "AWP": {
+      "market_cap_millions": 338.906944
+    },
+    "IRON": {
+      "market_cap_millions": 2949.797376
+    },
+    "XPRO": {
+      "market_cap_millions": 1668.009984
+    },
+    "EPC": {
+      "market_cap_millions": 851.616384
+    },
+    "MCO": {
+      "market_cap_millions": 95978.397696
+    },
+    "APAM": {
+      "market_cap_millions": 3100.011264
+    },
+    "ADM": {
+      "market_cap_millions": 29891.436544
+    },
+    "OPCH": {
+      "market_cap_millions": 5203.17952
+    },
+    "WDC": {
+      "market_cap_millions": 72720.637952
+    },
+    "GSK": {
+      "market_cap_millions": 101840.502784
+    },
+    "DGII": {
+      "market_cap_millions": 1606.192128
+    },
+    "ZSPC": {
+      "market_cap_millions": 15.971727
+    },
+    "PGNY": {
+      "market_cap_millions": 2326.852608
+    },
+    "MWG": {
+      "market_cap_millions": 14.582853
+    },
+    "RAIN": {
+      "market_cap_millions": 30.790016
+    },
+    "ANF": {
+      "market_cap_millions": 5877.608448
+    },
+    "BMEA": {
+      "market_cap_millions": 100.399168
+    },
+    "PNFP": {
+      "market_cap_millions": 7401.47456
+    },
+    "CABA": {
+      "market_cap_millions": 202.156912
+    },
+    "SLVM": {
+      "market_cap_millions": 2040.429056
+    },
+    "ZBRA": {
+      "market_cap_millions": 13193.300992
+    },
+    "ZPTA": {
+      "market_cap_millions": 146.250576
+    },
+    "INAB": {
+      "market_cap_millions": 22.93935
+    },
+    "CRK": {
+      "market_cap_millions": 6224.739328
+    },
+    "CVRX": {
+      "market_cap_millions": 212.563968
+    },
+    "HMN": {
+      "market_cap_millions": 1809.667328
+    },
+    "BKKT": {
+      "market_cap_millions": 391.345728
+    },
+    "MAS": {
+      "market_cap_millions": 14513.086464
+    },
+    "BCAX": {
+      "market_cap_millions": 983.336064
+    },
+    "LEGN": {
+      "market_cap_millions": 4358.67392
+    },
+    "BNGO": {
+      "market_cap_millions": 16.07808
+    },
+    "FET": {
+      "market_cap_millions": 470.060416
+    },
+    "ZM": {
+      "market_cap_millions": 25493.469184
+    },
+    "DT": {
+      "market_cap_millions": 12747.68384
+    },
+    "ARQT": {
+      "market_cap_millions": 3456.7296
+    },
+    "ENPH": {
+      "market_cap_millions": 4608.879104
+    },
+    "PBH": {
+      "market_cap_millions": 3158.073344
+    },
+    "RKDA": {
+      "market_cap_millions": 3.77608
+    },
+    "APYX": {
+      "market_cap_millions": 143.193392
+    },
+    "CHAC": {
+      "market_cap_millions": 333.6032
+    },
+    "ELUT": {
+      "market_cap_millions": 30.872956
+    },
+    "CNTB": {
+      "market_cap_millions": 120.19256
+    },
+    "RSKD": {
+      "market_cap_millions": 795.669568
+    },
+    "TBN": {
+      "market_cap_millions": 571.009664
+    },
+    "TWST": {
+      "market_cap_millions": 2164.185344
+    },
+    "WHG": {
+      "market_cap_millions": 165.018624
+    },
+    "OPAD": {
+      "market_cap_millions": 80.72328
+    },
+    "AEO": {
+      "market_cap_millions": 4546.31168
+    },
+    "ATRA": {
+      "market_cap_millions": 98.563912
+    },
+    "SNBR": {
+      "market_cap_millions": 180.041008
+    },
+    "NCMI": {
+      "market_cap_millions": 357.496736
+    },
+    "AMC": {
+      "market_cap_millions": 800.191936
+    },
+    "PLNT": {
+      "market_cap_millions": 9000.354816
+    },
+    "COHN": {
+      "market_cap_millions": 36.299456
+    },
+    "LPCN": {
+      "market_cap_millions": 44.470968
+    },
+    "WOOF": {
+      "market_cap_millions": 832.482624
+    },
+    "CAI": {
+      "market_cap_millions": 8044.008448
+    },
+    "WTW": {
+      "market_cap_millions": 31939.16416
+    },
+    "LPA": {
+      "market_cap_millions": 87.581352
+    },
+    "GLP": {
+      "market_cap_millions": 1445.539328
+    },
+    "XENE": {
+      "market_cap_millions": 3257.14176
+    },
+    "ALHC": {
+      "market_cap_millions": 4157.906688
+    },
+    "MGX": {
+      "market_cap_millions": 67.208688
+    },
+    "CLOV": {
+      "market_cap_millions": 1343.362816
+    },
+    "AMPX": {
+      "market_cap_millions": 1236.986752
+    },
+    "AENT": {
+      "market_cap_millions": 842.721216
+    },
+    "NEWT": {
+      "market_cap_millions": 383.91216
+    },
+    "MTSI": {
+      "market_cap_millions": 13103.1552
+    },
+    "MBOT": {
+      "market_cap_millions": 140.36032
+    },
+    "STAI": {
+      "market_cap_millions": 9.565062
+    },
+    "AERT": {
+      "market_cap_millions": 25.760612
+    },
+    "GAIA": {
+      "market_cap_millions": 90.910952
+    },
+    "MANH": {
+      "market_cap_millions": 10620.703744
+    },
+    "BWIN": {
+      "market_cap_millions": 3094.184192
+    },
+    "TEM": {
+      "market_cap_millions": 11789.914112
+    },
+    "INGN": {
+      "market_cap_millions": 190.85384
+    },
+    "SDGR": {
+      "market_cap_millions": 1354.693888
+    },
+    "ALUR": {
+      "market_cap_millions": 20.647592
+    },
+    "ICCM": {
+      "market_cap_millions": 48.984568
+    },
+    "MYND": {
+      "market_cap_millions": 19.63178
+    },
+    "QUBT": {
+      "market_cap_millions": 2626.72512
+    },
+    "KOPN": {
+      "market_cap_millions": 500.861472
+    },
+    "LPTH": {
+      "market_cap_millions": 561.842368
+    },
+    "MBRX": {
+      "market_cap_millions": 12.255331
+    },
+    "CRSP": {
+      "market_cap_millions": 5130.96448
+    },
+    "ACTU": {
+      "market_cap_millions": 142.714032
+    },
+    "IONQ": {
+      "market_cap_millions": 17519.126528
+    },
+    "JCI": {
+      "market_cap_millions": 72538.628096
+    },
+    "ACHV": {
+      "market_cap_millions": 295.98096
+    },
+    "KARO": {
+      "market_cap_millions": 1408.4256
+    },
+    "HQY": {
+      "market_cap_millions": 8141.654528
+    },
+    "OCG": {
+      "market_cap_millions": 0.424539
+    },
+    "FWONA": {
+      "market_cap_millions": 22398.189568
+    },
+    "TOWN": {
+      "market_cap_millions": 2742.130944
+    },
+    "BIOA": {
+      "market_cap_millions": 503.046144
+    },
+    "TENB": {
+      "market_cap_millions": 2817.879808
+    },
+    "GO": {
+      "market_cap_millions": 931.322304
+    },
+    "NAVN": {
+      "market_cap_millions": 4289.110016
+    },
+    "MTEN": {
+      "market_cap_millions": 2.607142
+    },
+    "AWR": {
+      "market_cap_millions": 2833.89568
+    },
+    "NSPR": {
+      "market_cap_millions": 72.030696
+    },
+    "TVGN": {
+      "market_cap_millions": 77.290376
+    },
+    "SIBN": {
+      "market_cap_millions": 886.917312
+    },
+    "HUM": {
+      "market_cap_millions": 33297.600512
+    },
+    "OBIO": {
+      "market_cap_millions": 271.03072
+    },
+    "ABCL": {
+      "market_cap_millions": 1308.09408
+    },
+    "MASI": {
+      "market_cap_millions": 7461.94176
+    },
+    "TSCO": {
+      "market_cap_millions": 27218.067456
+    },
+    "HLIO": {
+      "market_cap_millions": 2008.791168
+    },
+    "LTRN": {
+      "market_cap_millions": 39.033636
+    },
+    "HTCO": {
+      "market_cap_millions": 75.330304
+    },
+    "BUR": {
+      "market_cap_millions": 2093.668352
+    },
+    "SCKT": {
+      "market_cap_millions": 8.375284
+    },
+    "ACIW": {
+      "market_cap_millions": 4826.293248
+    },
+    "JKHY": {
+      "market_cap_millions": 13986.234368
+    },
+    "CNVS": {
+      "market_cap_millions": 39.258328
+    },
+    "ATEC": {
+      "market_cap_millions": 3364.66176
+    },
+    "OMDA": {
+      "market_cap_millions": 892.363008
+    },
+    "PL": {
+      "market_cap_millions": 7123.325952
+    },
+    "RIVN": {
+      "market_cap_millions": 24162.746368
+    },
+    "FTRK": {
+      "market_cap_millions": 16.967944
+    },
+    "BYNO": {
+      "market_cap_millions": 89.013016
+    },
+    "DOMO": {
+      "market_cap_millions": 278.795936
+    },
+    "GKOS": {
+      "market_cap_millions": 6333.902848
+    },
+    "MDLZ": {
+      "market_cap_millions": 72383.307776
+    },
+    "MBC": {
+      "market_cap_millions": 1562.555648
+    },
+    "RWAY": {
+      "market_cap_millions": 334.601184
+    },
+    "HAFC": {
+      "market_cap_millions": 840.516224
+    },
+    "STX": {
+      "market_cap_millions": 69379.178496
+    },
+    "BBOT": {
+      "market_cap_millions": 920.669824
+    },
+    "CMPR": {
+      "market_cap_millions": 1907.622272
+    },
+    "AOMR": {
+      "market_cap_millions": 221.112064
+    },
+    "BILL": {
+      "market_cap_millions": 5146.925568
+    },
+    "FSUN": {
+      "market_cap_millions": 1057.899456
+    },
+    "CPRI": {
+      "market_cap_millions": 3113.213696
+    },
+    "BDC": {
+      "market_cap_millions": 4709.016064
+    },
+    "TEAM": {
+      "market_cap_millions": 36296.97024
+    },
+    "ROL": {
+      "market_cap_millions": 29653.30944
+    },
+    "ICFI": {
+      "market_cap_millions": 1715.463552
+    },
+    "AD": {
+      "market_cap_millions": 4635.57632
+    },
+    "T": {
+      "market_cap_millions": 166532.481024
+    },
+    "MTCH": {
+      "market_cap_millions": 7622.90944
+    },
+    "INBK": {
+      "market_cap_millions": 182.974992
+    },
+    "RPID": {
+      "market_cap_millions": 134.740576
+    },
+    "SPFI": {
+      "market_cap_millions": 649.588608
+    },
+    "OI": {
+      "market_cap_millions": 2418.950144
+    },
+    "MA": {
+      "market_cap_millions": 492677.398528
+    },
+    "UPS": {
+      "market_cap_millions": 90420.936704
+    },
+    "PI": {
+      "market_cap_millions": 6007.975936
+    },
+    "EPR": {
+      "market_cap_millions": 4163.354112
+    },
+    "EQR": {
+      "market_cap_millions": 23688.48896
+    },
+    "EOG": {
+      "market_cap_millions": 58989.129728
+    },
+    "LEA": {
+      "market_cap_millions": 6633.203712
+    },
+    "EMR": {
+      "market_cap_millions": 82292.916224
+    },
+    "DLB": {
+      "market_cap_millions": 6094.23104
+    },
+    "LTCH": {
+      "market_cap_millions": 24.605224
+    },
+    "ENVA": {
+      "market_cap_millions": 3906.403328
+    },
+    "HEQ": {
+      "market_cap_millions": 133.756904
+    },
+    "BTO": {
+      "market_cap_millions": 705.082688
+    },
+    "TGTX": {
+      "market_cap_millions": 4424.626176
+    },
+    "OVBC": {
+      "market_cap_millions": 185.660592
+    },
+    "VCTR": {
+      "market_cap_millions": 4479.160832
+    },
+    "OZ": {
+      "market_cap_millions": 199.60552
+    },
+    "GRDN": {
+      "market_cap_millions": 1979.41952
+    },
+    "CMRC": {
+      "market_cap_millions": 329.116544
+    },
+    "LXFR": {
+      "market_cap_millions": 393.34064
+    },
+    "AAP": {
+      "market_cap_millions": 2543.1424
+    },
+    "AFG": {
+      "market_cap_millions": 11399.599104
+    },
+    "WMS": {
+      "market_cap_millions": 12221.467648
+    },
+    "CCG": {
+      "market_cap_millions": 68.9972
+    },
+    "MUSA": {
+      "market_cap_millions": 8379.24864
+    },
+    "OVLY": {
+      "market_cap_millions": 253.408144
+    },
+    "AQST": {
+      "market_cap_millions": 417.250656
+    },
+    "SXTC": {
+      "market_cap_millions": 11.602776
+    },
+    "DCOM": {
+      "market_cap_millions": 1304.978816
+    },
+    "ALGN": {
+      "market_cap_millions": 11318.746112
+    },
+    "CDE": {
+      "market_cap_millions": 13332.174848
+    },
+    "ITW": {
+      "market_cap_millions": 74845.544448
+    },
+    "GLIBA": {
+      "market_cap_millions": 1206.991488
+    },
+    "GLIBK": {
+      "market_cap_millions": 1550.02304
+    },
+    "LBRDA": {
+      "market_cap_millions": 6615.906816
+    },
+    "LBRDK": {
+      "market_cap_millions": 6617.739264
+    },
+    "BULL": {
+      "market_cap_millions": 4155.043328
+    },
+    "BALY": {
+      "market_cap_millions": 818.549568
+    },
+    "SGML": {
+      "market_cap_millions": 1717.540864
+    },
+    "FSLR": {
+      "market_cap_millions": 25975.00928
+    },
+    "SPXC": {
+      "market_cap_millions": 10518.79424
+    },
+    "CRUS": {
+      "market_cap_millions": 6386.749952
+    },
+    "ASPI": {
+      "market_cap_millions": 889.532992
+    },
+    "AOSL": {
+      "market_cap_millions": 661.351872
+    },
+    "FORM": {
+      "market_cap_millions": 4588.2368
+    },
+    "SYM": {
+      "market_cap_millions": 40315.809792
+    },
+    "MPWR": {
+      "market_cap_millions": 47121.321984
+    },
+    "NVEC": {
+      "market_cap_millions": 314.633504
+    },
+    "AIP": {
+      "market_cap_millions": 746.992512
+    },
+    "MFIC": {
+      "market_cap_millions": 1072.058624
+    },
+    "GCT": {
+      "market_cap_millions": 1479.522944
+    },
+    "JCTC": {
+      "market_cap_millions": 7.853848
+    },
+    "KNSL": {
+      "market_cap_millions": 9232.392192
+    },
+    "WCN": {
+      "market_cap_millions": 42374.930432
+    },
+    "STRA": {
+      "market_cap_millions": 2003.332224
+    },
+    "SDHC": {
+      "market_cap_millions": 190.001632
+    },
+    "EGHT": {
+      "market_cap_millions": 252.325472
+    },
+    "PSA": {
+      "market_cap_millions": 50489.479168
+    },
+    "FUL": {
+      "market_cap_millions": 3500.903168
+    },
+    "FLEX": {
+      "market_cap_millions": 23869.6448
+    },
+    "FFIN": {
+      "market_cap_millions": 4602.643968
+    },
+    "INSG": {
+      "market_cap_millions": 163.69744
+    },
+    "IAC": {
+      "market_cap_millions": 3177.434112
+    },
+    "AEHL": {
+      "market_cap_millions": 6.878858
+    },
+    "ESE": {
+      "market_cap_millions": 5505.806848
+    },
+    "BV": {
+      "market_cap_millions": 1224.20992
+    },
+    "PLXS": {
+      "market_cap_millions": 4690.610176
+    },
+    "DHT": {
+      "market_cap_millions": 1963.360768
+    },
+    "ENS": {
+      "market_cap_millions": 6104.111616
+    },
+    "HLI": {
+      "market_cap_millions": 12838.889472
+    },
+    "FICO": {
+      "market_cap_millions": 38796.869632
+    },
+    "HESM": {
+      "market_cap_millions": 7337.527808
+    },
+    "MC": {
+      "market_cap_millions": 5465.612288
+    },
+    "VTR": {
+      "market_cap_millions": 36131.848192
+    },
+    "HP": {
+      "market_cap_millions": 3208.923392
+    },
+    "AM": {
+      "market_cap_millions": 8506.14784
+    },
+    "UTI": {
+      "market_cap_millions": 1447.29024
+    },
+    "LOPE": {
+      "market_cap_millions": 4980.283904
+    },
+    "MAA": {
+      "market_cap_millions": 16356.67968
+    },
+    "AR": {
+      "market_cap_millions": 9853.812736
+    },
+    "DIS": {
+      "market_cap_millions": 204119.425024
+    },
+    "GPI": {
+      "market_cap_millions": 5019.78624
+    },
+    "ONEG": {
+      "market_cap_millions": 31.44
+    },
+    "GVA": {
+      "market_cap_millions": 5322.207232
+    },
+    "MKTX": {
+      "market_cap_millions": 6455.712256
+    },
+    "AMPL": {
+      "market_cap_millions": 1367.609472
+    },
+    "EAT": {
+      "market_cap_millions": 7354.699264
+    },
+    "SR": {
+      "market_cap_millions": 4886.056448
+    },
+    "CMBM": {
+      "market_cap_millions": 42.930588
+    },
+    "CNTA": {
+      "market_cap_millions": 3265.342464
+    },
+    "EFXT": {
+      "market_cap_millions": 1958.646912
+    },
+    "DAKT": {
+      "market_cap_millions": 1057.827648
+    },
+    "HOMB": {
+      "market_cap_millions": 5619.644416
+    },
+    "NBR": {
+      "market_cap_millions": 924.826176
+    },
+    "BMRA": {
+      "market_cap_millions": 7.944768
+    },
+    "INV": {
+      "market_cap_millions": 263.523568
+    },
+    "CPF": {
+      "market_cap_millions": 847.366848
+    },
+    "SGN": {
+      "market_cap_millions": 0.973539
+    },
+    "MKC": {
+      "market_cap_millions": 18050.947072
+    },
+    "HOFT": {
+      "market_cap_millions": 120.171576
+    },
+    "NTLA": {
+      "market_cap_millions": 1066.793664
+    },
+    "VRSN": {
+      "market_cap_millions": 22467.567616
+    },
+    "FINS": {
+      "market_cap_millions": 441.770784
+    },
+    "SB": {
+      "market_cap_millions": 494.246112
+    },
+    "NCL": {
+      "market_cap_millions": 6.745605
+    },
+    "KPTI": {
+      "market_cap_millions": 122.5958
+    },
+    "NEON": {
+      "market_cap_millions": 29.63864
+    },
+    "LTC": {
+      "market_cap_millions": 1623.405952
+    },
+    "STBA": {
+      "market_cap_millions": 1500.095616
+    },
+    "CHE": {
+      "market_cap_millions": 6189.254656
+    },
+    "VGM": {
+      "market_cap_millions": 565.091712
+    },
+    "VBF": {
+      "market_cap_millions": 175.603616
+    },
+    "VTN": {
+      "market_cap_millions": 167.049104
+    },
+    "VCV": {
+      "market_cap_millions": 535.428416
+    },
+    "VKI": {
+      "market_cap_millions": 404.094784
+    },
+    "VVR": {
+      "market_cap_millions": 502.365088
+    },
+    "OIA": {
+      "market_cap_millions": 285.202752
+    },
+    "IQI": {
+      "market_cap_millions": 526.013952
+    },
+    "VKQ": {
+      "market_cap_millions": 533.157696
+    },
+    "VLT": {
+      "market_cap_millions": 72.518088
+    },
+    "VMO": {
+      "market_cap_millions": 646.540352
+    },
+    "IIM": {
+      "market_cap_millions": 582.707264
+    },
+    "VPV": {
+      "market_cap_millions": 186.969584
+    },
+    "VIOT": {
+      "market_cap_millions": 125.67452
+    },
+    "BVC": {
+      "market_cap_millions": 95.76
+    },
+    "STEC": {
+      "market_cap_millions": 128.52
+    },
+    "FLR": {
+      "market_cap_millions": 6406.758912
+    },
+    "CMRE": {
+      "market_cap_millions": 1901.548544
+    },
+    "BCPC": {
+      "market_cap_millions": 4977.328128
+    },
+    "AUMN": {
+      "market_cap_millions": 4.967506
+    },
+    "WHD": {
+      "market_cap_millions": 3144.61696
+    },
+    "IRWD": {
+      "market_cap_millions": 548.227008
+    },
+    "WSO": {
+      "market_cap_millions": 13703.6544
+    },
+    "GMRE": {
+      "market_cap_millions": 918.77856
+    },
+    "CSR": {
+      "market_cap_millions": 1182.59136
+    },
+    "ISTR": {
+      "market_cap_millions": 262.547616
+    },
+    "HOOD": {
+      "market_cap_millions": 101698.256896
+    },
+    "SOFI": {
+      "market_cap_millions": 32998.54336
+    },
+    "IX": {
+      "market_cap_millions": 32463.689728
+    },
+    "BY": {
+      "market_cap_millions": 1336.962688
+    },
+    "GGG": {
+      "market_cap_millions": 13590.144
+    },
+    "JDZG": {
+      "market_cap_millions": 2.72904
+    },
+    "FISI": {
+      "market_cap_millions": 627.46912
+    },
+    "CDT": {
+      "market_cap_millions": 2.085635
+    },
+    "HXL": {
+      "market_cap_millions": 5882.873856
+    },
+    "CURR": {
+      "market_cap_millions": 137.109152
+    },
+    "SGRP": {
+      "market_cap_millions": 18.944444
+    },
+    "AIMD": {
+      "market_cap_millions": 7.892721
+    },
+    "HON": {
+      "market_cap_millions": 131465.240576
+    },
+    "CLPS": {
+      "market_cap_millions": 23.88994
+    },
+    "MMD": {
+      "market_cap_millions": 279.250464
+    },
+    "PLBC": {
+      "market_cap_millions": 310.84192
+    },
+    "SCLX": {
+      "market_cap_millions": 85.802648
+    },
+    "NBTB": {
+      "market_cap_millions": 2175.402496
+    },
+    "DBL": {
+      "market_cap_millions": 298.128576
+    },
+    "CALX": {
+      "market_cap_millions": 3508.013568
+    },
+    "DLY": {
+      "market_cap_millions": 705.762624
+    },
+    "DSL": {
+      "market_cap_millions": 1291.25376
+    },
+    "LFCR": {
+      "market_cap_millions": 306.474784
+    },
+    "BRW": {
+      "market_cap_millions": 300.637056
+    },
+    "TGNA": {
+      "market_cap_millions": 3126.112256
+    }
+  }
+}

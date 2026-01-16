@@ -94,15 +94,20 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     try:
         # Initialize services (async for future database connections)
         result = await initialize_services()
-        if len(result) == 6:
+        if len(result) == 7:
+            services, container, recall_engine, signal_engine, failed_trades_engine, scheduler, metadata_cache = result
+        elif len(result) == 6:
             services, container, recall_engine, signal_engine, failed_trades_engine, scheduler = result
+            metadata_cache = None
         elif len(result) == 5:
             services, container, recall_engine, signal_engine, failed_trades_engine = result
             scheduler = None
+            metadata_cache = None
         elif len(result) == 4:
             services, container, recall_engine, signal_engine = result
             failed_trades_engine = None
             scheduler = None
+            metadata_cache = None
         else:
             # Backward compatibility if return signature changes
             services, container = result
@@ -110,6 +115,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             signal_engine = None
             failed_trades_engine = None
             scheduler = None
+            metadata_cache = None
         
         # Get lifecycle manager from DI container
         lifecycle_manager = container.lifecycle_manager()
@@ -123,13 +129,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             await scheduler.start()
             logger.info("MarketHoursScheduler started - managing websocket lifecycle")
         
-        # Store services, container, statistics engines, and scheduler in app.state
+        # Store services, container, statistics engines, scheduler, and cache in app.state
         app.state.services = services
         app.state.container = container
         app.state.recall_engine = recall_engine
         app.state.signal_engine = signal_engine
         app.state.failed_trades_engine = failed_trades_engine
         app.state.scheduler = scheduler
+        app.state.metadata_cache = metadata_cache
         
         logger.info("API server startup completed successfully")
         
@@ -151,6 +158,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         signal_engine = getattr(app.state, "signal_engine", None)
         failed_trades_engine = getattr(app.state, "failed_trades_engine", None)
         scheduler = getattr(app.state, "scheduler", None)
+        metadata_cache = getattr(app.state, "metadata_cache", None)
         
         # Stop scheduler first (it manages websocket lifecycle)
         if scheduler:
@@ -181,7 +189,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
                 logger.info("FailedTradeStatsEngine stopped")
             except Exception as e:
                 logger.error("Error stopping FailedTradeStatsEngine", error=str(e))
-        
+
+        # Stop metadata cache (saves to disk and stops scheduler)
+        if metadata_cache:
+            try:
+                await metadata_cache.stop()
+                logger.info("MetadataCache stopped")
+            except Exception as e:
+                logger.error("Error stopping MetadataCache", error=str(e))
+
         if services and container:
             # Get lifecycle manager from DI container
             lifecycle_manager = container.lifecycle_manager()

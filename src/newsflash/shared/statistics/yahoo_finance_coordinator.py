@@ -1,17 +1,23 @@
 """
 Yahoo Finance coordinator - fetches industry, sector, market_cap using yfinance.
 
-yfinance scrapes Yahoo Finance - no API key required, no hard rate limits.
-Uses yfinance to fetch industry, sector, market_cap (no API key needed).
+OPTIMIZED: Uses two-tier persistent cache for instant lookups:
+- Permanent cache: sector, industry (never changes)
+- Daily cache: market_cap_millions (refreshed at 4am UK)
+
+Only calls yfinance for cache misses, reducing latency from 200-2000ms to ~0ms.
 """
 import asyncio
 from datetime import datetime
-from typing import Optional, Dict, Any, Callable
+from typing import Optional, Dict, Any, Callable, TYPE_CHECKING
 from concurrent.futures import ThreadPoolExecutor
 
 import yfinance as yf
 
 from ...utils.logging_config import get_logger
+
+if TYPE_CHECKING:
+    from ...infra.cache.metadata_cache import MetadataCache
 
 logger = get_logger(__name__)
 
@@ -19,60 +25,71 @@ logger = get_logger(__name__)
 class YahooFinanceCoordinator:
     """
     Coordinates Yahoo Finance metadata fetches via yfinance.
-    
+
     Features:
-    - Session-based caching (avoids duplicate fetches within same session)
+    - Two-tier persistent cache (permanent + daily) for instant lookups
+    - Session-based in-memory caching
     - Thread pool executor for non-blocking async calls
-    - Simple and reliable (no rate limit management needed)
-    
+    - Background retry queue for failed fetches
+
     Provides: industry, sector, market_cap_millions
     (price and exchange come from Alpaca)
     """
-    
-    def __init__(self, max_concurrent: int = 3, max_retries: int = 3, num_workers: int = 10):
+
+    def __init__(
+        self,
+        max_concurrent: int = 3,
+        max_retries: int = 3,
+        num_workers: int = 10,
+        metadata_cache: Optional["MetadataCache"] = None
+    ):
         """
         Initialize coordinator with rate limiting, retry logic, and background queue.
-        
+
         Args:
-            max_concurrent: Max concurrent yfinance calls (reduced to 3 for high-load scenarios)
+            max_concurrent: Max concurrent yfinance calls
             max_retries: Maximum retry attempts with exponential backoff
-            num_workers: Number of background worker tasks (use full CPU capacity for I/O)
+            num_workers: Number of background worker tasks
+            metadata_cache: Optional persistent cache for instant lookups
         """
-        # Session-based cache: ticker -> metadata dict
+        # Persistent metadata cache (permanent + daily)
+        self._metadata_cache = metadata_cache
+
+        # Session-based in-memory cache: ticker -> metadata dict
         self._cache: Dict[str, Dict[str, Any]] = {}
-        self._cache_session: Optional[str] = None  # Current session for cache validity
-        
-        # Semaphore to limit concurrent calls (reduced from 5 to 3 for extreme stress cases)
+        self._cache_session: Optional[str] = None
+
+        # Semaphore to limit concurrent calls
         self._semaphore = asyncio.Semaphore(max_concurrent)
-        
-        # Thread pool for blocking yfinance calls (I/O bound - use more workers)
-        # Use 10 workers for I/O operations
+
+        # Thread pool for blocking yfinance calls
         self._executor = ThreadPoolExecutor(max_workers=num_workers)
-        
+
         # Lock for cache operations
         self._cache_lock = asyncio.Lock()
-        
-        # Retry configuration for high-load scenarios (12pm-1pm ET bulk delivery)
+
+        # Retry configuration
         self.max_retries = max_retries
-        self._retry_delays = [1.0, 2.0, 5.0]  # Exponential backoff: 1s, 2s, 5s
-        
-        # Background queue for pending metadata fetches (prevents overwhelming during bulk delivery)
-        # CRITICAL: Failed fetches are automatically queued here for background retry
+        self._retry_delays = [1.0, 2.0, 5.0]
+
+        # Background queue for pending metadata fetches
         self._fetch_queue: Optional[asyncio.Queue] = None
         self._worker_tasks: list[asyncio.Task] = []
         self.num_workers = num_workers
-        
-        # Track pending fetches (ticker -> callback) for eventual completion
-        self._pending_fetches: Dict[str, list[Callable[[str, Optional[Dict[str, Any]]], Any]]] = {}  # ticker -> list of callbacks
+
+        # Track pending fetches (ticker -> callbacks)
+        self._pending_fetches: Dict[str, list[Callable[[str, Optional[Dict[str, Any]]], Any]]] = {}
         self._pending_lock = asyncio.Lock()
-        
-        # Compatibility field (for legacy code that checks _worker_task)
+
+        # Compatibility field
         self._worker_task: Optional[asyncio.Task] = None
+
         logger.info(
             "YahooFinanceCoordinator initialized",
             max_concurrent=max_concurrent,
             max_retries=max_retries,
-            num_workers=num_workers
+            num_workers=num_workers,
+            has_persistent_cache=metadata_cache is not None
         )
     
     async def start(self) -> None:
@@ -109,27 +126,32 @@ class YahooFinanceCoordinator:
     ) -> Optional[Dict[str, Any]]:
         """
         Fetch ticker metadata (industry, sector, market_cap_millions).
-        
-        CRITICAL: If fetch fails after all retries, automatically queues for background retry
-        to ensure metadata is eventually populated (no null fields).
-        
+
+        OPTIMIZED: Checks persistent cache first for instant lookups (~0ms).
+        Only calls yfinance for cache misses.
+
         Args:
             ticker: Ticker symbol
             timeout: Maximum time to wait for result
             queue_on_failure: If True, automatically queue for background retry on failure
-            callback: Optional async callback(ticker, metadata) called when fetch completes (used for queued retries)
-            
+            callback: Optional async callback(ticker, metadata) called when fetch completes
+
         Returns:
             Metadata dict with: industry, sector, market_cap_millions
             Returns None if fetch fails (but will be queued for background retry if queue_on_failure=True)
         """
-        # Check cache first
+        # Check persistent cache first (instant, ~0ms)
+        if self._metadata_cache:
+            cached = await self._metadata_cache.get(ticker)
+            if cached and cached.get("sector") and cached.get("industry"):
+                # Full cache hit - return immediately
+                logger.debug("YahooFinance: Persistent cache hit", ticker=ticker)
+                return cached
+
+        # Check session-based in-memory cache
         cached = await self._get_from_cache(ticker)
         if cached is not None:
-            logger.debug(
-                "YahooFinance: Cache hit",
-                ticker=ticker
-            )
+            logger.debug("YahooFinance: Session cache hit", ticker=ticker)
             return cached
         
         # Fetch from Yahoo Finance with exponential backoff retry
@@ -144,6 +166,11 @@ class YahooFinanceCoordinator:
                     
                     if result:
                         await self._set_cache(ticker, result)
+
+                        # Save to persistent cache for future instant lookups
+                        if self._metadata_cache:
+                            await self._metadata_cache.set_from_full_metadata(ticker, result)
+
                         logger.debug(
                             "YahooFinance: Fetched metadata",
                             ticker=ticker,

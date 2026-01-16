@@ -47,7 +47,7 @@ def _create_trade_handler_if_enabled(
     return None
 
 
-async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, Any, Any]:
+async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, Any, Any, Any, Any]:
     """
     Composition Root - wires microservices together using DI container.
     
@@ -107,10 +107,22 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
     
     # Step 2.6: Create MarketDataValidator (needs TradingClient, MarketDataClient, and shared YahooFinanceCoordinator)
     from ..infra.brokerage.market_data_validator import MarketDataValidator
+
+    # Start MetadataCache first (loads permanent + daily caches from disk)
+    # Provides instant lookups for sector, industry, market_cap (~0ms vs 200-2000ms from yfinance)
+    metadata_cache = container.metadata_cache()
+    await metadata_cache.start()
+    logger.info(
+        "MetadataCache started",
+        permanent_tickers=metadata_cache.get_stats()["permanent_tickers"],
+        daily_tickers=metadata_cache.get_stats()["daily_tickers"]
+    )
+
     # Get shared YahooFinanceCoordinator from container (singleton - shared with stats engines)
+    # Uses MetadataCache for instant lookups, only calls yfinance for cache misses
     yahoo_finance_coordinator = container.yahoo_finance_coordinator()
     await yahoo_finance_coordinator.start()  # Start coordinator early so it's ready for all services
-    logger.info("YahooFinanceCoordinator started (shared across MarketDataValidator and stats engines)")
+    logger.info("YahooFinanceCoordinator started (shared across MarketDataValidator and stats engines, backed by MetadataCache)")
     
     market_data_validator = MarketDataValidator(
         trading_client=brokerage.infra.connection_manager.trading_client,
@@ -300,7 +312,7 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
     # scheduler.start() is called by lifespan after lifecycle_manager.start_services()
     logger.info("MarketHoursScheduler initialized (will start after websocket)")
     
-    # Store statistics engines and scheduler for shutdown (not in Services container - they're background services)
+    # Store statistics engines, scheduler, and metadata_cache for shutdown (not in Services container - they're background services)
     # They'll be stopped in lifespan shutdown handler
-    return services, container, recall_engine, signal_engine, failed_trades_engine, scheduler
+    return services, container, recall_engine, signal_engine, failed_trades_engine, scheduler, metadata_cache
 

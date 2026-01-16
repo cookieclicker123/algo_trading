@@ -38,6 +38,7 @@ from ...shared.statistics.recall_engine import RecallStatsEngine
 from ...shared.statistics.signal_engine import SignalStatsEngine
 from ...shared.statistics.failed_trades_engine import FailedTradeStatsEngine
 from ...shared.statistics.yahoo_finance_coordinator import YahooFinanceCoordinator
+from ...infra.cache.metadata_cache import MetadataCache
 from pathlib import Path
 class ApplicationContainer(containers.DeclarativeContainer):
     """
@@ -256,10 +257,19 @@ class ApplicationContainer(containers.DeclarativeContainer):
         ),
     )
     
+    # MetadataCache - persistent cache for instant ticker lookups
+    # Permanent cache: sector, industry (never changes)
+    # Daily cache: market_cap (refreshed at 4am UK time)
+    metadata_cache = providers.Singleton(
+        MetadataCache,
+    )
+
     # YahooFinanceCoordinator - shared singleton for all engines (replaces Finnhub)
     # Uses yfinance to fetch industry, sector, market_cap (no API key needed)
+    # Wired with MetadataCache for instant lookups (only calls yfinance for cache misses)
     yahoo_finance_coordinator = providers.Singleton(
         YahooFinanceCoordinator,
+        metadata_cache=metadata_cache,
     )
     
     # RecallStatsEngine - needs event_bus, repository, quote_fetcher, yahoo_finance_coordinator, market_data_client, trading_client

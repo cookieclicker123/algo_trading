@@ -78,21 +78,37 @@ class AlpacaConnectionManager:
         )
         
         # Initialize WebSocket stream manager (optional - graceful degradation)
+        # Try SIP first (requires Algo Trader Plus subscription), fall back to IEX
         self.stream_manager: Optional[AlpacaMarketDataStreamManager] = None
         if AlpacaMarketDataStreamManager is not None:
             try:
                 from alpaca.data.enums import DataFeed
+                # Use SIP feed for true NBBO (requires Algo Trader Plus subscription)
+                # SIP provides consolidated data from all US exchanges
                 self.stream_manager = AlpacaMarketDataStreamManager(
                     event_bus=event_bus,
                     api_key=api_key,
                     api_secret=api_secret,
                     paper_trading=paper_trading,
-                    feed=DataFeed.IEX  # Use IEX feed (SIP requires subscription)
+                    feed=DataFeed.SIP  # SIP for true NBBO (algo trader subscription)
                 )
-                logger.info("WebSocket stream manager initialized (optional feature)")
+                logger.info("WebSocket stream manager initialized with SIP feed (true NBBO)")
             except Exception as e:
-                logger.warning(f"WebSocket stream manager not available (fallback to REST): {e}")
-                self.stream_manager = None
+                # SIP failed - try IEX as fallback
+                logger.warning(f"WebSocket SIP feed failed, trying IEX fallback: {e}")
+                try:
+                    from alpaca.data.enums import DataFeed
+                    self.stream_manager = AlpacaMarketDataStreamManager(
+                        event_bus=event_bus,
+                        api_key=api_key,
+                        api_secret=api_secret,
+                        paper_trading=paper_trading,
+                        feed=DataFeed.IEX  # IEX fallback
+                    )
+                    logger.info("WebSocket stream manager initialized with IEX feed (fallback)")
+                except Exception as e2:
+                    logger.warning(f"WebSocket stream manager not available (fallback to REST): {e2}")
+                    self.stream_manager = None
         else:
             logger.debug("WebSocket stream manager not available (alpaca-py SDK version)")
         

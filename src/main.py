@@ -34,17 +34,28 @@ class NewsFlashStandalone:
         try:
             # Initialize services (async for future database connections)
             result = await initialize_services()
-            if len(result) == 5:
+            if len(result) == 7:
+                self.services, self.container, self.recall_engine, self.signal_engine, self.failed_trades_engine, self.scheduler, self.metadata_cache = result
+            elif len(result) == 6:
+                self.services, self.container, self.recall_engine, self.signal_engine, self.failed_trades_engine, self.scheduler = result
+                self.metadata_cache = None
+            elif len(result) == 5:
                 self.services, self.container, self.recall_engine, self.signal_engine, self.failed_trades_engine = result
+                self.scheduler = None
+                self.metadata_cache = None
             elif len(result) == 4:
                 self.services, self.container, self.recall_engine, self.signal_engine = result
                 self.failed_trades_engine = None
+                self.scheduler = None
+                self.metadata_cache = None
             else:
                 # Backward compatibility
                 self.services, self.container = result
                 self.recall_engine = None
                 self.signal_engine = None
                 self.failed_trades_engine = None
+                self.scheduler = None
+                self.metadata_cache = None
             
             # Start all services
             await start_services(self.services)
@@ -56,6 +67,14 @@ class NewsFlashStandalone:
             logger.error("Error in standalone system", error=str(e))
             raise
         finally:
+            # Stop scheduler first
+            if hasattr(self, 'scheduler') and self.scheduler:
+                try:
+                    await self.scheduler.stop()
+                    logger.info("MarketHoursScheduler stopped")
+                except Exception as e:
+                    logger.error("Error stopping MarketHoursScheduler", error=str(e))
+
             # Stop statistics engines
             if hasattr(self, 'recall_engine') and self.recall_engine:
                 try:
@@ -63,14 +82,29 @@ class NewsFlashStandalone:
                     logger.info("RecallStatsEngine stopped")
                 except Exception as e:
                     logger.error("Error stopping RecallStatsEngine", error=str(e))
-            
+
             if hasattr(self, 'signal_engine') and self.signal_engine:
                 try:
                     await self.signal_engine.stop()
                     logger.info("SignalStatsEngine stopped")
                 except Exception as e:
                     logger.error("Error stopping SignalStatsEngine", error=str(e))
-            
+
+            if hasattr(self, 'failed_trades_engine') and self.failed_trades_engine:
+                try:
+                    await self.failed_trades_engine.stop()
+                    logger.info("FailedTradeStatsEngine stopped")
+                except Exception as e:
+                    logger.error("Error stopping FailedTradeStatsEngine", error=str(e))
+
+            # Stop metadata cache (saves to disk and stops scheduler)
+            if hasattr(self, 'metadata_cache') and self.metadata_cache:
+                try:
+                    await self.metadata_cache.stop()
+                    logger.info("MetadataCache stopped")
+                except Exception as e:
+                    logger.error("Error stopping MetadataCache", error=str(e))
+
             if self.services:
                 await stop_services(self.services)
             logger.info("NewsFlash standalone system stopped")
