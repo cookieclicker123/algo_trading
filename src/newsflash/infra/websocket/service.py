@@ -21,7 +21,6 @@ except ImportError:
     ConnectionClosedOK = Exception
 
 from ...utils.logging_config import get_logger
-from ...models.benzinga_models import BenzingaArticle
 from .infrastructure_models import InfrastructureArticleData
 from ...shared.event_bus import AsyncEventBus
 from ...shared.event_types import InfrastructureEventType
@@ -598,24 +597,3 @@ class BenzingaWebSocketMicroservice:
         event = WebSocketRateLimitEvent(occurred_at=datetime.now())
         await self.event_bus.publish("WebSocketRateLimit", event.model_dump())
 
-    def _convert_to_benzinga_article(self, data: Dict[str, Any]) -> Optional[BenzingaArticle]:
-        """Convert raw data to BenzingaArticle model."""
-        try:
-            article = BenzingaArticle(
-                benzinga_id=int(data.get("id", 0)),
-                title=data.get("title", ""),
-                teaser=data.get("teaser", ""),
-                body=data.get("body", ""),
-                published=data.get("created_at", ""),
-                last_updated=data.get("updated_at", ""),
-                url=data.get("url", ""),
-                channels=data.get("channels", []),
-                tickers=[stock.get("symbol", "") for stock in data.get("securities", []) if stock.get("symbol")],
-                tags=data.get("tags", []),
-                author=data.get("authors", ["Benzinga"])[0] if data.get("authors") else "Benzinga",
-                images=[]
-            )
-            return article
-        except Exception as e:
-            logger.error("Failed to convert to BenzingaArticle", error=str(e), data=data)
-            return None

@@ -58,33 +58,29 @@ class ArticleFactory:
     def create_from_infrastructure_model(infra_article_data, received_at=None) -> Optional[Article]:
         """
         Create Article from typed infrastructure model.
-        
-        Validates against infrastructure protocol contract before transformation.
-        
+
         Args:
-            infra_article_data: InfrastructureArticleData model (typed)
+            infra_article_data: InfrastructureArticleData model (typed, already validated)
             received_at: Optional timestamp to use as fallback if published timestamp is missing
-            
+
         Returns:
-            Article domain model, or None if invalid
+            Article domain model, or None if mapping failed
         """
         try:
             # Infrastructure model is already validated by Pydantic
-            # Transform to domain model via mapper
+            # Transform to domain model via mapper (Pydantic validates Article on creation)
             article = ArticleMapper.from_infrastructure_model(infra_article_data, received_at=received_at)
-            
+
             if not article:
                 logger.warning("Article factory: Mapping from infrastructure model failed")
                 return None
-            
-            # Validate domain model
-            if not ArticleValidator.is_valid_domain_article(article):
-                logger.warning("Article factory: Created article failed validation")
-                return None
-            
+
+            # Skip redundant validation - Pydantic already validated the Article model on creation
+            # (saves ~5-10ms per article)
+
             logger.debug("Article factory: Created article from infrastructure model", article_id=article.id)
             return article
-            
+
         except Exception as e:
             logger.error("Article factory: Error creating article from infrastructure model", error=str(e), exc_info=True)
             return None

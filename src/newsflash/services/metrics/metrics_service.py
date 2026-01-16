@@ -5,11 +5,12 @@ STATELESS PRINCIPLE:
 - Services publish events (no mutation)
 - MetricsService subscribes to events and aggregates
 - Statistics are derived from events, not mutated in services
+
+NOTE: No locks needed - Python's GIL makes dict operations atomic,
+and all handlers run in the same async event loop (no threading).
 """
 from datetime import datetime
 from typing import Dict, Any, Final
-from collections import defaultdict
-import threading
 
 from ...utils.logging_config import get_logger
 from ...shared.event_bus import AsyncEventBus
@@ -42,11 +43,8 @@ class MetricsService:
             event_bus: Event bus instance for subscribing to events
         """
         self.event_bus: Final[AsyncEventBus] = event_bus
-        
+
         # Statistics aggregated from events
-        # Using defaultdict for thread-safe counters
-        self._lock = threading.Lock()
-        
         # Classification metrics
         self._classification_stats = {
             "classifications_requested": 0,
@@ -201,126 +199,111 @@ class MetricsService:
     
     async def _handle_classification_requested(self, event_type: str, event_data: Dict[str, Any]) -> None:
         """Handle classification requested event."""
-        with self._lock:
-            self._classification_stats["classifications_requested"] += 1
-    
+        self._classification_stats["classifications_requested"] += 1
+
     async def _handle_classification_completed(self, event_type: str, event_data: Dict[str, Any]) -> None:
         """Handle classification completed event."""
-        with self._lock:
-            self._classification_stats["classifications_completed"] += 1
-            self._classification_stats["last_classification_time"] = datetime.now().isoformat()
-    
+        self._classification_stats["classifications_completed"] += 1
+        self._classification_stats["last_classification_time"] = datetime.now().isoformat()
+
     async def _handle_classification_failed(self, event_type: str, event_data: Dict[str, Any]) -> None:
         """Handle classification failed event."""
-        with self._lock:
-            self._classification_stats["classifications_failed"] += 1
-    
+        self._classification_stats["classifications_failed"] += 1
+
     async def _handle_notification_requested(self, event_type: str, event_data: Dict[str, Any]) -> None:
         """Handle notification requested event."""
-        with self._lock:
-            self._notification_stats["notifications_requested"] += 1
-            self._notification_stats["last_notification_time"] = datetime.now().isoformat()
-    
+        self._notification_stats["notifications_requested"] += 1
+        self._notification_stats["last_notification_time"] = datetime.now().isoformat()
+
     async def _handle_notification_sent(self, event_type: str, event_data: Dict[str, Any]) -> None:
         """Handle notification sent event."""
-        with self._lock:
-            self._notification_stats["notifications_sent"] += 1
-    
+        self._notification_stats["notifications_sent"] += 1
+
     async def _handle_notification_failed(self, event_type: str, event_data: Dict[str, Any]) -> None:
         """Handle notification failed event."""
-        with self._lock:
-            self._notification_stats["notifications_failed"] += 1
-    
+        self._notification_stats["notifications_failed"] += 1
+
     async def _handle_websocket_article_received(self, event_type: str, event_data: Dict[str, Any]) -> None:
         """Handle WebSocket article received event."""
-        with self._lock:
-            self._websocket_stats["messages_received"] += 1
-            self._websocket_stats["articles_received"] += 1
-            self._websocket_stats["last_message_time"] = datetime.now().isoformat()
-    
+        self._websocket_stats["messages_received"] += 1
+        self._websocket_stats["articles_received"] += 1
+        self._websocket_stats["last_message_time"] = datetime.now().isoformat()
+
     async def _handle_websocket_connected(self, event_type: str, event_data: Dict[str, Any]) -> None:
         """Handle WebSocket connected event."""
-        with self._lock:
-            self._websocket_stats["is_connected"] = True
-            self._websocket_stats["connection_verified_at"] = datetime.now().isoformat()
-    
+        self._websocket_stats["is_connected"] = True
+        self._websocket_stats["connection_verified_at"] = datetime.now().isoformat()
+
     async def _handle_websocket_disconnected(self, event_type: str, event_data: Dict[str, Any]) -> None:
         """Handle WebSocket disconnected event."""
-        with self._lock:
-            self._websocket_stats["is_connected"] = False
-    
+        self._websocket_stats["is_connected"] = False
+
     async def _handle_websocket_error(self, event_type: str, event_data: Dict[str, Any]) -> None:
         """Handle WebSocket error event."""
-        with self._lock:
-            error_msg = event_data.get("error", "Unknown error")
-            self._websocket_stats["last_error"] = str(error_msg)
-    
+        error_msg = event_data.get("error", "Unknown error")
+        self._websocket_stats["last_error"] = str(error_msg)
+
     async def _handle_connection_status_changed(self, event_type: str, event_data: Dict[str, Any]) -> None:
         """Handle brokerage connection status changed event."""
-        with self._lock:
-            is_connected = event_data.get("is_connected", False)
-            self._brokerage_connection_stats["is_connected"] = is_connected
-            if is_connected:
-                self._brokerage_connection_stats["last_connection_time"] = datetime.now().isoformat()
-                self._brokerage_connection_stats["connection_attempts"] += 1
-            else:
-                self._brokerage_connection_stats["last_disconnection_time"] = datetime.now().isoformat()
+        is_connected = event_data.get("is_connected", False)
+        self._brokerage_connection_stats["is_connected"] = is_connected
+        if is_connected:
+            self._brokerage_connection_stats["last_connection_time"] = datetime.now().isoformat()
+            self._brokerage_connection_stats["connection_attempts"] += 1
+        else:
+            self._brokerage_connection_stats["last_disconnection_time"] = datetime.now().isoformat()
     
     # Public API for querying statistics
     
     def get_classification_stats(self, model: str, enabled: bool, has_api_key: bool) -> Dict[str, Any]:
         """
         Get classification statistics.
-        
+
         Args:
             model: Classification model name
             enabled: Whether classification is enabled
             has_api_key: Whether API key is configured
-            
+
         Returns:
             Dictionary with classification statistics
         """
-        with self._lock:
-            return {
-                **self._classification_stats,
-                "model": model,
-                "is_enabled": enabled,
-                "has_api_key": has_api_key,
-            }
-    
+        return {
+            **self._classification_stats,
+            "model": model,
+            "is_enabled": enabled,
+            "has_api_key": has_api_key,
+        }
+
     def get_notification_stats(self, enabled: bool) -> Dict[str, Any]:
         """
         Get notification statistics.
-        
+
         Args:
             enabled: Whether notifications are enabled
-            
+
         Returns:
             Dictionary with notification statistics
         """
-        with self._lock:
-            return {
-                **self._notification_stats,
-                "is_enabled": enabled,
-            }
-    
+        return {
+            **self._notification_stats,
+            "is_enabled": enabled,
+        }
+
     def get_websocket_stats(self) -> Dict[str, Any]:
         """
         Get WebSocket statistics.
-        
+
         Returns:
             Dictionary with WebSocket statistics
         """
-        with self._lock:
-            return self._websocket_stats.copy()
-    
+        return self._websocket_stats.copy()
+
     def get_brokerage_connection_stats(self) -> Dict[str, Any]:
         """
         Get brokerage connection statistics.
-        
+
         Returns:
             Dictionary with connection statistics
         """
-        with self._lock:
-            return self._brokerage_connection_stats.copy()
+        return self._brokerage_connection_stats.copy()
 

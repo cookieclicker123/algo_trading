@@ -189,7 +189,7 @@ The event bus now uses fire-and-forget with `asyncio.create_task()`. Tasks are t
 
 ### 4. Sequential Ticker Checks in Monitoring Loop (MEDIUM)
 
-**Location:** `src/newsflash/shared/statistics/recall_engine.py:901-979`
+**Location:** `src/newsflash/shared/statistics/recall_engine.py:852-937`
 
 **Problem:** Each monitoring cycle checks tickers sequentially:
 
@@ -203,25 +203,33 @@ for ticker in tradable_tickers:  # SEQUENTIAL!
 
 **Estimated savings:** 10-30ms per cycle (parallelization)
 
+**STATUS: FIXED**
+
+The monitoring loop now uses `asyncio.as_completed()` to analyze all tickers in parallel. When a SURGE is detected, remaining tasks are cancelled to avoid unnecessary work. This reduces cycle time from O(n×t) to O(t) where n=number of tickers and t=single ticker analysis time.
+
 ---
 
 ### 5. Double Pydantic Validation (LOW-MEDIUM)
 
-**Location:** `src/newsflash/domain/websocket/listener.py:111-174`
+**Location:** `src/newsflash/domain/websocket/factories.py:57-86`
 
 **Problem:** Infrastructure events are validated by Pydantic, then domain models are validated again:
 
 ```python
-# Validation #1
-infra_event = self.validate_infrastructure_event(...)
+# Validation #1 - Pydantic validates Article on creation
+article = ArticleMapper.from_infrastructure_model(infra_article_data)
 
-# Validation #2
-domain_article = self.factory.create_from_infrastructure_model(...)
+# Validation #2 - Redundant!
+if not ArticleValidator.is_valid_domain_article(article):
 ```
 
 **Impact:** 5-10ms duplicate CPU work per article.
 
 **Estimated savings:** 5-10ms per article
+
+**STATUS: FIXED**
+
+Removed redundant `ArticleValidator.is_valid_domain_article()` call from `ArticleFactory.create_from_infrastructure_model()`. Pydantic already validates the Article model during construction, making the explicit validation call unnecessary.
 
 ---
 
@@ -246,27 +254,27 @@ async def append_recall_record(self, record, session, date):
 
 ## Priority Fixes
 
-### P0 - Critical (Expected savings: 100-300ms under load)
+### P0 - Critical (Expected savings: 100-300ms under load) - ALL FIXED
 
-| Issue | Location | Fix | Est. Savings |
-|-------|----------|-----|--------------|
-| Thread-async bridge | websocket/service.py | Replace `websocket-client` with async library (`websockets` or `aiohttp`) | 50-150ms |
-| Event bus blocking | event_bus.py | Fire-and-forget with `asyncio.create_task()` instead of `gather()` | 20-100ms |
-| Sequential articles | websocket/service.py | Batch all articles, publish once (or parallelize creation) | 30-100ms |
+| Issue | Location | Fix | Est. Savings | Status |
+|-------|----------|-----|--------------|--------|
+| Thread-async bridge | websocket/service.py | Replace `websocket-client` with async `websockets` library | 50-150ms | **FIXED** |
+| Event bus blocking | event_bus.py | Fire-and-forget with `asyncio.create_task()` instead of `gather()` | 20-100ms | **FIXED** |
+| Sequential articles | websocket/service.py | Native async eliminates thread crossing overhead | 30-100ms | **FIXED** |
 
-### P1 - High (Expected savings: 30-60ms)
+### P1 - High (Expected savings: 30-60ms) - FIXED
 
-| Issue | Location | Fix | Est. Savings |
-|-------|----------|-----|--------------|
-| Sequential ticker checks | recall_engine.py | Use `asyncio.gather()` for parallel ticker analysis | 10-30ms |
-| Yahoo metadata in loop | recall_engine.py | Pre-fetch all ticker metadata in parallel before loop | 10-20ms |
+| Issue | Location | Fix | Est. Savings | Status |
+|-------|----------|-----|--------------|--------|
+| Sequential ticker checks | recall_engine.py | Use `asyncio.as_completed()` for parallel ticker analysis | 10-30ms | **FIXED** |
+| Yahoo metadata in loop | recall_engine.py | Included in parallel ticker analysis | 10-20ms | **FIXED** |
 
-### P2 - Medium (Expected savings: 10-30ms)
+### P2 - Medium (Expected savings: 10-30ms) - PARTIALLY FIXED
 
-| Issue | Location | Fix | Est. Savings |
-|-------|----------|-----|--------------|
-| Double validation | domain/listener.py | Skip domain validation if infra already validated | 5-10ms |
-| JSON file I/O | repository.py | Use append-only file format or batch writes | 5-20ms |
+| Issue | Location | Fix | Est. Savings | Status |
+|-------|----------|-----|--------------|--------|
+| Double validation | domain/factories.py | Skip domain validation if infra already validated | 5-10ms | **FIXED** |
+| JSON file I/O | repository.py | Use append-only file format or batch writes | 5-20ms | Not yet |
 
 ---
 
