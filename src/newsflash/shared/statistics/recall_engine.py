@@ -702,70 +702,21 @@ class RecallStatsEngine:
                     )
                     return
             
-            # Get current ask price for calculating $2k trade size and validate spread
+            # Get current ask price for calculating $2k trade size
+            # NOTE: Spread filter REMOVED - trade on surge regardless of spread
+            # Wide spreads often compress rapidly on runners (e.g., JFBR 17.9% -> 0.73%)
             current_price = None
-            MAX_SPREAD_THRESHOLD_PCT = 5.0  # Reject trades if spread >= 5%
-            
+
             try:
                 nbbo = await self.quote_fetcher.get_nbbo_snapshot(ticker)
                 if nbbo:
                     current_price = nbbo.get("ask")  # Use ask price for buying
-                    
-                    # CRITICAL: Validate spread before triggering trade
-                    # Spread > 5% indicates illiquidity - reject trade even if surge detected
-                    bid = nbbo.get("bid")
-                    ask = nbbo.get("ask")
-                    
-                    if bid and ask and ask > 0:
-                        spread = ask - bid
-                        mid_price = (bid + ask) / 2.0
-                        spread_pct = (spread / mid_price) * 100 if mid_price > 0 else 0
-                        
-                        if spread_pct >= MAX_SPREAD_THRESHOLD_PCT:
-                            logger.warning(
-                                "🚫 TRADE REJECTED: Spread too wide (>= 5%), rejecting surge trade",
-                                article_id=article.id,
-                                ticker=ticker,
-                                spread_pct=round(spread_pct, 2),
-                                bid=bid,
-                                ask=ask,
-                                spread=spread,
-                                threshold=MAX_SPREAD_THRESHOLD_PCT
-                            )
-                            # Update recall record to note spread rejection (non-blocking, fire-and-forget)
-                            # DB writes are LOWEST priority - never block trade execution
-                            try:
-                                now = datetime.now(timezone.utc)
-                                session, _ = get_market_session_from_timestamp(now)
-                                if session == "closed":
-                                    session = "premarket"  # Fallback
-                                # Fire-and-forget: Don't await, just schedule it
-                                asyncio.create_task(
-                                    self.repository.update_recall_record(
-                                        article_id=article.id,
-                                        updates={
-                                            "filter_reason": f"spread_too_wide_{spread_pct:.2f}%"
-                                        },
-                                        session=session,
-                                        date=now
-                                    )
-                                )
-                            except Exception:
-                                pass  # Don't fail on metadata update
-                            return  # Reject trade - spread trumps surge signal
-                        
-                        logger.debug(
-                            "✅ Spread validation passed",
-                            ticker=ticker,
-                            spread_pct=round(spread_pct, 2),
-                            threshold=MAX_SPREAD_THRESHOLD_PCT
-                        )
-                    else:
-                        logger.warning(
-                            "⚠️ Could not validate spread (missing bid/ask), proceeding with caution",
-                            ticker=ticker,
-                            nbbo=nbbo
-                        )
+                    logger.debug(
+                        "Got NBBO for trade sizing",
+                        ticker=ticker,
+                        bid=nbbo.get("bid"),
+                        ask=nbbo.get("ask")
+                    )
             except Exception as price_error:
                 logger.debug(
                     "Recall: Could not get current price for trade sizing, will use amount_usd",

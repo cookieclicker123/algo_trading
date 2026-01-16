@@ -951,30 +951,50 @@ async def _assess_surge_snapshot(
         metrics["post_trade_bid_ratio"] = round(bid_sz / ask_sz, 2)
 
     # --- CLASSIFICATION ---
+    # Thresholds for surge detection
+    MAX_EXCURSION_THRESHOLD = 1.0
+    BUYING_PRESSURE_THRESHOLD = 70.0
+    MIN_WINDOW_VOLUME_THRESHOLD = 5000
+    MIN_TRADE_COUNT_THRESHOLD = 10  # Absolute threshold for dormant stocks
+
     if prior_avg_vol == 0:
-        move_type = "NEW_ACTIVITY"
+        # DORMANT STOCK SURGE LOGIC
+        # When there's no prior volume, we can't use relative multipliers.
+        # Instead, check absolute thresholds. A dormant stock suddenly getting
+        # massive activity (like JFBR: 19,673 shares, 43 trades, 6% excursion,
+        # 86.6% buying pressure) IS a surge - arguably more significant.
+        is_mom_ok = max_excursion >= MAX_EXCURSION_THRESHOLD
+        has_sufficient_buying_pressure = pressure_pct >= BUYING_PRESSURE_THRESHOLD
+        has_minimum_volume = (current_vol >= MIN_WINDOW_VOLUME_THRESHOLD)
+        current_trade_count = stats_now.trade_count if stats_now and stats_now.trade_count else 0
+        has_minimum_trades = (current_trade_count >= MIN_TRADE_COUNT_THRESHOLD)
+
+        if is_mom_ok and has_sufficient_buying_pressure and has_minimum_volume and has_minimum_trades:
+            # Dormant stock with strong absolute metrics = SURGE
+            move_type = "SURGE"
+        elif has_minimum_volume or has_minimum_trades:
+            move_type = "NEW_ACTIVITY"
+        else:
+            move_type = "NEW_ACTIVITY"
     else:
-        # SURGE LOGIC
+        # NORMAL SURGE LOGIC (with prior volume for relative comparison)
         VOLUME_SURGE_THRESHOLD = 3.0
         TRADE_COUNT_THRESHOLD = 2.0
-        MAX_EXCURSION_THRESHOLD = 1.0
-        BUYING_PRESSURE_THRESHOLD = 70.0
-        MIN_WINDOW_VOLUME_THRESHOLD = 5000
-        
+
         is_size_ok = surge_score >= VOLUME_SURGE_THRESHOLD
         is_freq_ok = trade_count_multiplier >= TRADE_COUNT_THRESHOLD
         is_mom_ok = max_excursion >= MAX_EXCURSION_THRESHOLD
-        
+
         # All sectors treated equally - no preferred sector lenience
         has_sufficient_buying_pressure = pressure_pct >= BUYING_PRESSURE_THRESHOLD
         # 70% buying pressure (imbalance ratio >= 0.4) - minimum buy volume removed (redundant with buying pressure + window volume)
         is_conv_ok = has_sufficient_buying_pressure
-        
+
         # All sectors require minimum volume
         has_minimum_volume = (current_vol >= MIN_WINDOW_VOLUME_THRESHOLD)
-        
+
         # Liveness metric completely removed - no longer used in surge detection
-        
+
         # Single path: All surges require 5 signals (size, frequency, momentum, conviction, minimum volume)
         # 70% buying pressure is REQUIRED for all surges (no high volume exception)
         if is_size_ok and is_freq_ok and is_mom_ok and is_conv_ok and has_minimum_volume:

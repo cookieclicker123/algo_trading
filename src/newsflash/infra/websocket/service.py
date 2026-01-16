@@ -1,14 +1,24 @@
 """
 WebSocket microservice for Benzinga news feed.
 Pure infrastructure - handles connection management and publishes events.
+
+REFACTORED: Now uses native async `websockets` library instead of thread-based
+`websocket-client`. This eliminates the thread-to-async bridge that was causing
+50-200ms latency under load due to call_soon_threadsafe() queue delays.
 """
 import asyncio
 import json
-import websocket
-import threading
-import time
 from typing import Dict, Any, Optional
 from datetime import datetime, timedelta, timezone
+
+try:
+    import websockets
+    from websockets.exceptions import ConnectionClosed, ConnectionClosedError, ConnectionClosedOK
+except ImportError:
+    websockets = None
+    ConnectionClosed = Exception
+    ConnectionClosedError = Exception
+    ConnectionClosedOK = Exception
 
 from ...utils.logging_config import get_logger
 from ...models.benzinga_models import BenzingaArticle
@@ -16,8 +26,8 @@ from .infrastructure_models import InfrastructureArticleData
 from ...shared.event_bus import AsyncEventBus
 from ...shared.event_types import InfrastructureEventType
 from .events import (
-    ArticleReceivedEvent, 
-    WebSocketConnectedEvent, 
+    ArticleReceivedEvent,
+    WebSocketConnectedEvent,
     WebSocketDisconnectedEvent
 )
 from .health_monitor import WebSocketHealthMonitor
@@ -36,20 +46,23 @@ logger = get_logger(__name__)
 
 class BenzingaWebSocketMicroservice:
     """
-    WebSocket microservice for Benzinga news feed.
-    
+    WebSocket microservice for Benzinga news feed (Native Async).
+
+    This implementation uses the `websockets` library for native async operation,
+    eliminating the thread-to-async bridge that caused latency issues.
+
     Responsibilities:
     - Manage WebSocket connection to Benzinga
-    - Handle reconnection logic
+    - Handle reconnection logic with exponential backoff
     - Parse incoming messages
-    - Publish events to event bus
-    
+    - Publish events to event bus (directly, no thread crossing)
+
     Does NOT:
     - Process articles (publishes events instead)
     - Call services directly
     - Know about business logic
     """
-    
+
     def __init__(
         self,
         event_bus: AsyncEventBus,
@@ -58,440 +71,306 @@ class BenzingaWebSocketMicroservice:
     ):
         """
         Initialize WebSocket microservice.
-        
+
         Args:
             event_bus: Event bus instance for publishing/subscribing to events
             token: Benzinga API token
-            metrics_service: Optional metrics service for statistics (injected via DI)
+            metrics_service: Metrics service for statistics (injected via DI)
         """
         self.token = token
         self.websocket_url = f"wss://api.benzinga.com/api/v1/news/stream"
-        self.websocket = None
-        # Thread control flag (operational state needed by threads)
-        # Lifecycle is tracked by LifecycleManager, this is for thread coordination
-        self._threads_should_run = False
-        self.last_request_time = 0
-        self.min_request_interval = 3.0
-        self.metrics_service = metrics_service  # ✅ Injected metrics service
-        
-        # Event bus for publishing events
+        self.websocket: Optional[Any] = None
+        self._running = False
+        self._reconnect_allowed = True
+        self.metrics_service = metrics_service
+
+        # Event bus for publishing events (direct async, no thread crossing!)
         self.event_bus = event_bus
-        
-        # ✅ Reduced stats - only operational stats not tracked via events
-        # Business stats (articles_received, messages_received, is_connected) come from MetricsService
+
+        # Operational stats (not tracked via events)
         self._operational_stats = {
-            "connection_attempts": 0,  # Not published as event yet
-            "ping_sent_count": 0,  # Operational metric
-            "pong_received_count": 0,  # Operational metric
-            "missed_pongs": 0,  # Operational metric
-            "last_ping_sent": None,  # Operational metric
-            "last_pong_received": None,  # Operational metric
-            "last_connection_check": None,  # Operational metric
-            "connection_verified_at": None,  # Operational metric
+            "connection_attempts": 0,
+            "ping_sent_count": 0,
+            "pong_received_count": 0,
+            "missed_pongs": 0,
+            "last_ping_sent": None,
+            "last_pong_received": None,
+            "last_connection_check": None,
+            "connection_verified_at": None,
         }
-        
+
         # Configuration
-        # Ping every 90 seconds (reduced from 30s to minimize API load while keeping connection alive)
-        # 90s is still very frequent for keepalive - most websockets use 30-60s, but we're being conservative
-        self.ping_interval = 90.0
+        self.ping_interval = 90.0  # Seconds between pings
         self.ping_timeout = 30.0
         self.connection_check_interval = 30.0
-        
-        # Thread management
-        self._lock = threading.Lock()
-        self._ping_thread: Optional[threading.Thread] = None
-        self._monitor_thread: Optional[threading.Thread] = None
-        self.websocket_thread: Optional[threading.Thread] = None
-        
-        # Main event loop reference for thread-safe publishing
-        self._main_event_loop: Optional[asyncio.AbstractEventLoop] = None
-        
+
         # Reconnection
-        self._reconnect_allowed = True
         self._reconnect_delay = 5.0
         self._max_reconnect_delay = 300.0  # 5 minutes max
         self._reconnect_attempts = 0
-        self._force_reconnect = False  # Flag to force reconnection from health monitor
-        
-        # Health monitor (infrastructure layer)
+
+        # Health monitor
         self.health_monitor: Optional[WebSocketHealthMonitor] = None
-        
-        # Startup filtering - track when service started to skip old messages
+
+        # Background tasks
+        self._connection_task: Optional[asyncio.Task] = None
+        self._ping_task: Optional[asyncio.Task] = None
+        self._monitor_task: Optional[asyncio.Task] = None
+
+        # Startup filtering
         self._startup_time: Optional[datetime] = None
         from ...config import settings
         self._startup_skip_old_minutes = settings.WEBSOCKET_STARTUP_SKIP_OLD_MESSAGES_MINUTES
         self._autorestart_enabled = settings.FEED_AUTORESTART_WEBSOCKET
-        
-        logger.info("BenzingaWebSocketMicroservice initialized", token_prefix=token[:10] + "...")
-    
-    def _publish_event_threadsafe(self, coro) -> None:
-        """Publish an async event from a thread, scheduling it on the main event loop."""
-        if self._main_event_loop and self._main_event_loop.is_running():
-            self._main_event_loop.call_soon_threadsafe(lambda: asyncio.create_task(coro))
-        else:
-            # Fallback: try to get current loop
-            try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    loop.call_soon_threadsafe(lambda: asyncio.create_task(coro))
-                else:
-                    logger.warning("Event loop not running, cannot publish event")
-            except RuntimeError:
-                logger.warning("No event loop available, cannot publish event")
-    
+
+        # Lock for stats updates
+        self._stats_lock = asyncio.Lock()
+
+        logger.info("BenzingaWebSocketMicroservice initialized (native async)", token_prefix=token[:10] + "...")
+
     def start(self) -> None:
         """
         Start the WebSocket connection.
-        
-        Idempotent: Safe to call multiple times. Thread control flag prevents duplicate threads.
+
+        Idempotent: Safe to call multiple times.
+        Spawns the connection task in the current event loop.
         """
-        if self._threads_should_run and self.websocket_thread and self.websocket_thread.is_alive():
+        if self._running and self._connection_task and not self._connection_task.done():
             logger.debug("Benzinga WebSocket microservice already started")
             return
 
-        logger.info("Starting Benzinga WebSocket microservice")
-        # Set thread control flag (operational state for threads)
-        self._threads_should_run = True
+        logger.info("Starting Benzinga WebSocket microservice (native async)")
+        self._running = True
         self._reconnect_allowed = True
-        
-        # Record startup time for filtering old messages
         self._startup_time = datetime.now()
+
         logger.info(
-            f"WebSocket startup time recorded - will skip articles older than {self._startup_skip_old_minutes} minutes during startup"
+            f"WebSocket startup time recorded - will skip articles older than {self._startup_skip_old_minutes} minutes"
         )
-        
-        # Store reference to main event loop for thread-safe publishing
-        try:
-            self._main_event_loop = asyncio.get_running_loop()
-        except RuntimeError:
-            # Try to get existing loop
-            try:
-                self._main_event_loop = asyncio.get_event_loop()
-            except RuntimeError:
-                logger.warning("No event loop available, event publishing may fail")
-                self._main_event_loop = None
-        
-        self._cleanup_connections()
-        
-        # Start connection thread (will loop and reconnect automatically)
-        self.websocket_thread = threading.Thread(target=self._run_websocket_loop)
-        self.websocket_thread.daemon = True
-        self.websocket_thread.start()
-        
-        logger.info(
-            "WebSocket connection thread started",
-            autorestart_enabled=self._autorestart_enabled,
-            reconnect_allowed=self._reconnect_allowed
-        )
-        
-        # Start ping thread
-        self._ping_thread = threading.Thread(target=self._ping_loop)
-        self._ping_thread.daemon = True
-        
-        # Start monitor thread
-        self._monitor_thread = threading.Thread(target=self._connection_monitor_loop)
-        self._monitor_thread.daemon = True
-        self._monitor_thread.start()
-        
+
         # Start health monitor
         if not self.health_monitor:
             self.health_monitor = WebSocketHealthMonitor(self.event_bus, self)
-        
         self.health_monitor.start()
-        
-        logger.info("WebSocket microservice threads started")
-    
+
+        # Start connection task (handles reconnection loop)
+        self._connection_task = asyncio.create_task(self._connection_loop())
+
+        logger.info(
+            "WebSocket connection task started",
+            autorestart_enabled=self._autorestart_enabled,
+            reconnect_allowed=self._reconnect_allowed
+        )
+
     def stop(self) -> None:
         """
         Stop the WebSocket connection.
-        
+
         Idempotent: Safe to call multiple times.
         """
         logger.info("Stopping Benzinga WebSocket microservice")
-        # Signal threads to stop (operational state for threads)
-        self._threads_should_run = False
+        self._running = False
         self._reconnect_allowed = False
-        
+
         # Stop health monitor
         if self.health_monitor:
             self.health_monitor.stop()
             self.health_monitor = None
-        
-        # Stop threads
-        if self._monitor_thread and self._monitor_thread.is_alive():
-            self._monitor_thread.join(timeout=5)
-        
-        if self._ping_thread and self._ping_thread.is_alive():
-            self._ping_thread.join(timeout=5)
-        
-        # Clean up connection
-        self._cleanup_connections()
-        
-        # Wait for websocket thread
-        if self.websocket_thread and self.websocket_thread.is_alive():
-            self.websocket_thread.join(timeout=10)
-        
-        # ✅ No stats mutation - MetricsService tracks via WEBSOCKET_DISCONNECTED event
-        
+
+        # Cancel background tasks
+        if self._ping_task and not self._ping_task.done():
+            self._ping_task.cancel()
+
+        if self._monitor_task and not self._monitor_task.done():
+            self._monitor_task.cancel()
+
+        if self._connection_task and not self._connection_task.done():
+            self._connection_task.cancel()
+
+        # Close WebSocket connection
+        if self.websocket:
+            asyncio.create_task(self._close_websocket())
+
         logger.info("WebSocket microservice stopped")
-    
+
+    async def _close_websocket(self) -> None:
+        """Close the WebSocket connection gracefully."""
+        if self.websocket:
+            try:
+                await self.websocket.close()
+            except Exception as e:
+                logger.error("Error closing WebSocket", error=str(e))
+            self.websocket = None
+
     def is_connected(self) -> bool:
         """Check if WebSocket is connected."""
-        with self._lock:
-            websocket_stats = self.metrics_service.get_websocket_stats()
-            return websocket_stats.get("is_connected", False)
-    
+        websocket_stats = self.metrics_service.get_websocket_stats()
+        return websocket_stats.get("is_connected", False)
+
     def get_stats(self) -> Dict[str, Any]:
         """Get WebSocket service statistics."""
-        # Merge MetricsService stats (from events) with operational stats
         websocket_stats = self.metrics_service.get_websocket_stats()
         return serialize_stats({
             **websocket_stats,
             **self._operational_stats,
         })
-    
+
     def is_healthy(self) -> bool:
         """Check if WebSocket service is healthy."""
-        with self._lock:
-            websocket_stats = self.metrics_service.get_websocket_stats()
-            is_connected = websocket_stats.get("is_connected", False)
-            last_error = websocket_stats.get("last_error")
-            return (
-                is_connected and
-                self._threads_should_run and
-                (last_error is None or "429" not in str(last_error))
-            )
-    
-    def _cleanup_connections(self) -> None:
-        """Clean up existing connections."""
-        logger.info("Cleaning up WebSocket connections...")
-        
-        if self.websocket:
+        websocket_stats = self.metrics_service.get_websocket_stats()
+        is_connected = websocket_stats.get("is_connected", False)
+        last_error = websocket_stats.get("last_error")
+        return (
+            is_connected and
+            self._running and
+            (last_error is None or "429" not in str(last_error))
+        )
+
+    async def _connection_loop(self) -> None:
+        """
+        Main connection loop with automatic reconnection.
+
+        Runs until stop() is called. Handles reconnection with exponential backoff.
+        """
+        while self._running:
             try:
-                self.websocket.close()
-            except Exception as e:
-                logger.error("Error closing WebSocket", error=str(e))
-        
-        self.websocket = None
-        # ✅ No stats mutation - MetricsService tracks via WEBSOCKET_DISCONNECTED event
-        
-        time.sleep(2)
-    
-    def _run_websocket_loop(self) -> None:
-        """Run WebSocket connection loop with automatic reconnection."""
-        while self._threads_should_run:
-            try:
+                self._operational_stats["connection_attempts"] += 1
                 attempt_num = self._reconnect_attempts + 1
                 logger.info("Attempting WebSocket connection", attempt=attempt_num)
-                self._connect_and_process()
-                
-                # If we exit _connect_and_process() without exception, connection closed normally
-                # This can happen if run_forever() exits (connection closed)
-                # Don't reset attempts here - we'll reset when we successfully reconnect (in on_open)
-                
+
+                await self._connect_and_process()
+
+                # If we exit _connect_and_process() normally, connection closed
+                logger.info("WebSocket connection closed normally")
+
+            except asyncio.CancelledError:
+                logger.info("Connection loop cancelled")
+                break
+
             except Exception as e:
-                logger.error("WebSocket connection failed", error=str(e), attempt=self._reconnect_attempts + 1)
-                # ✅ No stats mutation - MetricsService tracks via WEBSOCKET_ERROR event
-                # Check if it's a rate limit error
                 error_str = str(e)
-                is_rate_limit = ("429" in error_str) or ("Too Many Requests" in error_str)
+                logger.error("WebSocket connection failed", error=error_str, attempt=self._reconnect_attempts + 1)
+
+                # Check for rate limit
+                is_rate_limit = "429" in error_str or "Too Many Requests" in error_str
                 if is_rate_limit:
                     self._reconnect_allowed = False
-                    self._publish_event_threadsafe(self._publish_rate_limit())
+                    await self._publish_rate_limit()
                     logger.warning("WebSocket will NOT auto-reconnect to prevent 429 rate limits")
-                    break  # Don't retry on rate limit
-            
+                    break
+
             # Check if we should reconnect
-            if not self._threads_should_run:
+            if not self._running:
                 break
-            
+
             if not self._autorestart_enabled:
                 logger.info("Auto-restart disabled - not reconnecting")
                 break
-            
+
             if not self._reconnect_allowed:
-                logger.info("Reconnection not allowed (rate limit or manual stop) - not reconnecting")
+                logger.info("Reconnection not allowed - not reconnecting")
                 break
-            
-            # Exponential backoff reconnection
-            with self._lock:
-                self._reconnect_attempts += 1
-                delay = min(self._reconnect_delay * (2 ** (self._reconnect_attempts - 1)), self._max_reconnect_delay)
-                self._reconnect_delay = delay
-            
+
+            # Exponential backoff
+            self._reconnect_attempts += 1
+            delay = min(self._reconnect_delay * (2 ** (self._reconnect_attempts - 1)), self._max_reconnect_delay)
+
             logger.info(
                 "WebSocket connection closed - will reconnect",
                 attempt=self._reconnect_attempts,
-                delay_seconds=delay,
-                autorestart_enabled=self._autorestart_enabled
+                delay_seconds=delay
             )
-            
-            # Wait before reconnecting (exponential backoff)
-            time.sleep(delay)
-            
-            # Reset force reconnect flag if it was set
-            if self._force_reconnect:
-                with self._lock:
-                    self._force_reconnect = False
-        
+
+            await asyncio.sleep(delay)
+
         logger.info("WebSocket connection loop stopped")
-    
-    def _connect_and_process(self) -> None:
+
+    async def _connect_and_process(self) -> None:
         """Connect to WebSocket and process messages."""
         logger.info("Connecting to Benzinga WebSocket", url=self.websocket_url)
-        
-        with self._lock:
-            self._operational_stats["connection_attempts"] += 1
-        
-        # Rate limiting
-        current_time = time.time()
-        time_since_last = current_time - self.last_request_time
-        if time_since_last < self.min_request_interval:
-            sleep_time = self.min_request_interval - time_since_last
-            logger.info(f"Rate limiting: sleeping {sleep_time:.2f}s")
-            time.sleep(sleep_time)
-        
-        self.last_request_time = time.time()
-        
-        # Create connection
+
         headers = {
             'Authorization': self.token,
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
             'Origin': 'https://api.benzinga.com',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Accept-Language': 'en-US,en;q=0.9'
         }
-        
-        def on_message(ws, message):
-            """Handle incoming messages."""
-            try:
-                # ✅ No stats mutation - MetricsService subscribes to ARTICLE_RECEIVED event
-                # (messages_received and last_message_time tracked via events)
-                
-                logger.info(f"Received WebSocket message ({len(message)} chars)")
-                self._process_message(message)
-                
-            except Exception as e:
-                logger.error("Error processing message", error=str(e))
-                # ✅ No stats mutation - MetricsService tracks via WEBSOCKET_ERROR event
-                # Publish error event
-                self._publish_event_threadsafe(self._publish_error(str(e)))
-        
-        def on_error(ws, error):
-            """Handle errors."""
-            error_msg = str(error)
-            logger.error("WebSocket error", error=error_msg)
-            
-            # ✅ No stats mutation - MetricsService tracks via WEBSOCKET_ERROR event
-            
-            is_rate_limit = "429" in error_msg or "Too Many Requests" in error_msg
-            if is_rate_limit:
-                logger.error("Rate limit hit (429) - connection will close")
-                self._reconnect_allowed = False
-                self._publish_event_threadsafe(self._publish_rate_limit())
-            else:
-                self._publish_event_threadsafe(self._publish_error(error_msg, is_rate_limit=False))
-        
-        def on_close(ws, close_status_code, close_msg):
-            """Handle close."""
-            logger.warning(
-                f"WebSocket closed: {close_status_code} - {close_msg}",
-                close_status_code=close_status_code,
-                close_msg=close_msg,
-                will_reconnect=self._autorestart_enabled and self._reconnect_allowed and self._threads_should_run
-            )
-            
-            # ✅ No stats mutation - MetricsService tracks via WEBSOCKET_DISCONNECTED event
-            
-            # Clean up connection state
-            with self._lock:
-                self.websocket = None
-            
-            # Publish disconnect event
-            self._publish_event_threadsafe(self._publish_disconnect(close_msg))
-            
-            # Note: Reconnection is handled by _run_websocket_loop, which will detect
-            # that run_forever() exited and reconnect with exponential backoff
-        
-        def on_open(ws):
-            """Handle open."""
-            logger.info("WebSocket connection opened")
-            
-            with self._lock:
+
+        try:
+            async with websockets.connect(
+                self.websocket_url,
+                additional_headers=headers,
+                ping_interval=self.ping_interval,
+                ping_timeout=self.ping_timeout,
+                close_timeout=10,
+            ) as ws:
+                self.websocket = ws
+
+                # Connection opened
+                logger.info("WebSocket connection opened")
                 self._operational_stats["connection_verified_at"] = datetime.now()
-                # Reset reconnect state on successful connection
                 self._reconnect_attempts = 0
                 self._reconnect_delay = 5.0
-                self._force_reconnect = False
-                # Set startup time on every connection (including reconnections)
-                # This ensures old articles are filtered after long downtimes
                 self._startup_time = datetime.now()
-            # ✅ is_connected tracked via WEBSOCKET_CONNECTED event (MetricsService)
-            
-            logger.info(
-                f"WebSocket startup time recorded - will skip articles older than {self._startup_skip_old_minutes} minutes during startup"
-            )
-            
-            # Start ping thread after connection is open
-            if self._ping_thread and not self._ping_thread.is_alive():
-                self._ping_thread.start()
-            
-            # Publish connect event
-            self._publish_event_threadsafe(self._publish_connected())
-        
-        def on_pong(ws, data):
-            """Handle WebSocket pong frame."""
-            logger.info("📥 WebSocket pong received")
-            with self._lock:
-                self._operational_stats["last_pong_received"] = datetime.now()
-                self._operational_stats["pong_received_count"] += 1
-                if self._operational_stats.get("missed_pongs", 0) > 0:
-                    self._operational_stats["missed_pongs"] = 0
-        
-        def on_ping(ws, data):
-            """Handle WebSocket ping frame from server."""
-            logger.debug("Received ping frame from server")
-        
-        # Create WebSocket connection
-        self.websocket = websocket.WebSocketApp(
-            self.websocket_url,
-            header=headers,
-            on_message=on_message,
-            on_error=on_error,
-            on_close=on_close,
-            on_open=on_open,
-            on_ping=on_ping,
-            on_pong=on_pong
-        )
-        
-        # Run forever with ping interval
-        self.websocket.run_forever(
-            ping_interval=int(self.ping_interval),
-            ping_timeout=10
-        )
-    
-    def _process_message(self, message: str) -> None:
+
+                # Publish connected event
+                await self._publish_connected()
+
+                # Start ping task
+                self._ping_task = asyncio.create_task(self._ping_loop())
+
+                # Start monitor task
+                self._monitor_task = asyncio.create_task(self._monitor_loop())
+
+                # Process messages
+                try:
+                    async for message in ws:
+                        if not self._running:
+                            break
+                        await self._process_message(message)
+                except ConnectionClosedOK:
+                    logger.info("WebSocket closed normally")
+                except ConnectionClosedError as e:
+                    logger.warning(f"WebSocket closed with error: {e}")
+                except ConnectionClosed as e:
+                    logger.warning(f"WebSocket connection closed: {e}")
+
+                # Connection closed
+                self.websocket = None
+                await self._publish_disconnect("Connection closed")
+
+                # Cancel background tasks
+                if self._ping_task and not self._ping_task.done():
+                    self._ping_task.cancel()
+                if self._monitor_task and not self._monitor_task.done():
+                    self._monitor_task.cancel()
+
+        except Exception as e:
+            self.websocket = None
+            error_str = str(e)
+            logger.error("WebSocket connection error", error=error_str)
+            await self._publish_error(error_str)
+            raise
+
+    async def _process_message(self, message: str) -> None:
         """Process incoming WebSocket message."""
         try:
-            # Parse message (using stateless helper)
+            logger.info(f"Received WebSocket message ({len(message)} chars)")
+
+            # Parse message
             data, is_json = parse_websocket_message(message)
-            
+
             if is_json and data:
-                # Handle JSON message types
                 if isinstance(data, dict):
                     # Check for articles
                     articles = extract_articles_from_json(data)
                     if articles:
-                        self._process_news_articles(articles)
+                        await self._process_news_articles(articles)
                     # Check for heartbeat/pong
                     elif is_heartbeat_message(data):
                         if "pong" in str(data).lower() or data.get("type") == "pong":
-                            # Handle JSON pong message
-                            with self._lock:
-                                self._operational_stats["last_pong_received"] = datetime.now()
-                                self._operational_stats["pong_received_count"] += 1
-                                if self._operational_stats.get("missed_pongs", 0) > 0:
-                                    self._operational_stats["missed_pongs"] = 0
+                            self._operational_stats["last_pong_received"] = datetime.now()
+                            self._operational_stats["pong_received_count"] += 1
+                            self._operational_stats["missed_pongs"] = 0
                             logger.info("📥 WebSocket JSON pong received")
                         else:
                             logger.debug("Received heartbeat message from Benzinga")
@@ -499,35 +378,30 @@ class BenzingaWebSocketMicroservice:
                     elif is_error_message(data)[0]:
                         is_error, error_msg, is_rate_limit = is_error_message(data)
                         logger.error("Benzinga WebSocket error", error=error_msg)
-                        
+
                         if is_rate_limit:
                             self._reconnect_allowed = False
-                            self._publish_event_threadsafe(self._publish_rate_limit())
+                            await self._publish_rate_limit()
                         else:
-                            self._publish_event_threadsafe(self._publish_error(error_msg, is_rate_limit=False))
+                            await self._publish_error(error_msg, is_rate_limit=False)
                     else:
-                        # Unknown JSON message format
                         logger.debug("Unknown JSON WebSocket message format", data=data)
+
                 elif isinstance(data, list):
                     # List of articles
-                    self._process_news_articles(data)
+                    await self._process_news_articles(data)
                 else:
                     logger.debug("Unexpected JSON message type", message_type=type(data).__name__)
+
             elif not is_json:
-                # XML/HTML message (using stateless helper)
+                # XML/HTML message
                 process_xml_message(message)
-        
+
         except Exception as e:
             logger.error("Error processing message", error=str(e))
-            self._publish_event_threadsafe(self._publish_error(str(e)))
-    
-    def _process_xml_message(self, message: str) -> None:
-        """Process XML/HTML message from WebSocket."""
-        # Delegate to stateless helper
-        process_xml_message(message)
-        # Note: Error handling is done in the helper, but we can publish error events here if needed
-    
-    def _process_news_articles(self, articles_data: list) -> None:
+            await self._publish_error(str(e))
+
+    async def _process_news_articles(self, articles_data: list) -> None:
         """Process news articles and publish events."""
         for article_data in articles_data:
             try:
@@ -539,111 +413,167 @@ class BenzingaWebSocketMicroservice:
                         skip_threshold_minutes=self._startup_skip_old_minutes
                     )
                     continue
-                
-                # Create typed infrastructure model (using stateless helper)
+
+                # Create typed infrastructure model
                 infra_article_data = create_infrastructure_article_data(article_data)
-                
+
                 if infra_article_data:
-                    # Publish typed infrastructure event
-                    self._publish_event_threadsafe(self._publish_article_received(infra_article_data))
-                    
-                    # ✅ No stats mutation - MetricsService subscribes to ARTICLE_RECEIVED event
-                    
+                    # Publish event directly (no thread crossing!)
+                    await self._publish_article_received(infra_article_data)
+
                     article_id = infra_article_data.source_id or str(infra_article_data.benzinga_id) if infra_article_data.benzinga_id else "unknown"
                     logger.info("Published ArticleReceived event", article_id=article_id)
-            
+
             except Exception as e:
                 logger.error("Error processing article", error=str(e), article_data=article_data)
-                # Publish error event for article processing failures
-                self._publish_event_threadsafe(self._publish_error(f"Article processing error: {str(e)}", is_rate_limit=False))
-    
+                await self._publish_error(f"Article processing error: {str(e)}", is_rate_limit=False)
+
     def _should_skip_old_article(self, article_data: Dict[str, Any]) -> bool:
-        """
-        Check if article should be skipped because it's too old (during startup period).
-        
-        Args:
-            article_data: Raw article data dictionary
-            
-        Returns:
-            True if article should be skipped, False otherwise
-        """
-        # If startup time not set, don't skip (shouldn't happen, but be safe)
+        """Check if article should be skipped because it's too old (during startup period)."""
         if not self._startup_time:
             return False
-        
-        # Check if we're still in startup period (use same threshold as skip threshold)
-        # This ensures we filter old articles for the entire startup period
+
         startup_period_end = self._startup_time + timedelta(minutes=self._startup_skip_old_minutes)
         if datetime.now() > startup_period_end:
-            # Startup period expired, process all articles
             return False
-        
-        # Extract article timestamp
+
         article_timestamp = None
-        
-        # Try different timestamp fields
+
         for field in ["published", "created_at", "updated_at", "last_updated"]:
             timestamp_str = article_data.get(field)
             if timestamp_str:
                 try:
-                    # Parse ISO format timestamp
                     if isinstance(timestamp_str, str):
-                        # Handle various formats
                         if 'T' in timestamp_str:
-                            # ISO format
                             article_timestamp = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
                         else:
-                            # Try other formats if needed
                             continue
                     elif isinstance(timestamp_str, (int, float)):
-                        # Unix timestamp - explicitly convert as UTC
-                        # fromtimestamp() without tz interprets as local time, which is incorrect
                         article_timestamp = datetime.fromtimestamp(timestamp_str, tz=timezone.utc)
                     break
                 except (ValueError, TypeError):
                     continue
-        
-        # If no timestamp found, don't skip (process it to be safe)
+
         if not article_timestamp:
             return False
-        
-        # Make article_timestamp timezone-aware if needed (for ISO strings that might not have timezone)
+
         if article_timestamp.tzinfo is None:
-            # Assume UTC if no timezone (shouldn't happen for Unix timestamps after fix above)
             article_timestamp = article_timestamp.replace(tzinfo=timezone.utc)
-        
-        # Make startup_time timezone-aware for comparison
+
         startup_time_aware = self._startup_time
         if startup_time_aware.tzinfo is None:
             startup_time_aware = startup_time_aware.replace(tzinfo=timezone.utc)
-        
-        # Calculate age of article
-        article_age = (startup_time_aware - article_timestamp).total_seconds() / 60.0  # age in minutes
-        
-        # Skip if article is older than threshold
+
+        article_age = (startup_time_aware - article_timestamp).total_seconds() / 60.0
+
         if article_age > self._startup_skip_old_minutes:
             return True
-        
+
         return False
-    
-    def _create_infrastructure_article_data(self, data: Dict[str, Any]) -> Optional[InfrastructureArticleData]:
-        """Create typed InfrastructureArticleData from raw WebSocket data."""
-        # Delegate to stateless helper
-        return create_infrastructure_article_data(data)
-    
+
+    async def _ping_loop(self) -> None:
+        """Ping loop for keepalive."""
+        logger.info("Ping loop started")
+        try:
+            while self._running and self.websocket:
+                await asyncio.sleep(self.ping_interval)
+
+                if self.websocket and self.is_connected():
+                    try:
+                        await self.websocket.send(json.dumps({"action": "ping"}))
+                        self._operational_stats["last_ping_sent"] = datetime.now()
+                        self._operational_stats["ping_sent_count"] += 1
+                        logger.info("📤 WebSocket ping sent", ping_count=self._operational_stats["ping_sent_count"])
+                    except Exception as e:
+                        logger.error("Error sending ping", error=str(e))
+                        await self._publish_error(f"Ping error: {str(e)}", is_rate_limit=False)
+
+        except asyncio.CancelledError:
+            logger.debug("Ping loop cancelled")
+        except Exception as e:
+            logger.error("Error in ping loop", error=str(e))
+
+    async def _monitor_loop(self) -> None:
+        """Monitor connection health."""
+        logger.info("Connection monitor started")
+        try:
+            while self._running:
+                await asyncio.sleep(self.connection_check_interval)
+
+                self._operational_stats["last_connection_check"] = datetime.now()
+
+                if self._running and self._reconnect_allowed and self._autorestart_enabled:
+                    stats = self.get_stats()
+                    is_connected = stats.get("is_connected", False)
+                    last_ping_sent = stats.get("last_ping_sent")
+                    last_pong_received = stats.get("last_pong_received")
+                    missed_pongs = stats.get("missed_pongs", 0)
+
+                    # Check for recent messages
+                    last_message_time = stats.get("last_message_time")
+                    has_recent_messages = False
+                    if last_message_time:
+                        if isinstance(last_message_time, str):
+                            last_message_time = datetime.fromisoformat(last_message_time.replace('Z', '+00:00'))
+                        time_since_message = (datetime.now(last_message_time.tzinfo) - last_message_time).total_seconds()
+                        has_recent_messages = time_since_message < 300  # 5 minutes
+
+                    # Detect zombie connection
+                    if is_connected and self.websocket:
+                        if last_ping_sent:
+                            if isinstance(last_ping_sent, str):
+                                last_ping_sent = datetime.fromisoformat(last_ping_sent.replace('Z', '+00:00'))
+
+                            time_since_ping = (datetime.now(last_ping_sent.tzinfo) - last_ping_sent).total_seconds()
+                            zombie_threshold = self.ping_interval * 2
+
+                            if time_since_ping > zombie_threshold:
+                                if not last_pong_received or (
+                                    isinstance(last_pong_received, datetime) and last_pong_received < last_ping_sent
+                                ):
+                                    if not has_recent_messages:
+                                        logger.warning(
+                                            "Connection monitor detected zombie connection - triggering reconnection",
+                                            time_since_ping=time_since_ping,
+                                            zombie_threshold=zombie_threshold
+                                        )
+                                        try:
+                                            if self.websocket:
+                                                await self.websocket.close()
+                                        except Exception as e:
+                                            logger.error("Error closing zombie connection", error=str(e))
+
+                        if missed_pongs >= 2:
+                            logger.warning(
+                                "Connection monitor detected multiple missed pongs - triggering reconnection",
+                                missed_pongs=missed_pongs
+                            )
+                            try:
+                                if self.websocket:
+                                    await self.websocket.close()
+                            except Exception as e:
+                                logger.error("Error closing zombie connection", error=str(e))
+
+        except asyncio.CancelledError:
+            logger.debug("Monitor loop cancelled")
+        except Exception as e:
+            logger.error("Error in connection monitor", error=str(e))
+
+    # Event publishing methods (direct async - no thread crossing!)
+
     async def _publish_article_received(self, article_data: InfrastructureArticleData) -> None:
-        """Publish ArticleReceived infrastructure event with typed model."""
+        """Publish ArticleReceived infrastructure event."""
         event = ArticleReceivedEvent(
-            article_data=article_data,  # ✅ Typed infrastructure model
+            article_data=article_data,
             received_at=datetime.now()
         )
         await self.event_bus.publish(InfrastructureEventType.ARTICLE_RECEIVED, event.model_dump())
-    
+
     async def _publish_connected(self) -> None:
         """Publish WebSocketConnected event."""
         event = WebSocketConnectedEvent(connected_at=datetime.now())
         await self.event_bus.publish("WebSocketConnected", event.model_dump())
-    
+
     async def _publish_disconnect(self, reason: Optional[str] = None) -> None:
         """Publish WebSocketDisconnected event."""
         event = WebSocketDisconnectedEvent(
@@ -651,7 +581,7 @@ class BenzingaWebSocketMicroservice:
             reason=reason
         )
         await self.event_bus.publish("WebSocketDisconnected", event.model_dump())
-    
+
     async def _publish_error(self, error: str, is_rate_limit: bool = False) -> None:
         """Publish WebSocketError event."""
         from .events import WebSocketErrorEvent
@@ -661,17 +591,16 @@ class BenzingaWebSocketMicroservice:
             is_rate_limit=is_rate_limit
         )
         await self.event_bus.publish("WebSocketError", event.model_dump())
-    
+
     async def _publish_rate_limit(self) -> None:
         """Publish WebSocketRateLimit event."""
         from .events import WebSocketRateLimitEvent
         event = WebSocketRateLimitEvent(occurred_at=datetime.now())
         await self.event_bus.publish("WebSocketRateLimit", event.model_dump())
-    
+
     def _convert_to_benzinga_article(self, data: Dict[str, Any]) -> Optional[BenzingaArticle]:
         """Convert raw data to BenzingaArticle model."""
         try:
-            # Map WebSocket fields to BenzingaArticle fields
             article = BenzingaArticle(
                 benzinga_id=int(data.get("id", 0)),
                 title=data.get("title", ""),
@@ -689,173 +618,4 @@ class BenzingaWebSocketMicroservice:
             return article
         except Exception as e:
             logger.error("Failed to convert to BenzingaArticle", error=str(e), data=data)
-            # Note: Conversion errors are logged but don't publish events (not connection-level errors)
             return None
-    
-    def _ping_loop(self) -> None:
-        """Ping loop for keepalive."""
-        # Keep existing ping loop logic
-        logger.info("Ping loop started")
-        while self._threads_should_run:
-            try:
-                time.sleep(self.ping_interval)
-                # Check connection status from MetricsService
-                websocket_stats = self.metrics_service.get_websocket_stats()
-                is_connected = websocket_stats.get("is_connected", False)
-                
-                if self.websocket and is_connected:
-                    try:
-                        self.websocket.send(json.dumps({"action": "ping"}))
-                        with self._lock:
-                            self._operational_stats["last_ping_sent"] = datetime.now()
-                            self._operational_stats["ping_sent_count"] += 1
-                            ping_count = self._operational_stats["ping_sent_count"]
-                        logger.info("📤 WebSocket ping sent", ping_count=ping_count)
-                    except Exception as e:
-                        logger.error("Error sending ping", error=str(e))
-                        # Publish error for ping failures
-                        self._publish_event_threadsafe(self._publish_error(f"Ping error: {str(e)}", is_rate_limit=False))
-            except Exception as e:
-                logger.error("Error in ping loop", error=str(e))
-                self._publish_event_threadsafe(self._publish_error(f"Ping loop error: {str(e)}", is_rate_limit=False))
-                break
-    
-    def _connection_monitor_loop(self) -> None:
-        """
-        Monitor connection health and trigger reconnection on zombie connections.
-        
-        This loop:
-        1. Subscribes to health status events
-        2. Detects zombie connections (ping/pong timeout)
-        3. Triggers reconnection by closing the current connection
-        """
-        logger.info("Connection monitor started")
-        
-        # Subscribe to health status events to detect zombie connections
-        def on_health_status_unhealthy(event_type: str, event_data: dict) -> None:
-            """Handle unhealthy health status - trigger reconnection for zombie connections."""
-            try:
-                status = event_data.get("status", "")
-                reason = event_data.get("reason", "")
-                
-                # Only trigger reconnection for zombie connections or disconnections
-                # (not for rate limits - those are handled separately)
-                if status in ["zombie", "disconnected"] and self._threads_should_run and self._reconnect_allowed and self._autorestart_enabled:
-                    logger.warning(
-                        "Health monitor detected unhealthy connection - triggering reconnection",
-                        status=status,
-                        reason=reason
-                    )
-                    
-                    # Force reconnection by closing current connection
-                    # This will cause run_forever() to exit, and _run_websocket_loop will reconnect
-                    with self._lock:
-                        self._force_reconnect = True
-                    
-                    # Close the connection if it exists (this triggers on_close, which publishes disconnect event)
-                    if self.websocket:
-                        try:
-                            # Close the connection - this will cause run_forever() to exit
-                            # and _run_websocket_loop will detect it and reconnect
-                            self.websocket.close()
-                        except Exception as e:
-                            logger.error("Error closing zombie connection", error=str(e))
-                
-            except Exception as e:
-                logger.error("Error handling health status in connection monitor", error=str(e))
-        
-        # Subscribe to health status events (we'll subscribe in the event bus)
-        # Since we're in a thread, we need to use the event bus's thread-safe subscription
-        # For now, we'll check health status directly by polling
-        
-        while self._threads_should_run:
-            try:
-                time.sleep(self.connection_check_interval)
-                
-                with self._lock:
-                    self._operational_stats["last_connection_check"] = datetime.now()
-                
-                # Check for zombie connections by looking at ping/pong stats
-                if self._threads_should_run and self._reconnect_allowed and self._autorestart_enabled:
-                    stats = self.get_stats()
-                    is_connected = stats.get("is_connected", False)
-                    last_ping_sent = stats.get("last_ping_sent")
-                    last_pong_received = stats.get("last_pong_received")
-                    missed_pongs = stats.get("missed_pongs", 0)
-                    
-                    # Check if messages are being received (Benzinga might not respond to JSON pings)
-                    messages_received = stats.get("messages_received", 0)
-                    last_message_time = stats.get("last_message_time")  # From MetricsService
-                    has_recent_messages = False
-                    if last_message_time:
-                        if isinstance(last_message_time, str):
-                            last_message_time = datetime.fromisoformat(last_message_time.replace('Z', '+00:00'))
-                        time_since_message = (datetime.now(last_message_time.tzinfo) - last_message_time).total_seconds()
-                        has_recent_messages = time_since_message < 300  # 5 minutes
-                    
-                    # Detect zombie connection: connected but no pong response AND no messages
-                    if is_connected and self.websocket:
-                        if last_ping_sent:
-                            if isinstance(last_ping_sent, str):
-                                last_ping_sent = datetime.fromisoformat(last_ping_sent.replace('Z', '+00:00'))
-                            
-                            time_since_ping = (datetime.now(last_ping_sent.tzinfo) - last_ping_sent).total_seconds()
-                            
-                            # Zombie threshold: 2x ping_interval (allows for network delay + processing time)
-                            # With 90s ping interval, threshold is 180s
-                            zombie_threshold = self.ping_interval * 2
-                            
-                            # If ping sent more than 2x ping_interval ago and no pong received, it's a zombie
-                            # BUT: Only if no recent messages (messages = connection is alive)
-                            if time_since_ping > zombie_threshold:
-                                if not last_pong_received or (
-                                    isinstance(last_pong_received, datetime) and last_pong_received < last_ping_sent
-                                ):
-                                    if not has_recent_messages:
-                                        logger.warning(
-                                            "Connection monitor detected zombie connection - triggering reconnection",
-                                            time_since_ping=time_since_ping,
-                                            zombie_threshold=zombie_threshold,
-                                            ping_interval=self.ping_interval,
-                                            missed_pongs=missed_pongs,
-                                            messages_received=messages_received
-                                        )
-                                        
-                                        with self._lock:
-                                            self._force_reconnect = True
-                                        
-                                        # Close zombie connection to trigger reconnection
-                                        try:
-                                            if self.websocket:
-                                                self.websocket.close()
-                                        except Exception as e:
-                                            logger.error("Error closing zombie connection", error=str(e))
-                                    else:
-                                        # Connection is alive (receiving messages) even if no pong
-                                        logger.debug(
-                                            "No pong received but messages are flowing - connection is alive",
-                                            time_since_ping=time_since_ping,
-                                            time_since_last_message=time_since_message if last_message_time else None
-                                        )
-                        
-                        # Also check missed pongs count
-                        if missed_pongs >= 2:
-                            logger.warning(
-                                "Connection monitor detected multiple missed pongs - triggering reconnection",
-                                missed_pongs=missed_pongs
-                            )
-                            
-                            with self._lock:
-                                self._force_reconnect = True
-                            
-                            try:
-                                if self.websocket:
-                                    self.websocket.close()
-                            except Exception as e:
-                                logger.error("Error closing zombie connection", error=str(e))
-                
-            except Exception as e:
-                logger.error("Error in connection monitor", error=str(e))
-                self._publish_event_threadsafe(self._publish_error(f"Connection monitor error: {str(e)}", is_rate_limit=False))
-                time.sleep(5)  # Wait before retrying monitor loop
-

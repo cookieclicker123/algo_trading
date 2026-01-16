@@ -13,45 +13,54 @@ logger = get_logger(__name__)
 class AsyncEventBus:
     """
     Async event bus for pub/sub communication.
-    
+
     Features:
-    - Async event publishing
+    - Async event publishing (fire-and-forget, non-blocking)
     - Multiple subscribers per event type
     - Type-safe event handling
     - Error isolation (one subscriber failure doesn't affect others)
+
+    IMPORTANT: publish() returns immediately without waiting for subscribers.
+    This prevents queueing delays when many events arrive in quick succession.
+    Subscribers run concurrently in the background.
     """
-    
+
     def __init__(self):
         """Initialize the event bus."""
         self._subscribers: Dict[str, List[Callable]] = defaultdict[str, list](list)
         self._lock = asyncio.Lock()
+        # Track background tasks to prevent garbage collection before completion
+        self._background_tasks: set = set()
         logger.info("EventBus initialized")
-    
+
     async def publish(self, event_type: str, event_data: Any) -> None:
         """
-        Publish an event to all subscribers.
-        
+        Publish an event to all subscribers (fire-and-forget).
+
+        Returns immediately after spawning subscriber tasks. Subscribers run
+        concurrently in the background. This eliminates queueing delays when
+        many events arrive quickly - each event's subscribers start immediately
+        rather than waiting for previous events to fully complete.
+
         Args:
             event_type: Type/name of the event (e.g., "ArticleReceived")
             event_data: Event payload/data
         """
         async with self._lock:
             subscribers = self._subscribers[event_type].copy()
-        
+
         if not subscribers:
             logger.debug(f"No subscribers for event type: {event_type}")
             return
-        
+
         logger.debug(f"Publishing event: {event_type}", subscribers=len(subscribers))
-        
-        # Fire and forget - run all subscribers concurrently
-        tasks = []
+
+        # Fire and forget - spawn tasks and return immediately
+        # Tasks are tracked in _background_tasks to prevent GC before completion
         for subscriber in subscribers:
             task = asyncio.create_task(self._safe_call_subscriber(subscriber, event_type, event_data))
-            tasks.append(task)
-        
-        # Wait for all to complete (with error isolation)
-        await asyncio.gather(*tasks, return_exceptions=True)
+            self._background_tasks.add(task)
+            task.add_done_callback(self._background_tasks.discard)
     
     async def _safe_call_subscriber(self, subscriber: Callable, event_type: str, event_data: Any) -> None:
         """Safely call a subscriber, catching and logging any errors."""

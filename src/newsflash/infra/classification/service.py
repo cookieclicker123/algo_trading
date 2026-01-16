@@ -284,27 +284,14 @@ Summary: {summary}"""
                     await self._publish_skipped_event(infra_event, "nbbo_unavailable")
                     return
                 
-                # Filter 3b: Volume check - ensure there is any activity after publication (Save AI costs)
-                if self.market_data_validator and request_data.article_published_at_iso:
-                    try:
-                        pub_time = datetime.fromisoformat(request_data.article_published_at_iso)
-                        if pub_time.tzinfo is None:
-                            from datetime import timezone
-                            pub_time = pub_time.replace(tzinfo=timezone.utc)
-                            
-                        has_vol = await self.market_data_validator.has_recent_volume(primary_ticker, pub_time)
-                        if not has_vol:
-                            logger.info(
-                                "⏭️ CLASSIFY INFRA: Skipping classification - ZERO volume since publication (Save API costs)",
-                                article_id=request_data.article_id,
-                                ticker=primary_ticker,
-                                pub_time=pub_time.isoformat()
-                            )
-                            await self._publish_skipped_event(infra_event, "no_volume_since_publication")
-                            return
-                    except Exception as vol_err:
-                        logger.error(f"CLASSIFY INFRA: Error in volume pre-filter: {vol_err}")
-                        # Continue to Groq if volume check fails to be safe
+                # Filter 3b: Volume prefilter DISABLED
+                # This filter was causing false negatives (e.g., JFBR +134% missed)
+                # because the Alpaca trades API has latency - trades exist but aren't
+                # visible yet when this check runs 1-2 seconds after publication.
+                # The recall engine's volume analysis is more thorough and handles this.
+                #
+                # NOTE: If AI classification is re-enabled and API costs are a concern,
+                # consider re-enabling this with a longer delay or async retry.
             
             # Step 4: All checks passed - proceed to Groq API classification
             # ========================================================================
