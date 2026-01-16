@@ -1,0 +1,106 @@
+{
+  "analysis_date": "2026-01-15T20:18:09.998747+00:00",
+  "window_seconds": 10.0,
+  "summary": {
+    "total_winners": 5,
+    "successful_queries": 5,
+    "significant_moves_in_10s": 1
+  },
+  "results": [
+    {
+      "article_id": "benzinga:49929916",
+      "title": "OS Therapies Announces Positive Biomarker Data from Phase 2b Clinical Trial of OST-HER2 in the Prevention or Delay of Recurrent, Fully Resected, Pulmonary Metastatic Osteosarcoma",
+      "ticker": "OSTX",
+      "initial_ask": 1.69,
+      "received_at": "2026-01-15T12:01:02.281383+00:00",
+      "target_time": "2026-01-15T12:01:12.281383+00:00",
+      "quote_at_10s": {
+        "timestamp": "2026-01-15T12:01:08.627026+00:00",
+        "bid": 1.61,
+        "ask": 1.71,
+        "mid": 1.6600000000000001,
+        "spread": 0.09999999999999987,
+        "spread_pct": 6.02409638554216,
+        "time_diff_seconds": 3.654357
+      },
+      "price_change_pct": 1.1834319526627228,
+      "final_max_excursion_pct": 8.28402366863906
+    },
+    {
+      "article_id": "benzinga:49931679",
+      "title": "60 Degrees Pharmaceuticals, Inc. Announces Approval of Reverse Stock Split Ratio",
+      "ticker": "SXTP",
+      "initial_ask": 0.4601,
+      "received_at": "2026-01-15T13:01:02.986198+00:00",
+      "target_time": "2026-01-15T13:01:12.986198+00:00",
+      "quote_at_10s": {
+        "timestamp": "2026-01-15T13:01:09.417441+00:00",
+        "bid": 0.46,
+        "ask": 0.4601,
+        "mid": 0.46005,
+        "spread": 9.999999999998899e-05,
+        "spread_pct": 0.021736767742634274,
+        "time_diff_seconds": 3.568757
+      },
+      "price_change_pct": 0.0,
+      "final_max_excursion_pct": 16.213866550749824
+    },
+    {
+      "article_id": "benzinga:49932324",
+      "title": "Hoth Therapeutics Reaches Key EU Regulatory Inflection Point Advancing HT-001 Oncology Trial Toward Multi-Country Site Activation",
+      "ticker": "HOTH",
+      "initial_ask": 1.13,
+      "received_at": "2026-01-15T13:17:13.534001+00:00",
+      "target_time": "2026-01-15T13:17:23.534001+00:00",
+      "quote_at_10s": {
+        "timestamp": "2026-01-15T13:17:10.345747+00:00",
+        "bid": 1.07,
+        "ask": 1.13,
+        "mid": 1.1,
+        "spread": 0.05999999999999983,
+        "spread_pct": 5.454545454545439,
+        "time_diff_seconds": 13.188254
+      },
+      "price_change_pct": 0.0,
+      "final_max_excursion_pct": 9.734513274336292
+    },
+    {
+      "article_id": "benzinga:49932479",
+      "title": "GT Biopharma Announces IND Submission for GTB-5550 TriKE\u00ae, a B7-H3-targeted natural killer (NK) cell engager for B7-H3 expressing solid tumor cancers",
+      "ticker": "GTBP",
+      "initial_ask": 0.7703,
+      "received_at": "2026-01-15T13:30:01.877120+00:00",
+      "target_time": "2026-01-15T13:30:11.877120+00:00",
+      "quote_at_10s": {
+        "timestamp": "2026-01-15T13:30:11.698332+00:00",
+        "bid": 0.7615,
+        "ask": 0.776,
+        "mid": 0.76875,
+        "spread": 0.014500000000000068,
+        "spread_pct": 1.8861788617886268,
+        "time_diff_seconds": 0.178788
+      },
+      "price_change_pct": 0.7399714396988236,
+      "final_max_excursion_pct": 12.94300921718811
+    },
+    {
+      "article_id": "benzinga:49933642",
+      "title": "CASI Pharmaceuticals Announces Approval of Clinical Trial Application by China NMPA for Phase 1 / 2 Study of CID-103 for Renal Allograft Antibody-Mediated Rejection (AMR)",
+      "ticker": "CASI",
+      "initial_ask": 1.23,
+      "received_at": "2026-01-15T14:00:06.996008+00:00",
+      "target_time": "2026-01-15T14:00:16.996008+00:00",
+      "quote_at_10s": {
+        "timestamp": "2026-01-15T14:00:15.506051+00:00",
+        "bid": 0.94,
+        "ask": 1.23,
+        "mid": 1.085,
+        "spread": 0.29000000000000004,
+        "spread_pct": 26.72811059907835,
+        "time_diff_seconds": 1.489957
+      },
+      "price_change_pct": 0.0,
+      "final_max_excursion_pct": 13.821138211382108
+    }
+  ]
+}

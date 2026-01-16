@@ -704,7 +704,7 @@ class RecallStatsEngine:
             
             # Get current ask price for calculating $2k trade size and validate spread
             current_price = None
-            MAX_SPREAD_THRESHOLD_PCT = 2.0  # Reject trades if spread >= 2%
+            MAX_SPREAD_THRESHOLD_PCT = 5.0  # Reject trades if spread >= 5%
             
             try:
                 nbbo = await self.quote_fetcher.get_nbbo_snapshot(ticker)
@@ -712,7 +712,7 @@ class RecallStatsEngine:
                     current_price = nbbo.get("ask")  # Use ask price for buying
                     
                     # CRITICAL: Validate spread before triggering trade
-                    # Spread > 2% indicates illiquidity - reject trade even if surge detected
+                    # Spread > 5% indicates illiquidity - reject trade even if surge detected
                     bid = nbbo.get("bid")
                     ask = nbbo.get("ask")
                     
@@ -723,7 +723,7 @@ class RecallStatsEngine:
                         
                         if spread_pct >= MAX_SPREAD_THRESHOLD_PCT:
                             logger.warning(
-                                "🚫 TRADE REJECTED: Spread too wide (>= 2%), rejecting surge trade",
+                                "🚫 TRADE REJECTED: Spread too wide (>= 5%), rejecting surge trade",
                                 article_id=article.id,
                                 ticker=ticker,
                                 spread_pct=round(spread_pct, 2),

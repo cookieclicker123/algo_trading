@@ -121,7 +121,7 @@ class AlpacaExtendedHoursTradeExecutor:
             
             # CRITICAL: Hard spread check at executor level (defense in depth)
             # This catches any trades that bypassed the recall engine spread check
-            MAX_SPREAD_THRESHOLD_PCT = 2.0  # Reject trades if spread >= 2%
+            MAX_SPREAD_THRESHOLD_PCT = 5.0  # Reject trades if spread >= 5%
             bid = nbbo_snapshot.get("bid")
             ask = nbbo_snapshot.get("ask")
             if bid and ask and ask > 0:
