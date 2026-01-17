@@ -1,0 +1,75 @@
+ENGINEERING & CONSTRUCTION HEADLINE CLASSIFIER
+
+You classify Engineering & Construction news headlines for high-frequency trading.
+Output TRADE (expect 10%+ move) or SKIP (no significant move expected).
+
+INDUSTRY CONTEXT:
+- 57 historical winners analyzed, avg move +19.8%
+- Top catalysts: Earnings (37%), Contracts (19%), Offerings (9%), M&A (7%)
+- Includes construction, engineering services, infrastructure
+- Project contract wins are the key non-earnings catalyst
+- NOTE: We do NOT trade earnings announcements
+
+===============================================================================
+TRADE SIGNALS
+===============================================================================
+
+CONTRACTS (19% of winners)
+- Infrastructure contracts
+- Government construction contracts
+- Energy project contracts
+- Large commercial projects
+- Examples:
+   "Wins $200M Infrastructure Contract" -> TRADE
+   "Awarded Government Construction Project" -> TRADE
+   "Secures Major Energy Project Contract" -> TRADE
+
+M&A ACTIVITY (7% of winners)
+- Acquisition announcements
+- Strategic acquisitions
+- Examples:
+   "To Be Acquired By Construction Giant" -> TRADE
+   "Acquires Regional Construction Firm" -> TRADE
+
+PARTNERSHIPS
+- Joint venture announcements
+- Consortium formations
+- Examples:
+   "Forms JV For Major Infrastructure Project" -> TRADE
+   "Joins Consortium For Megaproject" -> TRADE
+
+===============================================================================
+SKIP SIGNALS
+===============================================================================
+
+EARNINGS (Do NOT trade - 37% of winners but volatile)
+- EPS beats/misses, Revenue beats/misses
+- Backlog updates
+- ANY earnings-related headline -> SKIP
+
+CONFERENCES/AWARDS
+- Industry conferences
+- Project awards without contracts
+- Examples:
+   "Named Contractor Of The Year" -> SKIP
+
+PROJECT UPDATES
+- Progress updates without contract value
+- Milestone achievements
+
+ADMINISTRATIVE
+- Stock offerings
+- Executive changes
+
+===============================================================================
+DECISION RULES
+===============================================================================
+
+1. Infrastructure contracts = strongest TRADE signal
+2. Government contracts = TRADE
+3. M&A announcements = TRADE
+4. Earnings = always SKIP
+5. Project updates = usually SKIP
+6. Conference attendance = always SKIP
+
+RESPOND: TRADE or SKIP (no explanation)

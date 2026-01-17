@@ -5,7 +5,9 @@ Pure infrastructure - handles Groq API client, publishes events.
 All stateful code related to Groq API lives here.
 
 PRIMARY TRADING LOGIC:
-- Healthcare headlines → industry-specific LLM classification → TRADE/SKIP
+- Multi-sector headlines → industry-specific LLM classification → TRADE/SKIP
+- Supported sectors: Healthcare, Technology, Industrials, Consumer Cyclical,
+  Financial Services, Communication Services, Consumer Defensive, Basic Materials
 - No microstructure filters - pure language-based instant decision
 - Speed is critical for early entry
 """
@@ -28,7 +30,7 @@ from .infrastructure_models import (
     ClassificationSkippedInfrastructureEvent
 )
 from .event_protocols import InfrastructureClassificationRequestEventSubscriber
-from .healthcare_classifier import HealthcareClassifier
+from .sector_classifier import SectorClassifier
 
 logger = get_logger(__name__)
 
@@ -84,10 +86,10 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
         self.ticker_validator = ticker_validator  # ✅ Injected ticker validator
         self.market_data_validator = market_data_validator  # ✅ Injected market data validator
         self.quote_fetcher = quote_fetcher  # ✅ Injected quote fetcher for NBBO check
-        self.metadata_cache = metadata_cache  # ✅ Injected metadata cache for Healthcare classifier
+        self.metadata_cache = metadata_cache  # ✅ Injected metadata cache for sector classifier
 
-        # Healthcare classifier (initialized lazily when metadata_cache is set)
-        self._healthcare_classifier: Optional[HealthcareClassifier] = None
+        # Multi-sector classifier (initialized lazily when metadata_cache is set)
+        self._sector_classifier: Optional[SectorClassifier] = None
 
         # Stateful: Groq client (initialized if enabled)
         self.client: Optional[AsyncGroq] = None
@@ -138,25 +140,25 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
             return "Classify the news headline as IMMINENT or IGNORE. Return JSON only."
 
     @property
-    def healthcare_classifier(self) -> Optional[HealthcareClassifier]:
+    def sector_classifier(self) -> Optional[SectorClassifier]:
         """
-        Get Healthcare classifier (lazily initialized when metadata_cache is available).
+        Get multi-sector classifier (lazily initialized when metadata_cache is available).
 
         Returns:
-            HealthcareClassifier instance or None if metadata_cache not set
+            SectorClassifier instance or None if metadata_cache not set
         """
-        if self._healthcare_classifier is None and self.metadata_cache is not None:
-            self._healthcare_classifier = HealthcareClassifier(
+        if self._sector_classifier is None and self.metadata_cache is not None:
+            self._sector_classifier = SectorClassifier(
                 api_key=self.api_key,
                 metadata_cache=self.metadata_cache,
                 model=self.model,
             )
             logger.info(
-                "HealthcareClassifier initialized",
+                "SectorClassifier initialized",
                 model=self.model,
-                supported_industries=list(self._healthcare_classifier._stats.keys())
+                supported_sectors=list(self._sector_classifier._stats["by_sector"].keys())
             )
-        return self._healthcare_classifier
+        return self._sector_classifier
 
     def _format_article_for_classification(
         self,
@@ -326,17 +328,20 @@ Summary: {summary}"""
                 # NOTE: If AI classification is re-enabled and API costs are a concern,
                 # consider re-enabling this with a longer delay or async retry.
             
-            # Step 4: All checks passed - proceed to Healthcare LLM classification
+            # Step 4: All checks passed - proceed to multi-sector LLM classification
             # ========================================================================
-            # HEALTHCARE-ONLY TRADING STRATEGY
+            # MULTI-SECTOR TRADING STRATEGY
             # ========================================================================
             # Pure language-based classification using industry-specific prompts.
+            # Supported: Healthcare, Technology, Industrials, Consumer Cyclical,
+            #            Financial Services, Communication Services, Consumer Defensive,
+            #            Basic Materials
             # Flow: headline → sector check → industry check → Groq LLM → TRADE/SKIP
             # If TRADE → publish "imminent" classification → trigger AutoTradeService
-            # If SKIP/NOT_HEALTHCARE → no trade, but data collection continues
+            # If SKIP/NOT_SUPPORTED → no trade, but data collection continues
             # ========================================================================
 
-            await self._classify_via_healthcare(infra_event, primary_ticker)
+            await self._classify_via_sector(infra_event, primary_ticker)
             
         except Exception as e:
             logger.error(
@@ -467,19 +472,19 @@ Summary: {summary}"""
             
             await self.event_bus.publish(InfrastructureEventType.CLASSIFICATION_FAILED, failed_event.model_dump())
 
-    async def _classify_via_healthcare(
+    async def _classify_via_sector(
         self,
         infra_event: ClassificationRequestedInfrastructureEvent,
         primary_ticker: str
     ) -> None:
         """
-        Classify article via Healthcare LLM classifier and publish result event.
+        Classify article via multi-sector LLM classifier and publish result event.
 
         Flow:
-        1. Check if Healthcare classifier is available (metadata_cache injected)
-        2. Call Healthcare classifier (sector → industry → Groq LLM)
+        1. Check if sector classifier is available (metadata_cache injected)
+        2. Call sector classifier (sector → industry → Groq LLM)
         3. If TRADE → publish ClassificationCompleted with classification="imminent"
-        4. If SKIP/NOT_HEALTHCARE/UNSUPPORTED → publish ClassificationSkipped
+        4. If SKIP/NOT_SUPPORTED/UNSUPPORTED_INDUSTRY → publish ClassificationSkipped
 
         Args:
             infra_event: Classification request infrastructure event
@@ -488,10 +493,10 @@ Summary: {summary}"""
         request_data = infra_event.request_data
         headline = request_data.article_title
 
-        # Check if Healthcare classifier is available
-        if not self.healthcare_classifier:
+        # Check if sector classifier is available
+        if not self.sector_classifier:
             logger.warning(
-                "Healthcare classifier not available (metadata_cache not injected)",
+                "Sector classifier not available (metadata_cache not injected)",
                 article_id=request_data.article_id,
                 ticker=primary_ticker
             )
@@ -499,16 +504,17 @@ Summary: {summary}"""
             return
 
         try:
-            # Classify via Healthcare classifier
-            classification, industry, latency_ms = await self.healthcare_classifier.classify(
+            # Classify via multi-sector classifier
+            classification, sector, industry, latency_ms = await self.sector_classifier.classify(
                 headline=headline,
                 ticker=primary_ticker
             )
 
             logger.info(
-                f"Healthcare classification: {classification}",
+                f"Sector classification: {classification}",
                 article_id=request_data.article_id,
                 ticker=primary_ticker,
+                sector=sector,
                 industry=industry,
                 latency_ms=round(latency_ms, 1)
             )
@@ -519,7 +525,7 @@ Summary: {summary}"""
                 response_data = InfrastructureClassificationResponseData(
                     classification="imminent",
                     confidence="HIGH",
-                    reasoning=f"Healthcare/{industry} - LLM classified as tradeable"
+                    reasoning=f"{sector}/{industry} - LLM classified as tradeable"
                 )
 
                 completed_event = ClassificationCompletedInfrastructureEvent(
@@ -528,7 +534,7 @@ Summary: {summary}"""
                     completed_at=datetime.now(),
                     latency_ms=latency_ms,
                     success=True,
-                    source="healthcare_classifier"
+                    source="sector_classifier"
                 )
 
                 await self.event_bus.publish(
@@ -537,28 +543,29 @@ Summary: {summary}"""
                 )
 
                 logger.info(
-                    "Published IMMINENT classification for Healthcare TRADE signal",
+                    f"Published IMMINENT classification for {sector} TRADE signal",
                     article_id=request_data.article_id,
                     ticker=primary_ticker,
+                    sector=sector,
                     industry=industry,
                     latency_ms=round(latency_ms, 1)
                 )
 
-            elif classification == "NOT_HEALTHCARE":
-                # Not Healthcare sector - skip trading but continue data collection
-                await self._publish_skipped_event(infra_event, "not_healthcare_sector")
+            elif classification == "NOT_SUPPORTED_SECTOR":
+                # Sector not supported - skip trading but continue data collection
+                await self._publish_skipped_event(infra_event, f"unsupported_sector:{sector or 'unknown'}")
 
             elif classification == "UNSUPPORTED_INDUSTRY":
-                # Healthcare but unsupported industry - skip trading
-                await self._publish_skipped_event(infra_event, f"unsupported_industry:{industry}")
+                # Supported sector but unsupported industry - skip trading
+                await self._publish_skipped_event(infra_event, f"unsupported_industry:{sector}/{industry}")
 
             else:
                 # SKIP signal - LLM determined not tradeable
-                await self._publish_skipped_event(infra_event, "healthcare_skip")
+                await self._publish_skipped_event(infra_event, f"llm_skip:{sector}/{industry}")
 
         except Exception as e:
             logger.error(
-                "Healthcare classification error",
+                "Sector classification error",
                 article_id=request_data.article_id,
                 ticker=primary_ticker,
                 error=str(e),
@@ -568,7 +575,7 @@ Summary: {summary}"""
             # Publish failed event
             failed_event = ClassificationFailedInfrastructureEvent(
                 request_data=request_data,
-                error=f"Healthcare classification failed: {str(e)}",
+                error=f"Sector classification failed: {str(e)}",
                 failed_at=datetime.now()
             )
             await self.event_bus.publish(
