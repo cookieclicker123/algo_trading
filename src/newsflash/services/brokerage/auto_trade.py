@@ -34,15 +34,14 @@ logger = get_logger(__name__)
 def should_process_classification(result: ClassificationResult, enabled: bool) -> bool:
     """
     Determine if a classification result should trigger auto-trade.
-    
-    NOTE: With AI classification disabled, this function is not currently used.
-    Trades are now triggered directly from SURGE detection in the recall engine.
-    This function is kept for when AI classification is re-enabled.
-    
+
+    This function is called by AutoTradeService when Healthcare LLM classification
+    returns IMMINENT (tradeable Healthcare headline).
+
     Args:
         result: Classification result to check
         enabled: Whether auto-trading is enabled
-        
+
     Returns:
         True if should process, False otherwise
     """

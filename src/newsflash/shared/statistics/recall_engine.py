@@ -130,20 +130,20 @@ class RecallStatsEngine:
             logger.warning("RecallStatsEngine already started")
             return
 
-        # Subscribe to domain events
-        self._article_received_wrapper = await subscribe_typed(
+        # Subscribe to domain events (subscribe_typed is synchronous, returns wrapper)
+        self._article_received_wrapper = subscribe_typed(
             self.event_bus, DomainEventType.ARTICLE_RECEIVED,
             ArticleReceivedDomainEvent, self._handle_article_received
         )
-        self._article_classified_wrapper = await subscribe_typed(
+        self._article_classified_wrapper = subscribe_typed(
             self.event_bus, DomainEventType.ARTICLE_CLASSIFIED,
             ArticleClassifiedDomainEvent, self._handle_article_classified
         )
-        self._trade_executed_wrapper = await subscribe_typed(
+        self._trade_executed_wrapper = subscribe_typed(
             self.event_bus, DomainEventType.TRADE_EXECUTED,
             TradeExecutedDomainEvent, self._handle_trade_executed
         )
-        self._trade_failed_wrapper = await subscribe_typed(
+        self._trade_failed_wrapper = subscribe_typed(
             self.event_bus, DomainEventType.TRADE_FAILED,
             TradeFailedDomainEvent, self._handle_trade_failed
         )
@@ -185,8 +185,19 @@ class RecallStatsEngine:
     # ==================== Surge Detection Callback ====================
 
     async def _on_surge_detected(self, article: Any, ticker: str) -> None:
-        """Callback when SurgeMonitor detects a surge - trigger trade."""
-        await self.trade_trigger.trigger_trade(article, ticker)
+        """
+        Callback when SurgeMonitor detects a surge.
+
+        NOTE: SURGE-based trade triggering is DISABLED.
+        Trading is now controlled by Healthcare LLM classification in ClassificationInfrastructureService.
+        SURGE detection continues for data collection and analysis purposes.
+        """
+        logger.info(
+            "SURGE detected (trade trigger disabled - LLM controls trading)",
+            article_id=article.id,
+            ticker=ticker
+        )
+        # DISABLED: await self.trade_trigger.trigger_trade(article, ticker)
 
     # ==================== Event Handlers ====================
 
@@ -258,8 +269,9 @@ class RecallStatsEngine:
         try:
             event = ClassificationSkippedInfrastructureEvent(**event_data)
             filter_reason = f"prefilter_{event.reason}"
+            # article_id is nested inside request_data
             await self.record_manager.update_classification(
-                event.article_id, None, filter_reason
+                event.request_data.article_id, None, filter_reason
             )
         except Exception as e:
             logger.error("Error handling classification skipped", error=str(e), exc_info=True)
@@ -354,9 +366,7 @@ class RecallStatsEngine:
                 continue
             ticker, nbbo = result
             if nbbo:
-                mid_price = nbbo.get("mid")
-                if mid_price and mid_price < 0.10:
-                    continue  # Skip sub-10-cent stocks
+                # No price filtering - let ML decide on penny stocks
                 tradable_tickers.append(ticker)
                 initial_nbbos[ticker] = nbbo
 
@@ -507,9 +517,14 @@ class RecallStatsEngine:
     ) -> None:
         """Start surge monitoring, price monitoring, and metadata tasks."""
         if has_surge:
-            # Trigger trade immediately
-            asyncio.create_task(self.trade_trigger.trigger_trade(article, surge_ticker))
-            logger.info("Surge detected, trade triggered", article_id=article.id, ticker=surge_ticker)
+            # NOTE: SURGE-based trade triggering is DISABLED
+            # Trading is now controlled by Healthcare LLM classification
+            # DISABLED: asyncio.create_task(self.trade_trigger.trigger_trade(article, surge_ticker))
+            logger.info(
+                "Initial SURGE detected (trade trigger disabled - LLM controls trading)",
+                article_id=article.id,
+                ticker=surge_ticker
+            )
         else:
             # Start surge monitoring
             monitoring_task = asyncio.create_task(

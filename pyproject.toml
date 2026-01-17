@@ -16,7 +16,9 @@ dependencies = [
     "websockets>=12.0", # Native async WebSocket client for Benzinga (replaces websocket-client)
     "dependency-injector>=4.41.0", # Dependency injection framework
     "alpaca-py>=0.1.0", # Alpaca Trading API Python SDK
-    "finnhub-python>=2.4.0", # Finnhub API for industry, sector, market cap, shares outstanding
+    "yfinance", # Yahoo Finance API for sector, industry, market cap, shares outstanding
+    "tqdm", # Progress bar for loops
+    "spacy>=3.7.0", # NLP library for NER/text classification
 ]
 
 [project.optional-dependencies]

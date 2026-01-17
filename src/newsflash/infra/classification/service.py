@@ -3,6 +3,11 @@ Classification infrastructure microservice for Groq API.
 
 Pure infrastructure - handles Groq API client, publishes events.
 All stateful code related to Groq API lives here.
+
+PRIMARY TRADING LOGIC:
+- Healthcare headlines → industry-specific LLM classification → TRADE/SKIP
+- No microstructure filters - pure language-based instant decision
+- Speed is critical for early entry
 """
 import json
 from pathlib import Path
@@ -23,6 +28,7 @@ from .infrastructure_models import (
     ClassificationSkippedInfrastructureEvent
 )
 from .event_protocols import InfrastructureClassificationRequestEventSubscriber
+from .healthcare_classifier import HealthcareClassifier
 
 logger = get_logger(__name__)
 
@@ -47,18 +53,19 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
     
     def __init__(
         self,
-        event_bus: AsyncEventBus,  
+        event_bus: AsyncEventBus,
         api_key: str,
         metrics_service,  # Required - injected via DI
         ticker_validator=None,  # Will be injected after brokerage is initialized
         market_data_validator=None,  # Will be injected after brokerage is initialized
         quote_fetcher=None,  # Will be injected after brokerage is initialized
+        metadata_cache=None,  # Will be injected after cache is initialized
         model: str = "llama-3.3-70b-versatile",
         enabled: bool = True,
     ):
         """
         Initialize classification infrastructure service.
-        
+
         Args:
             event_bus: Event bus instance for publishing/subscribing to events
             api_key: Groq API key
@@ -68,6 +75,7 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
             ticker_validator: TickerValidator instance for exchange validation (injected via DI)
             market_data_validator: MarketDataValidator instance for market cap/price validation (injected via DI)
             quote_fetcher: AlpacaQuoteFetcher instance for NBBO availability check (injected via DI)
+            metadata_cache: MetadataCache instance for sector/industry lookup (injected via DI)
         """
         self.enabled = enabled
         self.model = model
@@ -76,8 +84,11 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
         self.ticker_validator = ticker_validator  # ✅ Injected ticker validator
         self.market_data_validator = market_data_validator  # ✅ Injected market data validator
         self.quote_fetcher = quote_fetcher  # ✅ Injected quote fetcher for NBBO check
-            
-        
+        self.metadata_cache = metadata_cache  # ✅ Injected metadata cache for Healthcare classifier
+
+        # Healthcare classifier (initialized lazily when metadata_cache is set)
+        self._healthcare_classifier: Optional[HealthcareClassifier] = None
+
         # Stateful: Groq client (initialized if enabled)
         self.client: Optional[AsyncGroq] = None
         if enabled and api_key:
@@ -101,7 +112,8 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
             has_api_key=bool(api_key),
             has_ticker_validator=ticker_validator is not None,
             has_market_data_validator=market_data_validator is not None,
-            has_quote_fetcher=quote_fetcher is not None
+            has_quote_fetcher=quote_fetcher is not None,
+            has_metadata_cache=metadata_cache is not None
         )
     
     def _load_prompt(self) -> str:
@@ -124,7 +136,28 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
             logger.error("ClassificationInfrastructureService: Failed to load prompt", error=str(e), path=str(prompt_path))
             # Fallback to minimal prompt
             return "Classify the news headline as IMMINENT or IGNORE. Return JSON only."
-    
+
+    @property
+    def healthcare_classifier(self) -> Optional[HealthcareClassifier]:
+        """
+        Get Healthcare classifier (lazily initialized when metadata_cache is available).
+
+        Returns:
+            HealthcareClassifier instance or None if metadata_cache not set
+        """
+        if self._healthcare_classifier is None and self.metadata_cache is not None:
+            self._healthcare_classifier = HealthcareClassifier(
+                api_key=self.api_key,
+                metadata_cache=self.metadata_cache,
+                model=self.model,
+            )
+            logger.info(
+                "HealthcareClassifier initialized",
+                model=self.model,
+                supported_industries=list(self._healthcare_classifier._stats.keys())
+            )
+        return self._healthcare_classifier
+
     def _format_article_for_classification(
         self,
         request_data: InfrastructureClassificationRequestData
@@ -293,32 +326,17 @@ Summary: {summary}"""
                 # NOTE: If AI classification is re-enabled and API costs are a concern,
                 # consider re-enabling this with a longer delay or async retry.
             
-            # Step 4: All checks passed - proceed to Groq API classification
+            # Step 4: All checks passed - proceed to Healthcare LLM classification
             # ========================================================================
-            # AI CLASSIFICATION TEMPORARILY DISABLED
+            # HEALTHCARE-ONLY TRADING STRATEGY
             # ========================================================================
-            # We are testing a surge-only strategy (prefiltering + 4-pillar SURGE criteria)
-            # without AI classification. This allows us to evaluate the strength of
-            # market physics signals alone before adding AI back as a noise filter.
-            #
-            # To re-enable AI classification:
-            # 1. Uncomment the code below
-            # 2. Remove this comment block
+            # Pure language-based classification using industry-specific prompts.
+            # Flow: headline → sector check → industry check → Groq LLM → TRADE/SKIP
+            # If TRADE → publish "imminent" classification → trigger AutoTradeService
+            # If SKIP/NOT_HEALTHCARE → no trade, but data collection continues
             # ========================================================================
-            
-            logger.info(
-                "⏭️ CLASSIFY INFRA: Pre-filters passed, but AI classification is DISABLED (testing surge-only strategy)",
-                article_id=request_data.article_id,
-                tickers=request_data.article_tickers
-            )
-            
-            # UNCOMMENT TO RE-ENABLE AI CLASSIFICATION:
-            # logger.info(
-            #     "✅ CLASSIFY INFRA: Pre-filters passed, proceeding to Groq API",
-            #     article_id=request_data.article_id,
-            #     tickers=request_data.article_tickers
-            # )
-            # await self._classify_via_groq(infra_event)
+
+            await self._classify_via_healthcare(infra_event, primary_ticker)
             
         except Exception as e:
             logger.error(
@@ -448,7 +466,116 @@ Summary: {summary}"""
             )
             
             await self.event_bus.publish(InfrastructureEventType.CLASSIFICATION_FAILED, failed_event.model_dump())
-    
+
+    async def _classify_via_healthcare(
+        self,
+        infra_event: ClassificationRequestedInfrastructureEvent,
+        primary_ticker: str
+    ) -> None:
+        """
+        Classify article via Healthcare LLM classifier and publish result event.
+
+        Flow:
+        1. Check if Healthcare classifier is available (metadata_cache injected)
+        2. Call Healthcare classifier (sector → industry → Groq LLM)
+        3. If TRADE → publish ClassificationCompleted with classification="imminent"
+        4. If SKIP/NOT_HEALTHCARE/UNSUPPORTED → publish ClassificationSkipped
+
+        Args:
+            infra_event: Classification request infrastructure event
+            primary_ticker: Primary ticker for classification
+        """
+        request_data = infra_event.request_data
+        headline = request_data.article_title
+
+        # Check if Healthcare classifier is available
+        if not self.healthcare_classifier:
+            logger.warning(
+                "Healthcare classifier not available (metadata_cache not injected)",
+                article_id=request_data.article_id,
+                ticker=primary_ticker
+            )
+            await self._publish_skipped_event(infra_event, "classifier_not_ready")
+            return
+
+        try:
+            # Classify via Healthcare classifier
+            classification, industry, latency_ms = await self.healthcare_classifier.classify(
+                headline=headline,
+                ticker=primary_ticker
+            )
+
+            logger.info(
+                f"Healthcare classification: {classification}",
+                article_id=request_data.article_id,
+                ticker=primary_ticker,
+                industry=industry,
+                latency_ms=round(latency_ms, 1)
+            )
+
+            # Handle classification result
+            if classification == "TRADE":
+                # TRADE signal → publish "imminent" to trigger AutoTradeService
+                response_data = InfrastructureClassificationResponseData(
+                    classification="imminent",
+                    confidence="HIGH",
+                    reasoning=f"Healthcare/{industry} - LLM classified as tradeable"
+                )
+
+                completed_event = ClassificationCompletedInfrastructureEvent(
+                    request_data=request_data,
+                    response_data=response_data,
+                    completed_at=datetime.now(),
+                    latency_ms=latency_ms,
+                    success=True,
+                    source="healthcare_classifier"
+                )
+
+                await self.event_bus.publish(
+                    InfrastructureEventType.CLASSIFICATION_COMPLETED,
+                    completed_event.model_dump()
+                )
+
+                logger.info(
+                    "Published IMMINENT classification for Healthcare TRADE signal",
+                    article_id=request_data.article_id,
+                    ticker=primary_ticker,
+                    industry=industry,
+                    latency_ms=round(latency_ms, 1)
+                )
+
+            elif classification == "NOT_HEALTHCARE":
+                # Not Healthcare sector - skip trading but continue data collection
+                await self._publish_skipped_event(infra_event, "not_healthcare_sector")
+
+            elif classification == "UNSUPPORTED_INDUSTRY":
+                # Healthcare but unsupported industry - skip trading
+                await self._publish_skipped_event(infra_event, f"unsupported_industry:{industry}")
+
+            else:
+                # SKIP signal - LLM determined not tradeable
+                await self._publish_skipped_event(infra_event, "healthcare_skip")
+
+        except Exception as e:
+            logger.error(
+                "Healthcare classification error",
+                article_id=request_data.article_id,
+                ticker=primary_ticker,
+                error=str(e),
+                exc_info=True
+            )
+
+            # Publish failed event
+            failed_event = ClassificationFailedInfrastructureEvent(
+                request_data=request_data,
+                error=f"Healthcare classification failed: {str(e)}",
+                failed_at=datetime.now()
+            )
+            await self.event_bus.publish(
+                InfrastructureEventType.CLASSIFICATION_FAILED,
+                failed_event.model_dump()
+            )
+
     async def _publish_skipped_event(
         self,
         infra_event: ClassificationRequestedInfrastructureEvent,

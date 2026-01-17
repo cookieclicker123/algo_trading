@@ -1472,7 +1472,8 @@
   },
   "FRMI": {
     "exchange": "NASDAQ",
-    "industry": "Real Estate"
+    "industry": "Specialty Industrial Machinery",
+    "sector": "Industrials"
   },
   "WULF": {
     "sector": "Financial Services",
@@ -4648,7 +4649,8 @@
   },
   "LSCC": {
     "industry": "Semiconductors",
-    "exchange": "NASDAQ"
+    "exchange": "NASDAQ",
+    "sector": "Technology"
   },
   "VRTX": {
     "industry": "Biotechnology",
@@ -4665,7 +4667,8 @@
   },
   "FBRX": {
     "industry": "Biotechnology",
-    "exchange": "NASDAQ"
+    "exchange": "NASDAQ",
+    "sector": "Healthcare"
   },
   "FIVE": {
     "industry": "Retail",
@@ -4685,7 +4688,8 @@
   },
   "CELU": {
     "industry": "Biotechnology",
-    "exchange": "NASDAQ"
+    "exchange": "NASDAQ",
+    "sector": "Healthcare"
   },
   "TTEK": {
     "industry": "Engineering & Construction",
@@ -4699,7 +4703,8 @@
   },
   "ENGN": {
     "industry": "Biotechnology",
-    "exchange": "NASDAQ"
+    "exchange": "NASDAQ",
+    "sector": "Healthcare"
   },
   "REGN": {
     "industry": "Biotechnology",
@@ -4722,8 +4727,9 @@
     "sector": "Technology"
   },
   "TOMZ": {
-    "industry": "Commercial Services & Supplies",
-    "exchange": "NASDAQ"
+    "industry": "Pollution & Treatment Controls",
+    "exchange": "NASDAQ",
+    "sector": "Industrials"
   },
   "PBHC": {
     "industry": "Banking",
@@ -4740,7 +4746,8 @@
   },
   "APLM": {
     "industry": "Biotechnology",
-    "exchange": "NASDAQ"
+    "exchange": "NASDAQ",
+    "sector": "Healthcare"
   },
   "APLMW": {
     "exchange": "NASDAQ"
@@ -4751,8 +4758,9 @@
     "sector": "Healthcare"
   },
   "ZIM": {
-    "industry": "Marine",
-    "exchange": "NYSE"
+    "industry": "Marine Shipping",
+    "exchange": "NYSE",
+    "sector": "Industrials"
   },
   "ITRG": {
     "industry": "Other Precious Metals & Mining",
@@ -4765,8 +4773,9 @@
     "sector": "Healthcare"
   },
   "FLGT": {
-    "industry": "Health Care",
-    "exchange": "NASDAQ"
+    "industry": "Diagnostics & Research",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare"
   },
   "FC": {
     "industry": "Education & Training Services",
@@ -4778,8 +4787,9 @@
     "exchange": "NYSE"
   },
   "BL": {
-    "industry": "Technology",
-    "exchange": "NASDAQ"
+    "industry": "Software - Application",
+    "exchange": "NASDAQ",
+    "sector": "Technology"
   },
   "OLP": {
     "industry": "Real Estate",
@@ -4865,12 +4875,14 @@
     "exchange": "NYSE"
   },
   "NB": {
-    "industry": "Metals & Mining",
-    "exchange": "NASDAQ"
+    "industry": "Other Industrial Metals & Mining",
+    "exchange": "NASDAQ",
+    "sector": "Basic Materials"
   },
   "EOSE": {
-    "industry": "Electrical Equipment",
-    "exchange": "NASDAQ"
+    "industry": "Electrical Equipment & Parts",
+    "exchange": "NASDAQ",
+    "sector": "Industrials"
   },
   "MSEX": {
     "industry": "Utilities",
@@ -4878,7 +4890,8 @@
   },
   "LIXT": {
     "industry": "Biotechnology",
-    "exchange": "NASDAQ"
+    "exchange": "NASDAQ",
+    "sector": "Healthcare"
   },
   "TDY": {
     "industry": "Scientific & Technical Instruments",
@@ -4935,7 +4948,9 @@
     "sector": "Financial Services"
   },
   "WYHG": {
-    "exchange": "NASDAQ"
+    "exchange": "NASDAQ",
+    "sector": "Consumer Defensive",
+    "industry": "Packaged Foods"
   },
   "SABA": {
     "industry": "Asset Management",
@@ -4967,8 +4982,9 @@
     "sector": "Communication Services"
   },
   "RIME": {
-    "industry": "Consumer products",
-    "exchange": "NASDAQ"
+    "industry": "Consumer Electronics",
+    "exchange": "NASDAQ",
+    "sector": "Technology"
   },
   "UNIT": {
     "industry": "REIT - Specialty",
@@ -4977,11 +4993,13 @@
   },
   "SIF": {
     "industry": "Aerospace & Defense",
-    "exchange": "AMEX"
+    "exchange": "AMEX",
+    "sector": "Industrials"
   },
   "USAU": {
-    "industry": "Metals & Mining",
-    "exchange": "NASDAQ"
+    "industry": "Gold",
+    "exchange": "NASDAQ",
+    "sector": "Basic Materials"
   },
   "NAT": {
     "industry": "Oil & Gas Midstream",
@@ -4990,7 +5008,8 @@
   },
   "MDXG": {
     "industry": "Biotechnology",
-    "exchange": "NASDAQ"
+    "exchange": "NASDAQ",
+    "sector": "Healthcare"
   },
   "NESR": {
     "industry": "Oil & Gas Equipment & Services",
@@ -4998,8 +5017,9 @@
     "sector": "Energy"
   },
   "OKLO": {
-    "industry": "Utilities",
-    "exchange": "NYSE"
+    "industry": "Utilities - Independent Power Producers",
+    "exchange": "NYSE",
+    "sector": "Utilities"
   },
   "MMLP": {
     "industry": "Energy",
@@ -8534,7 +8554,9 @@
     "exchange": "NASDAQ"
   },
   "SEV": {
-    "exchange": "NASDAQ"
+    "exchange": "NASDAQ",
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Manufacturers"
   },
   "TTAM": {
     "sector": "Basic Materials",
@@ -9059,7 +9081,9 @@
     "exchange": "NASDAQ"
   },
   "ALPS": {
-    "exchange": "NASDAQ"
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
   },
   "VICI": {
     "sector": "Real Estate",
@@ -12591,25 +12615,37 @@
     "exchange": "ARCA"
   },
   "BLFS": {
-    "exchange": "NASDAQ"
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Medical Instruments & Supplies"
   },
   "RHLD": {
-    "exchange": "NYSE"
+    "exchange": "NYSE",
+    "sector": "Industrials",
+    "industry": "Specialty Business Services"
   },
   "CMPO": {
-    "exchange": "NYSE"
+    "exchange": "NYSE",
+    "sector": "Industrials",
+    "industry": "Metal Fabrication"
   },
   "MXCT": {
-    "exchange": "NASDAQ"
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
   },
   "HRMY": {
     "exchange": "NASDAQ"
   },
   "MITK": {
-    "exchange": "NASDAQ"
+    "exchange": "NASDAQ",
+    "sector": "Technology",
+    "industry": "Software - Application"
   },
   "RIGL": {
-    "exchange": "NASDAQ"
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
   },
   "WTW": {
     "sector": "Financial Services",
@@ -12742,7 +12778,9 @@
     "exchange": "NASDAQ"
   },
   "BC": {
-    "exchange": "NYSE"
+    "exchange": "NYSE",
+    "sector": "Consumer Cyclical",
+    "industry": "Recreational Vehicles"
   },
   "MBRX": {
     "sector": "Healthcare",
@@ -13883,5 +13921,5513 @@
     "sector": "Communication Services",
     "industry": "Broadcasting",
     "exchange": "NYSE"
+  },
+  "IBG": {
+    "industry": "Beverages - Wineries & Distilleries",
+    "sector": "Consumer Defensive"
+  },
+  "HCI": {
+    "industry": "Insurance - Property & Casualty",
+    "sector": "Financial Services"
+  },
+  "CRS": {
+    "industry": "Metal Fabrication",
+    "sector": "Industrials"
+  },
+  "PUMP": {
+    "industry": "Oil & Gas Equipment & Services",
+    "sector": "Energy"
+  },
+  "JJSF": {
+    "industry": "Packaged Foods",
+    "sector": "Consumer Defensive"
+  },
+  "NUTR": {
+    "industry": "Travel Services",
+    "sector": "Consumer Cyclical"
+  },
+  "CNDT": {
+    "industry": "Information Technology Services",
+    "sector": "Technology"
+  },
+  "SJM": {
+    "industry": "Packaged Foods",
+    "sector": "Consumer Defensive"
+  },
+  "HKPD": {
+    "industry": "Pharmaceutical Retailers",
+    "sector": "Healthcare"
+  },
+  "OPP": {
+    "industry": "Asset Management",
+    "sector": "Financial Services"
+  },
+  "TORO": {
+    "industry": "Oil & Gas Midstream",
+    "sector": "Energy"
+  },
+  "ASG": {
+    "industry": "Asset Management",
+    "sector": "Financial Services"
+  },
+  "USA": {
+    "industry": "Asset Management",
+    "sector": "Financial Services"
+  },
+  "ATOS": {
+    "industry": "Biotechnology",
+    "sector": "Healthcare"
+  },
+  "SOR": {
+    "industry": "Asset Management",
+    "sector": "Financial Services"
+  },
+  "DMAC": {
+    "industry": "Biotechnology",
+    "sector": "Healthcare"
+  },
+  "ENR": {
+    "industry": "Electrical Equipment & Parts",
+    "sector": "Industrials"
+  },
+  "SCM": {
+    "industry": "Asset Management",
+    "sector": "Financial Services"
+  },
+  "BBBY": {
+    "sector": "Consumer Cyclical",
+    "industry": "Specialty Retail"
+  },
+  "BTTC": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "CFND": {
+    "sector": "Financial Services",
+    "industry": "Asset Management"
+  },
+  "MJ": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic"
+  },
+  "ORCX": {
+    "sector": "Financial Services",
+    "industry": "Exchange Traded Fund"
+  },
+  "PLTS": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "SI": {
+    "sector": "Financial Services",
+    "industry": "Banks - Regional"
+  },
+  "SMJF": {
+    "sector": "Consumer Cyclical",
+    "industry": "Furnishings, Fixtures & Appliances"
+  },
+  "FOR": {
+    "sector": "Real Estate",
+    "industry": "Real Estate - Development"
+  },
+  "DTSS": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "AMST": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "HY": {
+    "sector": "Industrials",
+    "industry": "Farm & Heavy Construction Machinery"
+  },
+  "YSXT": {
+    "sector": "Industrials",
+    "industry": "Specialty Business Services"
+  },
+  "AIHS": {
+    "sector": "Industrials",
+    "industry": "Rental & Leasing Services"
+  },
+  "CRI": {
+    "sector": "Consumer Cyclical",
+    "industry": "Apparel Retail"
+  },
+  "DAVE": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "TG": {
+    "sector": "Industrials",
+    "industry": "Metal Fabrication"
+  },
+  "GDHG": {
+    "sector": "Consumer Cyclical",
+    "industry": "Leisure"
+  },
+  "BTU": {
+    "sector": "Energy",
+    "industry": "Thermal Coal"
+  },
+  "RNA": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "KAPA": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "AQB": {
+    "sector": "Consumer Defensive",
+    "industry": "Farm Products"
+  },
+  "CATX": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "TRIP": {
+    "sector": "Consumer Cyclical",
+    "industry": "Travel Services"
+  },
+  "FDMT": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "JKS": {
+    "sector": "Technology",
+    "industry": "Solar"
+  },
+  "LDI": {
+    "sector": "Financial Services",
+    "industry": "Mortgage Finance"
+  },
+  "XPOF": {
+    "sector": "Consumer Cyclical",
+    "industry": "Leisure"
+  },
+  "SY": {
+    "sector": "Healthcare",
+    "industry": "Health Information Services"
+  },
+  "BTMD": {
+    "sector": "Healthcare",
+    "industry": "Medical Care Facilities"
+  },
+  "CWCO": {
+    "sector": "Utilities",
+    "industry": "Utilities - Regulated Water"
+  },
+  "BLBX": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "ELWS": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "RICK": {
+    "sector": "Consumer Cyclical",
+    "industry": "Restaurants"
+  },
+  "DCTH": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "GRWG": {
+    "sector": "Consumer Cyclical",
+    "industry": "Specialty Retail"
+  },
+  "LX": {
+    "sector": "Financial Services",
+    "industry": "Credit Services"
+  },
+  "SPB": {
+    "sector": "Consumer Defensive",
+    "industry": "Household & Personal Products"
+  },
+  "NVTS": {
+    "sector": "Technology",
+    "industry": "Semiconductors"
+  },
+  "CRCL": {
+    "sector": "Financial Services",
+    "industry": "Capital Markets"
+  },
+  "KSCP": {
+    "sector": "Industrials",
+    "industry": "Security & Protection Services"
+  },
+  "ABVC": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "BCTX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "ATHE": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "DHX": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "PUBM": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "FTCI": {
+    "sector": "Technology",
+    "industry": "Solar"
+  },
+  "ENTX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "FATN": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "QSI": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "TONX": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "ATON": {
+    "sector": "Financial Services",
+    "industry": "Asset Management"
+  },
+  "LXRX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "OTLY": {
+    "sector": "Consumer Defensive",
+    "industry": "Packaged Foods"
+  },
+  "NMTC": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "RYET": {
+    "sector": "Consumer Defensive",
+    "industry": "Education & Training Services"
+  },
+  "HDSN": {
+    "sector": "Basic Materials",
+    "industry": "Specialty Chemicals"
+  },
+  "IRDM": {
+    "sector": "Communication Services",
+    "industry": "Telecom Services"
+  },
+  "MCRI": {
+    "sector": "Consumer Cyclical",
+    "industry": "Resorts & Casinos"
+  },
+  "SAIC": {
+    "sector": "Technology",
+    "industry": "Information Technology Services"
+  },
+  "MIND": {
+    "sector": "Technology",
+    "industry": "Scientific & Technical Instruments"
+  },
+  "DSGX": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "PACK": {
+    "sector": "Consumer Cyclical",
+    "industry": "Packaging & Containers"
+  },
+  "FLX": {
+    "sector": "Industrials",
+    "industry": "Integrated Freight & Logistics"
+  },
+  "CRTO": {
+    "sector": "Communication Services",
+    "industry": "Advertising Agencies"
+  },
+  "KEQU": {
+    "sector": "Consumer Cyclical",
+    "industry": "Furnishings, Fixtures & Appliances"
+  },
+  "BEEP": {
+    "sector": "Industrials",
+    "industry": "Infrastructure Operations"
+  },
+  "RDAC": {
+    "sector": "Financial Services",
+    "industry": "Shell Companies"
+  },
+  "IBIO": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "YB": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "SPRU": {
+    "sector": "Technology",
+    "industry": "Solar"
+  },
+  "EZGO": {
+    "sector": "Consumer Cyclical",
+    "industry": "Recreational Vehicles"
+  },
+  "NFGC": {
+    "sector": "Basic Materials",
+    "industry": "Gold"
+  },
+  "SPPL": {
+    "sector": "Industrials",
+    "industry": "Specialty Industrial Machinery"
+  },
+  "ACDC": {
+    "sector": "Energy",
+    "industry": "Oil & Gas Equipment & Services"
+  },
+  "VSEE": {
+    "sector": "Healthcare",
+    "industry": "Health Information Services"
+  },
+  "ZENV": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "LOT": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Manufacturers"
+  },
+  "MDAI": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "ZONE": {
+    "sector": "Industrials",
+    "industry": "Pollution & Treatment Controls"
+  },
+  "XFOR": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "ORKT": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "EVGO": {
+    "sector": "Consumer Cyclical",
+    "industry": "Specialty Retail"
+  },
+  "VRM": {
+    "sector": "Financial Services",
+    "industry": "Credit Services"
+  },
+  "CD": {
+    "sector": "Financial Services",
+    "industry": "Capital Markets"
+  },
+  "SCNI": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "AXON": {
+    "sector": "Industrials",
+    "industry": "Aerospace & Defense"
+  },
+  "MOLN": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "TGLS": {
+    "sector": "Basic Materials",
+    "industry": "Building Materials"
+  },
+  "BOOM": {
+    "sector": "Industrials",
+    "industry": "Conglomerates"
+  },
+  "JFIN": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "SUPV": {
+    "sector": "Financial Services",
+    "industry": "Banks - Regional"
+  },
+  "ECX": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Parts"
+  },
+  "ZJK": {
+    "sector": "Industrials",
+    "industry": "Specialty Industrial Machinery"
+  },
+  "CRE": {
+    "sector": "Industrials",
+    "industry": "Specialty Business Services"
+  },
+  "CLDX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "AOUT": {
+    "sector": "Consumer Cyclical",
+    "industry": "Leisure"
+  },
+  "NDRA": {
+    "sector": "Healthcare",
+    "industry": "Diagnostics & Research"
+  },
+  "ZD": {
+    "sector": "Communication Services",
+    "industry": "Advertising Agencies"
+  },
+  "AGCC": {
+    "sector": "Consumer Defensive",
+    "industry": "Beverages - Wineries & Distilleries"
+  },
+  "SPOT": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "ESP": {
+    "sector": "Industrials",
+    "industry": "Electrical Equipment & Parts"
+  },
+  "JL": {
+    "sector": "Consumer Cyclical",
+    "industry": "Apparel Manufacturing"
+  },
+  "SVV": {
+    "sector": "Consumer Cyclical",
+    "industry": "Specialty Retail"
+  },
+  "IMUX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "CDIO": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "OPTX": {
+    "sector": "Technology",
+    "industry": "Electronic Components"
+  },
+  "AFRI": {
+    "sector": "Consumer Defensive",
+    "industry": "Farm Products"
+  },
+  "MSGM": {
+    "sector": "Communication Services",
+    "industry": "Electronic Gaming & Multimedia"
+  },
+  "BWMX": {
+    "sector": "Consumer Cyclical",
+    "industry": "Specialty Retail"
+  },
+  "OPFI": {
+    "sector": "Financial Services",
+    "industry": "Credit Services"
+  },
+  "GLE": {
+    "sector": "Technology",
+    "industry": "Information Technology Services"
+  },
+  "PRG": {
+    "sector": "Industrials",
+    "industry": "Rental & Leasing Services"
+  },
+  "VAC": {
+    "sector": "Consumer Cyclical",
+    "industry": "Resorts & Casinos"
+  },
+  "TWG": {
+    "sector": "Consumer Defensive",
+    "industry": "Food Distribution"
+  },
+  "EGY": {
+    "sector": "Energy",
+    "industry": "Oil & Gas E&P"
+  },
+  "MCRP": {
+    "sector": "Technology",
+    "industry": "Computer Hardware"
+  },
+  "LVWR": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Manufacturers"
+  },
+  "GIII": {
+    "sector": "Consumer Cyclical",
+    "industry": "Apparel Manufacturing"
+  },
+  "FTHM": {
+    "sector": "Real Estate",
+    "industry": "Real Estate Services"
+  },
+  "ONFO": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "GCL": {
+    "sector": "Communication Services",
+    "industry": "Electronic Gaming & Multimedia"
+  },
+  "ARQ": {
+    "sector": "Industrials",
+    "industry": "Pollution & Treatment Controls"
+  },
+  "HPK": {
+    "sector": "Energy",
+    "industry": "Oil & Gas E&P"
+  },
+  "FGI": {
+    "sector": "Consumer Cyclical",
+    "industry": "Furnishings, Fixtures & Appliances"
+  },
+  "FIGR": {
+    "sector": "Financial Services",
+    "industry": "Capital Markets"
+  },
+  "MAAS": {
+    "sector": "Financial Services",
+    "industry": "Asset Management"
+  },
+  "HTBK": {
+    "sector": "Financial Services",
+    "industry": "Banks - Regional"
+  },
+  "RLYB": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "QNRX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "WBX": {
+    "sector": "Technology",
+    "industry": "Electronic Components"
+  },
+  "YTRA": {
+    "sector": "Consumer Cyclical",
+    "industry": "Travel Services"
+  },
+  "CRVO": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "TBH": {
+    "sector": "Communication Services",
+    "industry": "Electronic Gaming & Multimedia"
+  },
+  "SITE": {
+    "sector": "Industrials",
+    "industry": "Industrial Distribution"
+  },
+  "JMG": {
+    "sector": "Consumer Cyclical",
+    "industry": "Specialty Retail"
+  },
+  "DTIL": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "SMHI": {
+    "sector": "Industrials",
+    "industry": "Marine Shipping"
+  },
+  "ABTC": {
+    "sector": "Financial Services",
+    "industry": "Capital Markets"
+  },
+  "PFAI": {
+    "sector": "Consumer Defensive",
+    "industry": "Farm Products"
+  },
+  "BTBT": {
+    "sector": "Financial Services",
+    "industry": "Capital Markets"
+  },
+  "INSE": {
+    "sector": "Consumer Cyclical",
+    "industry": "Gambling"
+  },
+  "NX": {
+    "sector": "Industrials",
+    "industry": "Building Products & Equipment"
+  },
+  "INMB": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "ACLX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "AMWL": {
+    "sector": "Healthcare",
+    "industry": "Health Information Services"
+  },
+  "LFST": {
+    "sector": "Healthcare",
+    "industry": "Medical Care Facilities"
+  },
+  "CCCC": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "KOSS": {
+    "sector": "Technology",
+    "industry": "Consumer Electronics"
+  },
+  "SDOT": {
+    "sector": "Consumer Defensive",
+    "industry": "Farm Products"
+  },
+  "SEGG": {
+    "sector": "Consumer Cyclical",
+    "industry": "Gambling"
+  },
+  "EDHL": {
+    "sector": "Communication Services",
+    "industry": "Advertising Agencies"
+  },
+  "ENVX": {
+    "sector": "Industrials",
+    "industry": "Electrical Equipment & Parts"
+  },
+  "KELYA": {
+    "sector": "Industrials",
+    "industry": "Staffing & Employment Services"
+  },
+  "FRPT": {
+    "sector": "Consumer Defensive",
+    "industry": "Packaged Foods"
+  },
+  "SARO": {
+    "sector": "Industrials",
+    "industry": "Aerospace & Defense"
+  },
+  "SBLX": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Manufacturers"
+  },
+  "FINV": {
+    "sector": "Financial Services",
+    "industry": "Credit Services"
+  },
+  "VIA": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "TGEN": {
+    "sector": "Industrials",
+    "industry": "Electrical Equipment & Parts"
+  },
+  "PRTS": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Parts"
+  },
+  "ATYR": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "TLSI": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "GORO": {
+    "sector": "Basic Materials",
+    "industry": "Other Precious Metals & Mining"
+  },
+  "ORGN": {
+    "sector": "Basic Materials",
+    "industry": "Chemicals"
+  },
+  "BETR": {
+    "sector": "Financial Services",
+    "industry": "Mortgage Finance"
+  },
+  "GRAN": {
+    "sector": "Financial Services",
+    "industry": "Capital Markets"
+  },
+  "ACTG": {
+    "sector": "Industrials",
+    "industry": "Business Equipment & Supplies"
+  },
+  "MLEC": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "VG": {
+    "sector": "Energy",
+    "industry": "Oil & Gas Midstream"
+  },
+  "PEGA": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "NDLS": {
+    "sector": "Consumer Cyclical",
+    "industry": "Restaurants"
+  },
+  "ESCA": {
+    "sector": "Consumer Cyclical",
+    "industry": "Leisure"
+  },
+  "FTK": {
+    "sector": "Energy",
+    "industry": "Oil & Gas Equipment & Services"
+  },
+  "TPCS": {
+    "sector": "Industrials",
+    "industry": "Metal Fabrication"
+  },
+  "SMC": {
+    "sector": "Energy",
+    "industry": "Oil & Gas Midstream"
+  },
+  "AIOT": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "NUWE": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "SRPT": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "MG": {
+    "sector": "Industrials",
+    "industry": "Security & Protection Services"
+  },
+  "UXIN": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto & Truck Dealerships"
+  },
+  "VRA": {
+    "sector": "Consumer Cyclical",
+    "industry": "Footwear & Accessories"
+  },
+  "WVE": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "EVC": {
+    "sector": "Communication Services",
+    "industry": "Advertising Agencies"
+  },
+  "COOT": {
+    "sector": "Consumer Defensive",
+    "industry": "Packaged Foods"
+  },
+  "YAAS": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "BIRK": {
+    "sector": "Consumer Cyclical",
+    "industry": "Footwear & Accessories"
+  },
+  "MSGY": {
+    "sector": "Industrials",
+    "industry": "Engineering & Construction"
+  },
+  "GIFT": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "BTCS": {
+    "sector": "Financial Services",
+    "industry": "Capital Markets"
+  },
+  "GYRO": {
+    "sector": "Real Estate",
+    "industry": "Real Estate Services"
+  },
+  "CTSO": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "BHVN": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "SUNE": {
+    "sector": "Technology",
+    "industry": "Solar"
+  },
+  "PYPD": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "DIBS": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "AEYE": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "FLNT": {
+    "sector": "Communication Services",
+    "industry": "Advertising Agencies"
+  },
+  "BKSY": {
+    "sector": "Industrials",
+    "industry": "Specialty Business Services"
+  },
+  "AIXC": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "DYN": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "AVD": {
+    "sector": "Basic Materials",
+    "industry": "Agricultural Inputs"
+  },
+  "LNSR": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "UTSI": {
+    "sector": "Technology",
+    "industry": "Communication Equipment"
+  },
+  "ACXP": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "BTM": {
+    "sector": "Financial Services",
+    "industry": "Capital Markets"
+  },
+  "PLUR": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "ARDX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "WORX": {
+    "sector": "Healthcare",
+    "industry": "Health Information Services"
+  },
+  "CPSH": {
+    "sector": "Technology",
+    "industry": "Electronic Components"
+  },
+  "LGCY": {
+    "sector": "Consumer Defensive",
+    "industry": "Education & Training Services"
+  },
+  "WATT": {
+    "sector": "Technology",
+    "industry": "Communication Equipment"
+  },
+  "MGLD": {
+    "sector": "Financial Services",
+    "industry": "Asset Management"
+  },
+  "INHD": {
+    "sector": "Basic Materials",
+    "industry": "Steel"
+  },
+  "SKLZ": {
+    "sector": "Communication Services",
+    "industry": "Electronic Gaming & Multimedia"
+  },
+  "TLS": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "PRKS": {
+    "sector": "Consumer Cyclical",
+    "industry": "Leisure"
+  },
+  "EQ": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "COUR": {
+    "sector": "Consumer Defensive",
+    "industry": "Education & Training Services"
+  },
+  "CANF": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "IZEA": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "OMCL": {
+    "sector": "Healthcare",
+    "industry": "Health Information Services"
+  },
+  "MOVE": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "HUHU": {
+    "sector": "Industrials",
+    "industry": "Specialty Industrial Machinery"
+  },
+  "OPRT": {
+    "sector": "Financial Services",
+    "industry": "Credit Services"
+  },
+  "INTZ": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "GTN": {
+    "sector": "Communication Services",
+    "industry": "Broadcasting"
+  },
+  "SOBR": {
+    "sector": "Technology",
+    "industry": "Scientific & Technical Instruments"
+  },
+  "PYXS": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "XHR": {
+    "sector": "Real Estate",
+    "industry": "REIT - Hotel & Motel"
+  },
+  "KULR": {
+    "sector": "Technology",
+    "industry": "Electronic Components"
+  },
+  "DDOG": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "ARLO": {
+    "sector": "Industrials",
+    "industry": "Building Products & Equipment"
+  },
+  "PESI": {
+    "sector": "Industrials",
+    "industry": "Waste Management"
+  },
+  "FCEL": {
+    "sector": "Industrials",
+    "industry": "Electrical Equipment & Parts"
+  },
+  "CLBT": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "SHIM": {
+    "sector": "Industrials",
+    "industry": "Engineering & Construction"
+  },
+  "CRCT": {
+    "sector": "Technology",
+    "industry": "Computer Hardware"
+  },
+  "XTIA": {
+    "sector": "Industrials",
+    "industry": "Aerospace & Defense"
+  },
+  "GDS": {
+    "sector": "Technology",
+    "industry": "Information Technology Services"
+  },
+  "IMXI": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "SRZN": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "JMIA": {
+    "sector": "Consumer Cyclical",
+    "industry": "Internet Retail"
+  },
+  "CCJ": {
+    "sector": "Energy",
+    "industry": "Uranium"
+  },
+  "RMAX": {
+    "sector": "Real Estate",
+    "industry": "Real Estate Services"
+  },
+  "BWEN": {
+    "sector": "Industrials",
+    "industry": "Specialty Industrial Machinery"
+  },
+  "CYRX": {
+    "sector": "Industrials",
+    "industry": "Integrated Freight & Logistics"
+  },
+  "ANRO": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "VSTS": {
+    "sector": "Industrials",
+    "industry": "Rental & Leasing Services"
+  },
+  "VIPS": {
+    "sector": "Consumer Cyclical",
+    "industry": "Internet Retail"
+  },
+  "GBTG": {
+    "sector": "Consumer Cyclical",
+    "industry": "Travel Services"
+  },
+  "GEMI": {
+    "sector": "Financial Services",
+    "industry": "Capital Markets"
+  },
+  "LEXX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "VTAK": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "FIG": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "DOYU": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "WYY": {
+    "sector": "Technology",
+    "industry": "Information Technology Services"
+  },
+  "NPWR": {
+    "sector": "Industrials",
+    "industry": "Specialty Industrial Machinery"
+  },
+  "SMTC": {
+    "sector": "Technology",
+    "industry": "Semiconductors"
+  },
+  "XHG": {
+    "sector": "Financial Services",
+    "industry": "Insurance Brokers"
+  },
+  "LU": {
+    "sector": "Financial Services",
+    "industry": "Credit Services"
+  },
+  "FIGS": {
+    "sector": "Consumer Cyclical",
+    "industry": "Apparel Manufacturing"
+  },
+  "TLYS": {
+    "sector": "Consumer Cyclical",
+    "industry": "Apparel Retail"
+  },
+  "RR": {
+    "sector": "Industrials",
+    "industry": "Specialty Industrial Machinery"
+  },
+  "LOAR": {
+    "sector": "Industrials",
+    "industry": "Aerospace & Defense"
+  },
+  "SAGT": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "CENT": {
+    "sector": "Consumer Defensive",
+    "industry": "Packaged Foods"
+  },
+  "BRBS": {
+    "sector": "Financial Services",
+    "industry": "Banks - Regional"
+  },
+  "LRMR": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "XGN": {
+    "sector": "Healthcare",
+    "industry": "Diagnostics & Research"
+  },
+  "MTLS": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "EPSM": {
+    "sector": "Consumer Defensive",
+    "industry": "Beverages - Wineries & Distilleries"
+  },
+  "ST": {
+    "sector": "Technology",
+    "industry": "Scientific & Technical Instruments"
+  },
+  "MBX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "ATEX": {
+    "sector": "Communication Services",
+    "industry": "Telecom Services"
+  },
+  "PRDO": {
+    "sector": "Consumer Defensive",
+    "industry": "Education & Training Services"
+  },
+  "RRGB": {
+    "sector": "Consumer Cyclical",
+    "industry": "Restaurants"
+  },
+  "VRAX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "GXAI": {
+    "sector": "Communication Services",
+    "industry": "Electronic Gaming & Multimedia"
+  },
+  "VRCA": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "TIRX": {
+    "sector": "Financial Services",
+    "industry": "Insurance Brokers"
+  },
+  "LGCL": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "VS": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "CURX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "CTXR": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "ERNA": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "DWSN": {
+    "sector": "Energy",
+    "industry": "Oil & Gas Equipment & Services"
+  },
+  "OMEX": {
+    "sector": "Basic Materials",
+    "industry": "Other Industrial Metals & Mining"
+  },
+  "ZUMZ": {
+    "sector": "Consumer Cyclical",
+    "industry": "Apparel Retail"
+  },
+  "IOTR": {
+    "sector": "Communication Services",
+    "industry": "Telecom Services"
+  },
+  "AEBI": {
+    "sector": "Industrials",
+    "industry": "Farm & Heavy Construction Machinery"
+  },
+  "FLUX": {
+    "sector": "Industrials",
+    "industry": "Electrical Equipment & Parts"
+  },
+  "ATNI": {
+    "sector": "Communication Services",
+    "industry": "Telecom Services"
+  },
+  "THAR": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "PRCH": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "LMFA": {
+    "sector": "Financial Services",
+    "industry": "Credit Services"
+  },
+  "LIMN": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "ELVA": {
+    "sector": "Industrials",
+    "industry": "Electrical Equipment & Parts"
+  },
+  "STTK": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "KTB": {
+    "sector": "Consumer Cyclical",
+    "industry": "Apparel Manufacturing"
+  },
+  "LIVN": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "SUPN": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic"
+  },
+  "LANV": {
+    "sector": "Consumer Cyclical",
+    "industry": "Luxury Goods"
+  },
+  "NOTV": {
+    "sector": "Healthcare",
+    "industry": "Diagnostics & Research"
+  },
+  "GSUN": {
+    "sector": "Consumer Defensive",
+    "industry": "Education & Training Services"
+  },
+  "BHAT": {
+    "sector": "Communication Services",
+    "industry": "Electronic Gaming & Multimedia"
+  },
+  "RBBN": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "NVX": {
+    "sector": "Industrials",
+    "industry": "Electrical Equipment & Parts"
+  },
+  "OPRX": {
+    "sector": "Healthcare",
+    "industry": "Health Information Services"
+  },
+  "HCAI": {
+    "sector": "Industrials",
+    "industry": "Farm & Heavy Construction Machinery"
+  },
+  "COE": {
+    "sector": "Consumer Defensive",
+    "industry": "Education & Training Services"
+  },
+  "IBEX": {
+    "sector": "Technology",
+    "industry": "Information Technology Services"
+  },
+  "KGEI": {
+    "sector": "Energy",
+    "industry": "Oil & Gas E&P"
+  },
+  "EDAP": {
+    "sector": "Healthcare",
+    "industry": "Medical Distribution"
+  },
+  "LCNB": {
+    "sector": "Financial Services",
+    "industry": "Banks - Regional"
+  },
+  "CRON": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic"
+  },
+  "JUNS": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "TNON": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "XZO": {
+    "sector": "Financial Services",
+    "industry": "Insurance - Diversified"
+  },
+  "CMTL": {
+    "sector": "Technology",
+    "industry": "Communication Equipment"
+  },
+  "OPEN": {
+    "sector": "Real Estate",
+    "industry": "Real Estate Services"
+  },
+  "FOXX": {
+    "sector": "Technology",
+    "industry": "Consumer Electronics"
+  },
+  "MMYT": {
+    "sector": "Consumer Cyclical",
+    "industry": "Travel Services"
+  },
+  "CERS": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "HBIO": {
+    "sector": "Healthcare",
+    "industry": "Medical Instruments & Supplies"
+  },
+  "SHLS": {
+    "sector": "Technology",
+    "industry": "Solar"
+  },
+  "TDTH": {
+    "sector": "Technology",
+    "industry": "Information Technology Services"
+  },
+  "PSQH": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "ICU": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "ESEA": {
+    "sector": "Industrials",
+    "industry": "Marine Shipping"
+  },
+  "GDEV": {
+    "sector": "Communication Services",
+    "industry": "Electronic Gaming & Multimedia"
+  },
+  "ZEO": {
+    "sector": "Technology",
+    "industry": "Solar"
+  },
+  "CMCO": {
+    "sector": "Industrials",
+    "industry": "Farm & Heavy Construction Machinery"
+  },
+  "FLL": {
+    "sector": "Consumer Cyclical",
+    "industry": "Resorts & Casinos"
+  },
+  "NEGG": {
+    "sector": "Consumer Cyclical",
+    "industry": "Internet Retail"
+  },
+  "VVX": {
+    "sector": "Industrials",
+    "industry": "Aerospace & Defense"
+  },
+  "SKBL": {
+    "sector": "Industrials",
+    "industry": "Engineering & Construction"
+  },
+  "ALTO": {
+    "sector": "Basic Materials",
+    "industry": "Specialty Chemicals"
+  },
+  "NFE": {
+    "sector": "Energy",
+    "industry": "Oil & Gas Midstream"
+  },
+  "LHAI": {
+    "sector": "Real Estate",
+    "industry": "Real Estate Services"
+  },
+  "WEST": {
+    "sector": "Consumer Defensive",
+    "industry": "Packaged Foods"
+  },
+  "ABAT": {
+    "sector": "Industrials",
+    "industry": "Waste Management"
+  },
+  "FVRR": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "DARE": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "MOD": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Parts"
+  },
+  "LDWY": {
+    "sector": "Communication Services",
+    "industry": "Advertising Agencies"
+  },
+  "NISN": {
+    "sector": "Financial Services",
+    "industry": "Credit Services"
+  },
+  "GAMB": {
+    "sector": "Consumer Cyclical",
+    "industry": "Gambling"
+  },
+  "CENX": {
+    "sector": "Basic Materials",
+    "industry": "Aluminum"
+  },
+  "PHVS": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "TGB": {
+    "sector": "Basic Materials",
+    "industry": "Copper"
+  },
+  "BNR": {
+    "sector": "Healthcare",
+    "industry": "Diagnostics & Research"
+  },
+  "LIND": {
+    "sector": "Consumer Cyclical",
+    "industry": "Travel Services"
+  },
+  "HOWL": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "TOYO": {
+    "sector": "Technology",
+    "industry": "Solar"
+  },
+  "GPMT": {
+    "sector": "Real Estate",
+    "industry": "REIT - Mortgage"
+  },
+  "MTRX": {
+    "sector": "Industrials",
+    "industry": "Engineering & Construction"
+  },
+  "CLAR": {
+    "sector": "Consumer Cyclical",
+    "industry": "Leisure"
+  },
+  "GRO": {
+    "sector": "Basic Materials",
+    "industry": "Other Industrial Metals & Mining"
+  },
+  "PRSU": {
+    "sector": "Consumer Cyclical",
+    "industry": "Travel Services"
+  },
+  "ARMP": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "HOG": {
+    "sector": "Consumer Cyclical",
+    "industry": "Recreational Vehicles"
+  },
+  "SAM": {
+    "sector": "Consumer Defensive",
+    "industry": "Beverages - Brewers"
+  },
+  "SSTI": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "YEXT": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "INBS": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "AI": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "GWH": {
+    "sector": "Industrials",
+    "industry": "Electrical Equipment & Parts"
+  },
+  "APRE": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "YDKG": {
+    "sector": "Communication Services",
+    "industry": "Advertising Agencies"
+  },
+  "LITB": {
+    "sector": "Consumer Cyclical",
+    "industry": "Internet Retail"
+  },
+  "BBAR": {
+    "sector": "Financial Services",
+    "industry": "Banks - Regional"
+  },
+  "ADAG": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "MCFT": {
+    "sector": "Consumer Cyclical",
+    "industry": "Recreational Vehicles"
+  },
+  "U": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "WOLF": {
+    "sector": "Technology",
+    "industry": "Semiconductors"
+  },
+  "ALGS": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "INN": {
+    "sector": "Real Estate",
+    "industry": "REIT - Hotel & Motel"
+  },
+  "LAD": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto & Truck Dealerships"
+  },
+  "SDA": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto & Truck Dealerships"
+  },
+  "SEZL": {
+    "sector": "Financial Services",
+    "industry": "Credit Services"
+  },
+  "FBYD": {
+    "sector": "Industrials",
+    "industry": "Conglomerates"
+  },
+  "STI": {
+    "sector": "Industrials",
+    "industry": "Electrical Equipment & Parts"
+  },
+  "SMP": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Parts"
+  },
+  "MLP": {
+    "sector": "Real Estate",
+    "industry": "Real Estate Services"
+  },
+  "CWD": {
+    "sector": "Financial Services",
+    "industry": "Asset Management"
+  },
+  "INBX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "RADX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "ATLN": {
+    "sector": "Industrials",
+    "industry": "Staffing & Employment Services"
+  },
+  "COCP": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "NXPL": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "JANX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "JVA": {
+    "sector": "Consumer Defensive",
+    "industry": "Packaged Foods"
+  },
+  "APVO": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "PRA": {
+    "sector": "Financial Services",
+    "industry": "Insurance - Property & Casualty"
+  },
+  "KREF": {
+    "sector": "Real Estate",
+    "industry": "REIT - Mortgage"
+  },
+  "MDIA": {
+    "sector": "Communication Services",
+    "industry": "Broadcasting"
+  },
+  "AYTU": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic"
+  },
+  "LOCL": {
+    "sector": "Consumer Defensive",
+    "industry": "Farm Products"
+  },
+  "XRTX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "AKTS": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "FCUV": {
+    "sector": "Technology",
+    "industry": "Scientific & Technical Instruments"
+  },
+  "PBI": {
+    "sector": "Industrials",
+    "industry": "Integrated Freight & Logistics"
+  },
+  "NCI": {
+    "sector": "Consumer Cyclical",
+    "industry": "Apparel Manufacturing"
+  },
+  "FOXF": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Parts"
+  },
+  "KLC": {
+    "sector": "Consumer Defensive",
+    "industry": "Education & Training Services"
+  },
+  "TUSK": {
+    "sector": "Industrials",
+    "industry": "Conglomerates"
+  },
+  "GME": {
+    "sector": "Consumer Cyclical",
+    "industry": "Specialty Retail"
+  },
+  "UCL": {
+    "sector": "Communication Services",
+    "industry": "Telecom Services"
+  },
+  "BFRI": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic"
+  },
+  "SFWL": {
+    "sector": "Industrials",
+    "industry": "Integrated Freight & Logistics"
+  },
+  "AGX": {
+    "sector": "Industrials",
+    "industry": "Engineering & Construction"
+  },
+  "AMBP": {
+    "sector": "Consumer Cyclical",
+    "industry": "Packaging & Containers"
+  },
+  "CALM": {
+    "sector": "Consumer Defensive",
+    "industry": "Farm Products"
+  },
+  "STIM": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "XELB": {
+    "sector": "Consumer Cyclical",
+    "industry": "Apparel Manufacturing"
+  },
+  "CCM": {
+    "sector": "Healthcare",
+    "industry": "Medical Care Facilities"
+  },
+  "CAPS": {
+    "sector": "Basic Materials",
+    "industry": "Building Materials"
+  },
+  "CTKB": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "IMTX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "XCH": {
+    "sector": "Industrials",
+    "industry": "Specialty Industrial Machinery"
+  },
+  "BRR": {
+    "sector": "Financial Services",
+    "industry": "Capital Markets"
+  },
+  "CLNE": {
+    "sector": "Energy",
+    "industry": "Oil & Gas Refining & Marketing"
+  },
+  "WGRX": {
+    "sector": "Healthcare",
+    "industry": "Pharmaceutical Retailers"
+  },
+  "NERV": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "CTRN": {
+    "sector": "Consumer Cyclical",
+    "industry": "Apparel Retail"
+  },
+  "PPTA": {
+    "sector": "Basic Materials",
+    "industry": "Other Precious Metals & Mining"
+  },
+  "CMTG": {
+    "sector": "Real Estate",
+    "industry": "REIT - Mortgage"
+  },
+  "BNTC": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "OLPX": {
+    "sector": "Consumer Cyclical",
+    "industry": "Specialty Retail"
+  },
+  "VSA": {
+    "sector": "Consumer Defensive",
+    "industry": "Education & Training Services"
+  },
+  "SER": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "IMVT": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "SNOA": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic"
+  },
+  "FUFU": {
+    "sector": "Financial Services",
+    "industry": "Capital Markets"
+  },
+  "UBXG": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "LIVE": {
+    "sector": "Consumer Cyclical",
+    "industry": "Home Improvement Retail"
+  },
+  "LQDA": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "FSS": {
+    "sector": "Industrials",
+    "industry": "Pollution & Treatment Controls"
+  },
+  "TDUP": {
+    "sector": "Consumer Cyclical",
+    "industry": "Internet Retail"
+  },
+  "SIGA": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic"
+  },
+  "AXL": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Parts"
+  },
+  "GEG": {
+    "sector": "Financial Services",
+    "industry": "Asset Management"
+  },
+  "PMAX": {
+    "sector": "Industrials",
+    "industry": "Specialty Business Services"
+  },
+  "MVST": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Parts"
+  },
+  "PDD": {
+    "sector": "Consumer Cyclical",
+    "industry": "Internet Retail"
+  },
+  "VTEX": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "COSM": {
+    "sector": "Healthcare",
+    "industry": "Medical Distribution"
+  },
+  "TASK": {
+    "sector": "Technology",
+    "industry": "Information Technology Services"
+  },
+  "DBI": {
+    "sector": "Consumer Cyclical",
+    "industry": "Footwear & Accessories"
+  },
+  "CRBU": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "BTCT": {
+    "sector": "Technology",
+    "industry": "Computer Hardware"
+  },
+  "RECT": {
+    "sector": "Consumer Cyclical",
+    "industry": "Specialty Retail"
+  },
+  "MITQ": {
+    "sector": "Technology",
+    "industry": "Communication Equipment"
+  },
+  "HZO": {
+    "sector": "Consumer Cyclical",
+    "industry": "Specialty Retail"
+  },
+  "MOGU": {
+    "sector": "Consumer Cyclical",
+    "industry": "Internet Retail"
+  },
+  "NWL": {
+    "sector": "Consumer Defensive",
+    "industry": "Household & Personal Products"
+  },
+  "POET": {
+    "sector": "Technology",
+    "industry": "Semiconductors"
+  },
+  "ACVA": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto & Truck Dealerships"
+  },
+  "REVB": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "WCT": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "SEDG": {
+    "sector": "Technology",
+    "industry": "Solar"
+  },
+  "FTLF": {
+    "sector": "Consumer Defensive",
+    "industry": "Packaged Foods"
+  },
+  "NYC": {
+    "sector": "Real Estate",
+    "industry": "Real Estate Services"
+  },
+  "GTEC": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Parts"
+  },
+  "FBLG": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "CECO": {
+    "sector": "Industrials",
+    "industry": "Pollution & Treatment Controls"
+  },
+  "FLWS": {
+    "sector": "Consumer Cyclical",
+    "industry": "Specialty Retail"
+  },
+  "EHAB": {
+    "sector": "Healthcare",
+    "industry": "Medical Care Facilities"
+  },
+  "HAO": {
+    "sector": "Communication Services",
+    "industry": "Advertising Agencies"
+  },
+  "RAVE": {
+    "sector": "Consumer Cyclical",
+    "industry": "Restaurants"
+  },
+  "BKYI": {
+    "sector": "Industrials",
+    "industry": "Security & Protection Services"
+  },
+  "MATV": {
+    "sector": "Basic Materials",
+    "industry": "Specialty Chemicals"
+  },
+  "SBEV": {
+    "sector": "Consumer Defensive",
+    "industry": "Beverages - Wineries & Distilleries"
+  },
+  "LINC": {
+    "sector": "Consumer Defensive",
+    "industry": "Education & Training Services"
+  },
+  "CLRB": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "INOD": {
+    "sector": "Technology",
+    "industry": "Information Technology Services"
+  },
+  "HOUR": {
+    "sector": "Consumer Cyclical",
+    "industry": "Internet Retail"
+  },
+  "TYRA": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "CTLP": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "AIRS": {
+    "sector": "Healthcare",
+    "industry": "Medical Care Facilities"
+  },
+  "WKC": {
+    "sector": "Energy",
+    "industry": "Oil & Gas Refining & Marketing"
+  },
+  "PRM": {
+    "sector": "Basic Materials",
+    "industry": "Specialty Chemicals"
+  },
+  "LNKS": {
+    "sector": "Industrials",
+    "industry": "Electrical Equipment & Parts"
+  },
+  "EEIQ": {
+    "sector": "Consumer Defensive",
+    "industry": "Education & Training Services"
+  },
+  "ADEA": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "DAO": {
+    "sector": "Consumer Defensive",
+    "industry": "Education & Training Services"
+  },
+  "LMND": {
+    "sector": "Financial Services",
+    "industry": "Insurance - Property & Casualty"
+  },
+  "INFU": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "LSAK": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "CNSP": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "GSHD": {
+    "sector": "Financial Services",
+    "industry": "Insurance Brokers"
+  },
+  "ARKO": {
+    "sector": "Consumer Cyclical",
+    "industry": "Specialty Retail"
+  },
+  "AURA": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "SWKH": {
+    "sector": "Financial Services",
+    "industry": "Asset Management"
+  },
+  "KMRK": {
+    "sector": "Consumer Cyclical",
+    "industry": "Leisure"
+  },
+  "TBPH": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "UPLD": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "BIOX": {
+    "sector": "Basic Materials",
+    "industry": "Agricultural Inputs"
+  },
+  "STRT": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Parts"
+  },
+  "ADGM": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "GREE": {
+    "sector": "Financial Services",
+    "industry": "Capital Markets"
+  },
+  "SOPH": {
+    "sector": "Healthcare",
+    "industry": "Health Information Services"
+  },
+  "IMMX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "ALAR": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "ARBK": {
+    "sector": "Financial Services",
+    "industry": "Capital Markets"
+  },
+  "ACIU": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "SYBX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "ZDGE": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "TRMB": {
+    "sector": "Technology",
+    "industry": "Scientific & Technical Instruments"
+  },
+  "TENX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "NTWK": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "ICG": {
+    "sector": "Technology",
+    "industry": "Semiconductors"
+  },
+  "MNPR": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "WK": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "XTNT": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "EHGO": {
+    "sector": "Industrials",
+    "industry": "Business Equipment & Supplies"
+  },
+  "LEVI": {
+    "sector": "Consumer Cyclical",
+    "industry": "Apparel Manufacturing"
+  },
+  "TECH": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "CBAT": {
+    "sector": "Industrials",
+    "industry": "Electrical Equipment & Parts"
+  },
+  "GGR": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Manufacturers"
+  },
+  "FOA": {
+    "sector": "Financial Services",
+    "industry": "Credit Services"
+  },
+  "AGAE": {
+    "sector": "Communication Services",
+    "industry": "Entertainment"
+  },
+  "NEXT": {
+    "sector": "Energy",
+    "industry": "Oil & Gas Equipment & Services"
+  },
+  "NPCE": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "HTCR": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "CREG": {
+    "sector": "Utilities",
+    "industry": "Utilities - Renewable"
+  },
+  "KITT": {
+    "sector": "Industrials",
+    "industry": "Aerospace & Defense"
+  },
+  "BOF": {
+    "sector": "Consumer Defensive",
+    "industry": "Packaged Foods"
+  },
+  "SMWB": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "BAFN": {
+    "sector": "Financial Services",
+    "industry": "Banks - Regional"
+  },
+  "MBUU": {
+    "sector": "Consumer Cyclical",
+    "industry": "Recreational Vehicles"
+  },
+  "ZYBT": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic"
+  },
+  "ROCK": {
+    "sector": "Industrials",
+    "industry": "Building Products & Equipment"
+  },
+  "SJ": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "QS": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Parts"
+  },
+  "LYEL": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "AMN": {
+    "sector": "Healthcare",
+    "industry": "Medical Care Facilities"
+  },
+  "AORT": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "DBD": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "SEAT": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "UPC": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic"
+  },
+  "PTNM": {
+    "sector": "Consumer Defensive",
+    "industry": "Household & Personal Products"
+  },
+  "CSTL": {
+    "sector": "Healthcare",
+    "industry": "Diagnostics & Research"
+  },
+  "COCH": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "JOUT": {
+    "sector": "Consumer Cyclical",
+    "industry": "Leisure"
+  },
+  "ADVB": {
+    "sector": "Healthcare",
+    "industry": "Diagnostics & Research"
+  },
+  "EPAC": {
+    "sector": "Industrials",
+    "industry": "Specialty Industrial Machinery"
+  },
+  "TAOX": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "GCDT": {
+    "sector": "Industrials",
+    "industry": "Specialty Industrial Machinery"
+  },
+  "TRIB": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "AQMS": {
+    "sector": "Industrials",
+    "industry": "Waste Management"
+  },
+  "KOD": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "NINE": {
+    "sector": "Energy",
+    "industry": "Oil & Gas Equipment & Services"
+  },
+  "SLDP": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Parts"
+  },
+  "YXT": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "GENI": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "VERU": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "LNAI": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "AIXI": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "WEAV": {
+    "sector": "Healthcare",
+    "industry": "Health Information Services"
+  },
+  "VNET": {
+    "sector": "Technology",
+    "industry": "Information Technology Services"
+  },
+  "COEP": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "WKHS": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Manufacturers"
+  },
+  "STKL": {
+    "sector": "Consumer Defensive",
+    "industry": "Beverages - Non-Alcoholic"
+  },
+  "CAL": {
+    "sector": "Consumer Cyclical",
+    "industry": "Apparel Retail"
+  },
+  "BDMD": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "GURE": {
+    "sector": "Basic Materials",
+    "industry": "Chemicals"
+  },
+  "MAX": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "EGG": {
+    "sector": "Industrials",
+    "industry": "Consulting Services"
+  },
+  "GLDD": {
+    "sector": "Industrials",
+    "industry": "Engineering & Construction"
+  },
+  "SLN": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "CISS": {
+    "sector": "Industrials",
+    "industry": "Marine Shipping"
+  },
+  "RNTX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "BORR": {
+    "sector": "Energy",
+    "industry": "Oil & Gas Drilling"
+  },
+  "AIRG": {
+    "sector": "Technology",
+    "industry": "Communication Equipment"
+  },
+  "SRI": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Parts"
+  },
+  "BE": {
+    "sector": "Industrials",
+    "industry": "Electrical Equipment & Parts"
+  },
+  "SPIR": {
+    "sector": "Industrials",
+    "industry": "Specialty Business Services"
+  },
+  "HGV": {
+    "sector": "Consumer Cyclical",
+    "industry": "Resorts & Casinos"
+  },
+  "NEUP": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "TYGO": {
+    "sector": "Technology",
+    "industry": "Solar"
+  },
+  "DDI": {
+    "sector": "Communication Services",
+    "industry": "Electronic Gaming & Multimedia"
+  },
+  "WRBY": {
+    "sector": "Healthcare",
+    "industry": "Medical Instruments & Supplies"
+  },
+  "TLPH": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic"
+  },
+  "ALTI": {
+    "sector": "Financial Services",
+    "industry": "Asset Management"
+  },
+  "XOS": {
+    "sector": "Industrials",
+    "industry": "Farm & Heavy Construction Machinery"
+  },
+  "BGSF": {
+    "sector": "Industrials",
+    "industry": "Staffing & Employment Services"
+  },
+  "TMDE": {
+    "sector": "Energy",
+    "industry": "Oil & Gas Midstream"
+  },
+  "TROO": {
+    "sector": "Financial Services",
+    "industry": "Credit Services"
+  },
+  "SDST": {
+    "sector": "Industrials",
+    "industry": "Electrical Equipment & Parts"
+  },
+  "DXST": {
+    "sector": "Industrials",
+    "industry": "Waste Management"
+  },
+  "CGTL": {
+    "sector": "Consumer Cyclical",
+    "industry": "Specialty Retail"
+  },
+  "SSKN": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "SRAD": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "GSAT": {
+    "sector": "Communication Services",
+    "industry": "Telecom Services"
+  },
+  "SCSC": {
+    "sector": "Technology",
+    "industry": "Electronics & Computer Distribution"
+  },
+  "PRPL": {
+    "sector": "Consumer Cyclical",
+    "industry": "Furnishings, Fixtures & Appliances"
+  },
+  "KXIN": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto & Truck Dealerships"
+  },
+  "ELWT": {
+    "sector": "Communication Services",
+    "industry": "Telecom Services"
+  },
+  "ISPR": {
+    "sector": "Consumer Defensive",
+    "industry": "Tobacco"
+  },
+  "SERV": {
+    "sector": "Industrials",
+    "industry": "Specialty Industrial Machinery"
+  },
+  "SWAG": {
+    "sector": "Communication Services",
+    "industry": "Advertising Agencies"
+  },
+  "SLMT": {
+    "sector": "Communication Services",
+    "industry": "Entertainment"
+  },
+  "GNSS": {
+    "sector": "Technology",
+    "industry": "Scientific & Technical Instruments"
+  },
+  "HCKT": {
+    "sector": "Technology",
+    "industry": "Information Technology Services"
+  },
+  "COOK": {
+    "sector": "Consumer Cyclical",
+    "industry": "Furnishings, Fixtures & Appliances"
+  },
+  "ULH": {
+    "sector": "Industrials",
+    "industry": "Trucking"
+  },
+  "ADTN": {
+    "sector": "Technology",
+    "industry": "Communication Equipment"
+  },
+  "EDIT": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "ZKIN": {
+    "sector": "Basic Materials",
+    "industry": "Steel"
+  },
+  "DTST": {
+    "sector": "Technology",
+    "industry": "Information Technology Services"
+  },
+  "ATER": {
+    "sector": "Consumer Cyclical",
+    "industry": "Furnishings, Fixtures & Appliances"
+  },
+  "S": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "NOTE": {
+    "sector": "Technology",
+    "industry": "Information Technology Services"
+  },
+  "VRAR": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "REAL": {
+    "sector": "Consumer Cyclical",
+    "industry": "Luxury Goods"
+  },
+  "TREX": {
+    "sector": "Industrials",
+    "industry": "Building Products & Equipment"
+  },
+  "NBTX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "FLGC": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic"
+  },
+  "ARQQ": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "TRUP": {
+    "sector": "Financial Services",
+    "industry": "Insurance - Property & Casualty"
+  },
+  "ALLO": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "ARAY": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "CING": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "REFR": {
+    "sector": "Technology",
+    "industry": "Electronic Components"
+  },
+  "TCRX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "CPOP": {
+    "sector": "Communication Services",
+    "industry": "Entertainment"
+  },
+  "ASPS": {
+    "sector": "Real Estate",
+    "industry": "Real Estate Services"
+  },
+  "ARTV": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "LUCY": {
+    "sector": "Healthcare",
+    "industry": "Medical Instruments & Supplies"
+  },
+  "CUPR": {
+    "sector": "Healthcare",
+    "industry": "Medical Instruments & Supplies"
+  },
+  "SHC": {
+    "sector": "Healthcare",
+    "industry": "Diagnostics & Research"
+  },
+  "PIII": {
+    "sector": "Healthcare",
+    "industry": "Medical Care Facilities"
+  },
+  "FLS": {
+    "sector": "Industrials",
+    "industry": "Specialty Industrial Machinery"
+  },
+  "YI": {
+    "sector": "Healthcare",
+    "industry": "Medical Distribution"
+  },
+  "NNOX": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "ALDX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "TAYD": {
+    "sector": "Industrials",
+    "industry": "Specialty Industrial Machinery"
+  },
+  "IVDA": {
+    "sector": "Industrials",
+    "industry": "Security & Protection Services"
+  },
+  "GPOR": {
+    "sector": "Energy",
+    "industry": "Oil & Gas E&P"
+  },
+  "NOK": {
+    "sector": "Technology",
+    "industry": "Communication Equipment"
+  },
+  "RXO": {
+    "sector": "Industrials",
+    "industry": "Trucking"
+  },
+  "FAMI": {
+    "sector": "Consumer Defensive",
+    "industry": "Packaged Foods"
+  },
+  "TLIH": {
+    "sector": "Industrials",
+    "industry": "Industrial Distribution"
+  },
+  "CDXS": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "IDT": {
+    "sector": "Communication Services",
+    "industry": "Telecom Services"
+  },
+  "UCTT": {
+    "sector": "Technology",
+    "industry": "Semiconductor Equipment & Materials"
+  },
+  "MVIS": {
+    "sector": "Technology",
+    "industry": "Scientific & Technical Instruments"
+  },
+  "SAIH": {
+    "sector": "Technology",
+    "industry": "Information Technology Services"
+  },
+  "CVV": {
+    "sector": "Industrials",
+    "industry": "Specialty Industrial Machinery"
+  },
+  "MKZR": {
+    "sector": "Real Estate",
+    "industry": "REIT - Diversified"
+  },
+  "FEAM": {
+    "sector": "Basic Materials",
+    "industry": "Specialty Chemicals"
+  },
+  "ONCO": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "HCSG": {
+    "sector": "Healthcare",
+    "industry": "Medical Care Facilities"
+  },
+  "SGMO": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "HIMS": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic"
+  },
+  "CAPR": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "GFAI": {
+    "sector": "Industrials",
+    "industry": "Security & Protection Services"
+  },
+  "LVLU": {
+    "sector": "Consumer Cyclical",
+    "industry": "Apparel Retail"
+  },
+  "BJDX": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "MGPI": {
+    "sector": "Consumer Defensive",
+    "industry": "Beverages - Wineries & Distilleries"
+  },
+  "TGHL": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "AMBQ": {
+    "sector": "Technology",
+    "industry": "Semiconductors"
+  },
+  "RAPP": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "CLRO": {
+    "sector": "Technology",
+    "industry": "Communication Equipment"
+  },
+  "IVP": {
+    "sector": "Consumer Cyclical",
+    "industry": "Personal Services"
+  },
+  "SKIN": {
+    "sector": "Consumer Defensive",
+    "industry": "Household & Personal Products"
+  },
+  "DSS": {
+    "sector": "Consumer Cyclical",
+    "industry": "Packaging & Containers"
+  },
+  "ZYME": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "RAYA": {
+    "sector": "Industrials",
+    "industry": "Electrical Equipment & Parts"
+  },
+  "XXI": {
+    "sector": "Financial Services",
+    "industry": "Shell Companies"
+  },
+  "PAYS": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "MNTK": {
+    "sector": "Basic Materials",
+    "industry": "Specialty Chemicals"
+  },
+  "TRUE": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "GES": {
+    "sector": "Consumer Cyclical",
+    "industry": "Apparel Retail"
+  },
+  "TNYA": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "BACQ": {
+    "sector": "Financial Services",
+    "industry": "Shell Companies"
+  },
+  "SPCE": {
+    "sector": "Industrials",
+    "industry": "Aerospace & Defense"
+  },
+  "SOHO": {
+    "sector": "Real Estate",
+    "industry": "REIT - Hotel & Motel"
+  },
+  "BCYC": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "RDNT": {
+    "sector": "Healthcare",
+    "industry": "Diagnostics & Research"
+  },
+  "KZR": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "GRCE": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "GLBE": {
+    "sector": "Consumer Cyclical",
+    "industry": "Internet Retail"
+  },
+  "ZCMD": {
+    "sector": "Healthcare",
+    "industry": "Health Information Services"
+  },
+  "ELOG": {
+    "sector": "Industrials",
+    "industry": "Integrated Freight & Logistics"
+  },
+  "HHS": {
+    "sector": "Industrials",
+    "industry": "Conglomerates"
+  },
+  "BILI": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "LWLG": {
+    "sector": "Basic Materials",
+    "industry": "Specialty Chemicals"
+  },
+  "YMT": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "ODD": {
+    "sector": "Consumer Defensive",
+    "industry": "Household & Personal Products"
+  },
+  "NKTX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "NTCL": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "TTI": {
+    "sector": "Industrials",
+    "industry": "Conglomerates"
+  },
+  "GBIO": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "RILYL": {
+    "sector": "Financial Services",
+    "industry": "Financial Conglomerates"
+  },
+  "STFS": {
+    "sector": "Communication Services",
+    "industry": "Advertising Agencies"
+  },
+  "UEC": {
+    "sector": "Energy",
+    "industry": "Uranium"
+  },
+  "PCVX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "IINN": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "PTN": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "CLDI": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "SHOP": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "IBO": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "MASS": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "SSRM": {
+    "sector": "Basic Materials",
+    "industry": "Gold"
+  },
+  "TWNP": {
+    "sector": "Consumer Cyclical",
+    "industry": "Restaurants"
+  },
+  "ANNA": {
+    "sector": "Energy",
+    "industry": "Oil & Gas E&P"
+  },
+  "RLGT": {
+    "sector": "Industrials",
+    "industry": "Integrated Freight & Logistics"
+  },
+  "MGNX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "MFI": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "OUST": {
+    "sector": "Technology",
+    "industry": "Electronic Components"
+  },
+  "VHC": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "NXDR": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "YJ": {
+    "sector": "Consumer Cyclical",
+    "industry": "Internet Retail"
+  },
+  "VATE": {
+    "sector": "Industrials",
+    "industry": "Engineering & Construction"
+  },
+  "CDZI": {
+    "sector": "Utilities",
+    "industry": "Utilities - Regulated Water"
+  },
+  "IHRT": {
+    "sector": "Communication Services",
+    "industry": "Broadcasting"
+  },
+  "CHWY": {
+    "sector": "Consumer Cyclical",
+    "industry": "Internet Retail"
+  },
+  "TWIN": {
+    "sector": "Industrials",
+    "industry": "Specialty Industrial Machinery"
+  },
+  "CHR": {
+    "sector": "Communication Services",
+    "industry": "Advertising Agencies"
+  },
+  "AZTR": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "ADIL": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "CVU": {
+    "sector": "Industrials",
+    "industry": "Aerospace & Defense"
+  },
+  "QDEL": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "AUUD": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "CNXC": {
+    "sector": "Technology",
+    "industry": "Information Technology Services"
+  },
+  "HIVE": {
+    "sector": "Financial Services",
+    "industry": "Capital Markets"
+  },
+  "MODD": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "UFI": {
+    "sector": "Consumer Cyclical",
+    "industry": "Textile Manufacturing"
+  },
+  "FOSL": {
+    "sector": "Consumer Cyclical",
+    "industry": "Footwear & Accessories"
+  },
+  "EONR": {
+    "sector": "Energy",
+    "industry": "Oil & Gas E&P"
+  },
+  "MPAA": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Parts"
+  },
+  "CCO": {
+    "sector": "Communication Services",
+    "industry": "Advertising Agencies"
+  },
+  "WAFU": {
+    "sector": "Consumer Defensive",
+    "industry": "Education & Training Services"
+  },
+  "ZIP": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "INTJ": {
+    "sector": "Industrials",
+    "industry": "Consulting Services"
+  },
+  "MAXN": {
+    "sector": "Technology",
+    "industry": "Solar"
+  },
+  "OGN": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - General"
+  },
+  "MATX": {
+    "sector": "Industrials",
+    "industry": "Marine Shipping"
+  },
+  "GPCR": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "THRY": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "OWLT": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "PN": {
+    "sector": "Technology",
+    "industry": "Solar"
+  },
+  "TBBB": {
+    "sector": "Consumer Defensive",
+    "industry": "Discount Stores"
+  },
+  "LEG": {
+    "sector": "Consumer Cyclical",
+    "industry": "Furnishings, Fixtures & Appliances"
+  },
+  "BLRX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "SLND": {
+    "sector": "Industrials",
+    "industry": "Engineering & Construction"
+  },
+  "RLAY": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "TACT": {
+    "sector": "Technology",
+    "industry": "Computer Hardware"
+  },
+  "HURC": {
+    "sector": "Industrials",
+    "industry": "Specialty Industrial Machinery"
+  },
+  "HQI": {
+    "sector": "Industrials",
+    "industry": "Staffing & Employment Services"
+  },
+  "AFRM": {
+    "sector": "Financial Services",
+    "industry": "Credit Services"
+  },
+  "XPON": {
+    "sector": "Industrials",
+    "industry": "Electrical Equipment & Parts"
+  },
+  "UMBF": {
+    "sector": "Financial Services",
+    "industry": "Banks - Regional"
+  },
+  "QH": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "TME": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "LYRA": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "DG": {
+    "sector": "Consumer Defensive",
+    "industry": "Discount Stores"
+  },
+  "VYGR": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "VERO": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "AVAH": {
+    "sector": "Healthcare",
+    "industry": "Medical Care Facilities"
+  },
+  "ACB": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic"
+  },
+  "ARCO": {
+    "sector": "Consumer Cyclical",
+    "industry": "Restaurants"
+  },
+  "OGEN": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "MNDY": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "JEM": {
+    "sector": "Consumer Cyclical",
+    "industry": "Apparel Retail"
+  },
+  "ADXN": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "PCT": {
+    "sector": "Industrials",
+    "industry": "Pollution & Treatment Controls"
+  },
+  "OXBR": {
+    "sector": "Financial Services",
+    "industry": "Insurance - Reinsurance"
+  },
+  "MPU": {
+    "sector": "Communication Services",
+    "industry": "Entertainment"
+  },
+  "SNGX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "ENLV": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "HUIZ": {
+    "sector": "Financial Services",
+    "industry": "Insurance Brokers"
+  },
+  "SOTK": {
+    "sector": "Technology",
+    "industry": "Scientific & Technical Instruments"
+  },
+  "MNSO": {
+    "sector": "Consumer Cyclical",
+    "industry": "Specialty Retail"
+  },
+  "KROS": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "ELMD": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "CRIS": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "GELS": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic"
+  },
+  "WCC": {
+    "sector": "Industrials",
+    "industry": "Industrial Distribution"
+  },
+  "EXPI": {
+    "sector": "Real Estate",
+    "industry": "Real Estate Services"
+  },
+  "NGS": {
+    "sector": "Energy",
+    "industry": "Oil & Gas Equipment & Services"
+  },
+  "CLVT": {
+    "sector": "Technology",
+    "industry": "Information Technology Services"
+  },
+  "KNDI": {
+    "sector": "Consumer Cyclical",
+    "industry": "Recreational Vehicles"
+  },
+  "SOHU": {
+    "sector": "Communication Services",
+    "industry": "Electronic Gaming & Multimedia"
+  },
+  "CNF": {
+    "sector": "Financial Services",
+    "industry": "Mortgage Finance"
+  },
+  "INTS": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "SSBI": {
+    "sector": "Financial Services",
+    "industry": "Banks - Regional"
+  },
+  "BCDA": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "AHMA": {
+    "sector": "Consumer Cyclical",
+    "industry": "Travel Services"
+  },
+  "SLGL": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "PASG": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "CTGO": {
+    "sector": "Basic Materials",
+    "industry": "Gold"
+  },
+  "NVCT": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "PKST": {
+    "sector": "Real Estate",
+    "industry": "REIT - Office"
+  },
+  "IFBD": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "SNCY": {
+    "sector": "Industrials",
+    "industry": "Airlines"
+  },
+  "CNTY": {
+    "sector": "Consumer Cyclical",
+    "industry": "Resorts & Casinos"
+  },
+  "LESL": {
+    "sector": "Consumer Cyclical",
+    "industry": "Specialty Retail"
+  },
+  "ECVT": {
+    "sector": "Basic Materials",
+    "industry": "Specialty Chemicals"
+  },
+  "SNT": {
+    "sector": "Industrials",
+    "industry": "Security & Protection Services"
+  },
+  "WKSP": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Parts"
+  },
+  "KRKR": {
+    "sector": "Communication Services",
+    "industry": "Advertising Agencies"
+  },
+  "MCB": {
+    "sector": "Financial Services",
+    "industry": "Banks - Regional"
+  },
+  "CEPO": {
+    "sector": "Financial Services",
+    "industry": "Shell Companies"
+  },
+  "NCSM": {
+    "sector": "Energy",
+    "industry": "Oil & Gas Equipment & Services"
+  },
+  "NAK": {
+    "sector": "Basic Materials",
+    "industry": "Other Industrial Metals & Mining"
+  },
+  "PRLD": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "AMWD": {
+    "sector": "Consumer Cyclical",
+    "industry": "Furnishings, Fixtures & Appliances"
+  },
+  "EXFY": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "SONM": {
+    "sector": "Technology",
+    "industry": "Consumer Electronics"
+  },
+  "CALC": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "WSHP": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "XPEL": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Parts"
+  },
+  "SEI": {
+    "sector": "Energy",
+    "industry": "Oil & Gas Equipment & Services"
+  },
+  "AREB": {
+    "sector": "Consumer Cyclical",
+    "industry": "Footwear & Accessories"
+  },
+  "VIRC": {
+    "sector": "Consumer Cyclical",
+    "industry": "Furnishings, Fixtures & Appliances"
+  },
+  "HLLY": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Parts"
+  },
+  "OBE": {
+    "sector": "Energy",
+    "industry": "Oil & Gas E&P"
+  },
+  "NXTC": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "NVAX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "ACET": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "TBLA": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "IDN": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "FOFO": {
+    "sector": "Industrials",
+    "industry": "Consulting Services"
+  },
+  "ZNB": {
+    "sector": "Communication Services",
+    "industry": "Entertainment"
+  },
+  "NRSN": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "SNDR": {
+    "sector": "Industrials",
+    "industry": "Trucking"
+  },
+  "PLAG": {
+    "sector": "Industrials",
+    "industry": "Conglomerates"
+  },
+  "ANGI": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "SBET": {
+    "sector": "Consumer Cyclical",
+    "industry": "Gambling"
+  },
+  "HUBG": {
+    "sector": "Industrials",
+    "industry": "Integrated Freight & Logistics"
+  },
+  "WDH": {
+    "sector": "Financial Services",
+    "industry": "Insurance - Diversified"
+  },
+  "EVLV": {
+    "sector": "Industrials",
+    "industry": "Security & Protection Services"
+  },
+  "TBCH": {
+    "sector": "Technology",
+    "industry": "Consumer Electronics"
+  },
+  "PRAA": {
+    "sector": "Financial Services",
+    "industry": "Credit Services"
+  },
+  "PMN": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "IMRN": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "BCG": {
+    "sector": "Financial Services",
+    "industry": "Asset Management"
+  },
+  "SCNX": {
+    "sector": "Healthcare",
+    "industry": "Pharmaceutical Retailers"
+  },
+  "BTSG": {
+    "sector": "Healthcare",
+    "industry": "Health Information Services"
+  },
+  "CIGL": {
+    "sector": "Industrials",
+    "industry": "Security & Protection Services"
+  },
+  "AMCX": {
+    "sector": "Communication Services",
+    "industry": "Entertainment"
+  },
+  "SURG": {
+    "sector": "Communication Services",
+    "industry": "Telecom Services"
+  },
+  "NNBR": {
+    "sector": "Industrials",
+    "industry": "Conglomerates"
+  },
+  "CHCI": {
+    "sector": "Real Estate",
+    "industry": "Real Estate Services"
+  },
+  "OCC": {
+    "sector": "Technology",
+    "industry": "Communication Equipment"
+  },
+  "ARTL": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "MTEK": {
+    "sector": "Technology",
+    "industry": "Electronic Components"
+  },
+  "XLO": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "UWMC": {
+    "sector": "Financial Services",
+    "industry": "Mortgage Finance"
+  },
+  "EWCZ": {
+    "sector": "Consumer Defensive",
+    "industry": "Household & Personal Products"
+  },
+  "FSI": {
+    "sector": "Basic Materials",
+    "industry": "Specialty Chemicals"
+  },
+  "ARHS": {
+    "sector": "Consumer Cyclical",
+    "industry": "Specialty Retail"
+  },
+  "SIEB": {
+    "sector": "Financial Services",
+    "industry": "Capital Markets"
+  },
+  "BHST": {
+    "sector": "Consumer Defensive",
+    "industry": "Packaged Foods"
+  },
+  "HSCS": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "BRLT": {
+    "sector": "Consumer Cyclical",
+    "industry": "Luxury Goods"
+  },
+  "HURN": {
+    "sector": "Industrials",
+    "industry": "Consulting Services"
+  },
+  "MTNB": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "PLBY": {
+    "sector": "Consumer Cyclical",
+    "industry": "Leisure"
+  },
+  "SBDS": {
+    "sector": "Consumer Cyclical",
+    "industry": "Internet Retail"
+  },
+  "TURB": {
+    "sector": "Technology",
+    "industry": "Solar"
+  },
+  "LGHL": {
+    "sector": "Financial Services",
+    "industry": "Capital Markets"
+  },
+  "CYD": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Manufacturers"
+  },
+  "TCGL": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "NOAH": {
+    "sector": "Financial Services",
+    "industry": "Asset Management"
+  },
+  "NTCT": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "USAR": {
+    "sector": "Basic Materials",
+    "industry": "Other Industrial Metals & Mining"
+  },
+  "BLNK": {
+    "sector": "Industrials",
+    "industry": "Engineering & Construction"
+  },
+  "RXT": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "ASTI": {
+    "sector": "Technology",
+    "industry": "Solar"
+  },
+  "ATCH": {
+    "sector": "Financial Services",
+    "industry": "Capital Markets"
+  },
+  "RDDT": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "ARX": {
+    "sector": "Financial Services",
+    "industry": "Insurance Brokers"
+  },
+  "VSAT": {
+    "sector": "Technology",
+    "industry": "Communication Equipment"
+  },
+  "OKUR": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "DAL": {
+    "sector": "Industrials",
+    "industry": "Airlines"
+  },
+  "GSM": {
+    "sector": "Basic Materials",
+    "industry": "Other Industrial Metals & Mining"
+  },
+  "SHIP": {
+    "sector": "Industrials",
+    "industry": "Marine Shipping"
+  },
+  "KC": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "GHM": {
+    "sector": "Industrials",
+    "industry": "Specialty Industrial Machinery"
+  },
+  "ACIC": {
+    "sector": "Financial Services",
+    "industry": "Insurance - Property & Casualty"
+  },
+  "SNSE": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "CLGN": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "SANM": {
+    "sector": "Technology",
+    "industry": "Electronic Components"
+  },
+  "RCT": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "LUNR": {
+    "sector": "Industrials",
+    "industry": "Aerospace & Defense"
+  },
+  "HIHO": {
+    "sector": "Industrials",
+    "industry": "Metal Fabrication"
+  },
+  "ARM": {
+    "sector": "Technology",
+    "industry": "Semiconductors"
+  },
+  "SERA": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "KTTA": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "CNTX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "ESLA": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "RUSHA": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto & Truck Dealerships"
+  },
+  "AEMD": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "REPL": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "TKNO": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic"
+  },
+  "EHLD": {
+    "sector": "Industrials",
+    "industry": "Marine Shipping"
+  },
+  "VMI": {
+    "sector": "Industrials",
+    "industry": "Conglomerates"
+  },
+  "TROX": {
+    "sector": "Basic Materials",
+    "industry": "Chemicals"
+  },
+  "RSI": {
+    "sector": "Consumer Cyclical",
+    "industry": "Gambling"
+  },
+  "LMNR": {
+    "sector": "Consumer Defensive",
+    "industry": "Farm Products"
+  },
+  "LZMH": {
+    "sector": "Technology",
+    "industry": "Information Technology Services"
+  },
+  "CRVS": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "HAIN": {
+    "sector": "Consumer Defensive",
+    "industry": "Packaged Foods"
+  },
+  "WNEB": {
+    "sector": "Financial Services",
+    "industry": "Banks - Regional"
+  },
+  "JOB": {
+    "sector": "Industrials",
+    "industry": "Staffing & Employment Services"
+  },
+  "INTR": {
+    "sector": "Financial Services",
+    "industry": "Banks - Regional"
+  },
+  "AHCO": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "LUNG": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "FNKO": {
+    "sector": "Consumer Cyclical",
+    "industry": "Leisure"
+  },
+  "MSAI": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "NSRX": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - General"
+  },
+  "KRNT": {
+    "sector": "Industrials",
+    "industry": "Specialty Industrial Machinery"
+  },
+  "BLDP": {
+    "sector": "Industrials",
+    "industry": "Electrical Equipment & Parts"
+  },
+  "MYE": {
+    "sector": "Consumer Cyclical",
+    "industry": "Packaging & Containers"
+  },
+  "BMBL": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "TOON": {
+    "sector": "Communication Services",
+    "industry": "Entertainment"
+  },
+  "NTHI": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "GENK": {
+    "sector": "Consumer Cyclical",
+    "industry": "Restaurants"
+  },
+  "PAL": {
+    "sector": "Industrials",
+    "industry": "Integrated Freight & Logistics"
+  },
+  "SSM": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Manufacturers"
+  },
+  "XCUR": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "VEEA": {
+    "sector": "Technology",
+    "industry": "Information Technology Services"
+  },
+  "ATNM": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "SOS": {
+    "sector": "Financial Services",
+    "industry": "Capital Markets"
+  },
+  "IREN": {
+    "sector": "Financial Services",
+    "industry": "Capital Markets"
+  },
+  "HUBS": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "IRIX": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "LIQT": {
+    "sector": "Industrials",
+    "industry": "Pollution & Treatment Controls"
+  },
+  "KORE": {
+    "sector": "Communication Services",
+    "industry": "Telecom Services"
+  },
+  "INM": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic"
+  },
+  "FBIO": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "MARA": {
+    "sector": "Financial Services",
+    "industry": "Capital Markets"
+  },
+  "HYMC": {
+    "sector": "Basic Materials",
+    "industry": "Gold"
+  },
+  "MAIA": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "CYH": {
+    "sector": "Healthcare",
+    "industry": "Medical Care Facilities"
+  },
+  "PEPG": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "TRUG": {
+    "sector": "Consumer Cyclical",
+    "industry": "Leisure"
+  },
+  "LBGJ": {
+    "sector": "Industrials",
+    "industry": "Specialty Industrial Machinery"
+  },
+  "PTLO": {
+    "sector": "Consumer Cyclical",
+    "industry": "Restaurants"
+  },
+  "LAWR": {
+    "sector": "Industrials",
+    "industry": "Consulting Services"
+  },
+  "SST": {
+    "sector": "Industrials",
+    "industry": "Specialty Business Services"
+  },
+  "DRIO": {
+    "sector": "Healthcare",
+    "industry": "Health Information Services"
+  },
+  "THC": {
+    "sector": "Healthcare",
+    "industry": "Medical Care Facilities"
+  },
+  "ISSC": {
+    "sector": "Industrials",
+    "industry": "Aerospace & Defense"
+  },
+  "VALN": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "CLSK": {
+    "sector": "Financial Services",
+    "industry": "Capital Markets"
+  },
+  "PDFS": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "MAC": {
+    "sector": "Real Estate",
+    "industry": "REIT - Retail"
+  },
+  "ABTS": {
+    "sector": "Financial Services",
+    "industry": "Capital Markets"
+  },
+  "DRVN": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto & Truck Dealerships"
+  },
+  "JBSS": {
+    "sector": "Consumer Defensive",
+    "industry": "Packaged Foods"
+  },
+  "FGL": {
+    "sector": "Industrials",
+    "industry": "Engineering & Construction"
+  },
+  "CLPT": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "APM": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "BDSX": {
+    "sector": "Healthcare",
+    "industry": "Diagnostics & Research"
+  },
+  "RBNE": {
+    "sector": "Energy",
+    "industry": "Oil & Gas Midstream"
+  },
+  "HCAT": {
+    "sector": "Healthcare",
+    "industry": "Health Information Services"
+  },
+  "IPWR": {
+    "sector": "Technology",
+    "industry": "Semiconductors"
+  },
+  "JZXN": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto & Truck Dealerships"
+  },
+  "SKK": {
+    "sector": "Industrials",
+    "industry": "Engineering & Construction"
+  },
+  "FEMY": {
+    "sector": "Healthcare",
+    "industry": "Medical Instruments & Supplies"
+  },
+  "PPSI": {
+    "sector": "Industrials",
+    "industry": "Electrical Equipment & Parts"
+  },
+  "STEX": {
+    "sector": "Financial Services",
+    "industry": "Capital Markets"
+  },
+  "GLSI": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "CTM": {
+    "sector": "Technology",
+    "industry": "Information Technology Services"
+  },
+  "CRAI": {
+    "sector": "Industrials",
+    "industry": "Consulting Services"
+  },
+  "WGO": {
+    "sector": "Consumer Cyclical",
+    "industry": "Recreational Vehicles"
+  },
+  "THRM": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Parts"
+  },
+  "HNST": {
+    "sector": "Consumer Defensive",
+    "industry": "Household & Personal Products"
+  },
+  "NNVC": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "AIRI": {
+    "sector": "Industrials",
+    "industry": "Aerospace & Defense"
+  },
+  "SRG": {
+    "sector": "Real Estate",
+    "industry": "Real Estate Services"
+  },
+  "XTLB": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "UFPT": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "PWP": {
+    "sector": "Financial Services",
+    "industry": "Capital Markets"
+  },
+  "CSBR": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "DRCT": {
+    "sector": "Communication Services",
+    "industry": "Advertising Agencies"
+  },
+  "LRE": {
+    "sector": "Real Estate",
+    "industry": "Real Estate - Development"
+  },
+  "CMT": {
+    "sector": "Basic Materials",
+    "industry": "Specialty Chemicals"
+  },
+  "STEM": {
+    "sector": "Utilities",
+    "industry": "Utilities - Renewable"
+  },
+  "KZIA": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "MNSB": {
+    "sector": "Financial Services",
+    "industry": "Banks - Regional"
+  },
+  "OCUL": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "CDLX": {
+    "sector": "Communication Services",
+    "industry": "Advertising Agencies"
+  },
+  "CURI": {
+    "sector": "Communication Services",
+    "industry": "Broadcasting"
+  },
+  "FSP": {
+    "sector": "Real Estate",
+    "industry": "REIT - Office"
+  },
+  "SGRY": {
+    "sector": "Healthcare",
+    "industry": "Medical Care Facilities"
+  },
+  "NXGL": {
+    "sector": "Healthcare",
+    "industry": "Medical Instruments & Supplies"
+  },
+  "PMCB": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "HTZ": {
+    "sector": "Industrials",
+    "industry": "Rental & Leasing Services"
+  },
+  "TMQ": {
+    "sector": "Basic Materials",
+    "industry": "Other Industrial Metals & Mining"
+  },
+  "NVNI": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "HSDT": {
+    "sector": "Financial Services",
+    "industry": "Asset Management"
+  },
+  "SNYR": {
+    "sector": "Healthcare",
+    "industry": "Medical Distribution"
+  },
+  "CADL": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "ALNT": {
+    "sector": "Technology",
+    "industry": "Electronic Components"
+  },
+  "NBY": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "MB": {
+    "sector": "Consumer Cyclical",
+    "industry": "Restaurants"
+  },
+  "BZFD": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "TTC": {
+    "sector": "Industrials",
+    "industry": "Tools & Accessories"
+  },
+  "PAYO": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "IKT": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "LTBR": {
+    "sector": "Industrials",
+    "industry": "Electrical Equipment & Parts"
+  },
+  "BIRD": {
+    "sector": "Consumer Cyclical",
+    "industry": "Apparel Retail"
+  },
+  "VGAS": {
+    "sector": "Utilities",
+    "industry": "Utilities - Renewable"
+  },
+  "SNWV": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "AVTX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "CATO": {
+    "sector": "Consumer Cyclical",
+    "industry": "Apparel Retail"
+  },
+  "MBIO": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "TSAT": {
+    "sector": "Technology",
+    "industry": "Communication Equipment"
+  },
+  "VANI": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "YYAI": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "THCH": {
+    "sector": "Consumer Cyclical",
+    "industry": "Restaurants"
+  },
+  "JWEL": {
+    "sector": "Consumer Cyclical",
+    "industry": "Internet Retail"
+  },
+  "BMGL": {
+    "sector": "Healthcare",
+    "industry": "Medical Care Facilities"
+  },
+  "MYPS": {
+    "sector": "Communication Services",
+    "industry": "Electronic Gaming & Multimedia"
+  },
+  "RGNX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "GMHS": {
+    "sector": "Communication Services",
+    "industry": "Electronic Gaming & Multimedia"
+  },
+  "VLRS": {
+    "sector": "Industrials",
+    "industry": "Airlines"
+  },
+  "LSH": {
+    "sector": "Industrials",
+    "industry": "Integrated Freight & Logistics"
+  },
+  "TAL": {
+    "sector": "Consumer Defensive",
+    "industry": "Education & Training Services"
+  },
+  "GOLF": {
+    "sector": "Consumer Cyclical",
+    "industry": "Leisure"
+  },
+  "GEO": {
+    "sector": "Industrials",
+    "industry": "Security & Protection Services"
+  },
+  "APLT": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "BRIA": {
+    "sector": "Consumer Cyclical",
+    "industry": "Apparel Retail"
+  },
+  "INKT": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "ETON": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic"
+  },
+  "AMSC": {
+    "sector": "Industrials",
+    "industry": "Specialty Industrial Machinery"
+  },
+  "TPB": {
+    "sector": "Consumer Defensive",
+    "industry": "Tobacco"
+  },
+  "ASMB": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "MNRO": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Parts"
+  },
+  "XBIO": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "VHI": {
+    "sector": "Basic Materials",
+    "industry": "Chemicals"
+  },
+  "WILC": {
+    "sector": "Consumer Defensive",
+    "industry": "Food Distribution"
+  },
+  "PURR": {
+    "sector": "Financial Services",
+    "industry": "Capital Markets"
+  },
+  "NVCR": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "GRPN": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "ALXO": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "TIVC": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "PTON": {
+    "sector": "Consumer Cyclical",
+    "industry": "Leisure"
+  },
+  "BDTX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "IDAI": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "CENN": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Manufacturers"
+  },
+  "SGHT": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "ATMU": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Parts"
+  },
+  "KODK": {
+    "sector": "Industrials",
+    "industry": "Specialty Business Services"
+  },
+  "MAMK": {
+    "sector": "Industrials",
+    "industry": "Conglomerates"
+  },
+  "GWAV": {
+    "sector": "Industrials",
+    "industry": "Waste Management"
+  },
+  "NTGR": {
+    "sector": "Technology",
+    "industry": "Communication Equipment"
+  },
+  "AXGN": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "IOBT": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "DXR": {
+    "sector": "Healthcare",
+    "industry": "Medical Instruments & Supplies"
+  },
+  "AWX": {
+    "sector": "Industrials",
+    "industry": "Waste Management"
+  },
+  "LPSN": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "LCUT": {
+    "sector": "Consumer Cyclical",
+    "industry": "Furnishings, Fixtures & Appliances"
+  },
+  "CROX": {
+    "sector": "Consumer Cyclical",
+    "industry": "Footwear & Accessories"
+  },
+  "ALMU": {
+    "sector": "Technology",
+    "industry": "Semiconductors"
+  },
+  "BBGI": {
+    "sector": "Communication Services",
+    "industry": "Broadcasting"
+  },
+  "PCLA": {
+    "sector": "Communication Services",
+    "industry": "Telecom Services"
+  },
+  "CTNM": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "BIAF": {
+    "sector": "Healthcare",
+    "industry": "Diagnostics & Research"
+  },
+  "GMM": {
+    "sector": "Technology",
+    "industry": "Information Technology Services"
+  },
+  "POLA": {
+    "sector": "Industrials",
+    "industry": "Electrical Equipment & Parts"
+  },
+  "MENS": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "RYDE": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "ANTX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "LXU": {
+    "sector": "Basic Materials",
+    "industry": "Chemicals"
+  },
+  "RYTM": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "WTF": {
+    "sector": "Financial Services",
+    "industry": "Asset Management"
+  },
+  "BRLS": {
+    "sector": "Consumer Defensive",
+    "industry": "Packaged Foods"
+  },
+  "LUXE": {
+    "sector": "Consumer Cyclical",
+    "industry": "Luxury Goods"
+  },
+  "SBFM": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic"
+  },
+  "ALIT": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "MEI": {
+    "sector": "Technology",
+    "industry": "Electronic Components"
+  },
+  "PRTH": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "SUPX": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "SHOO": {
+    "sector": "Consumer Cyclical",
+    "industry": "Footwear & Accessories"
+  },
+  "CREV": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Parts"
+  },
+  "QNCX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "NIO": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Manufacturers"
+  },
+  "ASRV": {
+    "sector": "Financial Services",
+    "industry": "Banks - Regional"
+  },
+  "MCHX": {
+    "sector": "Communication Services",
+    "industry": "Advertising Agencies"
+  },
+  "MRVI": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "HUYA": {
+    "sector": "Communication Services",
+    "industry": "Entertainment"
+  },
+  "MAPS": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "QUAD": {
+    "sector": "Industrials",
+    "industry": "Specialty Business Services"
+  },
+  "BOXL": {
+    "sector": "Technology",
+    "industry": "Consumer Electronics"
+  },
+  "RPD": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "SMRT": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "NCRA": {
+    "sector": "Consumer Defensive",
+    "industry": "Packaged Foods"
+  },
+  "KMT": {
+    "sector": "Industrials",
+    "industry": "Tools & Accessories"
+  },
+  "BON": {
+    "sector": "Basic Materials",
+    "industry": "Specialty Chemicals"
+  },
+  "ELVN": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "ABEO": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "CTOR": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic"
+  },
+  "BRNS": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "LICN": {
+    "sector": "Industrials",
+    "industry": "Specialty Business Services"
+  },
+  "BWAY": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "MGTX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "FBNC": {
+    "sector": "Financial Services",
+    "industry": "Banks - Regional"
+  },
+  "FARM": {
+    "sector": "Consumer Defensive",
+    "industry": "Packaged Foods"
+  },
+  "PMTS": {
+    "sector": "Financial Services",
+    "industry": "Credit Services"
+  },
+  "TSSI": {
+    "sector": "Technology",
+    "industry": "Information Technology Services"
+  },
+  "BTAI": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic"
+  },
+  "PAYC": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "ANTA": {
+    "sector": "Financial Services",
+    "industry": "Credit Services"
+  },
+  "SINT": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "PRSO": {
+    "sector": "Technology",
+    "industry": "Semiconductors"
+  },
+  "OVID": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "KSS": {
+    "sector": "Consumer Cyclical",
+    "industry": "Department Stores"
+  },
+  "ERII": {
+    "sector": "Industrials",
+    "industry": "Pollution & Treatment Controls"
+  },
+  "SGLY": {
+    "sector": "Industrials",
+    "industry": "Integrated Freight & Logistics"
+  },
+  "QLYS": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "VICR": {
+    "sector": "Technology",
+    "industry": "Electronic Components"
+  },
+  "IPHA": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "APPF": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "ADV": {
+    "sector": "Communication Services",
+    "industry": "Advertising Agencies"
+  },
+  "GRAL": {
+    "sector": "Healthcare",
+    "industry": "Diagnostics & Research"
+  },
+  "REZI": {
+    "sector": "Industrials",
+    "industry": "Industrial Distribution"
+  },
+  "MLKN": {
+    "sector": "Consumer Cyclical",
+    "industry": "Furnishings, Fixtures & Appliances"
+  },
+  "NCTY": {
+    "sector": "Financial Services",
+    "industry": "Capital Markets"
+  },
+  "SKY": {
+    "sector": "Consumer Cyclical",
+    "industry": "Residential Construction"
+  },
+  "AACG": {
+    "sector": "Consumer Defensive",
+    "industry": "Education & Training Services"
+  },
+  "ADNT": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Parts"
+  },
+  "OABI": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "FPH": {
+    "sector": "Real Estate",
+    "industry": "Real Estate - Development"
+  },
+  "HCTI": {
+    "sector": "Healthcare",
+    "industry": "Health Information Services"
+  },
+  "RELY": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "GNLN": {
+    "sector": "Consumer Defensive",
+    "industry": "Tobacco"
+  },
+  "IMMP": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "CCSI": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "NSP": {
+    "sector": "Industrials",
+    "industry": "Staffing & Employment Services"
+  },
+  "MRNO": {
+    "sector": "Real Estate",
+    "industry": "Real Estate - Development"
+  },
+  "GOTU": {
+    "sector": "Consumer Defensive",
+    "industry": "Education & Training Services"
+  },
+  "DAR": {
+    "sector": "Consumer Defensive",
+    "industry": "Packaged Foods"
+  },
+  "SBH": {
+    "sector": "Consumer Cyclical",
+    "industry": "Specialty Retail"
+  },
+  "BAND": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "ECOR": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "CXDO": {
+    "sector": "Communication Services",
+    "industry": "Telecom Services"
+  },
+  "IQ": {
+    "sector": "Communication Services",
+    "industry": "Entertainment"
+  },
+  "EVTC": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "EPM": {
+    "sector": "Energy",
+    "industry": "Oil & Gas E&P"
+  },
+  "PHOE": {
+    "sector": "Industrials",
+    "industry": "Engineering & Construction"
+  },
+  "REKR": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "GEOS": {
+    "sector": "Energy",
+    "industry": "Oil & Gas Equipment & Services"
+  },
+  "NIVF": {
+    "sector": "Healthcare",
+    "industry": "Medical Care Facilities"
+  },
+  "DERM": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic"
+  },
+  "AGRO": {
+    "sector": "Consumer Defensive",
+    "industry": "Farm Products"
+  },
+  "CPIX": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic"
+  },
+  "MIRA": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - General"
+  },
+  "HLIT": {
+    "sector": "Technology",
+    "industry": "Communication Equipment"
+  },
+  "QIPT": {
+    "sector": "Healthcare",
+    "industry": "Medical Distribution"
+  },
+  "ZURA": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "RAIL": {
+    "sector": "Industrials",
+    "industry": "Railroads"
+  },
+  "WLDN": {
+    "sector": "Industrials",
+    "industry": "Engineering & Construction"
+  },
+  "CORZ": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "EMPG": {
+    "sector": "Healthcare",
+    "industry": "Medical Distribution"
+  },
+  "PSIX": {
+    "sector": "Industrials",
+    "industry": "Specialty Industrial Machinery"
+  },
+  "MP": {
+    "sector": "Basic Materials",
+    "industry": "Other Industrial Metals & Mining"
+  },
+  "PLPC": {
+    "sector": "Industrials",
+    "industry": "Electrical Equipment & Parts"
+  },
+  "PCOR": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "NRC": {
+    "sector": "Healthcare",
+    "industry": "Health Information Services"
+  },
+  "PPIH": {
+    "sector": "Industrials",
+    "industry": "Building Products & Equipment"
+  },
+  "TMC": {
+    "sector": "Basic Materials",
+    "industry": "Other Industrial Metals & Mining"
+  },
+  "FKWL": {
+    "sector": "Technology",
+    "industry": "Communication Equipment"
+  },
+  "IPM": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "BYSI": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "NGL": {
+    "sector": "Energy",
+    "industry": "Oil & Gas Midstream"
+  },
+  "CCEL": {
+    "sector": "Healthcare",
+    "industry": "Medical Care Facilities"
+  },
+  "VERI": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "GROV": {
+    "sector": "Consumer Defensive",
+    "industry": "Household & Personal Products"
+  },
+  "APPS": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "DKI": {
+    "sector": "Communication Services",
+    "industry": "Electronic Gaming & Multimedia"
+  },
+  "HIPO": {
+    "sector": "Financial Services",
+    "industry": "Insurance - Property & Casualty"
+  },
+  "BDRX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "MIR": {
+    "sector": "Industrials",
+    "industry": "Specialty Industrial Machinery"
+  },
+  "TH": {
+    "sector": "Industrials",
+    "industry": "Specialty Business Services"
+  },
+  "TSE": {
+    "sector": "Basic Materials",
+    "industry": "Specialty Chemicals"
+  },
+  "NOVT": {
+    "sector": "Technology",
+    "industry": "Scientific & Technical Instruments"
+  },
+  "DUO": {
+    "sector": "Real Estate",
+    "industry": "Real Estate Services"
+  },
+  "VNTG": {
+    "sector": "Industrials",
+    "industry": "Marine Shipping"
+  },
+  "BZAI": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "POWL": {
+    "sector": "Industrials",
+    "industry": "Electrical Equipment & Parts"
+  },
+  "VELO": {
+    "sector": "Technology",
+    "industry": "Computer Hardware"
+  },
+  "KLRS": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "MWYN": {
+    "sector": "Consumer Cyclical",
+    "industry": "Furnishings, Fixtures & Appliances"
+  },
+  "CYN": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "RNGR": {
+    "sector": "Energy",
+    "industry": "Oil & Gas Equipment & Services"
+  },
+  "AMS": {
+    "sector": "Healthcare",
+    "industry": "Medical Care Facilities"
+  },
+  "ABUS": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "MAGH": {
+    "sector": "Industrials",
+    "industry": "Engineering & Construction"
+  },
+  "DYAI": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "ESOA": {
+    "sector": "Industrials",
+    "industry": "Engineering & Construction"
+  },
+  "ODV": {
+    "sector": "Basic Materials",
+    "industry": "Gold"
+  },
+  "HCWB": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "GOVX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "WTTR": {
+    "sector": "Energy",
+    "industry": "Oil & Gas Equipment & Services"
+  },
+  "SPWH": {
+    "sector": "Consumer Cyclical",
+    "industry": "Specialty Retail"
+  },
+  "FLXS": {
+    "sector": "Consumer Cyclical",
+    "industry": "Furnishings, Fixtures & Appliances"
+  },
+  "IHS": {
+    "sector": "Real Estate",
+    "industry": "Real Estate Services"
+  },
+  "OSIS": {
+    "sector": "Technology",
+    "industry": "Electronic Components"
+  },
+  "GLXG": {
+    "sector": "Industrials",
+    "industry": "Staffing & Employment Services"
+  },
+  "TIC": {
+    "sector": "Industrials",
+    "industry": "Specialty Business Services"
+  },
+  "NN": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "RENT": {
+    "sector": "Consumer Cyclical",
+    "industry": "Apparel Retail"
+  },
+  "NTRP": {
+    "sector": "Consumer Cyclical",
+    "industry": "Travel Services"
+  },
+  "SPRO": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "CHNR": {
+    "sector": "Basic Materials",
+    "industry": "Other Industrial Metals & Mining"
+  },
+  "QTTB": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "CLIK": {
+    "sector": "Consumer Cyclical",
+    "industry": "Personal Services"
+  },
+  "SCVL": {
+    "sector": "Consumer Cyclical",
+    "industry": "Apparel Retail"
+  },
+  "PULM": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "NXL": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "GRNQ": {
+    "sector": "Industrials",
+    "industry": "Consulting Services"
+  },
+  "RITR": {
+    "sector": "Industrials",
+    "industry": "Engineering & Construction"
+  },
+  "ALZN": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "DTI": {
+    "sector": "Energy",
+    "industry": "Oil & Gas Equipment & Services"
+  },
+  "GHG": {
+    "sector": "Consumer Cyclical",
+    "industry": "Lodging"
+  },
+  "BGM": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic"
+  },
+  "NRDS": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "TOPP": {
+    "sector": "Industrials",
+    "industry": "Trucking"
+  },
+  "BYRN": {
+    "sector": "Industrials",
+    "industry": "Aerospace & Defense"
+  },
+  "RFL": {
+    "sector": "Real Estate",
+    "industry": "Real Estate Services"
+  },
+  "SAIL": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "ARBB": {
+    "sector": "Technology",
+    "industry": "Information Technology Services"
+  },
+  "EVAX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "YALA": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "YOUL": {
+    "sector": "Consumer Defensive",
+    "industry": "Education & Training Services"
+  },
+  "ALOT": {
+    "sector": "Technology",
+    "industry": "Computer Hardware"
+  },
+  "CELZ": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "OIS": {
+    "sector": "Energy",
+    "industry": "Oil & Gas Equipment & Services"
+  },
+  "AESI": {
+    "sector": "Energy",
+    "industry": "Oil & Gas Equipment & Services"
+  },
+  "FIP": {
+    "sector": "Industrials",
+    "industry": "Conglomerates"
+  },
+  "IVA": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "LB": {
+    "sector": "Energy",
+    "industry": "Oil & Gas Equipment & Services"
+  },
+  "AIRO": {
+    "sector": "Industrials",
+    "industry": "Aerospace & Defense"
+  },
+  "QUIK": {
+    "sector": "Technology",
+    "industry": "Semiconductors"
+  },
+  "ANIX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "BNZI": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "PLAY": {
+    "sector": "Communication Services",
+    "industry": "Entertainment"
+  },
+  "AGH": {
+    "sector": "Consumer Cyclical",
+    "industry": "Leisure"
+  },
+  "TISI": {
+    "sector": "Industrials",
+    "industry": "Specialty Business Services"
+  },
+  "CABR": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic"
+  },
+  "AIIO": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Manufacturers"
+  },
+  "SWIM": {
+    "sector": "Industrials",
+    "industry": "Building Products & Equipment"
+  },
+  "AVNS": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "FSTR": {
+    "sector": "Industrials",
+    "industry": "Railroads"
+  },
+  "ZGM": {
+    "sector": "Industrials",
+    "industry": "Consulting Services"
+  },
+  "CMCT": {
+    "sector": "Real Estate",
+    "industry": "REIT - Office"
+  },
+  "AVPT": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "INDP": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "PMNT": {
+    "sector": "Consumer Cyclical",
+    "industry": "Apparel Manufacturing"
+  },
+  "KVYO": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "ECPG": {
+    "sector": "Financial Services",
+    "industry": "Credit Services"
+  },
+  "CMND": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "MYRG": {
+    "sector": "Industrials",
+    "industry": "Engineering & Construction"
+  },
+  "BIYA": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "XNET": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "PPBT": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "RPAY": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "AIFF": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "CVNA": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto & Truck Dealerships"
+  },
+  "SWVL": {
+    "sector": "Industrials",
+    "industry": "Railroads"
+  },
+  "MYO": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "GDTC": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "MNY": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "RES": {
+    "sector": "Energy",
+    "industry": "Oil & Gas Equipment & Services"
+  },
+  "NATL": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "UGRO": {
+    "sector": "Industrials",
+    "industry": "Farm & Heavy Construction Machinery"
+  },
+  "MNDR": {
+    "sector": "Healthcare",
+    "industry": "Health Information Services"
+  },
+  "RDGT": {
+    "sector": "Healthcare",
+    "industry": "Pharmaceutical Retailers"
+  },
+  "PROP": {
+    "sector": "Energy",
+    "industry": "Oil & Gas E&P"
+  },
+  "BWMN": {
+    "sector": "Industrials",
+    "industry": "Engineering & Construction"
+  },
+  "SLSN": {
+    "sector": "Consumer Defensive",
+    "industry": "Household & Personal Products"
+  },
+  "CTOS": {
+    "sector": "Industrials",
+    "industry": "Rental & Leasing Services"
+  },
+  "NNI": {
+    "sector": "Financial Services",
+    "industry": "Credit Services"
+  },
+  "MD": {
+    "sector": "Healthcare",
+    "industry": "Medical Care Facilities"
+  },
+  "ASPN": {
+    "sector": "Industrials",
+    "industry": "Building Products & Equipment"
+  },
+  "TECX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "ACHC": {
+    "sector": "Healthcare",
+    "industry": "Medical Care Facilities"
+  },
+  "BNRG": {
+    "sector": "Utilities",
+    "industry": "Utilities - Renewable"
+  },
+  "IBTA": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "CURV": {
+    "sector": "Consumer Cyclical",
+    "industry": "Apparel Retail"
+  },
+  "UUU": {
+    "sector": "Industrials",
+    "industry": "Building Products & Equipment"
+  },
+  "BGLC": {
+    "sector": "Basic Materials",
+    "industry": "Specialty Chemicals"
+  },
+  "CPS": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Parts"
+  },
+  "AISP": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "SNES": {
+    "sector": "Basic Materials",
+    "industry": "Specialty Chemicals"
+  },
+  "RLMD": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "PHUN": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "ALLR": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "RGS": {
+    "sector": "Consumer Cyclical",
+    "industry": "Personal Services"
+  },
+  "CVGI": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Parts"
+  },
+  "PTLE": {
+    "sector": "Consumer Cyclical",
+    "industry": "Specialty Retail"
+  },
+  "WETH": {
+    "sector": "Technology",
+    "industry": "Electronic Components"
+  },
+  "LUD": {
+    "sector": "Basic Materials",
+    "industry": "Steel"
+  },
+  "CELC": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "JXG": {
+    "sector": "Consumer Cyclical",
+    "industry": "Apparel Manufacturing"
+  },
+  "LSTA": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "RCMT": {
+    "sector": "Industrials",
+    "industry": "Conglomerates"
+  },
+  "POCI": {
+    "sector": "Healthcare",
+    "industry": "Medical Instruments & Supplies"
+  },
+  "TITN": {
+    "sector": "Industrials",
+    "industry": "Industrial Distribution"
+  },
+  "ACRE": {
+    "sector": "Real Estate",
+    "industry": "REIT - Mortgage"
+  },
+  "AMPH": {
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic"
+  },
+  "DSGN": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "RMCO": {
+    "sector": "Financial Services",
+    "industry": "Asset Management"
+  },
+  "IPGP": {
+    "sector": "Technology",
+    "industry": "Semiconductor Equipment & Materials"
+  },
+  "EXOZ": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "PNBK": {
+    "sector": "Financial Services",
+    "industry": "Banks - Regional"
+  },
+  "SEED": {
+    "sector": "Basic Materials",
+    "industry": "Agricultural Inputs"
+  },
+  "GLMD": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "AAOI": {
+    "sector": "Technology",
+    "industry": "Communication Equipment"
+  },
+  "JTAI": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "INVX": {
+    "sector": "Energy",
+    "industry": "Oil & Gas Equipment & Services"
+  },
+  "CMMB": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "TCMD": {
+    "sector": "Healthcare",
+    "industry": "Medical Devices"
+  },
+  "ANEB": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "KLTR": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "NAKA": {
+    "sector": "Healthcare",
+    "industry": "Medical Care Facilities"
+  },
+  "ATOM": {
+    "sector": "Technology",
+    "industry": "Semiconductor Equipment & Materials"
+  },
+  "NUVL": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "SWBI": {
+    "sector": "Industrials",
+    "industry": "Aerospace & Defense"
+  },
+  "EVCM": {
+    "sector": "Technology",
+    "industry": "Software - Infrastructure"
+  },
+  "TRVG": {
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information"
+  },
+  "CSPI": {
+    "sector": "Technology",
+    "industry": "Information Technology Services"
+  },
+  "UNFI": {
+    "sector": "Consumer Defensive",
+    "industry": "Food Distribution"
+  },
+  "PHAR": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "TPC": {
+    "sector": "Industrials",
+    "industry": "Engineering & Construction"
+  },
+  "ITRM": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "BRTX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "LVRO": {
+    "sector": "Basic Materials",
+    "industry": "Agricultural Inputs"
+  },
+  "INTT": {
+    "sector": "Technology",
+    "industry": "Semiconductor Equipment & Materials"
+  },
+  "AAME": {
+    "sector": "Financial Services",
+    "industry": "Insurance - Life"
+  },
+  "CLIR": {
+    "sector": "Industrials",
+    "industry": "Pollution & Treatment Controls"
+  },
+  "AUPH": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "FEBO": {
+    "sector": "Technology",
+    "industry": "Consumer Electronics"
+  },
+  "AARD": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "RVLV": {
+    "sector": "Consumer Cyclical",
+    "industry": "Internet Retail"
+  },
+  "DFSC": {
+    "sector": "Industrials",
+    "industry": "Aerospace & Defense"
+  },
+  "SVRE": {
+    "sector": "Technology",
+    "industry": "Scientific & Technical Instruments"
+  },
+  "INR": {
+    "sector": "Energy",
+    "industry": "Oil & Gas E&P"
+  },
+  "ASLE": {
+    "sector": "Industrials",
+    "industry": "Airports & Air Services"
+  },
+  "BOC": {
+    "sector": "Industrials",
+    "industry": "Conglomerates"
+  },
+  "ULY": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "GTES": {
+    "sector": "Industrials",
+    "industry": "Specialty Industrial Machinery"
+  },
+  "PRME": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "TPST": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "AWRE": {
+    "sector": "Technology",
+    "industry": "Software - Application"
+  },
+  "SAVA": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "BKTI": {
+    "sector": "Technology",
+    "industry": "Communication Equipment"
+  },
+  "BNED": {
+    "sector": "Consumer Cyclical",
+    "industry": "Specialty Retail"
+  },
+  "KPRX": {
+    "sector": "Healthcare",
+    "industry": "Biotechnology"
+  },
+  "WPRT": {
+    "sector": "Consumer Cyclical",
+    "industry": "Auto Parts"
+  },
+  "ROMA": {
+    "sector": "Industrials",
+    "industry": "Consulting Services"
   }
 }

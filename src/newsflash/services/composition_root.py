@@ -131,11 +131,12 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
     )
     logger.info("MarketDataValidator created (using shared YahooFinanceCoordinator)")
     
-    # Step 2.7: Inject validators and quote_fetcher into classification infrastructure (before starting)
+    # Step 2.7: Inject validators, quote_fetcher, and metadata_cache into classification infrastructure (before starting)
     classification.infra.ticker_validator = ticker_validator
     classification.infra.market_data_validator = market_data_validator
     classification.infra.quote_fetcher = brokerage.infra.quote_fetcher
-    logger.info("TickerValidator, MarketDataValidator, and QuoteFetcher injected into ClassificationInfrastructureService")
+    classification.infra.metadata_cache = metadata_cache  # ✅ Enables Healthcare classifier
+    logger.info("TickerValidator, MarketDataValidator, QuoteFetcher, and MetadataCache injected into ClassificationInfrastructureService")
     
     # Step 3: Initialize shared services via container (using helper functions)
     # Get configs from container (DI-managed)
