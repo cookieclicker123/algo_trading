@@ -25,23 +25,37 @@ logger = get_logger(__name__)
 def format_exit_trade_message(
     exit_trade_result: TradeResult,
     entry_trade_result: Optional[TradeResult] = None,
-    instrument_details: Optional[dict] = None
+    instrument_details: Optional[dict] = None,
+    exit_metadata: Optional[dict] = None,
 ) -> str:
     """
     Format exit trade notification message with profit/loss details.
-    
+
     Args:
         exit_trade_result: Exit trade execution result
         entry_trade_result: Optional entry trade result for P/L calculation
-        
+        instrument_details: Optional instrument details (ladder attempts, etc.)
+        exit_metadata: Optional exit metadata (tier, exit_reason, etc.)
+
     Returns:
         Formatted message string
     """
     exit_request = exit_trade_result.get_trade_request()
     notification_time = datetime.now(timezone.utc)
-    
+
+    # Determine exit type emoji and label
+    exit_reason = exit_metadata.get("exit_reason", "unknown") if exit_metadata else "unknown"
+    tier_labels = {
+        "tier_1": "🎯 TIER 1 EXIT (+10%)",
+        "tier_2": "🎯 TIER 2 EXIT (+15%)",
+        "tier_3": "🎯 TIER 3 EXIT (+20%)",
+        "manual_exit": "👤 MANUAL EXIT",
+        "unknown": "🚪 EXIT TRADE EXECUTED",
+    }
+    header = tier_labels.get(exit_reason, "🚪 EXIT TRADE EXECUTED")
+
     message_parts = [
-        "🚪 EXIT TRADE EXECUTED",
+        header,
         "",
         f"📈 Ticker: {exit_trade_result.get_ticker()}",
         f"📊 Action: {exit_request.action.value}",
@@ -206,15 +220,17 @@ class NotifyExitTradeUseCase:
                     note="This can happen if service restarted between entry and exit, or if entry trade notification wasn't tracked"
                 )
             
-            # Get instrument_details from trade_request dict metadata
+            # Get instrument_details and exit_metadata from trade_request dict metadata
             trade_request_dict = trade_result.trade_request
             instrument_details = trade_request_dict.get("_instrument_details", {})
-            
-            # Format exit trade message
+            exit_metadata = trade_request_dict.get("metadata", {})
+
+            # Format exit trade message with tier info
             exit_message = format_exit_trade_message(
                 exit_trade_result=trade_result,
                 entry_trade_result=entry_trade,
-                instrument_details=instrument_details
+                instrument_details=instrument_details,
+                exit_metadata=exit_metadata,
             )
             
             # Create notification message

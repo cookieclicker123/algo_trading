@@ -56,18 +56,22 @@ class AlpacaMarketHoursTradeExecutor:
         trade_request: TradeRequest,
         timing_info: Dict[str, float],
         timeout_deadline: Optional[float] = None,
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Execute a stock trade during market hours.
-        
+
         Args:
             trade_request: Trade request
             timing_info: Timing information dictionary
             timeout_deadline: Optional timeout deadline
-            
+            metadata: Optional metadata (exit_reason, tier, etc.) for notifications
+
         Returns:
             Trade result dictionary (for backward compatibility, also publishes events)
         """
+        # Store metadata for event publishing
+        self._current_metadata = metadata
         total_start_time = time.time()
         session_time = timing_info.get("session_detection", 0.0)
         connect_time = timing_info.get("connection", 0.0)
@@ -294,7 +298,8 @@ class AlpacaMarketHoursTradeExecutor:
             timing_info=result.get("timing_info", {}),
             spread_info=result.get("spread_info", {}),
             executed_at=datetime.now(),
-            source="brokerage"
+            source="brokerage",
+            metadata=getattr(self, '_current_metadata', None)  # Exit metadata (tier, exit_reason, etc.)
         )
         
         await self.event_bus.publish("TradeExecuted", event.model_dump())

@@ -13,14 +13,15 @@ from .models import TradeRequest, TradeResult, Quote
 class TradeRequestDomainEvent(BaseModel):
     """
     Domain event published when a trade is requested by use case.
-    
+
     Uses domain TradeRequest model directly - fully typed, validated.
     """
     trade_request: TradeRequest = Field(..., description="Domain TradeRequest model (validated, immutable)")
     article_id: Optional[str] = Field(None, description="Associated article ID if triggered by news")
     requested_at: datetime = Field(..., description="When trade was requested")
     source: str = Field(default="domain.brokerage", description="Event source")
-    
+    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Optional metadata (exit_reason, tier, etc.)")
+
     model_config = {"frozen": True}  # Immutable
 
 

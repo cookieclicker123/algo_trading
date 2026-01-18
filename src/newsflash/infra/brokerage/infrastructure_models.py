@@ -28,13 +28,14 @@ class InfrastructureTradeRequestData(BaseModel):
 class InfrastructureTradeExecutionRequestEvent(BaseModel):
     """
     Infrastructure event - trade execution requested (from domain to infrastructure).
-    
+
     Typed model that infrastructure expects to receive.
     """
     trade_request: InfrastructureTradeRequestData
     article_id: Optional[str] = None
     requested_at: datetime
     source: str = "domain.brokerage"
+    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Optional metadata (exit_reason, tier, etc.)")
 
 
 class InfrastructureTradeExecutedEvent(BaseModel):
@@ -55,6 +56,7 @@ class InfrastructureTradeExecutedEvent(BaseModel):
     spread_info: Dict[str, Any] = Field(default_factory=dict, description="Bid, ask, spread, mid from NBBO snapshot")
     executed_at: datetime
     source: str = "brokerage"
+    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Optional metadata (exit_reason, tier, etc.)")
 
 
 class InfrastructureTradeFailedEvent(BaseModel):

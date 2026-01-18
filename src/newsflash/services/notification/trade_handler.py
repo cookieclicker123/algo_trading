@@ -17,34 +17,39 @@ class TelegramTradeHandler:
     """
     Handles Telegram bot interactions for manual trade interventions.
     Processes exit commands: "exit TICKER AMOUNT"
-    
+
     ✅ STATELESS DESIGN: No singleton pattern - DI container manages instances
     """
-    
+
     def __init__(
         self,
         bot_token: str,
         brokerage_service=None,
-        exit_trade_use_case=None
+        exit_trade_use_case=None,
+        position_manager=None,
     ):
         """
         Initialize Telegram trade handler.
-        
+
         Args:
             bot_token: Telegram bot token
             brokerage_service: BrokerageService instance for executing exits
             exit_trade_use_case: ExitTradeUseCase instance for cancelling scheduled exits
+            position_manager: PositionManager instance for tiered exit tracking
         """
         self.bot_token = bot_token
         self.brokerage_service = brokerage_service
         self.exit_trade_use_case = exit_trade_use_case
+        self.position_manager = position_manager
         self.application = None
-        
+
         if not self.brokerage_service:
             logger.warning("No brokerage service provided to TelegramTradeHandler - exits will fail")
         if not self.exit_trade_use_case:
             logger.warning("No exit trade use case provided - scheduled exits won't be cancelled")
-        
+        if not self.position_manager:
+            logger.warning("No position manager provided - tiered exits won't work")
+
         logger.info("Telegram trade handler initialized", bot_token=bot_token[:10] + "...")
     
     async def start(self):
@@ -65,6 +70,8 @@ class TelegramTradeHandler:
             self.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message))
             self.application.add_handler(CommandHandler("start", self.start_command))
             self.application.add_handler(CommandHandler("help", self.help_command))
+            self.application.add_handler(CommandHandler("positions", self.positions_command))
+            self.application.add_handler(CommandHandler("exit", self.exit_command))
             
             # Start polling
             await self.application.initialize()
@@ -128,16 +135,100 @@ class TelegramTradeHandler:
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /help command."""
         await update.message.reply_text(
-            "📖 Manual Exit Commands:\n\n"
-            "Exit positions manually:\n"
+            "📖 Commands:\n\n"
+            "📊 Position Management:\n"
+            "• `/positions` - Show tracked positions with P&L\n"
+            "• `/exit TICKER` - Exit position immediately\n\n"
+            "Manual exit (text commands):\n"
             "• `exit TICKER` - Exit 100% of position\n"
-            "• `exit TICKER 0.4` - Exit 40% of position\n"
-            "• `exit TICKER 1` - Exit 100% of position\n\n"
+            "• `exit TICKER 0.4` - Exit 40% of position\n\n"
             "Examples:\n"
-            "• `exit AAPL` - Exit all AAPL shares\n"
-            "• `exit TSLA 0.5` - Exit 50% of TSLA position\n\n"
-            "The system will automatically exit after 10 minutes if you don't intervene."
+            "• `/exit AAPL` - Exit all AAPL shares now\n"
+            "• `exit TSLA 0.5` - Exit 50% of TSLA\n\n"
+            "Auto exits at: +10% (50%), +15% (25%), +20% (25%)"
         )
+
+    async def positions_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /positions command - show tracked positions with P&L."""
+        if not self.position_manager:
+            await update.message.reply_text("❌ Position manager not available")
+            return
+
+        try:
+            positions = await self.position_manager.get_all_positions()
+
+            if not positions:
+                await update.message.reply_text("📊 No open positions being tracked")
+                return
+
+            message_parts = ["📊 *Tracked Positions:*\n"]
+
+            for pos in positions:
+                profit_pct = pos.current_profit_pct
+                unrealized = pos.unrealized_pnl
+
+                # Emoji based on profit
+                if profit_pct and profit_pct > 0.10:
+                    emoji = "🚀"
+                elif profit_pct and profit_pct > 0:
+                    emoji = "📈"
+                elif profit_pct and profit_pct < 0:
+                    emoji = "📉"
+                else:
+                    emoji = "📊"
+
+                profit_str = f"{profit_pct*100:+.1f}%" if profit_pct else "N/A"
+                pnl_str = f"${unrealized:+.2f}" if unrealized else "N/A"
+
+                message_parts.append(
+                    f"\n{emoji} *{pos.ticker}*\n"
+                    f"   Entry: ${pos.entry_price:.2f}\n"
+                    f"   Shares: {pos.shares_remaining:.0f}/{pos.shares:.0f}\n"
+                    f"   Tier: {pos.current_tier.value}\n"
+                    f"   P&L: {profit_str} ({pnl_str})"
+                )
+
+            message_parts.append("\n\n_Exit targets: +10%, +15%, +20%_")
+            await update.message.reply_text("\n".join(message_parts), parse_mode="Markdown")
+
+        except Exception as e:
+            logger.error(f"Error in positions_command: {e}", exc_info=True)
+            await update.message.reply_text("❌ Error fetching positions")
+
+    async def exit_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /exit TICKER command - immediately exit a tracked position."""
+        if not context.args:
+            await update.message.reply_text(
+                "Usage: `/exit TICKER`\n"
+                "Example: `/exit AAPL`",
+                parse_mode="Markdown"
+            )
+            return
+
+        ticker = context.args[0].upper()
+
+        # Try PositionManager first (for tracked tiered positions)
+        if self.position_manager:
+            position = await self.position_manager.get_position(ticker)
+            if position:
+                await update.message.reply_text(
+                    f"📤 Requesting manual exit for {ticker}...\n"
+                    f"Shares remaining: {position.shares_remaining:.0f}\n"
+                    f"Entry: ${position.entry_price:.2f}"
+                )
+
+                success = await self.position_manager.request_manual_exit(ticker)
+                if success:
+                    await update.message.reply_text(
+                        f"✅ Manual exit triggered for {ticker}\n"
+                        f"Exit order being processed..."
+                    )
+                else:
+                    await update.message.reply_text(f"❌ Failed to trigger exit for {ticker}")
+                return
+
+        # Fallback to brokerage service for non-tracked positions
+        await self._handle_exit_command(update, ticker, 1.0)
     
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle incoming messages - parse exit commands."""
@@ -322,24 +413,27 @@ class TelegramTradeHandler:
 def get_telegram_trade_handler(
     bot_token: str,
     brokerage_service=None,
-    exit_trade_use_case=None
+    exit_trade_use_case=None,
+    position_manager=None,
 ) -> TelegramTradeHandler:
     """
     Factory function for Telegram trade handler.
-    
+
     ✅ DI CONTAINER: This is used by DI container factories.
     Container manages singleton instances via providers.Singleton.
-    
+
     Args:
         bot_token: Telegram bot token
         brokerage_service: Optional BrokerageService instance
         exit_trade_use_case: Optional ExitTradeUseCase instance
-        
+        position_manager: Optional PositionManager instance
+
     Returns:
         TelegramTradeHandler instance
     """
     return TelegramTradeHandler(
         bot_token=bot_token,
         brokerage_service=brokerage_service,
-        exit_trade_use_case=exit_trade_use_case
+        exit_trade_use_case=exit_trade_use_case,
+        position_manager=position_manager,
     )

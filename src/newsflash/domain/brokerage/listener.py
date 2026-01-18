@@ -167,12 +167,13 @@ class BrokerageDomainListener(
         
         # Step 3: MAP domain model → infrastructure format
         infra_request_data = self.request_mapper.to_infrastructure_model(trade_request)
-        
-        # Step 4: PUBLISH typed infrastructure event
+
+        # Step 4: PUBLISH typed infrastructure event (with metadata for exit notifications)
         infra_event = InfrastructureTradeExecutionRequestEvent(
             trade_request=infra_request_data,
             article_id=domain_event.article_id,
-            requested_at=domain_event.requested_at
+            requested_at=domain_event.requested_at,
+            metadata=domain_event.metadata  # Pass through exit_reason, tier, etc.
         )
         
         await self.publish_infrastructure_event(

@@ -188,12 +188,14 @@ class TradeResultMapper:
             else:
                 status = TradeStatus.FAILED
             
-            # Store spread_info and instrument_details in trade_request dict as metadata for notifications
+            # Store spread_info, instrument_details, and metadata in trade_request dict for notifications
             trade_request_dict = infra_event.trade_request.model_dump()
             if infra_event.spread_info:
                 trade_request_dict["_spread_info"] = infra_event.spread_info  # Store as metadata
             if infra_event.instrument_details:
                 trade_request_dict["_instrument_details"] = infra_event.instrument_details  # Store ladder stats
+            if infra_event.metadata:
+                trade_request_dict["metadata"] = infra_event.metadata  # Store exit metadata (tier, exit_reason, etc.)
             
             # Build domain TradeResult
             trade_result = TradeResult(
@@ -255,10 +257,19 @@ class TradeResultMapper:
                     status = TradeStatus.QUEUED
                 else:
                     status = TradeStatus.FAILED
-            
+
+            # Build trade_request dict with metadata for notifications
+            trade_request_dict = event_data.get("trade_request", {}).copy() if isinstance(event_data.get("trade_request"), dict) else {}
+            if event_data.get("spread_info"):
+                trade_request_dict["_spread_info"] = event_data["spread_info"]
+            if event_data.get("instrument_details"):
+                trade_request_dict["_instrument_details"] = event_data["instrument_details"]
+            if event_data.get("metadata"):
+                trade_request_dict["metadata"] = event_data["metadata"]  # Exit metadata (tier, exit_reason, etc.)
+
             # Build domain TradeResult
             trade_result = TradeResult(
-                trade_request=event_data.get("trade_request", {}),
+                trade_request=trade_request_dict,
                 success=success,
                 status=status,
                 shares=event_data.get("shares"),

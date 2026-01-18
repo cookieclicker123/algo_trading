@@ -71,19 +71,23 @@ class AlpacaExtendedHoursTradeExecutor:
         session: str,
         timing_info: Dict[str, float],
         timeout_deadline: Optional[float] = None,
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Execute a stock trade during extended hours using ladder strategy.
-        
+
         Args:
             trade_request: Trade request
             session: Trading session name (premarket/postmarket)
             timing_info: Timing information dictionary
             timeout_deadline: Optional timeout deadline
-            
+            metadata: Optional metadata (exit_reason, tier, etc.) for notifications
+
         Returns:
             Trade result dictionary (for backward compatibility, also publishes events)
         """
+        # Store metadata for event publishing
+        self._current_metadata = metadata
         total_start_time = time.time()
         session_time = timing_info.get("session_detection", 0.0)
         connect_time = timing_info.get("connection", 0.0)
@@ -1046,7 +1050,8 @@ class AlpacaExtendedHoursTradeExecutor:
             percentage_above_below=result.get("percentage_above_below"),
             spread_info=spread_info,  # For notifications
             executed_at=datetime.now(),
-            source="brokerage"
+            source="brokerage",
+            metadata=getattr(self, '_current_metadata', None)  # Exit metadata (tier, exit_reason, etc.)
         )
         
         await self.event_bus.publish("TradeExecuted", event.model_dump())

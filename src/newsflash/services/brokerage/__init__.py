@@ -20,6 +20,7 @@ from ...domain.brokerage.listener import BrokerageDomainListener
 
 # Services layer
 from .auto_trade import AutoTradeService
+from .position_manager import PositionManager
 
 # Use cases layer
 from ...use_cases.brokerage import ExitTradeUseCase
@@ -31,16 +32,17 @@ logger = get_logger(__name__)
 class BrokerageMicroservice:
     """
     Brokerage microservice container.
-    
+
     Holds all brokerage-related components:
     - Infrastructure service
     - Domain listener (bridge)
-    - Services (auto-trade)
+    - Services (auto-trade, position-manager)
     - Use cases (exit trade)
     """
     infra: BrokerageService
     domain_listener: BrokerageDomainListener
     auto_trade_service: Optional[AutoTradeService]  # Will be created in composition root after dependencies wired
+    position_manager: Optional[PositionManager] = None  # Will be created in composition root
     exit_trade_use_case: Optional[ExitTradeUseCase] = None  # Will be created in composition root
     
     @property
@@ -65,32 +67,39 @@ class BrokerageMicroservice:
         if self.auto_trade_service:
             await self.auto_trade_service.start()
             logger.info("AutoTradeService started")
-        
+
+        if self.position_manager:
+            await self.position_manager.start()
+            logger.info("PositionManager started")
+
         # Start use cases
         if self.exit_trade_use_case:
             await self.exit_trade_use_case.start()
             logger.info("ExitTradeUseCase started")
-        
+
         logger.info("Brokerage microservice started")
     
     async def stop(self) -> None:
         """Stop all brokerage microservice components."""
         logger.info("Stopping brokerage microservice...")
-        
+
         # Stop use cases first
         if self.exit_trade_use_case:
             await self.exit_trade_use_case.stop()
-        
+
         # Stop services
+        if self.position_manager:
+            await self.position_manager.stop()
+
         if self.auto_trade_service:
             await self.auto_trade_service.stop()
-        
+
         # Stop domain listener
         await self.domain_listener.stop()
-        
+
         # Stop infrastructure last
         await self.infra.stop()
-        
+
         logger.info("Brokerage microservice stopped")
 
 
@@ -153,4 +162,4 @@ async def initialize_brokerage_microservice(
     )
 
 
-__all__ = ["BrokerageMicroservice", "initialize_brokerage_microservice"]
+__all__ = ["BrokerageMicroservice", "initialize_brokerage_microservice", "PositionManager"]

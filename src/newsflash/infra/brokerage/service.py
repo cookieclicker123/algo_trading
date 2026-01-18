@@ -112,13 +112,13 @@ class BrokerageService:
     async def _handle_trade_execution_request(self, event_type: str, event_data: Dict[str, Any]) -> None:
         """
         Handle trade execution request from domain listener.
-        
+
         Receives typed InfrastructureTradeExecutionRequestEvent and executes trade.
         """
         try:
             # Reconstruct typed infrastructure event
             infra_event = InfrastructureTradeExecutionRequestEvent(**event_data)
-            
+
             # Convert InfrastructureTradeRequestData to TradeRequest (shared model for now)
             from ...models.base_models import TradeInstrument
             trade_request = TradeRequest(
@@ -130,16 +130,17 @@ class BrokerageService:
                 instrument=TradeInstrument.STOCK,  # Stocks only
                 article_id=infra_event.article_id or infra_event.trade_request.article_id,  # Preserve article_id
             )
-            
+
             logger.info(
                 "Received trade execution request from domain",
                 ticker=trade_request.ticker,
-                amount_usd=trade_request.amount_usd
+                amount_usd=trade_request.amount_usd,
+                metadata=infra_event.metadata
             )
-            
-            # Execute trade
-            result = await self.execute_trade(trade_request, timeout_seconds=30.0)
-            
+
+            # Execute trade (pass metadata for exit notifications)
+            result = await self.execute_trade(trade_request, timeout_seconds=30.0, metadata=infra_event.metadata)
+
             logger.info(
                 "Trade execution completed",
                 ticker=trade_request.ticker,
@@ -178,14 +179,16 @@ class BrokerageService:
         self,
         trade_request: TradeRequest,
         timeout_seconds: Optional[float] = None,
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Execute a trade request.
-        
+
         Args:
             trade_request: Trade request to execute
             timeout_seconds: Optional timeout in seconds
-            
+            metadata: Optional metadata (exit_reason, tier, etc.) for notifications
+
         Returns:
             Trade result dictionary
         """
@@ -251,8 +254,9 @@ class BrokerageService:
                     trade_request,
                     timing_info,
                     deadline,
+                    metadata=metadata,
                 )
-            
+
             # Extended hours (premarket or postmarket)
             logger.info("🌙 EXTENDED HOURS: Using limit order strategy", session=session)
             return await self.extended_hours_executor.execute(
@@ -260,6 +264,7 @@ class BrokerageService:
                 session,
                 timing_info,
                 deadline,
+                metadata=metadata,
             )
         
         except TimeoutError as exc:

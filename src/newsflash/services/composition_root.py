@@ -223,14 +223,62 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
     brokerage.exit_trade_use_case = exit_trade_use_case
     await exit_trade_use_case.start()
     logger.info("Exit trade use case created and started via DI container")
+
+    # Create PositionManager for tiered exit strategy (10%/15%/20% profit targets)
+    # Uses WebSocket for real-time price monitoring with 500ms REST polling fallback
+    from .brokerage.position_manager import PositionManager
+    position_manager = PositionManager(
+        event_bus=event_bus,
+        quote_fetcher=brokerage.quote_fetcher,
+        stream_manager=brokerage.infra.stream_manager if hasattr(brokerage.infra, 'stream_manager') else None,
+        poll_interval=0.5,  # 500ms fallback
+        enabled=True,
+    )
+    brokerage.position_manager = position_manager
+
+    # Subscribe to TradeExecuted events to automatically track new positions
+    async def _on_trade_executed(event_type: str, event_data: dict):
+        """Handle TradeExecuted event - add position if BUY order filled."""
+        try:
+            trade_request = event_data.get("trade_request", {})
+            action = trade_request.get("action", "")
+
+            # Only track BUY trades (not SELL exits)
+            if action.upper() == "BUY" and event_data.get("success"):
+                ticker = trade_request.get("ticker")
+                fill_price = event_data.get("fill_price")
+                shares = event_data.get("shares")
+                article_id = trade_request.get("article_id")
+
+                if ticker and fill_price and shares:
+                    await position_manager.add_position(
+                        ticker=ticker,
+                        entry_price=fill_price,
+                        shares=shares,
+                        article_id=article_id or "",
+                    )
+                    logger.info(
+                        "Position added from TradeExecuted event",
+                        ticker=ticker,
+                        entry_price=fill_price,
+                        shares=shares
+                    )
+        except Exception as e:
+            logger.error(f"Error handling TradeExecuted for PositionManager: {e}", exc_info=True)
+
+    event_bus.subscribe("TradeExecuted", _on_trade_executed)
+    await position_manager.start()
+    logger.info("PositionManager created and started (tiered exits at 10%/15%/20%)")
     
-    # Update trade handlers with exit_trade_use_case (created after exit_trade_use_case)
+    # Update trade handlers with exit_trade_use_case and position_manager
     if trade_handler:
         trade_handler.exit_trade_use_case = exit_trade_use_case
         trade_handler.brokerage_service = brokerage.infra
+        trade_handler.position_manager = position_manager
     if trade_handler_2:
         trade_handler_2.exit_trade_use_case = exit_trade_use_case
         trade_handler_2.brokerage_service = brokerage.infra
+        trade_handler_2.position_manager = position_manager
     
     # Notify trade executed use case - sends notifications when trades execute
     # Pass market_data_client for volume stats analysis
