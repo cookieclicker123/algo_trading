@@ -1,6 +1,22 @@
 """
 Auto-trade service - subscribes to domain events and handles trading logic.
 
+Confluence Scoring System (2-second observation window after publication):
+- Spread widening >15% → +2 points (market makers retreating = real catalyst)
+- Spread widening 5-15% → +1 point
+- Spread stable (±5%) → 0 points
+- Spread tightening >5% → -1 point (market ignoring news)
+- Volume surge >3x → +1 point
+- Price excursion >1% → +1 point
+
+Position sizing by score:
+- Score ≤0: $2,000 (MINIMUM) - low confluence, still trade but small position
+- Score 1: $5,000 (STANDARD)
+- Score 2: $7,500 (HIGH)
+- Score 3+: $10,000 (VERY_HIGH)
+
+Stop loss: 5% below initial NBBO mid (not entry price) - anchored to pre-move price.
+
 Pure functions for trade processing logic, with minimal service class for event subscriptions.
 """
 from decimal import Decimal
@@ -33,79 +49,179 @@ from ..brokerage.position_manager import ConvictionLevel
 logger = get_logger(__name__)
 
 
-# Position sizing based on conviction level
+# Position sizing based on confluence score
 POSITION_SIZES_USD = {
-    ConvictionLevel.STANDARD: Decimal("5000.00"),    # Base position
-    ConvictionLevel.HIGH: Decimal("7500.00"),        # 1% move in 1 sec
-    ConvictionLevel.VERY_HIGH: Decimal("10000.00"),  # 1% move + volume surge
+    ConvictionLevel.MINIMUM: Decimal("1000.00"),     # Score ≤0: Low confluence (tightening spread)
+    ConvictionLevel.STANDARD: Decimal("5000.00"),    # Score 1: Base position
+    ConvictionLevel.HIGH: Decimal("7500.00"),        # Score 2: Good confluence
+    ConvictionLevel.VERY_HIGH: Decimal("10000.00"),  # Score 3+: Strong confluence
 }
 
-# Thresholds for early momentum detection
-EARLY_MOMENTUM_WINDOW_SECONDS = 1.0  # Check within 1 second of article
-EARLY_MOMENTUM_THRESHOLD_PCT = 0.01   # 1% price move
-VOLUME_SURGE_MULTIPLIER = 3.0         # 3x normal volume = surge
+# Thresholds for 2-second observation window (publication-anchored)
+OBSERVATION_WINDOW_SECONDS = 2.0      # 2-second window after article publication
+PRICE_EXCURSION_THRESHOLD_PCT = 0.01  # 1% price move = +1 point
+VOLUME_SURGE_MULTIPLIER = 3.0         # 3x normal volume = +1 point
+
+# Spread change thresholds (widening = positive signal for microcaps)
+# Market makers retreat during significant news → spread widens
+SPREAD_MAJOR_WIDENING_PCT = 0.15      # >15% widening = +2 points
+SPREAD_MINOR_WIDENING_PCT = 0.05      # 5-15% widening = +1 point
+SPREAD_TIGHTENING_PCT = -0.05         # >5% tightening = -1 point (market ignoring news)
 
 
-async def check_early_momentum(
+async def check_confluence_signals(
     market_data_client: Optional["StockHistoricalDataClient"],
+    quote_fetcher,  # AlpacaQuoteFetcher for NBBO snapshots
     ticker: str,
     publication_time: datetime,
     baseline_volume: Optional[float] = None,
 ) -> tuple[ConvictionLevel, dict]:
     """
-    Check for early momentum signals within 1 second of article publication.
+    Check confluence signals in 2-second window after article publication.
 
-    This determines position sizing:
-    - STANDARD: No significant momentum detected → $5k position
-    - HIGH: 1%+ price move in first second → $7.5k position
-    - VERY_HIGH: 1%+ move + volume surge → $10k position
+    Confluence Scoring System:
+    - Spread widening >15% → +2 points (market makers retreating = real catalyst)
+    - Spread widening 5-15% → +1 point
+    - Spread stable (±5%) → 0 points
+    - Spread tightening >5% → -1 point (market ignoring news)
+    - Volume surge >3x → +1 point
+    - Price excursion >1% → +1 point
+
+    Position sizing by score:
+    - Score ≤0: $2,000 (MINIMUM) - low confluence
+    - Score 1: $5,000 (STANDARD)
+    - Score 2: $7,500 (HIGH)
+    - Score 3+: $10,000 (VERY_HIGH)
 
     Args:
-        market_data_client: Alpaca market data client
+        market_data_client: Alpaca market data client for trades
+        quote_fetcher: Quote fetcher for NBBO snapshots
         ticker: Stock ticker to check
         publication_time: When the article was published
         baseline_volume: Average volume per second for comparison (optional)
 
     Returns:
-        Tuple of (ConvictionLevel, metadata_dict with momentum stats)
+        Tuple of (ConvictionLevel, metadata_dict with confluence stats)
     """
     import asyncio
     from datetime import timedelta
 
     metadata = {
-        "momentum_checked": False,
-        "early_move_pct": 0.0,
-        "early_volume": 0,
+        "confluence_checked": False,
+        "confluence_score": 0,
+        "initial_nbbo_mid": None,
+        "initial_spread": None,
+        "final_spread": None,
+        "spread_change_pct": 0.0,
+        "spread_widened": False,
+        "spread_tightened": False,
+        "price_excursion_pct": 0.0,
+        "has_price_excursion": False,
+        "volume": 0,
         "volume_surge": False,
-        "conviction": ConvictionLevel.STANDARD.value,
+        "conviction": ConvictionLevel.MINIMUM.value,
     }
 
+    # Default to MINIMUM if we can't check
     if not market_data_client or not StockTradesRequest:
-        logger.debug("Early momentum check skipped - no market data client")
-        return ConvictionLevel.STANDARD, metadata
+        logger.debug("Confluence check skipped - no market data client")
+        return ConvictionLevel.MINIMUM, metadata
 
     try:
-        # Calculate time window: publication to 1 second later
+        # Calculate time since publication
         now = datetime.now()
         time_since_publication = (now - publication_time).total_seconds()
 
-        # If article is too old (>5 seconds), skip momentum check
-        if time_since_publication > 5.0:
-            logger.debug(
-                "Early momentum check skipped - article too old",
+        # If article is too old (>10 seconds), still check but log warning
+        if time_since_publication > 10.0:
+            logger.warning(
+                "Confluence check on stale article",
                 ticker=ticker,
                 time_since_publication=round(time_since_publication, 2)
             )
-            return ConvictionLevel.STANDARD, metadata
 
-        # Wait until at least 1 second has passed since publication
-        if time_since_publication < EARLY_MOMENTUM_WINDOW_SECONDS:
-            wait_time = EARLY_MOMENTUM_WINDOW_SECONDS - time_since_publication
+        # Wait until 2 seconds have passed since publication
+        if time_since_publication < OBSERVATION_WINDOW_SECONDS:
+            wait_time = OBSERVATION_WINDOW_SECONDS - time_since_publication
             await asyncio.sleep(wait_time)
 
-        # Now fetch trades from publication to ~1 second after
+        # ============================================================
+        # STEP 1: Get initial NBBO at publication time (from cache if available)
+        # ============================================================
+        initial_nbbo = None
+        if quote_fetcher:
+            try:
+                initial_nbbo = await quote_fetcher.get_nbbo_snapshot(ticker)
+            except Exception as e:
+                logger.debug(f"Could not get initial NBBO: {e}")
+
+        if initial_nbbo:
+            metadata["initial_nbbo_mid"] = initial_nbbo.get("mid")
+            metadata["initial_spread"] = initial_nbbo.get("spread")
+
+        # ============================================================
+        # STEP 2: Get current NBBO (2 seconds after publication)
+        # ============================================================
+        current_nbbo = None
+        if quote_fetcher:
+            try:
+                current_nbbo = await quote_fetcher.get_nbbo_snapshot(ticker)
+            except Exception as e:
+                logger.debug(f"Could not get current NBBO: {e}")
+
+        if current_nbbo:
+            metadata["final_spread"] = current_nbbo.get("spread")
+
+        # ============================================================
+        # STEP 3: Calculate spread change
+        # ============================================================
+        confluence_score = 0
+
+        if metadata["initial_spread"] and metadata["final_spread"]:
+            initial_spread = metadata["initial_spread"]
+            final_spread = metadata["final_spread"]
+
+            if initial_spread > 0:
+                spread_change_pct = (final_spread - initial_spread) / initial_spread
+                metadata["spread_change_pct"] = round(spread_change_pct * 100, 2)
+
+                # Score spread change (widening is POSITIVE for microcap news)
+                if spread_change_pct >= SPREAD_MAJOR_WIDENING_PCT:
+                    # Major widening (>15%) = +2 points
+                    confluence_score += 2
+                    metadata["spread_widened"] = True
+                    logger.info(
+                        f"📈 SPREAD MAJOR WIDENING: +2 points",
+                        ticker=ticker,
+                        spread_change_pct=f"{spread_change_pct*100:.1f}%",
+                        initial_spread=initial_spread,
+                        final_spread=final_spread
+                    )
+                elif spread_change_pct >= SPREAD_MINOR_WIDENING_PCT:
+                    # Minor widening (5-15%) = +1 point
+                    confluence_score += 1
+                    metadata["spread_widened"] = True
+                    logger.info(
+                        f"📈 SPREAD MINOR WIDENING: +1 point",
+                        ticker=ticker,
+                        spread_change_pct=f"{spread_change_pct*100:.1f}%"
+                    )
+                elif spread_change_pct <= SPREAD_TIGHTENING_PCT:
+                    # Tightening (>5% decrease) = -1 point
+                    confluence_score -= 1
+                    metadata["spread_tightened"] = True
+                    logger.info(
+                        f"📉 SPREAD TIGHTENING: -1 point (market ignoring news)",
+                        ticker=ticker,
+                        spread_change_pct=f"{spread_change_pct*100:.1f}%"
+                    )
+                # else: stable (±5%) = 0 points
+
+        # ============================================================
+        # STEP 4: Fetch trades in 2-second window for volume/price analysis
+        # ============================================================
         trades_start = publication_time
-        trades_end = publication_time + timedelta(seconds=EARLY_MOMENTUM_WINDOW_SECONDS)
+        trades_end = publication_time + timedelta(seconds=OBSERVATION_WINDOW_SECONDS)
 
         trades = market_data_client.get_stock_trades(StockTradesRequest(
             symbol_or_symbols=ticker,
@@ -114,86 +230,137 @@ async def check_early_momentum(
             feed=DataFeed.SIP
         ))
 
-        if not trades or not trades.data or ticker not in trades.data:
-            logger.debug(
-                "Early momentum check: no trades in first second",
-                ticker=ticker
-            )
-            return ConvictionLevel.STANDARD, metadata
+        if trades and trades.data and ticker in trades.data:
+            trade_list = trades.data[ticker]
+            if trade_list:
+                metadata["confluence_checked"] = True
 
-        trade_list = trades.data[ticker]
-        if not trade_list:
-            return ConvictionLevel.STANDARD, metadata
+                # Calculate metrics
+                first_price = trade_list[0].price
+                max_price = max(t.price for t in trade_list)
+                min_price = min(t.price for t in trade_list)
+                total_volume = sum(t.size for t in trade_list)
 
-        metadata["momentum_checked"] = True
+                # Max excursion from first trade
+                max_move_up = (max_price - first_price) / first_price if first_price else 0
+                max_move_down = (first_price - min_price) / first_price if first_price else 0
+                max_move_pct = max(max_move_up, max_move_down)
 
-        # Calculate early momentum metrics
-        first_price = trade_list[0].price
-        max_price = max(t.price for t in trade_list)
-        min_price = min(t.price for t in trade_list)
-        total_volume = sum(t.size for t in trade_list)
+                metadata["price_excursion_pct"] = round(max_move_pct * 100, 2)
+                metadata["volume"] = total_volume
+                metadata["trade_count"] = len(trade_list)
 
-        # Max excursion from first trade
-        max_move_up = (max_price - first_price) / first_price if first_price else 0
-        max_move_down = (first_price - min_price) / first_price if first_price else 0
-        max_move_pct = max(max_move_up, max_move_down)
+                # ============================================================
+                # STEP 5: Score price excursion
+                # ============================================================
+                if max_move_pct >= PRICE_EXCURSION_THRESHOLD_PCT:
+                    confluence_score += 1
+                    metadata["has_price_excursion"] = True
+                    logger.info(
+                        f"📈 PRICE EXCURSION: +1 point",
+                        ticker=ticker,
+                        max_move_pct=f"{max_move_pct*100:.2f}%"
+                    )
 
-        metadata["early_move_pct"] = round(max_move_pct * 100, 2)
-        metadata["early_volume"] = total_volume
-        metadata["trade_count"] = len(trade_list)
+                # ============================================================
+                # STEP 6: Score volume surge
+                # ============================================================
+                has_volume_surge = False
+                if baseline_volume and baseline_volume > 0:
+                    # Compare 2-second volume to expected (adjusted for 2s window)
+                    expected_2s_volume = baseline_volume * 2
+                    volume_ratio = total_volume / expected_2s_volume if expected_2s_volume > 0 else 0
+                    if volume_ratio >= VOLUME_SURGE_MULTIPLIER:
+                        has_volume_surge = True
+                        metadata["volume_ratio"] = round(volume_ratio, 2)
+                else:
+                    # Simple heuristic: 1000+ shares in 2 seconds is a surge
+                    if total_volume >= 1000:
+                        has_volume_surge = True
 
-        # Check for volume surge (if baseline provided)
-        has_volume_surge = False
-        if baseline_volume and baseline_volume > 0:
-            # Compare 1-second volume to expected
-            volume_ratio = total_volume / baseline_volume
-            if volume_ratio >= VOLUME_SURGE_MULTIPLIER:
-                has_volume_surge = True
-                metadata["volume_surge"] = True
-                metadata["volume_ratio"] = round(volume_ratio, 2)
-        else:
-            # Simple heuristic: 500+ shares in 1 second is a surge for most stocks
-            if total_volume >= 500:
-                has_volume_surge = True
-                metadata["volume_surge"] = True
+                if has_volume_surge:
+                    confluence_score += 1
+                    metadata["volume_surge"] = True
+                    logger.info(
+                        f"📈 VOLUME SURGE: +1 point",
+                        ticker=ticker,
+                        volume=total_volume
+                    )
 
-        # Determine conviction level
-        has_momentum = max_move_pct >= EARLY_MOMENTUM_THRESHOLD_PCT
+        # ============================================================
+        # STEP 7: Determine conviction level from confluence score
+        # ============================================================
+        metadata["confluence_score"] = confluence_score
 
-        if has_momentum and has_volume_surge:
+        if confluence_score >= 3:
             conviction = ConvictionLevel.VERY_HIGH
             logger.info(
-                "🔥 VERY HIGH CONVICTION: 1%+ move + volume surge",
+                f"🔥 VERY HIGH CONVICTION (score {confluence_score}): Strong confluence",
                 ticker=ticker,
-                early_move_pct=f"{max_move_pct*100:.2f}%",
-                volume=total_volume,
-                position_size=f"${POSITION_SIZES_USD[conviction]}"
+                position_size=f"${POSITION_SIZES_USD[conviction]}",
+                spread_change_pct=metadata.get("spread_change_pct"),
+                price_excursion_pct=metadata.get("price_excursion_pct"),
+                volume_surge=metadata.get("volume_surge")
             )
-        elif has_momentum:
+        elif confluence_score == 2:
             conviction = ConvictionLevel.HIGH
             logger.info(
-                "⚡ HIGH CONVICTION: 1%+ move in first second",
+                f"⚡ HIGH CONVICTION (score {confluence_score}): Good confluence",
                 ticker=ticker,
-                early_move_pct=f"{max_move_pct*100:.2f}%",
-                volume=total_volume,
-                position_size=f"${POSITION_SIZES_USD[conviction]}"
+                position_size=f"${POSITION_SIZES_USD[conviction]}",
+                spread_change_pct=metadata.get("spread_change_pct"),
+                price_excursion_pct=metadata.get("price_excursion_pct"),
+                volume_surge=metadata.get("volume_surge")
             )
-        else:
+        elif confluence_score == 1:
             conviction = ConvictionLevel.STANDARD
             logger.info(
-                "📊 STANDARD CONVICTION: Normal momentum",
+                f"📊 STANDARD CONVICTION (score {confluence_score}): Minimal confluence",
                 ticker=ticker,
-                early_move_pct=f"{max_move_pct*100:.2f}%",
-                volume=total_volume,
-                position_size=f"${POSITION_SIZES_USD[conviction]}"
+                position_size=f"${POSITION_SIZES_USD[conviction]}",
+                spread_change_pct=metadata.get("spread_change_pct"),
+                price_excursion_pct=metadata.get("price_excursion_pct"),
+                volume_surge=metadata.get("volume_surge")
+            )
+        else:
+            conviction = ConvictionLevel.MINIMUM
+            logger.info(
+                f"⚠️ MINIMUM CONVICTION (score {confluence_score}): Low/no confluence",
+                ticker=ticker,
+                position_size=f"${POSITION_SIZES_USD[conviction]}",
+                spread_change_pct=metadata.get("spread_change_pct"),
+                price_excursion_pct=metadata.get("price_excursion_pct"),
+                volume_surge=metadata.get("volume_surge")
             )
 
         metadata["conviction"] = conviction.value
         return conviction, metadata
 
     except Exception as e:
-        logger.error(f"Error checking early momentum: {e}")
-        return ConvictionLevel.STANDARD, metadata
+        logger.error(f"Error checking confluence signals: {e}", exc_info=True)
+        return ConvictionLevel.MINIMUM, metadata
+
+
+# Backward compatibility alias
+async def check_early_momentum(
+    market_data_client: Optional["StockHistoricalDataClient"],
+    ticker: str,
+    publication_time: datetime,
+    baseline_volume: Optional[float] = None,
+) -> tuple[ConvictionLevel, dict]:
+    """
+    Legacy wrapper for check_confluence_signals.
+
+    Note: This version doesn't have access to quote_fetcher for spread analysis.
+    Use check_confluence_signals directly for full functionality.
+    """
+    return await check_confluence_signals(
+        market_data_client=market_data_client,
+        quote_fetcher=None,
+        ticker=ticker,
+        publication_time=publication_time,
+        baseline_volume=baseline_volume,
+    )
 
 
 def should_process_classification(result: ClassificationResult, enabled: bool) -> bool:
@@ -391,7 +558,7 @@ async def publish_trade_request(
     trade_request: TradeRequest,
     article_id: str,
     conviction: ConvictionLevel = ConvictionLevel.STANDARD,
-    momentum_metadata: Optional[dict] = None,
+    confluence_metadata: Optional[dict] = None,
 ) -> None:
     """
     Publish a trade request domain event.
@@ -401,15 +568,18 @@ async def publish_trade_request(
         trade_request: Domain TradeRequest to publish
         article_id: Associated article ID
         conviction: Conviction level for position sizing
-        momentum_metadata: Early momentum check metadata
+        confluence_metadata: Confluence scoring metadata (spread, volume, price)
     """
-    # Include conviction in event metadata for position manager
+    # Include conviction and initial NBBO in event metadata for position manager
     metadata = {
         "conviction": conviction.value,
         "position_size_usd": float(POSITION_SIZES_USD[conviction]),
     }
-    if momentum_metadata:
-        metadata.update(momentum_metadata)
+    if confluence_metadata:
+        metadata.update(confluence_metadata)
+        # Ensure initial_nbbo_mid is explicitly included for stop loss tracking
+        if "initial_nbbo_mid" in confluence_metadata:
+            metadata["initial_nbbo_mid"] = confluence_metadata["initial_nbbo_mid"]
 
     domain_trade_event = TradeRequestDomainEvent(
         trade_request=trade_request,
@@ -434,7 +604,8 @@ async def process_imminent_article(
     storage_service: StorageQueryService,
     classification_result: ClassificationResult,
     enabled: bool,
-    market_data_client: Optional["StockHistoricalDataClient"] = None
+    market_data_client: Optional["StockHistoricalDataClient"] = None,
+    quote_fetcher=None,  # AlpacaQuoteFetcher for NBBO snapshots
 ) -> None:
     """
     Process an IMMINENT classification result and publish trade request if valid.
@@ -493,23 +664,37 @@ async def process_imminent_article(
             )
             return
 
-        # 🔥 EARLY MOMENTUM CHECK: Determine conviction level (within 1 second of publication)
-        # - STANDARD: No significant momentum → $5k position
-        # - HIGH: 1%+ move in 1 second → $7.5k position
-        # - VERY_HIGH: 1%+ move + volume surge → $10k position
-        conviction, momentum_metadata = await check_early_momentum(
+        # 🔥 CONFLUENCE SCORING: 2-second observation window after publication
+        # Scoring system:
+        # - Spread widening >15% → +2 points (market makers retreating = real catalyst)
+        # - Spread widening 5-15% → +1 point
+        # - Spread stable (±5%) → 0 points
+        # - Spread tightening >5% → -1 point (market ignoring news)
+        # - Volume surge >3x → +1 point
+        # - Price excursion >1% → +1 point
+        #
+        # Position sizing by score:
+        # - Score ≤0: $2,000 (MINIMUM)
+        # - Score 1: $5,000 (STANDARD)
+        # - Score 2: $7,500 (HIGH)
+        # - Score 3+: $10,000 (VERY_HIGH)
+        conviction, confluence_metadata = await check_confluence_signals(
             market_data_client=market_data_client,
+            quote_fetcher=quote_fetcher,
             ticker=ticker,
             publication_time=domain_article.published_at,
         )
 
         logger.info(
-            "📈 CONVICTION DETERMINED",
+            "📈 CONFLUENCE SCORE DETERMINED",
             ticker=ticker,
             conviction=conviction.value,
+            confluence_score=confluence_metadata.get("confluence_score", 0),
             position_size=f"${POSITION_SIZES_USD[conviction]}",
-            early_move_pct=momentum_metadata.get("early_move_pct", 0),
-            volume_surge=momentum_metadata.get("volume_surge", False)
+            spread_change_pct=confluence_metadata.get("spread_change_pct", 0),
+            price_excursion_pct=confluence_metadata.get("price_excursion_pct", 0),
+            volume_surge=confluence_metadata.get("volume_surge", False),
+            initial_nbbo_mid=confluence_metadata.get("initial_nbbo_mid")
         )
 
         # Build trade request with conviction-based position sizing
@@ -577,7 +762,7 @@ async def process_imminent_article(
             trade_request,
             domain_article.id,
             conviction=conviction,
-            momentum_metadata=momentum_metadata
+            confluence_metadata=confluence_metadata
         )
         
     except Exception as e:
@@ -609,21 +794,24 @@ class AutoTradeService:
         event_bus: AsyncEventBus,
         storage_query_service: StorageQueryService,
         enabled: bool,
-        market_data_client: Optional["StockHistoricalDataClient"] = None
+        market_data_client: Optional["StockHistoricalDataClient"] = None,
+        quote_fetcher=None,  # AlpacaQuoteFetcher for NBBO snapshots
     ):
         """
         Initialize auto-trade service.
-        
+
         Args:
             event_bus: Event bus instance for publishing/subscribing to events
             storage_query_service: Storage query service for fetching articles
             enabled: Whether auto-trading is enabled (injected via DI)
             market_data_client: Optional Alpaca market data client for volume checks
+            quote_fetcher: Optional AlpacaQuoteFetcher for NBBO snapshots (for confluence scoring)
         """
         self.is_enabled = enabled
         self.event_bus = event_bus
         self.storage_query_service = storage_query_service
         self.market_data_client = market_data_client
+        self.quote_fetcher = quote_fetcher
         
         # Track wrapper for unsubscribe
         self._article_classified_wrapper = None
@@ -631,7 +819,9 @@ class AutoTradeService:
         logger.info(
             "AutoTradeService initialized - ready to start subscriptions",
             enabled=self.is_enabled,
-            has_storage_query=self.storage_query_service is not None
+            has_storage_query=self.storage_query_service is not None,
+            has_quote_fetcher=self.quote_fetcher is not None,
+            observation_window_seconds=OBSERVATION_WINDOW_SECONDS
         )
     
     async def _handle_article_classified(
@@ -654,7 +844,8 @@ class AutoTradeService:
             self.storage_query_service,
             domain_event.result,
             self.is_enabled,
-            self.market_data_client
+            self.market_data_client,
+            self.quote_fetcher
         )
     
     async def start(self) -> None:

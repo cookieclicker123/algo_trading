@@ -203,13 +203,14 @@ class ApplicationContainer(containers.DeclarativeContainer):
     )
     
     # AutoTrade service needs event_bus, storage_query_service, and auto-trade config
-    # No trade_amount_usd needed - we use 2x leverage (pay for 1 share, leverage the second)
+    # Uses confluence scoring system (spread + volume + price) for position sizing
+    # Stop loss: 5% below initial NBBO mid (not entry price)
     auto_trade_service = providers.Factory(
         AutoTradeService,
         event_bus=shared.event_bus,
         storage_query_service=storage_query_service,
         enabled=config.auto_trading_enabled,
-        # market_data_client will be provided when called in composition_root
+        # market_data_client and quote_fetcher will be provided when called in composition_root
     )
     
     # Exit trade use case - only needs event_bus (no storage dependency)

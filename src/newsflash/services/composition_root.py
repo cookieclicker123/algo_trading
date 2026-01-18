@@ -213,11 +213,12 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
     logger.info("Notification use case created and started via DI container")
     
     auto_trade_service = container.auto_trade_service(
-        market_data_client=brokerage.infra.connection_manager.market_data_client if brokerage else None
+        market_data_client=brokerage.infra.connection_manager.market_data_client if brokerage else None,
+        quote_fetcher=brokerage.quote_fetcher if brokerage else None,
     )
     brokerage.auto_trade_service = auto_trade_service
     await auto_trade_service.start()
-    logger.info("Auto-trade service created and started via DI container (with Volume Gate)")
+    logger.info("Auto-trade service created and started via DI container (with Confluence Scoring)")
     
     exit_trade_use_case = container.exit_trade_use_case()
     brokerage.exit_trade_use_case = exit_trade_use_case
@@ -263,6 +264,10 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
                 except ValueError:
                     conviction = ConvictionLevel.STANDARD
 
+                # Extract initial_nbbo_mid for stop loss tracking
+                # Stop loss is 5% below initial NBBO mid (not entry price)
+                initial_nbbo_mid = metadata.get("initial_nbbo_mid")
+
                 if ticker and fill_price and shares:
                     await position_manager.add_position(
                         ticker=ticker,
@@ -270,21 +275,24 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
                         shares=shares,
                         article_id=article_id or "",
                         conviction=conviction,
+                        initial_nbbo_mid=initial_nbbo_mid,
                     )
-                    strategy = "AGGRESSIVE" if conviction != ConvictionLevel.STANDARD else "STANDARD"
+                    strategy = "AGGRESSIVE" if conviction not in (ConvictionLevel.STANDARD, ConvictionLevel.MINIMUM) else "STANDARD"
                     logger.info(
                         f"Position added from TradeExecuted event ({strategy} exits)",
                         ticker=ticker,
                         entry_price=fill_price,
                         shares=shares,
-                        conviction=conviction.value
+                        conviction=conviction.value,
+                        initial_nbbo_mid=initial_nbbo_mid,
+                        stop_loss_price=initial_nbbo_mid * 0.95 if initial_nbbo_mid else None
                     )
         except Exception as e:
             logger.error(f"Error handling TradeExecuted for PositionManager: {e}", exc_info=True)
 
     event_bus.subscribe("TradeExecuted", _on_trade_executed)
     await position_manager.start()
-    logger.info("PositionManager created and started (standard: 10%/15%/20%, aggressive: 15%/25%/40%)")
+    logger.info("PositionManager created and started (tiered exits + 5% stop loss below initial NBBO)")
     
     # Update trade handlers with exit_trade_use_case and position_manager
     if trade_handler:

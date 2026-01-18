@@ -1,5 +1,25 @@
 """
-Position Manager - Tracks open positions and manages tiered exit strategy.
+Position Manager - Tracks open positions and manages tiered exit strategy with stop loss.
+
+CONFLUENCE-BASED POSITION SIZING:
+Based on 2-second observation window after article publication:
+- Spread widening >15% → +2 points (market makers retreating = real catalyst)
+- Spread widening 5-15% → +1 point
+- Spread stable (±5%) → 0 points
+- Spread tightening >5% → -1 point (market ignoring news)
+- Volume surge >3x → +1 point
+- Price excursion >1% → +1 point
+
+Position sizes by score:
+- Score ≤0: $2,000 (MINIMUM) - low confluence
+- Score 1: $5,000 (STANDARD)
+- Score 2: $7,500 (HIGH)
+- Score 3+: $10,000 (VERY_HIGH)
+
+STOP LOSS:
+- 5% below initial NBBO mid price (NOT entry price)
+- Anchored to pre-move price to protect against "fake rallies"
+- Good catalysts shouldn't dump 5% below where they started
 
 STANDARD Exit Strategy (base $5k trades):
 - Target 1: +10% profit → Sell 50% of position
@@ -10,10 +30,6 @@ HIGH-CONVICTION Exit Strategy ($7.5k-$10k trades with early momentum):
 - Target 1: +15% profit → Sell 25% of position
 - Target 2: +25% profit → Sell 25% of position
 - Target 3: +40% profit → Sell remaining 50%
-
-High-conviction signals (must occur within 1 second of article receipt):
-- 1% price move since publication → $7.5k position
-- 1% price move + volume surge → $10k position
 
 Uses WebSocket for real-time price monitoring (sub-100ms latency).
 Falls back to 500ms polling if WebSocket unavailable.
@@ -42,10 +58,15 @@ class ExitTier(Enum):
 
 
 class ConvictionLevel(Enum):
-    """Trade conviction level based on early momentum signals."""
-    STANDARD = "standard"           # Base $5k, standard exits
-    HIGH = "high"                   # 1% move in 1 sec → $7.5k, aggressive exits
-    VERY_HIGH = "very_high"         # 1% move + volume surge → $10k, aggressive exits
+    """Trade conviction level based on confluence scoring."""
+    MINIMUM = "minimum"             # Low confluence score (≤0) → $2k position
+    STANDARD = "standard"           # Score 1 → $5k, standard exits
+    HIGH = "high"                   # Score 2 → $7.5k, aggressive exits
+    VERY_HIGH = "very_high"         # Score 3+ → $10k, aggressive exits
+
+
+# Stop loss configuration
+STOP_LOSS_PCT = 0.05  # 5% below initial NBBO mid
 
 
 @dataclass
@@ -59,6 +80,11 @@ class Position:
 
     # Conviction level determines exit strategy and position size
     conviction: ConvictionLevel = ConvictionLevel.STANDARD
+
+    # Stop loss tracking - anchored to initial NBBO mid (not entry price)
+    # This protects against "fake rallies" that return to origin
+    initial_nbbo_mid: Optional[float] = None
+    stop_loss_triggered: bool = False
 
     # Exit tracking
     current_tier: ExitTier = ExitTier.TIER_1
@@ -81,6 +107,13 @@ class Position:
     def __post_init__(self):
         self.shares_remaining = self.shares
         self.total_cost_basis = self.entry_price * self.shares
+
+    @property
+    def stop_loss_price(self) -> Optional[float]:
+        """Calculate stop loss price (5% below initial NBBO mid)."""
+        if self.initial_nbbo_mid:
+            return self.initial_nbbo_mid * (1 - STOP_LOSS_PCT)
+        return None
 
     @property
     def is_high_conviction(self) -> bool:
@@ -238,6 +271,7 @@ class PositionManager:
         shares: float,
         article_id: str,
         conviction: ConvictionLevel = ConvictionLevel.STANDARD,
+        initial_nbbo_mid: Optional[float] = None,
     ) -> Position:
         """
         Add a new position to track.
@@ -247,7 +281,8 @@ class PositionManager:
             entry_price: Entry fill price
             shares: Number of shares
             article_id: Associated article ID
-            conviction: Conviction level (STANDARD, HIGH, or VERY_HIGH)
+            conviction: Conviction level (MINIMUM, STANDARD, HIGH, or VERY_HIGH)
+            initial_nbbo_mid: NBBO mid price at article publication (for stop loss)
 
         Returns:
             Created Position object
@@ -260,6 +295,7 @@ class PositionManager:
                 entry_time=datetime.now(),
                 article_id=article_id,
                 conviction=conviction,
+                initial_nbbo_mid=initial_nbbo_mid,
             )
 
             self._positions[ticker] = position
@@ -279,6 +315,8 @@ class PositionManager:
                 shares=shares,
                 cost_basis=position.total_cost_basis,
                 conviction=conviction.value,
+                initial_nbbo_mid=initial_nbbo_mid,
+                stop_loss_price=position.stop_loss_price,
                 targets={
                     f"tier_1_{int(targets[ExitTier.TIER_1]*100)}pct": round(entry_price * (1 + targets[ExitTier.TIER_1]), 2),
                     f"tier_2_{int(targets[ExitTier.TIER_2]*100)}pct": round(entry_price * (1 + targets[ExitTier.TIER_2]), 2),
@@ -385,6 +423,35 @@ class PositionManager:
                     self._manual_exits.pop(ticker, None)
                 return
 
+            # 🛑 STOP LOSS CHECK: Exit entire position if price drops 5% below initial NBBO
+            # This protects against "fake rallies" - good catalysts shouldn't dump below origin
+            if position.stop_loss_price and not position.stop_loss_triggered:
+                if current_price <= position.stop_loss_price:
+                    exit_key = f"{ticker}_stop_loss"
+                    if exit_key not in self._exits_in_progress:
+                        self._exits_in_progress.add(exit_key)
+                        position.stop_loss_triggered = True
+                        loss_pct = (current_price - position.entry_price) / position.entry_price
+                        loss_from_initial = (current_price - position.initial_nbbo_mid) / position.initial_nbbo_mid
+                        logger.warning(
+                            f"🛑 STOP LOSS TRIGGERED: Price dropped {STOP_LOSS_PCT*100:.0f}% below initial NBBO",
+                            ticker=ticker,
+                            current_price=current_price,
+                            stop_loss_price=position.stop_loss_price,
+                            initial_nbbo_mid=position.initial_nbbo_mid,
+                            entry_price=position.entry_price,
+                            loss_from_entry_pct=f"{loss_pct*100:.1f}%",
+                            loss_from_initial_pct=f"{loss_from_initial*100:.1f}%",
+                            shares_remaining=position.shares_remaining
+                        )
+                        asyncio.create_task(self._execute_exit_async(
+                            position,
+                            position.shares_remaining,
+                            "stop_loss",
+                            loss_pct
+                        ))
+                    return
+
             # Calculate profit %
             profit_pct = (current_price - position.entry_price) / position.entry_price
 
@@ -490,6 +557,9 @@ class PositionManager:
                 "conviction": position.conviction.value,
                 "exit_strategy": exit_strategy,
                 "target_pct": exit_targets.get(position.current_tier, 0) * 100,
+                "initial_nbbo_mid": position.initial_nbbo_mid,
+                "stop_loss_price": position.stop_loss_price,
+                "stop_loss_triggered": position.stop_loss_triggered,
             }
         )
 
@@ -509,6 +579,9 @@ class PositionManager:
                 position.current_tier = ExitTier.TIER_3
             elif exit_reason == "tier_3":
                 position.tier_3_executed = True
+                position.current_tier = ExitTier.COMPLETE
+            elif exit_reason == "stop_loss":
+                # Stop loss exits everything
                 position.current_tier = ExitTier.COMPLETE
 
         logger.info(
@@ -637,6 +710,9 @@ class PositionManager:
                 "profit_pct": f"{pos.current_profit_pct*100:.1f}%" if pos.current_profit_pct else None,
                 "unrealized_pnl": round(pos.unrealized_pnl, 2) if pos.unrealized_pnl else None,
                 "targets": {k.value: f"{v*100:.1f}%" for k, v in targets.items()},
+                "initial_nbbo_mid": pos.initial_nbbo_mid,
+                "stop_loss_price": pos.stop_loss_price,
+                "stop_loss_triggered": pos.stop_loss_triggered,
             })
 
         return {
@@ -645,6 +721,7 @@ class PositionManager:
             "open_positions": len(self._positions),
             "poll_interval": self.poll_interval,
             "has_websocket": self.stream_manager is not None,
+            "stop_loss_pct": f"{STOP_LOSS_PCT*100:.0f}%",
             "exit_targets_standard": {k.value: f"{v*100:.1f}%" for k, v in EXIT_TARGETS_STANDARD.items()},
             "exit_targets_aggressive": {k.value: f"{v*100:.1f}%" for k, v in EXIT_TARGETS_AGGRESSIVE.items()},
             "positions": positions_summary,
