@@ -224,6 +224,9 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
     await exit_trade_use_case.start()
     logger.info("Exit trade use case created and started via DI container")
 
+    # Get event bus from container (needed for PositionManager and Services container)
+    event_bus = container.event_bus()
+
     # Create PositionManager for tiered exit strategy (10%/15%/20% profit targets)
     # Uses WebSocket for real-time price monitoring with 500ms REST polling fallback
     from .brokerage.position_manager import PositionManager
@@ -237,6 +240,8 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
     brokerage.position_manager = position_manager
 
     # Subscribe to TradeExecuted events to automatically track new positions
+    from .brokerage.position_manager import ConvictionLevel
+
     async def _on_trade_executed(event_type: str, event_data: dict):
         """Handle TradeExecuted event - add position if BUY order filled."""
         try:
@@ -250,25 +255,36 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
                 shares = event_data.get("shares")
                 article_id = trade_request.get("article_id")
 
+                # Extract conviction from event metadata (set by auto_trade.py)
+                metadata = event_data.get("metadata", {})
+                conviction_str = metadata.get("conviction", "standard")
+                try:
+                    conviction = ConvictionLevel(conviction_str)
+                except ValueError:
+                    conviction = ConvictionLevel.STANDARD
+
                 if ticker and fill_price and shares:
                     await position_manager.add_position(
                         ticker=ticker,
                         entry_price=fill_price,
                         shares=shares,
                         article_id=article_id or "",
+                        conviction=conviction,
                     )
+                    strategy = "AGGRESSIVE" if conviction != ConvictionLevel.STANDARD else "STANDARD"
                     logger.info(
-                        "Position added from TradeExecuted event",
+                        f"Position added from TradeExecuted event ({strategy} exits)",
                         ticker=ticker,
                         entry_price=fill_price,
-                        shares=shares
+                        shares=shares,
+                        conviction=conviction.value
                     )
         except Exception as e:
             logger.error(f"Error handling TradeExecuted for PositionManager: {e}", exc_info=True)
 
     event_bus.subscribe("TradeExecuted", _on_trade_executed)
     await position_manager.start()
-    logger.info("PositionManager created and started (tiered exits at 10%/15%/20%)")
+    logger.info("PositionManager created and started (standard: 10%/15%/20%, aggressive: 15%/25%/40%)")
     
     # Update trade handlers with exit_trade_use_case and position_manager
     if trade_handler:
@@ -300,10 +316,7 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
     notification.notify_trade_failed_use_case = notify_trade_failed_use_case
     await notify_trade_failed_use_case.start()
     logger.info("Notify trade failed use case created and started via DI container")
-    
-    # Get event bus from container (needed for Services container)
-    event_bus = container.event_bus()
-    
+
     # Step 7: Initialize statistics engines (runs alongside main trading system)
     # Use DI container factories - all dependencies injected via container
     statistics_repository = container.statistics_repository()

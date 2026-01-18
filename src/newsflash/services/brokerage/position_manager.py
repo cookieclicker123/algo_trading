@@ -1,10 +1,19 @@
 """
 Position Manager - Tracks open positions and manages tiered exit strategy.
 
-Tiered Exit Strategy:
+STANDARD Exit Strategy (base $5k trades):
 - Target 1: +10% profit → Sell 50% of position
 - Target 2: +15% profit → Sell 50% of remaining (25% of original)
 - Target 3: +20% profit → Sell remaining position
+
+HIGH-CONVICTION Exit Strategy ($7.5k-$10k trades with early momentum):
+- Target 1: +15% profit → Sell 25% of position
+- Target 2: +25% profit → Sell 25% of position
+- Target 3: +40% profit → Sell remaining 50%
+
+High-conviction signals (must occur within 1 second of article receipt):
+- 1% price move since publication → $7.5k position
+- 1% price move + volume surge → $10k position
 
 Uses WebSocket for real-time price monitoring (sub-100ms latency).
 Falls back to 500ms polling if WebSocket unavailable.
@@ -26,10 +35,17 @@ logger = get_logger(__name__)
 
 class ExitTier(Enum):
     """Exit tier levels."""
-    TIER_1 = "tier_1"  # 50% at +10%
-    TIER_2 = "tier_2"  # 25% at +15%
-    TIER_3 = "tier_3"  # 25% at +20%
+    TIER_1 = "tier_1"  # Standard: 50% at +10%, Aggressive: 25% at +15%
+    TIER_2 = "tier_2"  # Standard: 25% at +15%, Aggressive: 25% at +25%
+    TIER_3 = "tier_3"  # Standard: 25% at +20%, Aggressive: 50% at +40%
     COMPLETE = "complete"  # Fully exited
+
+
+class ConvictionLevel(Enum):
+    """Trade conviction level based on early momentum signals."""
+    STANDARD = "standard"           # Base $5k, standard exits
+    HIGH = "high"                   # 1% move in 1 sec → $7.5k, aggressive exits
+    VERY_HIGH = "very_high"         # 1% move + volume surge → $10k, aggressive exits
 
 
 @dataclass
@@ -40,6 +56,9 @@ class Position:
     shares: float
     entry_time: datetime
     article_id: str
+
+    # Conviction level determines exit strategy and position size
+    conviction: ConvictionLevel = ConvictionLevel.STANDARD
 
     # Exit tracking
     current_tier: ExitTier = ExitTier.TIER_1
@@ -64,6 +83,11 @@ class Position:
         self.total_cost_basis = self.entry_price * self.shares
 
     @property
+    def is_high_conviction(self) -> bool:
+        """Check if this is a high-conviction trade (aggressive exits)."""
+        return self.conviction in (ConvictionLevel.HIGH, ConvictionLevel.VERY_HIGH)
+
+    @property
     def current_profit_pct(self) -> Optional[float]:
         """Calculate current profit % based on last known price."""
         if self.last_price and self.entry_price:
@@ -78,28 +102,63 @@ class Position:
         return None
 
     def get_shares_for_tier(self, tier: ExitTier) -> float:
-        """Calculate shares to sell for a given tier."""
-        if tier == ExitTier.TIER_1:
-            # 50% of original position
-            return self.shares * 0.5
-        elif tier == ExitTier.TIER_2:
-            # 50% of remaining (25% of original)
-            return self.shares * 0.25
-        elif tier == ExitTier.TIER_3:
-            # Remaining shares
+        """Calculate shares to sell for a given tier based on conviction level."""
+        if tier == ExitTier.TIER_3:
+            # Always sell all remaining shares at final tier
             return self.shares_remaining
-        return 0.0
+
+        # Use conviction-based share percentages
+        if self.is_high_conviction:
+            # Aggressive: 25% / 25% / 50% (let winners run longer)
+            tier_pct = TIER_SHARES_AGGRESSIVE.get(tier, 0.25)
+        else:
+            # Standard: 50% / 25% / 25%
+            tier_pct = TIER_SHARES_STANDARD.get(tier, 0.50)
+
+        return self.shares * tier_pct
+
+    def get_exit_targets(self) -> Dict[ExitTier, float]:
+        """Get exit targets based on conviction level."""
+        if self.is_high_conviction:
+            return EXIT_TARGETS_AGGRESSIVE
+        return EXIT_TARGETS_STANDARD
 
 
 # Exit targets (profit % after costs)
 # We add ~0.5% buffer for exit costs (spread + slippage)
 EXIT_COST_BUFFER = 0.005  # 0.5%
 
-EXIT_TARGETS = {
+# Standard exit targets (base $5k trades)
+EXIT_TARGETS_STANDARD = {
     ExitTier.TIER_1: 0.10 + EXIT_COST_BUFFER,  # 10.5% to net 10%
     ExitTier.TIER_2: 0.15 + EXIT_COST_BUFFER,  # 15.5% to net 15%
     ExitTier.TIER_3: 0.20 + EXIT_COST_BUFFER,  # 20.5% to net 20%
 }
+
+# Aggressive exit targets for high-conviction trades ($7.5k-$10k)
+# These trades showed early momentum signals - let winners run longer
+EXIT_TARGETS_AGGRESSIVE = {
+    ExitTier.TIER_1: 0.15 + EXIT_COST_BUFFER,  # 15.5% to net 15%
+    ExitTier.TIER_2: 0.25 + EXIT_COST_BUFFER,  # 25.5% to net 25%
+    ExitTier.TIER_3: 0.40 + EXIT_COST_BUFFER,  # 40.5% to net 40%
+}
+
+# Share percentages for standard exits (50% / 25% / 25%)
+TIER_SHARES_STANDARD = {
+    ExitTier.TIER_1: 0.50,  # 50% of position
+    ExitTier.TIER_2: 0.25,  # 25% of position
+    ExitTier.TIER_3: 0.25,  # Remaining 25%
+}
+
+# Share percentages for aggressive exits (25% / 25% / 50%)
+TIER_SHARES_AGGRESSIVE = {
+    ExitTier.TIER_1: 0.25,  # 25% of position (let more ride)
+    ExitTier.TIER_2: 0.25,  # 25% of position
+    ExitTier.TIER_3: 0.50,  # Remaining 50% (bigger exit at top)
+}
+
+# Default for backward compatibility
+EXIT_TARGETS = EXIT_TARGETS_STANDARD
 
 
 class PositionManager:
@@ -178,6 +237,7 @@ class PositionManager:
         entry_price: float,
         shares: float,
         article_id: str,
+        conviction: ConvictionLevel = ConvictionLevel.STANDARD,
     ) -> Position:
         """
         Add a new position to track.
@@ -187,6 +247,7 @@ class PositionManager:
             entry_price: Entry fill price
             shares: Number of shares
             article_id: Associated article ID
+            conviction: Conviction level (STANDARD, HIGH, or VERY_HIGH)
 
         Returns:
             Created Position object
@@ -198,6 +259,7 @@ class PositionManager:
                 shares=shares,
                 entry_time=datetime.now(),
                 article_id=article_id,
+                conviction=conviction,
             )
 
             self._positions[ticker] = position
@@ -206,16 +268,21 @@ class PositionManager:
             if self.stream_manager:
                 await self.stream_manager.subscribe_symbol(ticker)
 
+            # Log with conviction-appropriate exit targets
+            targets = position.get_exit_targets()
+            strategy = "AGGRESSIVE" if position.is_high_conviction else "STANDARD"
+
             logger.info(
-                "Position added for tiered exit management",
+                f"Position added for {strategy} tiered exit management",
                 ticker=ticker,
                 entry_price=entry_price,
                 shares=shares,
                 cost_basis=position.total_cost_basis,
+                conviction=conviction.value,
                 targets={
-                    "tier_1_10pct": round(entry_price * (1 + EXIT_TARGETS[ExitTier.TIER_1]), 2),
-                    "tier_2_15pct": round(entry_price * (1 + EXIT_TARGETS[ExitTier.TIER_2]), 2),
-                    "tier_3_20pct": round(entry_price * (1 + EXIT_TARGETS[ExitTier.TIER_3]), 2),
+                    f"tier_1_{int(targets[ExitTier.TIER_1]*100)}pct": round(entry_price * (1 + targets[ExitTier.TIER_1]), 2),
+                    f"tier_2_{int(targets[ExitTier.TIER_2]*100)}pct": round(entry_price * (1 + targets[ExitTier.TIER_2]), 2),
+                    f"tier_3_{int(targets[ExitTier.TIER_3]*100)}pct": round(entry_price * (1 + targets[ExitTier.TIER_3]), 2),
                 }
             )
 
@@ -321,26 +388,29 @@ class PositionManager:
             # Calculate profit %
             profit_pct = (current_price - position.entry_price) / position.entry_price
 
+            # Get conviction-based exit targets
+            exit_targets = position.get_exit_targets()
+
             # Check each tier (with exit-in-progress guard)
             exit_key = f"{ticker}_{position.current_tier.value}"
             if exit_key in self._exits_in_progress:
                 return  # Already executing this tier
 
-            if not position.tier_1_executed and profit_pct >= EXIT_TARGETS[ExitTier.TIER_1]:
+            if not position.tier_1_executed and profit_pct >= exit_targets[ExitTier.TIER_1]:
                 self._exits_in_progress.add(exit_key)
                 shares_to_sell = position.get_shares_for_tier(ExitTier.TIER_1)
                 asyncio.create_task(self._execute_exit_async(
                     position, shares_to_sell, "tier_1", profit_pct
                 ))
 
-            elif not position.tier_2_executed and position.tier_1_executed and profit_pct >= EXIT_TARGETS[ExitTier.TIER_2]:
+            elif not position.tier_2_executed and position.tier_1_executed and profit_pct >= exit_targets[ExitTier.TIER_2]:
                 self._exits_in_progress.add(exit_key)
                 shares_to_sell = position.get_shares_for_tier(ExitTier.TIER_2)
                 asyncio.create_task(self._execute_exit_async(
                     position, shares_to_sell, "tier_2", profit_pct
                 ))
 
-            elif not position.tier_3_executed and position.tier_2_executed and profit_pct >= EXIT_TARGETS[ExitTier.TIER_3]:
+            elif not position.tier_3_executed and position.tier_2_executed and profit_pct >= exit_targets[ExitTier.TIER_3]:
                 self._exits_in_progress.add(exit_key)
                 shares_to_sell = position.get_shares_for_tier(ExitTier.TIER_3)
                 asyncio.create_task(self._execute_exit_async(
@@ -404,6 +474,10 @@ class PositionManager:
         # Publish trade request event
         from ...domain.brokerage.events import TradeRequestDomainEvent
 
+        # Include conviction info in exit metadata
+        exit_strategy = "aggressive" if position.is_high_conviction else "standard"
+        exit_targets = position.get_exit_targets()
+
         exit_event = TradeRequestDomainEvent(
             trade_request=trade_request,
             article_id=position.article_id,
@@ -413,6 +487,9 @@ class PositionManager:
                 "profit_pct": profit_pct,
                 "entry_price": position.entry_price,
                 "tier": position.current_tier.value,
+                "conviction": position.conviction.value,
+                "exit_strategy": exit_strategy,
+                "target_pct": exit_targets.get(position.current_tier, 0) * 100,
             }
         )
 
@@ -546,16 +623,20 @@ class PositionManager:
         """Get position manager statistics."""
         positions_summary = []
         for ticker, pos in self._positions.items():
+            targets = pos.get_exit_targets()
             positions_summary.append({
                 "ticker": ticker,
                 "entry_price": pos.entry_price,
                 "shares": pos.shares,
                 "shares_remaining": pos.shares_remaining,
                 "current_tier": pos.current_tier.value,
+                "conviction": pos.conviction.value,
+                "exit_strategy": "aggressive" if pos.is_high_conviction else "standard",
                 "entry_time": pos.entry_time.isoformat(),
                 "last_price": pos.last_price,
                 "profit_pct": f"{pos.current_profit_pct*100:.1f}%" if pos.current_profit_pct else None,
                 "unrealized_pnl": round(pos.unrealized_pnl, 2) if pos.unrealized_pnl else None,
+                "targets": {k.value: f"{v*100:.1f}%" for k, v in targets.items()},
             })
 
         return {
@@ -564,6 +645,7 @@ class PositionManager:
             "open_positions": len(self._positions),
             "poll_interval": self.poll_interval,
             "has_websocket": self.stream_manager is not None,
-            "exit_targets": {k.value: f"{v*100:.1f}%" for k, v in EXIT_TARGETS.items()},
+            "exit_targets_standard": {k.value: f"{v*100:.1f}%" for k, v in EXIT_TARGETS_STANDARD.items()},
+            "exit_targets_aggressive": {k.value: f"{v*100:.1f}%" for k, v in EXIT_TARGETS_AGGRESSIVE.items()},
             "positions": positions_summary,
         }

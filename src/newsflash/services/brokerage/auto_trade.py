@@ -28,7 +28,172 @@ except ImportError:
     StockTradesRequest = None
     DataFeed = None
 
+from ..brokerage.position_manager import ConvictionLevel
+
 logger = get_logger(__name__)
+
+
+# Position sizing based on conviction level
+POSITION_SIZES_USD = {
+    ConvictionLevel.STANDARD: Decimal("5000.00"),    # Base position
+    ConvictionLevel.HIGH: Decimal("7500.00"),        # 1% move in 1 sec
+    ConvictionLevel.VERY_HIGH: Decimal("10000.00"),  # 1% move + volume surge
+}
+
+# Thresholds for early momentum detection
+EARLY_MOMENTUM_WINDOW_SECONDS = 1.0  # Check within 1 second of article
+EARLY_MOMENTUM_THRESHOLD_PCT = 0.01   # 1% price move
+VOLUME_SURGE_MULTIPLIER = 3.0         # 3x normal volume = surge
+
+
+async def check_early_momentum(
+    market_data_client: Optional["StockHistoricalDataClient"],
+    ticker: str,
+    publication_time: datetime,
+    baseline_volume: Optional[float] = None,
+) -> tuple[ConvictionLevel, dict]:
+    """
+    Check for early momentum signals within 1 second of article publication.
+
+    This determines position sizing:
+    - STANDARD: No significant momentum detected → $5k position
+    - HIGH: 1%+ price move in first second → $7.5k position
+    - VERY_HIGH: 1%+ move + volume surge → $10k position
+
+    Args:
+        market_data_client: Alpaca market data client
+        ticker: Stock ticker to check
+        publication_time: When the article was published
+        baseline_volume: Average volume per second for comparison (optional)
+
+    Returns:
+        Tuple of (ConvictionLevel, metadata_dict with momentum stats)
+    """
+    import asyncio
+    from datetime import timedelta
+
+    metadata = {
+        "momentum_checked": False,
+        "early_move_pct": 0.0,
+        "early_volume": 0,
+        "volume_surge": False,
+        "conviction": ConvictionLevel.STANDARD.value,
+    }
+
+    if not market_data_client or not StockTradesRequest:
+        logger.debug("Early momentum check skipped - no market data client")
+        return ConvictionLevel.STANDARD, metadata
+
+    try:
+        # Calculate time window: publication to 1 second later
+        now = datetime.now()
+        time_since_publication = (now - publication_time).total_seconds()
+
+        # If article is too old (>5 seconds), skip momentum check
+        if time_since_publication > 5.0:
+            logger.debug(
+                "Early momentum check skipped - article too old",
+                ticker=ticker,
+                time_since_publication=round(time_since_publication, 2)
+            )
+            return ConvictionLevel.STANDARD, metadata
+
+        # Wait until at least 1 second has passed since publication
+        if time_since_publication < EARLY_MOMENTUM_WINDOW_SECONDS:
+            wait_time = EARLY_MOMENTUM_WINDOW_SECONDS - time_since_publication
+            await asyncio.sleep(wait_time)
+
+        # Now fetch trades from publication to ~1 second after
+        trades_start = publication_time
+        trades_end = publication_time + timedelta(seconds=EARLY_MOMENTUM_WINDOW_SECONDS)
+
+        trades = market_data_client.get_stock_trades(StockTradesRequest(
+            symbol_or_symbols=ticker,
+            start=trades_start,
+            end=trades_end,
+            feed=DataFeed.SIP
+        ))
+
+        if not trades or not trades.data or ticker not in trades.data:
+            logger.debug(
+                "Early momentum check: no trades in first second",
+                ticker=ticker
+            )
+            return ConvictionLevel.STANDARD, metadata
+
+        trade_list = trades.data[ticker]
+        if not trade_list:
+            return ConvictionLevel.STANDARD, metadata
+
+        metadata["momentum_checked"] = True
+
+        # Calculate early momentum metrics
+        first_price = trade_list[0].price
+        max_price = max(t.price for t in trade_list)
+        min_price = min(t.price for t in trade_list)
+        total_volume = sum(t.size for t in trade_list)
+
+        # Max excursion from first trade
+        max_move_up = (max_price - first_price) / first_price if first_price else 0
+        max_move_down = (first_price - min_price) / first_price if first_price else 0
+        max_move_pct = max(max_move_up, max_move_down)
+
+        metadata["early_move_pct"] = round(max_move_pct * 100, 2)
+        metadata["early_volume"] = total_volume
+        metadata["trade_count"] = len(trade_list)
+
+        # Check for volume surge (if baseline provided)
+        has_volume_surge = False
+        if baseline_volume and baseline_volume > 0:
+            # Compare 1-second volume to expected
+            volume_ratio = total_volume / baseline_volume
+            if volume_ratio >= VOLUME_SURGE_MULTIPLIER:
+                has_volume_surge = True
+                metadata["volume_surge"] = True
+                metadata["volume_ratio"] = round(volume_ratio, 2)
+        else:
+            # Simple heuristic: 500+ shares in 1 second is a surge for most stocks
+            if total_volume >= 500:
+                has_volume_surge = True
+                metadata["volume_surge"] = True
+
+        # Determine conviction level
+        has_momentum = max_move_pct >= EARLY_MOMENTUM_THRESHOLD_PCT
+
+        if has_momentum and has_volume_surge:
+            conviction = ConvictionLevel.VERY_HIGH
+            logger.info(
+                "🔥 VERY HIGH CONVICTION: 1%+ move + volume surge",
+                ticker=ticker,
+                early_move_pct=f"{max_move_pct*100:.2f}%",
+                volume=total_volume,
+                position_size=f"${POSITION_SIZES_USD[conviction]}"
+            )
+        elif has_momentum:
+            conviction = ConvictionLevel.HIGH
+            logger.info(
+                "⚡ HIGH CONVICTION: 1%+ move in first second",
+                ticker=ticker,
+                early_move_pct=f"{max_move_pct*100:.2f}%",
+                volume=total_volume,
+                position_size=f"${POSITION_SIZES_USD[conviction]}"
+            )
+        else:
+            conviction = ConvictionLevel.STANDARD
+            logger.info(
+                "📊 STANDARD CONVICTION: Normal momentum",
+                ticker=ticker,
+                early_move_pct=f"{max_move_pct*100:.2f}%",
+                volume=total_volume,
+                position_size=f"${POSITION_SIZES_USD[conviction]}"
+            )
+
+        metadata["conviction"] = conviction.value
+        return conviction, metadata
+
+    except Exception as e:
+        logger.error(f"Error checking early momentum: {e}")
+        return ConvictionLevel.STANDARD, metadata
 
 
 def should_process_classification(result: ClassificationResult, enabled: bool) -> bool:
@@ -117,46 +282,59 @@ async def fetch_article_for_trade(
     return None
 
 
-def build_trade_request_for_article(article: Article, current_price: Optional[float] = None, ticker: Optional[str] = None) -> Optional[TradeRequest]:
+def build_trade_request_for_article(
+    article: Article,
+    current_price: Optional[float] = None,
+    ticker: Optional[str] = None,
+    conviction: ConvictionLevel = ConvictionLevel.STANDARD,
+) -> Optional[TradeRequest]:
     """
-    Build a trade request from an article with $2,000 position size.
-    
-    Business rule: Trade exactly $2,000 worth of shares.
-    - Calculate shares = floor(2000 / current_price) - rounded down to nearest share
-    - Each trade gets its own $2k allocation (even if multiple trades in same window)
-    
+    Build a trade request from an article with conviction-based position sizing.
+
+    Position sizes based on conviction level:
+    - STANDARD: $5,000 (base position)
+    - HIGH: $7,500 (1% move in 1 second)
+    - VERY_HIGH: $10,000 (1% move + volume surge)
+
     Args:
         article: Domain Article model
         current_price: Current ask price for buying (if None, will use amount_usd and let executor calculate)
         ticker: Specific ticker to trade (if None, uses first ticker from article)
-        
-        Returns:
-        Domain TradeRequest model with shares set (if price provided) or amount_usd=2000, or None if invalid
+        conviction: Conviction level for position sizing
+
+    Returns:
+        Domain TradeRequest model with shares set (if price provided) or amount_usd, or None if invalid
     """
     import math
     import os
-    
+
+    # Use conviction-based position sizing
+    TRADE_SIZE_USD = POSITION_SIZES_USD.get(conviction, POSITION_SIZES_USD[ConvictionLevel.STANDARD])
+
     # Allow test override via environment variable (for load tests to avoid buying power issues)
-    TRADE_SIZE_USD = Decimal(os.getenv("TEST_TRADE_SIZE_USD", "2000.00"))  # Default $2k, override for tests
+    if os.getenv("TEST_TRADE_SIZE_USD"):
+        TRADE_SIZE_USD = Decimal(os.getenv("TEST_TRADE_SIZE_USD"))
     
     # If we have price, calculate shares upfront and round down
     if current_price and current_price > 0:
         shares = math.floor(TRADE_SIZE_USD / Decimal(str(current_price)))
         if shares <= 0:
             logger.warning(
-                "⏭️ AUTO-TRADE SKIPPED: Price too high for $2k trade",
+                f"⏭️ AUTO-TRADE SKIPPED: Price too high for ${TRADE_SIZE_USD} trade",
                 article_id=article.id,
                 current_price=current_price,
-                trade_size_usd=float(TRADE_SIZE_USD)
+                trade_size_usd=float(TRADE_SIZE_USD),
+                conviction=conviction.value
             )
             return None
-        
-            logger.info(
-            "💰 AUTO-TRADE: Building $2k trade with calculated shares",
+
+        logger.info(
+            f"💰 AUTO-TRADE: Building ${TRADE_SIZE_USD} trade ({conviction.value})",
             article_id=article.id,
             shares=shares,
             current_price=current_price,
-            total_notional=float(shares * Decimal(str(current_price)))
+            total_notional=float(shares * Decimal(str(current_price))),
+            conviction=conviction.value
         )
         
         # Build trade request with explicit shares (no leverage, amount_usd for reference)
@@ -185,11 +363,12 @@ def build_trade_request_for_article(article: Article, current_price: Optional[fl
     else:
         # Fallback: Set amount_usd and let executor calculate shares (will round down via int())
         logger.info(
-            "💰 AUTO-TRADE: Building $10k trade (executor will calculate shares from price)",
+            f"💰 AUTO-TRADE: Building ${TRADE_SIZE_USD} trade ({conviction.value}) - executor will calculate shares",
             article_id=article.id,
-            trade_size_usd=float(TRADE_SIZE_USD)
+            trade_size_usd=float(TRADE_SIZE_USD),
+            conviction=conviction.value
         )
-        
+
         trade_request = build_trade_request_from_article(
             article=article,
             amount_usd=TRADE_SIZE_USD,
@@ -210,28 +389,43 @@ def build_trade_request_for_article(article: Article, current_price: Optional[fl
 async def publish_trade_request(
     event_bus: AsyncEventBus,
     trade_request: TradeRequest,
-    article_id: str
+    article_id: str,
+    conviction: ConvictionLevel = ConvictionLevel.STANDARD,
+    momentum_metadata: Optional[dict] = None,
 ) -> None:
     """
     Publish a trade request domain event.
-    
+
     Args:
         event_bus: Event bus instance
         trade_request: Domain TradeRequest to publish
         article_id: Associated article ID
+        conviction: Conviction level for position sizing
+        momentum_metadata: Early momentum check metadata
     """
+    # Include conviction in event metadata for position manager
+    metadata = {
+        "conviction": conviction.value,
+        "position_size_usd": float(POSITION_SIZES_USD[conviction]),
+    }
+    if momentum_metadata:
+        metadata.update(momentum_metadata)
+
     domain_trade_event = TradeRequestDomainEvent(
         trade_request=trade_request,
         article_id=article_id,
-        requested_at=datetime.now()
+        requested_at=datetime.now(),
+        metadata=metadata
     )
-    
+
     await event_bus.publish("Domain.TradeRequested", domain_trade_event.model_dump())
-    
+
     logger.info(
         "✅ AUTO-TRADE REQUEST PUBLISHED",
         ticker=trade_request.ticker,
-        article_id=article_id
+        article_id=article_id,
+        conviction=conviction.value,
+        position_size=f"${POSITION_SIZES_USD[conviction]}"
     )
 
 
@@ -288,17 +482,44 @@ async def process_imminent_article(
             has_tickers=len(tickers_list) > 0,
             ticker_count=len(tickers_list)
         )
-        
-        # Build trade request with $10k position size
-        # Try to get current price for calculating shares (if market_data_client available)
-        current_price = None
-        if domain_article.tickers:
-            ticker = list(domain_article.tickers)[0]
-            # Note: Could fetch price here if needed, but executor will handle if None
-            # For now, use fallback (executor will calculate shares from amount_usd)
-            pass
-        
-        trade_request = build_trade_request_for_article(domain_article, current_price=current_price)
+
+        # Get primary ticker for momentum check
+        ticker = list(domain_article.tickers)[0] if domain_article.tickers else None
+
+        if not ticker:
+            logger.info(
+                "⏭️ AUTO-TRADE SKIPPED: Article has no tickers",
+                article_id=domain_article.id
+            )
+            return
+
+        # 🔥 EARLY MOMENTUM CHECK: Determine conviction level (within 1 second of publication)
+        # - STANDARD: No significant momentum → $5k position
+        # - HIGH: 1%+ move in 1 second → $7.5k position
+        # - VERY_HIGH: 1%+ move + volume surge → $10k position
+        conviction, momentum_metadata = await check_early_momentum(
+            market_data_client=market_data_client,
+            ticker=ticker,
+            publication_time=domain_article.published_at,
+        )
+
+        logger.info(
+            "📈 CONVICTION DETERMINED",
+            ticker=ticker,
+            conviction=conviction.value,
+            position_size=f"${POSITION_SIZES_USD[conviction]}",
+            early_move_pct=momentum_metadata.get("early_move_pct", 0),
+            volume_surge=momentum_metadata.get("volume_surge", False)
+        )
+
+        # Build trade request with conviction-based position sizing
+        current_price = None  # Executor will fetch current price
+        trade_request = build_trade_request_for_article(
+            domain_article,
+            current_price=current_price,
+            ticker=ticker,
+            conviction=conviction
+        )
         
         if not trade_request:
             return
@@ -342,14 +563,22 @@ async def process_imminent_article(
                 # Optional: continue anyway or skip? Let's be safe and trade if error (no gate)
                 pass
 
-        # Publish trade request
+        # Publish trade request with conviction metadata
         logger.info(
             "🚀 AUTO-TRADING: Publishing trade request domain event",
             ticker=trade_request.ticker,
-            article_id=domain_article.id
+            article_id=domain_article.id,
+            conviction=conviction.value,
+            position_size=f"${POSITION_SIZES_USD[conviction]}"
         )
-        
-        await publish_trade_request(event_bus, trade_request, domain_article.id)
+
+        await publish_trade_request(
+            event_bus,
+            trade_request,
+            domain_article.id,
+            conviction=conviction,
+            momentum_metadata=momentum_metadata
+        )
         
     except Exception as e:
         logger.error(

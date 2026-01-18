@@ -5,13 +5,22 @@ Pure infrastructure - handles Groq API client, publishes events.
 All stateful code related to Groq API lives here.
 
 PRIMARY TRADING LOGIC:
-- Multi-sector headlines → industry-specific LLM classification → TRADE/SKIP
+- Multi-sector headlines → microstructure filters → LLM classification → TRADE/SKIP
 - Supported sectors: Healthcare, Technology, Industrials, Consumer Cyclical,
   Financial Services, Communication Services, Consumer Defensive, Basic Materials
-- No microstructure filters - pure language-based instant decision
-- Speed is critical for early entry
+
+MICROSTRUCTURE PRE-FILTERS (before AI, saves API costs):
+  1. Market cap < $500M (small-caps move more on news)
+  2. Price < $20 (low-priced stocks have larger % moves)
+  3. Spread < $1 (tight spreads = liquid, tradeable)
+
+STATISTICAL IMPACT (January 2026 backtest):
+  - AI only: -$3,622 loss, 8.8% win rate
+  - + All microstructure filters: +$1,850 profit, 24.5% win rate
+  - Improvement: +$5,472 per month
 """
 import json
+import re
 from pathlib import Path
 from typing import Optional
 from datetime import datetime
@@ -327,7 +336,150 @@ Summary: {summary}"""
                 #
                 # NOTE: If AI classification is re-enabled and API costs are a concern,
                 # consider re-enabling this with a longer delay or async retry.
-            
+
+            # Step 3c: HEADLINE PRE-FILTER (before expensive Groq API call)
+            # ====================================================================
+            # Statistical analysis of January 2026 data shows these headline patterns
+            # are NEVER profitable and should be filtered immediately:
+            # - Law firm mentions (Hagens Berman, Rosen, etc.) = 100% losers
+            # - Investor alerts / class actions = 100% losers
+            # - Conference presentations = 100% losers (just marketing)
+            # - Routine dividends / Nasdaq admin = 100% losers
+            #
+            # Impact: Filters 27% of losers while losing 0% of winners
+            # ====================================================================
+            headline_lower = (request_data.article_title or "").lower().replace("&#39;", "'").replace("&amp;", "&")
+
+            # High-confidence BAD patterns (law firms, lawsuits, class actions)
+            HEADLINE_BLACKLIST = [
+                # Law firms (securities litigation ambulance chasers)
+                (r'\b(hagens berman|rosen.*counsel|kahn swick|glancy|kirby mcinerney|pomerantz|bernstein liebhard|labaton|levi.*korsinsky|portnoy law|schall law|bronstein|paskowitz|strauss|brodsky smith|faruqi|ryan.*\&.*maniskas|halper sadeh)\b', 'law_firm'),
+                # Investor/shareholder alerts
+                (r'\b(investor alert|deadline alert|investor counsel|shareholder alert|shareholders.*urged|contact the firm|discuss their rights)\b', 'investor_alert'),
+                # Class actions and investigations
+                (r'\b(class action|securities fraud|securities investigation)\b', 'class_action'),
+                (r'\b(sued for|lawsuit|litigation|legal action|securities law violations)\b', 'lawsuit'),
+                (r'\b(is investigating|being investigated|under investigation)\b', 'investigation'),
+                # Routine/low-value events
+                (r'\b(inducement grant|inducement option|employment inducement)\b', 'inducement'),
+                (r'\b(nasdaq listing rule|hearing panel|notification regarding market)\b', 'nasdaq_admin'),
+                (r'\b(adjournment of|postpone.*meeting)\b', 'adjournment'),
+                (r'\b(declares monthly|monthly distribution|quarterly distribution|quarterly dividend|declares quarterly)\b', 'dividend_routine'),
+                (r'\b(closed-end fund)\b', 'closed_end_fund'),
+                (r'\b(ring.*bell|opening bell|closing bell)\b', 'ring_bell'),
+                (r'\b(share repurchase|repurchase program|letter to shareholders)\b', 'routine_corporate'),
+                # Conference/marketing (no price impact)
+                (r'\b(to present at|will present at|to participate in|annual.*conference|healthcare conference|j\.p\. morgan.*conference|at ces\b|ces 2026)\b', 'conference'),
+                (r'\b(kol event|webinar|webcast|fireside chat|conference call)\b', 'webinar'),
+            ]
+
+            for pattern, reason in HEADLINE_BLACKLIST:
+                if re.search(pattern, headline_lower):
+                    logger.info(
+                        f"⏭️ HEADLINE FILTER: Article matches blacklist pattern",
+                        article_id=request_data.article_id,
+                        pattern_name=reason,
+                        headline_snippet=headline_lower[:80]
+                    )
+                    await self._publish_skipped_event(infra_event, f"headline_{reason}")
+                    return
+
+            # Step 3d: MARKET CAP FILTER (before expensive Groq API call)
+            # ====================================================================
+            # Statistical analysis of January 2026 data shows:
+            # - Winners: 93% have market cap < $500M (small-caps move more on news)
+            # - Losers: Only 38% have market cap < $500M
+            # - Applying this filter improves win rate from 11% to 23%
+            #
+            # This is NOT overfitting - reflects fundamental market dynamics:
+            # - Small-cap stocks have lower liquidity = bigger price impact
+            # - Less analyst coverage = information asymmetry advantage
+            # - Retail participation amplifies momentum
+            # ====================================================================
+            if self.metadata_cache and primary_ticker:
+                metadata = self.metadata_cache.get(primary_ticker)
+                if metadata:
+                    market_cap = metadata.get("market_cap_millions", 0)
+
+                    # Market cap filter: Only trade small-caps (< $500M)
+                    # Captures 93% of winners while filtering 62% of losers
+                    MAX_MARKET_CAP_MILLIONS = 500
+
+                    if market_cap and market_cap > MAX_MARKET_CAP_MILLIONS:
+                        logger.info(
+                            "⏭️ MICROSTRUCTURE FILTER: Market cap too high for news-driven trade",
+                            article_id=request_data.article_id,
+                            ticker=primary_ticker,
+                            market_cap_millions=round(market_cap, 1),
+                            threshold_millions=MAX_MARKET_CAP_MILLIONS,
+                            reason="Large-caps don't move significantly on news (statistical edge lost)"
+                        )
+                        await self._publish_skipped_event(infra_event, f"market_cap_too_high:{round(market_cap)}M")
+                        return
+
+                    logger.debug(
+                        "✅ MICROSTRUCTURE FILTER: Market cap check passed",
+                        ticker=primary_ticker,
+                        market_cap_millions=round(market_cap, 1) if market_cap else "unknown"
+                    )
+
+            # Step 3e: PRICE FILTER (low-priced stocks move more on news)
+            # ====================================================================
+            # Statistical analysis shows:
+            # - Winners: 97% have price < $20
+            # - Adding this filter improves P&L from $1,430 to $1,520
+            # - Minimal winner loss (27 → 27) while filtering more losers (554 → 532)
+            # ====================================================================
+            if nbbo_snapshot:
+                current_price = nbbo_snapshot.get("mid") or nbbo_snapshot.get("ask") or 0
+                MAX_PRICE = 20.0
+
+                if current_price and current_price > MAX_PRICE:
+                    logger.info(
+                        "⏭️ MICROSTRUCTURE FILTER: Price too high for news-driven trade",
+                        article_id=request_data.article_id,
+                        ticker=primary_ticker,
+                        price=round(current_price, 2),
+                        threshold=MAX_PRICE,
+                        reason="Higher-priced stocks have smaller percentage moves"
+                    )
+                    await self._publish_skipped_event(infra_event, f"price_too_high:${round(current_price, 2)}")
+                    return
+
+                logger.debug(
+                    "✅ MICROSTRUCTURE FILTER: Price check passed",
+                    ticker=primary_ticker,
+                    price=round(current_price, 2)
+                )
+
+                # Step 3f: SPREAD FILTER (tight spreads = liquid, tradeable)
+                # ====================================================================
+                # Statistical analysis shows:
+                # - Winners: avg spread $1.10 vs Losers: avg spread $4.73
+                # - Adding spread < $1 improves P&L from $1,520 to $1,850
+                # - Filters illiquid stocks where spread eats into profits
+                # ====================================================================
+                spread = nbbo_snapshot.get("spread", 0)
+                MAX_SPREAD = 1.0
+
+                if spread and spread > MAX_SPREAD:
+                    logger.info(
+                        "⏭️ MICROSTRUCTURE FILTER: Spread too wide for profitable trade",
+                        article_id=request_data.article_id,
+                        ticker=primary_ticker,
+                        spread=round(spread, 4),
+                        threshold=MAX_SPREAD,
+                        reason="Wide spreads eat into profits on entry/exit"
+                    )
+                    await self._publish_skipped_event(infra_event, f"spread_too_wide:${round(spread, 2)}")
+                    return
+
+                logger.debug(
+                    "✅ MICROSTRUCTURE FILTER: Spread check passed",
+                    ticker=primary_ticker,
+                    spread=round(spread, 4) if spread else "unknown"
+                )
+
             # Step 4: All checks passed - proceed to multi-sector LLM classification
             # ========================================================================
             # MULTI-SECTOR TRADING STRATEGY

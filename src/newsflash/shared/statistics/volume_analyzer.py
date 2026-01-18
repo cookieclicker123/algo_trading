@@ -111,6 +111,15 @@ class VolumeSurgeAnalysis:
     tape_quality_score: Optional[float] = None  # 0-100 Score
     float_shares: Optional[int] = None  # From YFinance
     
+    # EARLY MOMENTUM (1-second window - matches auto_trade.py conviction check)
+    # These fields track the first 1 second after article publication for conviction-based sizing
+    early_1s_move_pct: Optional[float] = None       # Max price excursion in first 1 second
+    early_1s_volume: Optional[int] = None           # Volume in first 1 second
+    early_1s_trade_count: Optional[int] = None      # Trade count in first 1 second
+    moved_1_percent_in_1s: bool = False             # True if price moved 1%+ in first 1 second
+    early_1s_volume_surge: bool = False             # True if volume surge (500+ shares) in first 1 second
+    conviction_level: Optional[str] = None          # "standard", "high", "very_high" based on early signals
+
     # METADATA & LEGACY
     pub_to_recv_seconds: float = 0.0
     volatility_surge_ratio: Optional[float] = None
@@ -1067,6 +1076,61 @@ async def analyze_volume_around_event(
 
     prior_avg_spread = await asyncio.to_thread(_fetch_shadow_spread)
     
+    # 2.5. EARLY MOMENTUM ANALYSIS (1-second window - matches auto_trade.py conviction check)
+    # This tracks the first 1 second after article publication for conviction-based sizing
+    early_1s_move_pct = None
+    early_1s_volume = None
+    early_1s_trade_count = None
+    moved_1_percent_in_1s = False
+    early_1s_volume_surge = False
+    conviction_level = "standard"
+
+    early_1s_end = event_time + timedelta(seconds=1.0)
+    try:
+        early_stats = await _fetch_trades_in_window_async(
+            client, symbol, event_time, early_1s_end,
+            reference_nbbo=reference_nbbo,
+            stream_manager=stream_manager
+        )
+        if early_stats:
+            early_1s_volume = early_stats.get("raw_volume", 0)
+            early_1s_trade_count = early_stats.get("trade_count", 0)
+
+            # Calculate early move % (max excursion from first trade price)
+            max_price = early_stats.get("max_price", 0)
+            pub_ask = reference_nbbo.get("ask") if reference_nbbo else None
+
+            if pub_ask and max_price and pub_ask > 0:
+                early_1s_move_pct = round(((max_price - pub_ask) / pub_ask) * 100, 2)
+
+                # Check 1% threshold for conviction
+                if early_1s_move_pct >= 1.0:
+                    moved_1_percent_in_1s = True
+
+            # Check volume surge (500+ shares in 1 second = surge heuristic)
+            if early_1s_volume and early_1s_volume >= 500:
+                early_1s_volume_surge = True
+
+            # Determine conviction level (mirrors auto_trade.py logic)
+            if moved_1_percent_in_1s and early_1s_volume_surge:
+                conviction_level = "very_high"  # $10k position
+            elif moved_1_percent_in_1s:
+                conviction_level = "high"  # $7.5k position
+            else:
+                conviction_level = "standard"  # $5k position
+
+            logger.debug(
+                "Early 1s momentum analysis",
+                symbol=symbol,
+                early_1s_move_pct=early_1s_move_pct,
+                early_1s_volume=early_1s_volume,
+                moved_1_percent_in_1s=moved_1_percent_in_1s,
+                early_1s_volume_surge=early_1s_volume_surge,
+                conviction_level=conviction_level
+            )
+    except Exception as e:
+        logger.debug(f"Error in early 1s momentum analysis for {symbol}: {e}")
+
     # 3. CATCH-UP WINDOW ANALYSIS (Bottleneck #3)
     # If article arrived late (received_at > event_time), analyze the entire catch-up window first
     # This allows us to detect surges that occurred during the reception delay
@@ -1293,6 +1357,14 @@ async def analyze_volume_around_event(
         tape_acceleration_pct=metrics.get("tape_acceleration_pct"),
         latency_to_first_trade=round((stats_now.first_trade_ts - event_time).total_seconds(), 3) if stats_now and stats_now.first_trade_ts else None,
         post_trade_bid_ratio=metrics.get("post_trade_bid_ratio"),
+        # Early momentum (1-second window - matches auto_trade.py conviction check)
+        early_1s_move_pct=early_1s_move_pct,
+        early_1s_volume=early_1s_volume,
+        early_1s_trade_count=early_1s_trade_count,
+        moved_1_percent_in_1s=moved_1_percent_in_1s,
+        early_1s_volume_surge=early_1s_volume_surge,
+        conviction_level=conviction_level,
+        # Legacy metadata
         pub_to_recv_seconds=round(real_window_seconds, 3),
         volatility_surge_ratio=vol_surge_ratio,
         prior_avg_minute_range=round(prior_avg_range, 4),
