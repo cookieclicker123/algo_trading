@@ -297,33 +297,11 @@ class NotifyTradeExecutedUseCase:
             trade_request_dict = trade_result.trade_request
             spread_info = trade_request_dict.get("_spread_info", {})
             instrument_details = trade_request_dict.get("_instrument_details", {})
-            
-            # Fetch volume stats around article publication time (NO FILTERING - just data collection)
+
+            # SPEED FIX: Skip volume analysis for trade notifications
+            # Volume stats were causing 5+ minute delays due to slow API calls
+            # This data is collected elsewhere (recall stats) - no need to block notifications
             volume_stats = None
-            if publication_time and self.market_data_client:
-                try:
-                    # Determine received_at from article if available, or use notification time
-                    received_at = article.received_at if article and hasattr(article, 'received_at') else notification_time
-                    
-                    volume_stats = await analyze_volume_around_event(
-                        client=self.market_data_client,
-                        symbol=trade_result.get_ticker(),
-                        event_time=publication_time,
-                        received_at=received_at,
-                        stream_manager=None  # Not available in this context (optional)
-                    )
-                    logger.info(
-                        "📊 VOLUME STATS: Fetched volume analysis",
-                        ticker=trade_result.get_ticker(),
-                        move_type=volume_stats.move_type if volume_stats else None,
-                        surge_multiplier=volume_stats.surge_multiplier if volume_stats else None
-                    )
-                except Exception as e:
-                    logger.warning(
-                        "📊 VOLUME STATS: Failed to fetch volume analysis (notification will still be sent)",
-                        ticker=trade_result.get_ticker(),
-                        error=str(e)
-                    )
             
             # Format trade execution message
             trade_message = format_trade_execution_message(

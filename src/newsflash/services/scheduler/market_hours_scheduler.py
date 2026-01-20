@@ -519,9 +519,12 @@ class MarketHoursScheduler:
     async def _startup_websocket(self) -> None:
         """Startup websocket service."""
         if self.services.websocket:
-            # Check if websocket infrastructure is already running
-            # (it might have been started manually or by another process)
-            if self.services.websocket.infra and self.services.websocket.infra._threads_should_run:
+            # Check if websocket is already running (native async uses _running, old threaded used _threads_should_run)
+            infra = self.services.websocket.infra
+            if infra and (
+                (hasattr(infra, '_running') and infra._running) or
+                (hasattr(infra, '_threads_should_run') and infra._threads_should_run)
+            ):
                 logger.debug("MarketHoursScheduler: Websocket already running, skipping startup")
                 self._websocket_shutdown = False
                 return

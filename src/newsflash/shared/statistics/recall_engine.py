@@ -256,9 +256,15 @@ class RecallStatsEngine:
     async def _handle_trade_failed(self, event: TradeFailedDomainEvent) -> None:
         """Handle Domain.TradeFailed event."""
         try:
+            # Get article_id from event (now available on the event itself)
+            article_id = event.article_id
+            if not article_id:
+                logger.warning("TradeFailed event missing article_id, skipping recall tracking")
+                return
+
             await self.record_manager.update_trade_failed(
-                article_id=event.article_id,
-                ticker=event.ticker,
+                article_id=article_id,
+                ticker=event.trade_request.ticker,
                 error=event.error
             )
         except Exception as e:

@@ -1,6 +1,7 @@
 """
 Brokerage utility functions.
 """
+import math
 from typing import Tuple
 
 from ...utils.logging_config import get_logger
@@ -73,5 +74,28 @@ def calculate_trade_quantity(
         quantity = float(quantity)
         # Capital required = cost of 1 share (that's what we leverage from)
         capital_required = current_price
-    
+
+    # Always round down to whole shares - many small-cap stocks don't support fractional trading
+    # This ensures compatibility with all assets and avoids "not fractionable" errors
+    original_quantity = quantity
+    quantity = math.floor(quantity)
+    if quantity != original_quantity:
+        logger.info(
+            "Rounded quantity to whole shares (fractionable safety)",
+            original_quantity=round(original_quantity, 4),
+            rounded_quantity=quantity,
+            capital_difference=round((original_quantity - quantity) * current_price, 2)
+        )
+
+    # Ensure at least 1 share
+    if quantity < 1:
+        logger.warning(
+            "Quantity too small for 1 share, setting to 1",
+            original_quantity=original_quantity,
+            price=current_price,
+            capital_required=current_price
+        )
+        quantity = 1
+        capital_required = current_price
+
     return quantity, capital_required

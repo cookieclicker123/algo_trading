@@ -254,29 +254,32 @@ class BrokerageDomainListener(
     
     @handle_errors(log_context="BrokerageDomainListener: Error publishing domain trade failed event")
     async def publish_trade_failed(
-        self, 
-        trade_request: TradeRequest, 
-        error: str, 
+        self,
+        trade_request: TradeRequest,
+        error: str,
         failed_at: datetime,
         ladder_attempts: Optional[int] = None,
-        ladder_attempts_detail: Optional[List[Dict[str, Any]]] = None
+        ladder_attempts_detail: Optional[List[Dict[str, Any]]] = None,
+        article_id: Optional[str] = None
     ) -> None:
         """
         Publish TradeFailed domain event (implements DomainTradeEventPublisher).
-        
+
         Args:
             trade_request: Typed domain TradeRequest model
             error: Error message
             failed_at: When trade failed
             ladder_attempts: Optional number of ladder attempts (for extended hours)
             ladder_attempts_detail: Optional detailed ladder attempts list
+            article_id: Optional associated article ID
         """
         domain_event = TradeFailedDomainEvent(
             trade_request=trade_request,
             error=error,
             failed_at=failed_at,
             ladder_attempts=ladder_attempts,
-            ladder_attempts_detail=ladder_attempts_detail
+            ladder_attempts_detail=ladder_attempts_detail,
+            article_id=article_id
         )
         await self.event_bus.publish(DomainEventType.TRADE_FAILED, domain_event.model_dump())
         
@@ -358,11 +361,12 @@ class BrokerageDomainListener(
         
         # Step 3: PUBLISH domain event via protocol method (with ladder attempts if available)
         await self.publish_trade_failed(
-            domain_trade_request, 
-            infra_event.error, 
+            domain_trade_request,
+            infra_event.error,
             infra_event.failed_at,
             ladder_attempts=infra_event.ladder_attempts,
-            ladder_attempts_detail=infra_event.ladder_attempts_detail
+            ladder_attempts_detail=infra_event.ladder_attempts_detail,
+            article_id=infra_event.trade_request.article_id
         )
     
     @handle_errors(log_context="BrokerageDomainListener: Error handling infrastructure trade queued")

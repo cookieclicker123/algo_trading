@@ -46,6 +46,19 @@ PRODUCT LAUNCHES
    "Launches Next-Gen EV Charger" -> TRADE
    "Announces Breakthrough In Grid Storage" -> TRADE
 
+PERMITS & REGULATORY APPROVALS (STRONG SIGNAL)
+- Air permits for manufacturing/refining facilities
+- Environmental permits for energy projects
+- Construction permits for major facilities
+- Regulatory approvals from EPA, state agencies
+- Key milestones for lithium/battery/energy projects
+- Examples:
+   "Receives Air Permit For Lithium Refinery" -> TRADE
+   "Granted Environmental Approval For Battery Plant" -> TRADE
+   "Secures Permit For EV Manufacturing Facility" -> TRADE
+   "Receives EPA Approval For Clean Energy Project" -> TRADE
+   "Lithium Project Receives Key Regulatory Milestone" -> TRADE
+
 ===============================================================================
 SKIP SIGNALS
 ===============================================================================
@@ -65,12 +78,14 @@ CONFERENCES
    "To Present at Energy Conference" -> SKIP
    "Announces Trade Show Participation" -> SKIP
 
-POLICY/REGULATORY
+POLICY/REGULATORY COMMENTARY (not approvals)
 - Grid policy commentary
 - EV incentive discussions
+- General regulatory news (not specific permits)
 - Examples:
    "Comments On Infrastructure Bill Impact" -> SKIP
    "Responds To EV Policy Changes" -> SKIP
+   NOTE: Actual permit APPROVALS (e.g., "Receives Air Permit") = TRADE
 
 ADMINISTRATIVE
 - Stock offerings
@@ -86,8 +101,9 @@ DECISION RULES
 1. EV infrastructure contracts = strong TRADE signal
 2. Utility contracts = TRADE
 3. Automaker partnerships = TRADE
-4. Earnings = always SKIP
-5. Policy commentary = always SKIP
-6. Conference attendance = always SKIP
+4. Permits/regulatory approvals = TRADE (esp. for energy/lithium/battery projects)
+5. Earnings = always SKIP
+6. Policy commentary = always SKIP
+7. Conference attendance = always SKIP
 
 RESPOND: TRADE or SKIP (no explanation)

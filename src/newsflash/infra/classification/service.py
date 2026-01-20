@@ -397,7 +397,7 @@ Summary: {summary}"""
             # - Retail participation amplifies momentum
             # ====================================================================
             if self.metadata_cache and primary_ticker:
-                metadata = self.metadata_cache.get(primary_ticker)
+                metadata = await self.metadata_cache.get(primary_ticker)
                 if metadata:
                     market_cap = metadata.get("market_cap_millions", 0)
 

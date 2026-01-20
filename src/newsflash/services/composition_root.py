@@ -215,6 +215,7 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
     auto_trade_service = container.auto_trade_service(
         market_data_client=brokerage.infra.connection_manager.market_data_client if brokerage else None,
         quote_fetcher=brokerage.quote_fetcher if brokerage else None,
+        metadata_cache=metadata_cache,  # For market cap filter (<$10M = SKIP)
     )
     brokerage.auto_trade_service = auto_trade_service
     await auto_trade_service.start()

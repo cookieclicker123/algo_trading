@@ -411,6 +411,10 @@ class AlpacaExtendedHoursTradeExecutor:
             
             # EXIT LOGIC: For SELL orders, use marketable limit order at bid price to ensure fill
             if action == "SELL":
+                # CRITICAL FIX: Cancel any existing open orders for this ticker before placing new sell
+                # This prevents "insufficient qty available" errors when shares are held by pending orders
+                await self._cancel_all_open_orders_for_ticker(trade_request.ticker)
+
                 bid_price = nbbo_snapshot.get("bid")
                 bid_size = nbbo_snapshot.get("bid_size")
                 if not bid_price or bid_price <= 0:
@@ -980,7 +984,82 @@ class AlpacaExtendedHoursTradeExecutor:
                 order_id=order_id,
                 error=str(e)
             )
-    
+
+    async def _cancel_all_open_orders_for_ticker(self, ticker: str) -> int:
+        """
+        Cancel all open orders for a specific ticker.
+
+        This is critical for SELL orders - if there's a pending BUY order that didn't fill,
+        shares may be "held_for_orders" and unavailable for selling. Cancelling pending
+        orders releases those shares.
+
+        Args:
+            ticker: Stock ticker symbol
+
+        Returns:
+            Number of orders cancelled
+        """
+        try:
+            from alpaca.trading.requests import GetOrdersRequest
+            from alpaca.trading.enums import QueryOrderStatus
+
+            # Get all open orders for this ticker
+            request = GetOrdersRequest(
+                status=QueryOrderStatus.OPEN,
+                symbols=[ticker]
+            )
+            open_orders = self.trading_client.get_orders(filter=request)
+
+            if not open_orders:
+                logger.debug(
+                    "No open orders to cancel for ticker",
+                    ticker=ticker
+                )
+                return 0
+
+            cancelled_count = 0
+            for order in open_orders:
+                try:
+                    self.trading_client.cancel_order_by_id(order.id)
+                    cancelled_count += 1
+                    logger.info(
+                        "Cancelled open order before SELL",
+                        ticker=ticker,
+                        order_id=str(order.id),
+                        order_side=order.side,
+                        order_qty=order.qty,
+                        order_status=order.status
+                    )
+                except Exception as cancel_err:
+                    logger.warning(
+                        "Failed to cancel individual order",
+                        ticker=ticker,
+                        order_id=str(order.id),
+                        error=str(cancel_err)
+                    )
+
+            logger.info(
+                "Cancelled all open orders for ticker before SELL",
+                ticker=ticker,
+                orders_cancelled=cancelled_count,
+                orders_found=len(open_orders)
+            )
+
+            # Small delay to ensure order cancellation is processed
+            await asyncio.sleep(0.5)
+
+            return cancelled_count
+
+        except Exception as e:
+            logger.error(
+                "Failed to cancel open orders for ticker",
+                ticker=ticker,
+                error=str(e),
+                exc_info=True
+            )
+            # Don't fail the SELL - proceed anyway
+            return 0
+
     async def _wait_for_fill(self, order_id: str, wait_time: float, timeout_deadline: Optional[float]) -> bool:
         """
         Wait for order fill via REST API polling.

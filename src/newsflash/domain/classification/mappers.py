@@ -63,17 +63,28 @@ class ClassificationRequestMapper:
     def to_infrastructure_model(domain_request: ClassificationRequest) -> InfrastructureClassificationRequestData:
         """
         Transform typed domain ClassificationRequest → typed infrastructure ClassificationRequestData.
-        
+
         Args:
             domain_request: Typed domain ClassificationRequest model
-            
+
         Returns:
             Typed InfrastructureClassificationRequestData model
         """
+        # Sort tickers to ensure common stock (no suffix) comes before warrants/units
+        # e.g., "SDST" before "SDSTW", "ABC" before "ABCW" or "ABC.U"
+        # This ensures the primary ticker (common stock) is used for classification
+        def ticker_sort_key(ticker: str) -> tuple:
+            # Common stock tickers are shorter and have no suffix
+            # Warrants end with W, units with U, etc.
+            has_suffix = ticker.endswith(('W', 'WS', '.U', '.UN', 'R', '.WS'))
+            return (has_suffix, len(ticker), ticker)
+
+        sorted_tickers = sorted(domain_request.article_tickers, key=ticker_sort_key)
+
         return InfrastructureClassificationRequestData(
             article_id=domain_request.article_id,
             article_title=domain_request.article_title,
-            article_tickers=list(domain_request.article_tickers),
+            article_tickers=sorted_tickers,
             article_summary=domain_request.article_summary,
             article_published_at_iso=domain_request.article_published_at.isoformat() if domain_request.article_published_at else None
         )

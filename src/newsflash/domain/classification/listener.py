@@ -215,9 +215,26 @@ class ClassificationDomainListener(
                 "Failed to create domain classification result from infrastructure model"
             )
             return
-        
+
+        # Parse published_at from ISO string if available
+        published_at = None
+        if infra_event.request_data.article_published_at_iso:
+            try:
+                published_at = datetime.fromisoformat(
+                    infra_event.request_data.article_published_at_iso.replace("Z", "+00:00")
+                )
+            except (ValueError, AttributeError) as e:
+                logger.debug(f"Could not parse published_at: {e}")
+
         # Step 3: PUBLISH typed domain event (factory already validated)
-        await self.publish_article_classified(domain_result, infra_event.completed_at)
+        # Include tickers/title/published_at to avoid storage race condition in auto-trade
+        await self.publish_article_classified(
+            domain_result,
+            infra_event.completed_at,
+            tickers=infra_event.request_data.article_tickers,
+            title=infra_event.request_data.article_title,
+            published_at=published_at,
+        )
     
     @handle_errors(log_context="ClassificationDomainListener: Error handling classification failed event")
     async def _handle_infra_classification_failed_from_bus(self, event_type: str, event_data: Dict[str, Any]) -> None:
@@ -261,28 +278,39 @@ class ClassificationDomainListener(
     async def publish_article_classified(
         self,
         result: "ClassificationResult",
-        classified_at: datetime
+        classified_at: datetime,
+        tickers: Optional[list] = None,
+        title: Optional[str] = None,
+        published_at: Optional[datetime] = None,
     ) -> None:
         """
         Publish ArticleClassified domain event (implements DomainClassificationEventPublisher).
-        
+
         Args:
             result: Typed domain ClassificationResult model (validated, immutable)
             classified_at: When classification was completed
+            tickers: Article tickers (included to avoid storage race condition)
+            title: Article title (for logging)
+            published_at: Article publication time (for confluence scoring)
         """
         domain_event = ArticleClassifiedDomainEvent(
             article_id=result.article_id,
             result=result,  # ✅ Typed domain model
-            classified_at=classified_at
+            classified_at=classified_at,
+            tickers=tickers or [],
+            title=title or "",
+            published_at=published_at,
         )
         await self.event_bus.publish(DomainEventType.ARTICLE_CLASSIFIED, domain_event.model_dump())
-        
+
         logger.info(
             "✅ CLASSIFY DOMAIN: Published domain article classified event",
             article_id=result.article_id,
             classification=result.classification.value,
             confidence=result.confidence.value,
-            reasoning=result.reasoning
+            reasoning=result.reasoning,
+            tickers=tickers,
+            has_published_at=published_at is not None
         )
     
     @handle_errors(log_context="ClassificationDomainListener: Error publishing domain classification failed event")

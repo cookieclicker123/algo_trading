@@ -46,6 +46,7 @@ class TradeFailedDomainEvent(BaseModel):
     source: str = Field(default="domain.brokerage", description="Event source")
     ladder_attempts: Optional[int] = Field(None, description="Number of ladder attempts made (for extended hours)")
     ladder_attempts_detail: Optional[List[Dict[str, Any]]] = Field(None, description="Detailed ladder attempts with timestamps")
+    article_id: Optional[str] = Field(None, description="Associated article ID if triggered by news")
     
     model_config = {"frozen": True}
 
