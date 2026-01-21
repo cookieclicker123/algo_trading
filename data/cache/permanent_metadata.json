@@ -19687,5 +19687,61 @@
   "DECK": {
     "industry": "Footwear & Accessories",
     "sector": "Consumer Cyclical"
+  },
+  "SALM": {
+    "industry": "Broadcasting",
+    "sector": "Communication Services"
+  },
+  "QCLS": {
+    "industry": "Computer Hardware",
+    "sector": "Technology"
+  },
+  "APCX": {
+    "industry": "Software - Infrastructure",
+    "sector": "Technology"
+  },
+  "ZCAR": {
+    "industry": "Rental & Leasing Services",
+    "sector": "Industrials"
+  },
+  "CHA": {
+    "industry": "Restaurants",
+    "sector": "Consumer Cyclical"
+  },
+  "PSHG": {
+    "industry": "Marine Shipping",
+    "sector": "Industrials"
+  },
+  "MBIN": {
+    "industry": "Banks - Regional",
+    "sector": "Financial Services"
+  },
+  "PHG": {
+    "industry": "Medical Devices",
+    "sector": "Healthcare"
+  },
+  "AEIS": {
+    "industry": "Electrical Equipment & Parts",
+    "sector": "Industrials"
+  },
+  "SDRL": {
+    "industry": "Oil & Gas Drilling",
+    "sector": "Energy"
+  },
+  "EEFT": {
+    "industry": "Software - Infrastructure",
+    "sector": "Technology"
+  },
+  "BR": {
+    "industry": "Information Technology Services",
+    "sector": "Technology"
+  },
+  "KFY": {
+    "industry": "Staffing & Employment Services",
+    "sector": "Industrials"
+  },
+  "CFG": {
+    "industry": "Banks - Regional",
+    "sector": "Financial Services"
   }
 }

@@ -72,6 +72,7 @@ class TelegramTradeHandler:
             self.application.add_handler(CommandHandler("help", self.help_command))
             self.application.add_handler(CommandHandler("positions", self.positions_command))
             self.application.add_handler(CommandHandler("exit", self.exit_command))
+            self.application.add_handler(CommandHandler("hold", self.hold_command))
             
             # Start polling
             await self.application.initialize()
@@ -124,11 +125,13 @@ class TelegramTradeHandler:
         """Handle /start command."""
         await update.message.reply_text(
             "🤖 NewsFlash Trading Bot\n\n"
-            "Manual exit commands:\n"
+            "Commands:\n"
+            "• `/exit TICKER` - Exit position immediately\n"
+            "• `/hold TICKER` - Disable 10-min auto-exit for runners\n"
+            "• `/positions` - Show tracked positions\n\n"
+            "Manual exit:\n"
             "• `exit TICKER` - Exit 100% of position\n"
-            "• `exit TICKER 0.4` - Exit 40% of position\n"
-            "• `exit TICKER 1` - Exit 100% of position\n\n"
-            "Example: `exit AAPL 0.5`\n\n"
+            "• `exit TICKER 0.5` - Exit 50% of position\n\n"
             "Use /help for more info."
         )
     
@@ -138,14 +141,20 @@ class TelegramTradeHandler:
             "📖 Commands:\n\n"
             "📊 Position Management:\n"
             "• `/positions` - Show tracked positions with P&L\n"
-            "• `/exit TICKER` - Exit position immediately\n\n"
+            "• `/exit TICKER` - Exit position immediately\n"
+            "• `/hold TICKER` - Disable 10-min auto-exit for runners\n\n"
             "Manual exit (text commands):\n"
             "• `exit TICKER` - Exit 100% of position\n"
             "• `exit TICKER 0.4` - Exit 40% of position\n\n"
             "Examples:\n"
             "• `/exit AAPL` - Exit all AAPL shares now\n"
+            "• `/hold TSLA` - Let TSLA run (30-min failsafe)\n"
             "• `exit TSLA 0.5` - Exit 50% of TSLA\n\n"
-            "Auto exits at: +10% (50%), +15% (25%), +20% (25%)"
+            "Exit Strategy:\n"
+            "• Stop loss: 5% below entry\n"
+            "• Auto-exit: 10 minutes (unless /hold)\n"
+            "• /hold adds 30-min failsafe\n"
+            "• Exit manually when you see weakness"
         )
 
     async def positions_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -188,12 +197,60 @@ class TelegramTradeHandler:
                     f"   P&L: {profit_str} ({pnl_str})"
                 )
 
-            message_parts.append("\n\n_Exit targets: +10%, +15%, +20%_")
+            message_parts.append("\n\n_Stop loss: 5% | Auto-exit: 10 min_")
             await update.message.reply_text("\n".join(message_parts), parse_mode="Markdown")
 
         except Exception as e:
             logger.error(f"Error in positions_command: {e}", exc_info=True)
             await update.message.reply_text("❌ Error fetching positions")
+
+    async def hold_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /hold TICKER command - disable auto-exit for meteoric winners."""
+        if not context.args:
+            await update.message.reply_text(
+                "Usage: `/hold TICKER`\n\n"
+                "Disables the 10-min auto-exit for a runner.\n"
+                "A 30-min failsafe remains in case you forget.\n\n"
+                "Example: `/hold FRSX`",
+                parse_mode="Markdown"
+            )
+            return
+
+        ticker = context.args[0].upper()
+
+        if not self.exit_trade_use_case:
+            await update.message.reply_text("❌ Exit trade use case not available")
+            return
+
+        try:
+            success = self.exit_trade_use_case.hold_ticker(ticker)
+
+            if success:
+                await update.message.reply_text(
+                    f"🔒 *HOLD ACTIVATED*\n\n"
+                    f"📈 Ticker: {ticker}\n"
+                    f"✅ 10-min auto-exit cancelled\n"
+                    f"⏰ 30-min failsafe active\n\n"
+                    f"Exit manually via `/exit {ticker}` when ready.",
+                    parse_mode="Markdown"
+                )
+            else:
+                # Check if already held
+                if self.exit_trade_use_case.is_ticker_held(ticker):
+                    await update.message.reply_text(
+                        f"🔒 {ticker} is already being held.\n"
+                        f"30-min failsafe is active.\n\n"
+                        f"Exit manually via `/exit {ticker}` when ready."
+                    )
+                else:
+                    await update.message.reply_text(
+                        f"❌ No scheduled auto-exit found for {ticker}\n\n"
+                        f"Either the position doesn't exist or it already exited."
+                    )
+
+        except Exception as e:
+            logger.error(f"Error in hold_command: {e}", exc_info=True)
+            await update.message.reply_text(f"❌ Error: {e}")
 
     async def exit_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /exit TICKER command - immediately exit a tracked position."""

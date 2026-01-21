@@ -25,27 +25,40 @@ logger = get_logger(__name__)
 class ExitTradeUseCase:
     """
     Use case for scheduling exit trades after entry trades execute.
-    
+
     Responsibilities:
     - Subscribe to Domain.TradeExecuted events
     - Filter for successful BUY trades (entries)
-    - Schedule exit SELL trade after AUTO_TRADE_EXIT_DELAY_MINUTES
+    - Schedule exit SELL trade after AUTO_TRADE_EXIT_DELAY_MINUTES (default 10 min)
+    - Support /hold command to extend exit time for meteoric winners
+    - 30-minute failsafe for held positions
     - Publish Domain.TradeRequested event for exit
-    
+
     This ensures positions are automatically closed after the configured delay.
     """
-    
+
+    # Failsafe timeout for held positions (30 minutes)
+    HOLD_FAILSAFE_MINUTES: int = 30
+
     def __init__(self, event_bus: AsyncEventBus):
         """
         Initialize exit trade use case.
-        
+
         Args:
             event_bus: Event bus instance for publishing/subscribing to events
         """
         self.event_bus: Final[AsyncEventBus] = event_bus
         self.exit_delay_minutes: Final[int] = settings.AUTO_TRADE_EXIT_DELAY_MINUTES
         self._scheduled_exits: Dict[str, asyncio.Task] = {}
-        
+
+        # Track held tickers (user requested extended hold via /hold command)
+        # Maps ticker -> failsafe task
+        self._held_tickers: Dict[str, asyncio.Task] = {}
+
+        # Store trade info for hold_ticker to use when creating failsafe
+        # Maps ticker -> (trade_result, trade_request)
+        self._trade_info: Dict[str, tuple] = {}
+
         # Subscribe to typed Domain.TradeExecuted events
         # Store wrapper for unsubscribe
         self._trade_executed_wrapper = subscribe_typed(
@@ -54,10 +67,11 @@ class ExitTradeUseCase:
             TradeExecutedDomainEvent,
             self._handle_trade_executed,
         )
-        
+
         logger.info(
             "ExitTradeUseCase initialized - subscribes to Domain.TradeExecuted events",
-            exit_delay_minutes=self.exit_delay_minutes
+            exit_delay_minutes=self.exit_delay_minutes,
+            hold_failsafe_minutes=self.HOLD_FAILSAFE_MINUTES
         )
     
     async def start(self) -> None:
@@ -85,10 +99,10 @@ class ExitTradeUseCase:
     def cancel_scheduled_exit(self, ticker: str) -> bool:
         """
         Cancel scheduled exit for a ticker (called when manual exit happens).
-        
+
         Args:
             ticker: Ticker symbol to cancel exit for
-            
+
         Returns:
             True if exit was cancelled, False if no exit was scheduled
         """
@@ -105,7 +119,90 @@ class ExitTradeUseCase:
             else:
                 # Task already completed, remove from dict
                 del self._scheduled_exits[ticker]
+
+        # Also cancel held ticker failsafe if exists
+        if ticker in self._held_tickers:
+            task = self._held_tickers[ticker]
+            if not task.done():
+                task.cancel()
+            del self._held_tickers[ticker]
+
         return False
+
+    def hold_ticker(self, ticker: str) -> bool:
+        """
+        Hold a ticker - cancel scheduled 10-min exit and start 30-min failsafe.
+
+        Called when user sends /hold TICKER command for meteoric winners.
+
+        Args:
+            ticker: Ticker symbol to hold
+
+        Returns:
+            True if hold was activated, False if no scheduled exit exists
+        """
+        ticker = ticker.upper()
+
+        # Cancel the scheduled 10-minute exit
+        if ticker in self._scheduled_exits:
+            task = self._scheduled_exits[ticker]
+            if not task.done():
+                task.cancel()
+                del self._scheduled_exits[ticker]
+                logger.info(
+                    "🔒 HOLD: Cancelled 10-min auto-exit for ticker",
+                    ticker=ticker,
+                    failsafe_minutes=self.HOLD_FAILSAFE_MINUTES
+                )
+
+                # Start 30-minute failsafe using stored trade info
+                if ticker in self._trade_info:
+                    trade_result, trade_request = self._trade_info[ticker]
+                    failsafe_task = asyncio.create_task(
+                        self._execute_exit_after_delay(
+                            trade_result,
+                            trade_request,
+                            delay_minutes=self.HOLD_FAILSAFE_MINUTES,
+                            reason="hold_failsafe"
+                        )
+                    )
+                    self._held_tickers[ticker] = failsafe_task
+                    logger.info(
+                        "🔒 HOLD: Started 30-min failsafe for ticker",
+                        ticker=ticker,
+                        failsafe_minutes=self.HOLD_FAILSAFE_MINUTES
+                    )
+                else:
+                    logger.warning(
+                        "🔒 HOLD: No trade info stored for failsafe",
+                        ticker=ticker
+                    )
+
+                return True
+            else:
+                del self._scheduled_exits[ticker]
+
+        # If already held, just log
+        if ticker in self._held_tickers:
+            logger.info(
+                "🔒 HOLD: Ticker already held",
+                ticker=ticker
+            )
+            return True
+
+        logger.warning(
+            "🔒 HOLD: No scheduled exit found for ticker",
+            ticker=ticker
+        )
+        return False
+
+    def is_ticker_held(self, ticker: str) -> bool:
+        """Check if a ticker is being held (extended exit time)."""
+        return ticker.upper() in self._held_tickers
+
+    def get_held_tickers(self) -> list:
+        """Get list of held tickers."""
+        return list(self._held_tickers.keys())
     
     async def _handle_trade_executed(
         self,
@@ -155,7 +252,10 @@ class ExitTradeUseCase:
                 exit_delay_minutes=self.exit_delay_minutes,
                 executed_at=trade_result.executed_at.isoformat()
             )
-            
+
+            # Store trade info for hold_ticker to use
+            self._trade_info[ticker] = (trade_result, trade_request)
+
             # Create task to execute exit after delay
             exit_task = asyncio.create_task(
                 self._execute_exit_after_delay(trade_result, trade_request)
@@ -172,35 +272,43 @@ class ExitTradeUseCase:
     async def _execute_exit_after_delay(
         self,
         entry_trade_result: TradeResult,
-        entry_trade_request: TradeRequest
+        entry_trade_request: TradeRequest,
+        delay_minutes: Optional[int] = None,
+        reason: str = "auto_exit"
     ) -> None:
         """
         Wait for delay period, then publish exit trade request.
-        
+
         Args:
             entry_trade_result: The successful entry trade result
             entry_trade_request: The original entry trade request
+            delay_minutes: Custom delay (defaults to exit_delay_minutes)
+            reason: Reason for exit (auto_exit, hold_failsafe)
         """
         try:
             ticker = entry_trade_request.ticker
             shares = entry_trade_result.shares
-            
+
             if not shares:
                 logger.warning(
                     "ExitTradeUseCase: Cannot schedule exit - no shares in trade result",
                     ticker=ticker
                 )
                 return
-            
+
+            # Use custom delay or default
+            actual_delay = delay_minutes if delay_minutes is not None else self.exit_delay_minutes
+
             # Wait for exit delay
-            delay_seconds = self.exit_delay_minutes * 60
+            delay_seconds = actual_delay * 60
             logger.info(
-                "⏳ EXIT USE CASE: Waiting for exit delay",
+                f"⏳ EXIT USE CASE: Waiting for {reason} delay",
                 ticker=ticker,
-                delay_minutes=self.exit_delay_minutes,
-                shares=shares
+                delay_minutes=actual_delay,
+                shares=shares,
+                reason=reason
             )
-            
+
             await asyncio.sleep(delay_seconds)
             
             # Create exit trade request
@@ -239,15 +347,22 @@ class ExitTradeUseCase:
             await self.event_bus.publish(DomainEventType.TRADE_REQUESTED, exit_domain_event.model_dump())
             
             logger.info(
-                "🚪 EXIT USE CASE: Published exit trade request",
+                f"🚪 EXIT USE CASE: Published {reason} trade request",
                 ticker=ticker,
                 shares=shares,
-                delay_minutes=self.exit_delay_minutes
+                delay_minutes=actual_delay,
+                reason=reason
             )
-            
-            # Clean up scheduled exit
+
+            # Clean up scheduled exit or held ticker
             if ticker in self._scheduled_exits:
                 del self._scheduled_exits[ticker]
+            if ticker in self._held_tickers:
+                del self._held_tickers[ticker]
+
+            # Clean up stored trade info
+            if ticker in self._trade_info:
+                del self._trade_info[ticker]
             
         except asyncio.CancelledError:
             logger.info(

@@ -9,11 +9,10 @@ Confluence Scoring System (2-second observation window after publication):
 - Volume surge >3x → +1 point
 - Price excursion >1% → +1 point
 
-Position sizing by score:
-- Score ≤0: $2,000 (MINIMUM) - low confluence, still trade but small position
+Position sizing by score (simplified - losers get filtered, winners get sized up):
+- Score ≤0: SKIP TRADE ENTIRELY (low confluence = likely loser)
 - Score 1: $5,000 (STANDARD)
-- Score 2: $7,500 (HIGH)
-- Score 3+: $10,000 (VERY_HIGH)
+- Score 2+: $10,000 (HIGH) - full conviction
 
 Stop loss: 5% below initial NBBO mid (not entry price) - anchored to pre-move price.
 
@@ -49,12 +48,13 @@ from ..brokerage.position_manager import ConvictionLevel
 logger = get_logger(__name__)
 
 
-# Position sizing based on confluence score
+# Position sizing based on confluence score (simplified: $5k or $10k only)
+# MINIMUM conviction trades are SKIPPED entirely (not traded)
 POSITION_SIZES_USD = {
-    ConvictionLevel.MINIMUM: Decimal("1000.00"),     # Score ≤0: Low confluence (tightening spread)
+    ConvictionLevel.MINIMUM: Decimal("1000.00"),     # Score ≤0: SKIPPED (kept for backwards compat)
     ConvictionLevel.STANDARD: Decimal("5000.00"),    # Score 1: Base position
-    ConvictionLevel.HIGH: Decimal("7500.00"),        # Score 2: Good confluence
-    ConvictionLevel.VERY_HIGH: Decimal("10000.00"),  # Score 3+: Strong confluence
+    ConvictionLevel.HIGH: Decimal("10000.00"),       # Score 2+: Full position (combined HIGH/VERY_HIGH)
+    ConvictionLevel.VERY_HIGH: Decimal("10000.00"),  # Score 3+: Same as HIGH
 }
 
 # Thresholds for 2-second observation window (publication-anchored)
@@ -87,11 +87,10 @@ async def check_confluence_signals(
     - Volume surge >3x → +1 point
     - Price excursion >1% → +1 point
 
-    Position sizing by score:
-    - Score ≤0: $2,000 (MINIMUM) - low confluence
+    Position sizing by score (simplified):
+    - Score ≤0: SKIP TRADE ENTIRELY (low confluence = likely loser)
     - Score 1: $5,000 (STANDARD)
-    - Score 2: $7,500 (HIGH)
-    - Score 3+: $10,000 (VERY_HIGH)
+    - Score 2+: $10,000 (HIGH) - full conviction
 
     Args:
         market_data_client: Alpaca market data client for trades
@@ -317,23 +316,15 @@ async def check_confluence_signals(
 
         # ============================================================
         # STEP 7: Determine conviction level from confluence score
+        # Simplified: Score ≤0 = MINIMUM (skip), Score 1 = STANDARD ($5k), Score 2+ = HIGH ($10k)
         # ============================================================
         metadata["confluence_score"] = confluence_score
 
-        if confluence_score >= 3:
-            conviction = ConvictionLevel.VERY_HIGH
-            logger.info(
-                f"🔥 VERY HIGH CONVICTION (score {confluence_score}): Strong confluence",
-                ticker=ticker,
-                position_size=f"${POSITION_SIZES_USD[conviction]}",
-                spread_change_pct=metadata.get("spread_change_pct"),
-                price_excursion_pct=metadata.get("price_excursion_pct"),
-                volume_surge=metadata.get("volume_surge")
-            )
-        elif confluence_score == 2:
+        if confluence_score >= 2:
+            # Score 2+: HIGH conviction - full $10k position
             conviction = ConvictionLevel.HIGH
             logger.info(
-                f"⚡ HIGH CONVICTION (score {confluence_score}): Good confluence",
+                f"🔥 HIGH CONVICTION (score {confluence_score}): Strong confluence → $10k position",
                 ticker=ticker,
                 position_size=f"${POSITION_SIZES_USD[conviction]}",
                 spread_change_pct=metadata.get("spread_change_pct"),
@@ -341,9 +332,10 @@ async def check_confluence_signals(
                 volume_surge=metadata.get("volume_surge")
             )
         elif confluence_score == 1:
+            # Score 1: STANDARD conviction - $5k position
             conviction = ConvictionLevel.STANDARD
             logger.info(
-                f"📊 STANDARD CONVICTION (score {confluence_score}): Minimal confluence",
+                f"📊 STANDARD CONVICTION (score {confluence_score}): Minimal confluence → $5k position",
                 ticker=ticker,
                 position_size=f"${POSITION_SIZES_USD[conviction]}",
                 spread_change_pct=metadata.get("spread_change_pct"),
@@ -351,14 +343,15 @@ async def check_confluence_signals(
                 volume_surge=metadata.get("volume_surge")
             )
         else:
+            # Score ≤0: MINIMUM conviction - will be SKIPPED (not traded)
             conviction = ConvictionLevel.MINIMUM
             logger.info(
-                f"⚠️ MINIMUM CONVICTION (score {confluence_score}): Low/no confluence",
+                f"⚠️ MINIMUM CONVICTION (score {confluence_score}): Low/no confluence → WILL SKIP TRADE",
                 ticker=ticker,
-                position_size=f"${POSITION_SIZES_USD[conviction]}",
                 spread_change_pct=metadata.get("spread_change_pct"),
                 price_excursion_pct=metadata.get("price_excursion_pct"),
-                volume_surge=metadata.get("volume_surge")
+                volume_surge=metadata.get("volume_surge"),
+                reason="Spread tightening or no positive signals"
             )
 
         metadata["conviction"] = conviction.value
@@ -718,11 +711,10 @@ async def process_imminent_article(
         # - Volume surge >3x → +1 point
         # - Price excursion >1% → +1 point
         #
-        # Position sizing by score:
-        # - Score ≤0: $2,000 (MINIMUM)
+        # Position sizing by score (simplified):
+        # - Score ≤0: SKIP (MINIMUM conviction trades not traded)
         # - Score 1: $5,000 (STANDARD)
-        # - Score 2: $7,500 (HIGH)
-        # - Score 3+: $10,000 (VERY_HIGH)
+        # - Score 2+: $10,000 (HIGH)
         conviction, confluence_metadata = await check_confluence_signals(
             market_data_client=market_data_client,
             quote_fetcher=quote_fetcher,
@@ -745,24 +737,70 @@ async def process_imminent_article(
         )
 
         # ============================================================
+        # 🚫 SKIP MINIMUM CONVICTION TRADES ENTIRELY
+        # ============================================================
+        # Analysis shows MINIMUM conviction trades (score ≤0) are consistently losers.
+        # Instead of trading $1,000 positions, we skip them entirely.
+        # This prevents losses from trades where:
+        # - Spread tightened (market ignoring news)
+        # - No positive confluence signals detected
+        if conviction == ConvictionLevel.MINIMUM:
+            logger.info(
+                "⏭️ SKIPPING TRADE: Minimum conviction (score ≤0) - likely loser",
+                ticker=ticker,
+                confluence_score=confluence_metadata.get("confluence_score", 0),
+                spread_change_pct=confluence_metadata.get("spread_change_pct", 0),
+                spread_tightened=confluence_metadata.get("spread_tightened", False),
+                volume_surge=confluence_metadata.get("volume_surge", False),
+                article_id=article_id,
+                reason="Low/no confluence signals - historically these are losers"
+            )
+            return
+
+        # ============================================================
+        # 📊 MINIMUM VOLUME FILTER: 2000 shares required (except NEW_ACTIVITY)
+        # ============================================================
+        # Skip if volume too low to ensure reliable entry/exit liquidity.
+        # Exception: NEW_ACTIVITY (stock went from dormant to active) is allowed
+        # because any activity on a previously dead stock is significant.
+        MIN_WINDOW_VOLUME = 2000
+        window_volume = confluence_metadata.get("volume", 0)
+        # Note: move_type would come from volume_analyzer if integrated
+        # For now, check if volume_surge indicates NEW_ACTIVITY pattern
+        has_volume_surge = confluence_metadata.get("volume_surge", False)
+
+        if window_volume < MIN_WINDOW_VOLUME and not has_volume_surge:
+            logger.info(
+                "⏭️ SKIPPING TRADE: Window volume too low for reliable entry",
+                ticker=ticker,
+                window_volume=window_volume,
+                min_required=MIN_WINDOW_VOLUME,
+                article_id=article_id,
+                reason="Insufficient liquidity - need 2000+ shares in observation window"
+            )
+            return
+
+        # ============================================================
         # 🛡️ EARLY-ENTRY FILTERS: Ensure we're catching moves early, not chasing
         # ============================================================
         # These filters prevent us from becoming exit liquidity:
-        # 1. Market cap >= $10M (small caps too manipulable)
+        # 1. Market cap >= $1M (tiny caps too manipulable)
         # 2. Ask price stable (ask_change_pct ~0% means we're early)
         # 3. Spread compression < 50% (heavy compression = MMs pulling liquidity)
 
-        # Filter 1: Market cap check
+        # Filter 1: Market cap check (lowered from $10M to $1M to allow JFBR-type trades)
+        MIN_MARKET_CAP_MILLIONS = 1.0  # $1M minimum (was $10M)
         if metadata_cache:
             try:
                 ticker_metadata = await metadata_cache.get_permanent(ticker)
                 if ticker_metadata:
                     market_cap_millions = ticker_metadata.get("market_cap_millions", 0)
-                    if market_cap_millions and market_cap_millions < 10:
+                    if market_cap_millions and market_cap_millions < MIN_MARKET_CAP_MILLIONS:
                         logger.info(
-                            "⏭️ AUTO-TRADE SKIPPED: Market cap below $10M threshold",
+                            "⏭️ AUTO-TRADE SKIPPED: Market cap below $1M threshold",
                             ticker=ticker,
                             market_cap_millions=round(market_cap_millions, 2),
+                            min_required=MIN_MARKET_CAP_MILLIONS,
                             article_id=article_id
                         )
                         return

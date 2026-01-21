@@ -1,35 +1,16 @@
 """
-Position Manager - Tracks open positions and manages tiered exit strategy with stop loss.
+Position Manager - Tracks open positions with stop loss protection.
 
-CONFLUENCE-BASED POSITION SIZING:
-Based on 2-second observation window after article publication:
-- Spread widening >15% → +2 points (market makers retreating = real catalyst)
-- Spread widening 5-15% → +1 point
-- Spread stable (±5%) → 0 points
-- Spread tightening >5% → -1 point (market ignoring news)
-- Volume surge >3x → +1 point
-- Price excursion >1% → +1 point
-
-Position sizes by score:
-- Score ≤0: $2,000 (MINIMUM) - low confluence
-- Score 1: $5,000 (STANDARD)
-- Score 2: $7,500 (HIGH)
-- Score 3+: $10,000 (VERY_HIGH)
+EXIT STRATEGY (Simplified - Let Winners Run):
+- NO automatic take-profits (user exits manually via Telegram when they see weakness)
+- Stop Loss: 5% below initial NBBO mid price (protects against "fake rallies")
+- Manual Exit: User can exit anytime via Telegram /exit command
+- Time-based Exit: Handled by ExitTradeUseCase (10 min default, can /hold to extend)
 
 STOP LOSS:
 - 5% below initial NBBO mid price (NOT entry price)
 - Anchored to pre-move price to protect against "fake rallies"
 - Good catalysts shouldn't dump 5% below where they started
-
-STANDARD Exit Strategy (base $5k trades):
-- Target 1: +10% profit → Sell 50% of position
-- Target 2: +15% profit → Sell 50% of remaining (25% of original)
-- Target 3: +20% profit → Sell remaining position
-
-HIGH-CONVICTION Exit Strategy ($7.5k-$10k trades with early momentum):
-- Target 1: +15% profit → Sell 25% of position
-- Target 2: +25% profit → Sell 25% of position
-- Target 3: +40% profit → Sell remaining 50%
 
 Uses WebSocket for real-time price monitoring (sub-100ms latency).
 Falls back to 500ms polling if WebSocket unavailable.
@@ -337,11 +318,20 @@ class PositionManager:
             return list(self._positions.values())
 
     async def remove_position(self, ticker: str) -> None:
-        """Remove a fully exited position."""
+        """Remove a fully exited position and clean up quote stream subscription."""
         async with self._lock:
             if ticker in self._positions:
                 position = self._positions.pop(ticker)
                 self._exits_in_progress.discard(ticker)
+
+                # Unsubscribe from quote stream to prevent memory leak
+                # Quote streams accumulate indefinitely if not cleaned up
+                if self.stream_manager:
+                    try:
+                        await self.stream_manager.unsubscribe_symbol(ticker)
+                    except Exception as e:
+                        logger.warning(f"Failed to unsubscribe from {ticker} quotes: {e}")
+
                 logger.info(
                     "Position removed (fully exited)",
                     ticker=ticker,
@@ -452,37 +442,9 @@ class PositionManager:
                         ))
                     return
 
-            # Calculate profit %
-            profit_pct = (current_price - position.entry_price) / position.entry_price
-
-            # Get conviction-based exit targets
-            exit_targets = position.get_exit_targets()
-
-            # Check each tier (with exit-in-progress guard)
-            exit_key = f"{ticker}_{position.current_tier.value}"
-            if exit_key in self._exits_in_progress:
-                return  # Already executing this tier
-
-            if not position.tier_1_executed and profit_pct >= exit_targets[ExitTier.TIER_1]:
-                self._exits_in_progress.add(exit_key)
-                shares_to_sell = position.get_shares_for_tier(ExitTier.TIER_1)
-                asyncio.create_task(self._execute_exit_async(
-                    position, shares_to_sell, "tier_1", profit_pct
-                ))
-
-            elif not position.tier_2_executed and position.tier_1_executed and profit_pct >= exit_targets[ExitTier.TIER_2]:
-                self._exits_in_progress.add(exit_key)
-                shares_to_sell = position.get_shares_for_tier(ExitTier.TIER_2)
-                asyncio.create_task(self._execute_exit_async(
-                    position, shares_to_sell, "tier_2", profit_pct
-                ))
-
-            elif not position.tier_3_executed and position.tier_2_executed and profit_pct >= exit_targets[ExitTier.TIER_3]:
-                self._exits_in_progress.add(exit_key)
-                shares_to_sell = position.get_shares_for_tier(ExitTier.TIER_3)
-                asyncio.create_task(self._execute_exit_async(
-                    position, shares_to_sell, "tier_3", profit_pct
-                ))
+            # NO AUTOMATIC TAKE-PROFITS: Let winners run!
+            # User exits manually via Telegram when they see weakness
+            # Time-based exit (10 min) handled by ExitTradeUseCase
 
     async def _execute_exit_async(
         self,

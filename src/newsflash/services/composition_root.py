@@ -110,13 +110,28 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
 
     # Start MetadataCache first (loads permanent + daily caches from disk)
     # Provides instant lookups for sector, industry, market_cap (~0ms vs 200-2000ms from yfinance)
+    # IMPORTANT: Must be fully loaded before classification starts to prevent race condition
+    # where SCYX/SGHC-type tickers get "unknown sector" because cache isn't ready yet
     metadata_cache = container.metadata_cache()
     await metadata_cache.start()
-    logger.info(
-        "MetadataCache started",
-        permanent_tickers=metadata_cache.get_stats()["permanent_tickers"],
-        daily_tickers=metadata_cache.get_stats()["daily_tickers"]
-    )
+
+    # Verify cache is populated before proceeding (prevents race condition)
+    stats = metadata_cache.get_stats()
+    if stats["permanent_tickers"] == 0:
+        logger.warning(
+            "MetadataCache started but has no permanent tickers - check permanent_metadata.json",
+            permanent_path=str(metadata_cache.permanent_path) if hasattr(metadata_cache, 'permanent_path') else "unknown"
+        )
+    else:
+        logger.info(
+            "MetadataCache verified ready",
+            permanent_tickers=stats["permanent_tickers"],
+            daily_tickers=stats["daily_tickers"]
+        )
+
+    # Small delay to ensure async file I/O is fully complete
+    # This prevents race conditions where articles arrive before cache is fully loaded
+    await asyncio.sleep(0.1)
 
     # Get shared YahooFinanceCoordinator from container (singleton - shared with stats engines)
     # Uses MetadataCache for instant lookups, only calls yfinance for cache misses

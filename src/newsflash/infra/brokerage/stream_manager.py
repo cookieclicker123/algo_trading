@@ -231,7 +231,45 @@ class AlpacaMarketDataStreamManager:
                 
             except Exception as e:
                 logger.error(f"Failed to subscribe to {symbol}: {e}", exc_info=True)
-    
+
+    async def unsubscribe_symbol(self, symbol: str) -> None:
+        """
+        Unsubscribe from real-time quotes and trades for a symbol.
+
+        Called when a position is fully exited to clean up resources and
+        prevent memory leaks from accumulating subscriptions.
+
+        Args:
+            symbol: Ticker symbol to unsubscribe from
+        """
+        with self._subscription_lock:  # Thread-safe lock
+            if symbol not in self._subscribed_symbols:
+                return  # Not subscribed
+
+            if not self.stream:
+                logger.warning(f"Cannot unsubscribe from {symbol}: stream not started")
+                return
+
+            try:
+                # Unsubscribe from quotes and trades
+                if self.stream:
+                    self.stream.unsubscribe_quotes(symbol)
+                    self.stream.unsubscribe_trades(symbol)
+
+                self._subscribed_symbols.discard(symbol)
+
+                # Clear cached data for this symbol to free memory
+                with self._quote_cache_lock:
+                    self._quote_cache.pop(symbol, None)
+                    self._latest_quote_cache.pop(symbol, None)
+                with self._trade_cache_lock:
+                    self._trade_cache.pop(symbol, None)
+
+                logger.info(f"🔌 Unsubscribed from {symbol} quotes and trades (position exited)")
+
+            except Exception as e:
+                logger.error(f"Failed to unsubscribe from {symbol}: {e}", exc_info=True)
+
     async def get_latest_quote(self, symbol: str) -> Optional[Dict[str, Any]]:
         """
         Get latest cached quote for a symbol.

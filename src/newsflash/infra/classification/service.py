@@ -306,7 +306,46 @@ Summary: {summary}"""
                 )
                 await self._publish_skipped_event(infra_event, filter_reason)
                 return
-            
+
+            # Step 2b: 20-SECOND MAX LATENCY FILTER
+            # ====================================================================
+            # Skip articles if websocket delivery was too slow (> 20 seconds after publication).
+            # Late-arriving articles have missed the initial momentum opportunity and
+            # are more likely to result in chasing rather than catching the move.
+            # Analysis shows most profitable trades arrive quickly through websocket.
+            # ====================================================================
+            MAX_WEBSOCKET_LATENCY_SECONDS = 20.0
+
+            if request_data.article_published_at_iso:
+                try:
+                    from datetime import timezone
+                    published_at = datetime.fromisoformat(
+                        request_data.article_published_at_iso.replace("Z", "+00:00")
+                    )
+                    now = datetime.now(timezone.utc)
+                    latency_seconds = (now - published_at).total_seconds()
+
+                    if latency_seconds > MAX_WEBSOCKET_LATENCY_SECONDS:
+                        logger.info(
+                            "⏭️ CLASSIFY INFRA: Skipping - websocket latency too high (>20s)",
+                            article_id=request_data.article_id,
+                            published_at=published_at.isoformat(),
+                            latency_seconds=round(latency_seconds, 2),
+                            max_allowed=MAX_WEBSOCKET_LATENCY_SECONDS,
+                            tickers=request_data.article_tickers,
+                            reason="Late articles have missed initial momentum"
+                        )
+                        await self._publish_skipped_event(infra_event, f"latency_too_high:{round(latency_seconds)}s")
+                        return
+
+                    logger.debug(
+                        "✅ LATENCY CHECK PASSED",
+                        article_id=request_data.article_id,
+                        latency_seconds=round(latency_seconds, 2)
+                    )
+                except (ValueError, TypeError) as e:
+                    logger.debug(f"Could not parse published_at for latency check: {e}")
+
             # Step 3: Check NBBO availability (before expensive Groq API call)
             primary_ticker = request_data.article_tickers[0] if request_data.article_tickers else None
             if self.quote_fetcher and primary_ticker:

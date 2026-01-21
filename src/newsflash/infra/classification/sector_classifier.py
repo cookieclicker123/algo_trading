@@ -13,8 +13,8 @@ Supported sectors:
 - Consumer Cyclical (6 industry groupings)
 - Financial Services (3 industry groupings)
 - Communication Services (1 industry)
-- Consumer Defensive (2 industries)
-- Basic Materials (1 industry)
+- Consumer Defensive (3 industries)
+- Basic Materials (2 industries)
 """
 import asyncio
 from pathlib import Path
@@ -149,18 +149,20 @@ SECTOR_INDUSTRY_MAP: Dict[str, Dict[str, str]] = {
     },
 
     # =========================================================================
-    # CONSUMER DEFENSIVE (2 industries)
+    # CONSUMER DEFENSIVE (3 industries)
     # =========================================================================
     "Consumer Defensive": {
         "Education & Training Services": "education_training.txt",
         "Food Distribution": "food_distribution.txt",
+        "Household & Personal Products": "household_personal.txt",
     },
 
     # =========================================================================
-    # BASIC MATERIALS (1 industry)
+    # BASIC MATERIALS (2 industries)
     # =========================================================================
     "Basic Materials": {
         "Specialty Chemicals": "specialty_chemicals.txt",
+        "Agricultural Inputs": "agricultural_inputs.txt",
     },
 }
 
