@@ -19945,5 +19945,29 @@
   "YRD": {
     "industry": "Credit Services",
     "sector": "Financial Services"
+  },
+  "VCIC": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
+  },
+  "TCBI": {
+    "industry": "Banks - Regional",
+    "sector": "Financial Services"
+  },
+  "CBSH": {
+    "industry": "Banks - Regional",
+    "sector": "Financial Services"
+  },
+  "RHI": {
+    "industry": "Staffing & Employment Services",
+    "sector": "Industrials"
+  },
+  "HSIC": {
+    "industry": "Medical Distribution",
+    "sector": "Healthcare"
+  },
+  "WEX": {
+    "industry": "Software - Infrastructure",
+    "sector": "Technology"
   }
 }

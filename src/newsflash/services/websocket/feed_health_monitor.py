@@ -338,41 +338,18 @@ class FeedHealthMonitor:
             logger.warning(f"{feed_name} is unhealthy", reason=reason, consecutive_failures=previous_state["consecutive_failures"])
 
     
-    async def _send_health_alert(self, feed_name: str, health_status: Dict[str, Any], 
+    async def _send_health_alert(self, feed_name: str, health_status: Dict[str, Any],
                                  was_healthy: Optional[bool], state_changed: bool):
-        """Send Telegram alert about feed health."""
-        if not self.telegram_service or not (self.telegram_service.enabled_1 or self.telegram_service.enabled_2):
-            logger.warning("Telegram service not available for health alerts")
-            return
-        
-        # Build alert message using pure function
-        message = format_health_alert_message(
-            feed_name=feed_name,
-            is_healthy=health_status.get("healthy", False),
+        """Send Telegram alert about feed health.
+
+        DISABLED: Health alerts are internal system monitoring, not actionable for trading.
+        User only wants Telegram notifications for news and trades, not connection status.
+        Health status is still logged - just not sent to Telegram.
+        """
+        # Log health status change but don't spam Telegram
+        logger.info(
+            f"Health status change for {feed_name} (Telegram notification disabled)",
+            healthy=health_status.get("healthy", False),
             reason=health_status.get("reason", "Unknown"),
-            error=health_status.get("error") or health_status.get("last_error"),
-            stats=health_status.get("stats", {}),
-            was_healthy=was_healthy,
             state_changed=state_changed
         )
-        
-        try:
-            # Send to both bots if enabled
-            if self.telegram_service.enabled_1 and self.telegram_service.bot_1:
-                await self.telegram_service.bot_1.send_message(
-                    chat_id=self.telegram_service.config_1["chat_id"],
-                    text=message,
-                    parse_mode="Markdown"
-                )
-            
-            if self.telegram_service.enabled_2 and self.telegram_service.bot_2:
-                await self.telegram_service.bot_2.send_message(
-                    chat_id=self.telegram_service.config_2["chat_id"],
-                    text=message,
-                    parse_mode="Markdown"
-                )
-            
-            logger.info(f"Health alert sent for {feed_name}", healthy=health_status.get("healthy", False))
-            
-        except Exception as e:
-            logger.error(f"Failed to send health alert for {feed_name}", error=str(e))

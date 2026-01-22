@@ -194,23 +194,21 @@ class NotifyTradeFailedUseCase:
             )
             
             # Fetch article from storage to get publication time and title
+            # SPEED FIX: Use very short timeout (0.5s) to avoid blocking notifications
             article_id = trade_request.article_id
             article = None
             publication_time = None
             article_title = None
-            
+
             if article_id and self.storage_query_service:
                 try:
-                    article = await self.storage_query_service.fetch_article(article_id)
+                    article = await self.storage_query_service.fetch_article(article_id, timeout_seconds=0.5)
                     if article:
                         publication_time = article.published_at
                         article_title = article.title
-                except Exception as e:
-                    logger.warning(
-                        "NotifyTradeFailedUseCase: Could not fetch article for notification",
-                        article_id=article_id,
-                        error=str(e)
-                    )
+                except Exception:
+                    # Don't log - expected under load, notification speed is priority
+                    pass
             
             # Extract ladder attempts detail from domain event (if available)
             ladder_attempts_detail = domain_event.ladder_attempts_detail

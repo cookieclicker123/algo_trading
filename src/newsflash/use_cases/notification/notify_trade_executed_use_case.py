@@ -262,35 +262,28 @@ class NotifyTradeExecutedUseCase:
             )
             
             # Fetch article from storage to get publication time and title
-            # Note: We still send the trade notification even if article fetch fails
+            # SPEED FIX: Use very short timeout (0.5s) to avoid blocking notifications
+            # Article details are nice-to-have, not critical. Under load, skip rather than delay.
             article = None
             publication_time = None
             article_title = None
-            
+
             if article_id and self.storage_query_service:
                 try:
-                    article = await self.storage_query_service.fetch_article(article_id)
+                    # Very short timeout - notification speed is critical
+                    article = await self.storage_query_service.fetch_article(article_id, timeout_seconds=0.5)
                     if article:
                         publication_time = article.published_at
                         article_title = article.title
                         logger.debug(
-                            "NotifyTradeExecutedUseCase: Successfully fetched article for notification",
-                            article_id=article_id,
-                            title=article_title[:50] if article_title else None
-                        )
-                    else:
-                        logger.warning(
-                            "NotifyTradeExecutedUseCase: Article not found in storage",
-                            article_id=article_id,
-                            note="Trade notification will still be sent without article details"
+                            "NotifyTradeExecutedUseCase: Article details added to notification",
+                            article_id=article_id
                         )
                 except Exception as e:
-                    logger.error(
-                        "NotifyTradeExecutedUseCase: Error fetching article for notification",
-                        article_id=article_id,
-                        error=str(e),
-                        exc_info=True,
-                        note="Trade notification will still be sent without article details"
+                    # Don't log errors for timeouts - expected under load
+                    logger.debug(
+                        "NotifyTradeExecutedUseCase: Article fetch skipped (speed priority)",
+                        article_id=article_id
                     )
             
             # Get spread_info and instrument_details from trade_request dict metadata (stored by mapper)
