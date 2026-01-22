@@ -5,6 +5,7 @@ This is the ONLY place that knows about cross-microservice dependencies.
 All microservices initialize themselves independently, but dependencies are
 provided via the DI container.
 """
+import asyncio
 from typing import Tuple, Any
 from dependency_injector import providers
 

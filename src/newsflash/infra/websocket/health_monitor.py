@@ -193,10 +193,17 @@ class WebSocketHealthMonitor:
 
                 time_since_last_message = datetime.now(last_message_time.tzinfo) - last_message_time
                 if time_since_last_message > timedelta(minutes=self.inactivity_threshold_minutes):
+                    # Inactivity is NOT unhealthy - no messages is normal during quiet periods
+                    # Only zombie connections and true disconnects are unhealthy
+                    logger.debug(
+                        "No messages for a while but connection is alive",
+                        minutes_since_message=time_since_last_message.total_seconds() / 60
+                    )
                     return {
-                        "healthy": False,
-                        "reason": f"No messages for {time_since_last_message.total_seconds() / 60:.1f} minutes",
-                        "status": "inactive",
+                        "healthy": True,
+                        "reason": f"WebSocket connected (no messages for {time_since_last_message.total_seconds() / 60:.1f} minutes - normal during quiet periods)",
+                        "status": "healthy",
+                        "messages_received": stats.get("messages_received", 0),
                         "last_message_time": last_message_time.isoformat()
                     }
                 return {
