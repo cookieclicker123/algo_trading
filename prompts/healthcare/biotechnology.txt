@@ -117,6 +117,16 @@ FUTURE ANNOUNCEMENTS
 ├─ "To host conference call to report results"
 └─ Wait for ACTUAL results → SKIP
 
+MEDIA/PUBLICITY (No material business impact)
+├─ TV show features, news program mentions
+├─ "Featured on", "Highlighted by", "Spotlighted in"
+├─ Media coverage of research/technology
+├─ Awareness campaigns, PR mentions
+└─ Examples:
+   "Good Morning America Features Study Using Technology" → SKIP
+   "Company Featured on CNBC" → SKIP
+   "Research Highlighted in Media Report" → SKIP
+
 ═══════════════════════════════════════════════════════════════════════════════
 DECISION RULES
 ═══════════════════════════════════════════════════════════════════════════════
@@ -127,5 +137,6 @@ DECISION RULES
 4. "Conference" anywhere = SKIP
 5. Future tense ("will", "to be", "upcoming") = usually SKIP
 6. Past/present tense with results = usually TRADE
+7. Media/TV mentions ("featured on", "highlighted") = SKIP - no material impact
 
 RESPOND: TRADE or SKIP (no explanation)
