@@ -33,17 +33,18 @@ class ClassificationRequestFactory:
     """
     
     @staticmethod
-    def create_from_article(article: Article) -> Optional[ClassificationRequest]:
+    def create_from_article(article: Article, received_at: Optional[datetime] = None) -> Optional[ClassificationRequest]:
         """
         Create ClassificationRequest from Article domain model.
-        
+
         Business rules:
         - Article must have a title
         - Tickers are optional but will be included if present
-        
+
         Args:
             article: Domain Article model
-            
+            received_at: When websocket received this article (for accurate latency calc)
+
         Returns:
             Domain ClassificationRequest model, or None if invalid
         """
@@ -52,7 +53,7 @@ class ClassificationRequestFactory:
             if not article.title or not article.title.strip():
                 logger.warning("Cannot create classification request: article has no title", article_id=article.id)
                 return None
-            
+
             # Create classification request
             request = ClassificationRequest(
                 article_id=article.id,
@@ -60,6 +61,7 @@ class ClassificationRequestFactory:
                 article_tickers=article.tickers if article.tickers else frozenset(),
                 article_summary=article.summary or article.content or "",
                 article_published_at=article.published_at,
+                article_received_at=received_at,
                 requested_at=datetime.now()
             )
             

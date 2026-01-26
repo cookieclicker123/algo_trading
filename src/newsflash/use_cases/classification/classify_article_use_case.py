@@ -92,7 +92,11 @@ class ClassifyArticleUseCase:
             )
             
             # Create classification request from article using factory
-            classification_request = self.request_factory.create_from_article(article)
+            # Pass received_at for accurate latency calculation (not processing time)
+            classification_request = self.request_factory.create_from_article(
+                article,
+                received_at=domain_event.received_at if hasattr(domain_event, 'received_at') else None
+            )
             
             if not classification_request:
                 logger.warning(

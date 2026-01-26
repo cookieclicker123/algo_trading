@@ -35,7 +35,7 @@ class TelegramTradeHandler:
             bot_token: Telegram bot token
             brokerage_service: BrokerageService instance for executing exits
             exit_trade_use_case: ExitTradeUseCase instance for cancelling scheduled exits
-            position_manager: PositionManager instance for tiered exit tracking
+            position_manager: PositionManager instance for stop loss tracking
         """
         self.bot_token = bot_token
         self.brokerage_service = brokerage_service
@@ -48,7 +48,7 @@ class TelegramTradeHandler:
         if not self.exit_trade_use_case:
             logger.warning("No exit trade use case provided - scheduled exits won't be cancelled")
         if not self.position_manager:
-            logger.warning("No position manager provided - tiered exits won't work")
+            logger.warning("No position manager provided - stop loss monitoring won't work")
 
         logger.info("Telegram trade handler initialized", bot_token=bot_token[:10] + "...")
     
@@ -192,8 +192,7 @@ class TelegramTradeHandler:
                 message_parts.append(
                     f"\n{emoji} *{pos.ticker}*\n"
                     f"   Entry: ${pos.entry_price:.2f}\n"
-                    f"   Shares: {pos.shares_remaining:.0f}/{pos.shares:.0f}\n"
-                    f"   Tier: {pos.current_tier.value}\n"
+                    f"   Shares: {pos.shares_remaining:.0f}\n"
                     f"   P&L: {profit_str} ({pnl_str})"
                 )
 
@@ -264,7 +263,7 @@ class TelegramTradeHandler:
 
         ticker = context.args[0].upper()
 
-        # Try PositionManager first (for tracked tiered positions)
+        # Try PositionManager first (for tracked positions)
         if self.position_manager:
             position = await self.position_manager.get_position(ticker)
             if position:

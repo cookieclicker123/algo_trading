@@ -12,9 +12,11 @@ Supported sectors:
 - Industrials (14 industry groupings)
 - Consumer Cyclical (6 industry groupings)
 - Financial Services (3 industry groupings)
-- Communication Services (1 industry)
 - Consumer Defensive (3 industries)
-- Basic Materials (2 industries)
+- Basic Materials (4 industries)
+
+Blacklisted sectors (removed due to poor performance):
+- Communication Services (0% win rate, -10.8% avg PnL - Jan 2026 data)
 """
 import asyncio
 from pathlib import Path
@@ -142,11 +144,13 @@ SECTOR_INDUSTRY_MAP: Dict[str, Dict[str, str]] = {
     },
 
     # =========================================================================
-    # COMMUNICATION SERVICES (1 industry)
+    # COMMUNICATION SERVICES - REMOVED (0% win rate, -10.8% avg PnL in Jan 2026)
     # =========================================================================
-    "Communication Services": {
-        "Internet Content & Information": "internet_content.txt",
-    },
+    # "Communication Services": {
+    #     "Internet Content & Information": "internet_content.txt",
+    # },
+    # Industries: Entertainment, Internet Content & Information, Telecom Services
+    # All were consistent losers - KUST, PODC, SLE all lost money
 
     # =========================================================================
     # CONSUMER DEFENSIVE (3 industries)
@@ -158,11 +162,14 @@ SECTOR_INDUSTRY_MAP: Dict[str, Dict[str, str]] = {
     },
 
     # =========================================================================
-    # BASIC MATERIALS (2 industries)
+    # BASIC MATERIALS (4 industries)
     # =========================================================================
     "Basic Materials": {
         "Specialty Chemicals": "specialty_chemicals.txt",
         "Agricultural Inputs": "agricultural_inputs.txt",
+        # Gold and Precious Metals - M&A, contracts, discoveries are key catalysts
+        "Gold": "precious_metals_mining.txt",
+        "Other Precious Metals & Mining": "precious_metals_mining.txt",
     },
 }
 

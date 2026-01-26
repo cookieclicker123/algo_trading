@@ -204,7 +204,7 @@ class ApplicationContainer(containers.DeclarativeContainer):
     
     # AutoTrade service needs event_bus, storage_query_service, and auto-trade config
     # Uses confluence scoring system (spread + volume + price) for position sizing
-    # Stop loss: 5% below initial NBBO mid (not entry price)
+    # Stop loss: 5% below actual entry price
     auto_trade_service = providers.Factory(
         AutoTradeService,
         event_bus=shared.event_bus,

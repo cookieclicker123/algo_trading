@@ -45,6 +45,7 @@ class ClassificationRequestMapper:
                 article_tickers=frozenset(infra_request.article_tickers) if infra_request.article_tickers else frozenset(),
                 article_summary=infra_request.article_summary or "",
                 article_published_at=datetime.fromisoformat(infra_request.article_published_at_iso) if infra_request.article_published_at_iso else None,
+                article_received_at=datetime.fromisoformat(infra_request.article_received_at_iso) if infra_request.article_received_at_iso else None,
                 requested_at=datetime.now()  # Use current time as requested_at
             )
             
@@ -86,7 +87,8 @@ class ClassificationRequestMapper:
             article_title=domain_request.article_title,
             article_tickers=sorted_tickers,
             article_summary=domain_request.article_summary,
-            article_published_at_iso=domain_request.article_published_at.isoformat() if domain_request.article_published_at else None
+            article_published_at_iso=domain_request.article_published_at.isoformat() if domain_request.article_published_at else None,
+            article_received_at_iso=domain_request.article_received_at.isoformat() if domain_request.article_received_at else None
         )
 
 

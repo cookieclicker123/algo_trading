@@ -1,16 +1,16 @@
 """
 Position Manager - Tracks open positions with stop loss protection.
 
-EXIT STRATEGY (Simplified - Let Winners Run):
+EXIT STRATEGY (Let Winners Run):
 - NO automatic take-profits (user exits manually via Telegram when they see weakness)
-- Stop Loss: 5% below initial NBBO mid price (protects against "fake rallies")
+- Stop Loss: 5% below actual entry price (limits max loss per trade)
 - Manual Exit: User can exit anytime via Telegram /exit command
 - Time-based Exit: Handled by ExitTradeUseCase (10 min default, can /hold to extend)
 
 STOP LOSS:
-- 5% below initial NBBO mid price (NOT entry price)
-- Anchored to pre-move price to protect against "fake rallies"
-- Good catalysts shouldn't dump 5% below where they started
+- 5% below actual entry price (NOT NBBO mid)
+- Anchored to fill price so max loss per trade is capped at ~5%
+- Winners massively outweigh the occasional 5% loss on failed trades
 
 Uses WebSocket for real-time price monitoring (sub-100ms latency).
 Falls back to 500ms polling if WebSocket unavailable.
@@ -19,7 +19,6 @@ import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Dict, Optional, List, Any, Callable
-from decimal import Decimal
 from enum import Enum
 
 from ...utils.logging_config import get_logger
@@ -30,56 +29,39 @@ from ...domain.brokerage.models import TradeAction, TradeInstrument
 logger = get_logger(__name__)
 
 
-class ExitTier(Enum):
-    """Exit tier levels."""
-    TIER_1 = "tier_1"  # Standard: 50% at +10%, Aggressive: 25% at +15%
-    TIER_2 = "tier_2"  # Standard: 25% at +15%, Aggressive: 25% at +25%
-    TIER_3 = "tier_3"  # Standard: 25% at +20%, Aggressive: 50% at +40%
-    COMPLETE = "complete"  # Fully exited
-
-
 class ConvictionLevel(Enum):
-    """Trade conviction level based on confluence scoring."""
-    MINIMUM = "minimum"             # Low confluence score (≤0) → $2k position
-    STANDARD = "standard"           # Score 1 → $5k, standard exits
-    HIGH = "high"                   # Score 2 → $7.5k, aggressive exits
-    VERY_HIGH = "very_high"         # Score 3+ → $10k, aggressive exits
+    """Trade conviction level based on confluence scoring (determines position size)."""
+    MINIMUM = "minimum"             # Score 0 → surge window → $5k position
+    STANDARD = "standard"           # Score 1 → $7.5k position
+    HIGH = "high"                   # Score 2 → $10k position
+    VERY_HIGH = "very_high"         # Score 3 → $15k position
 
 
 # Stop loss configuration
-STOP_LOSS_PCT = 0.05  # 5% below initial NBBO mid
+STOP_LOSS_PCT = 0.05  # 5% below actual entry price
 
 
 @dataclass
 class Position:
-    """Represents an open position with exit tracking."""
+    """Represents an open position with stop loss protection."""
     ticker: str
     entry_price: float
     shares: float
     entry_time: datetime
     article_id: str
 
-    # Conviction level determines exit strategy and position size
+    # Conviction level (determines position size)
     conviction: ConvictionLevel = ConvictionLevel.STANDARD
 
-    # Stop loss tracking - anchored to initial NBBO mid (not entry price)
-    # This protects against "fake rallies" that return to origin
-    initial_nbbo_mid: Optional[float] = None
+    # Stop loss tracking - anchored to actual entry price
+    initial_nbbo_mid: Optional[float] = None  # Kept for logging/analytics
     stop_loss_triggered: bool = False
 
-    # Exit tracking
-    current_tier: ExitTier = ExitTier.TIER_1
+    # Position tracking
     shares_remaining: float = field(init=False)
-    shares_sold: float = 0.0
-
-    # Tier execution tracking
-    tier_1_executed: bool = False
-    tier_2_executed: bool = False
-    tier_3_executed: bool = False
 
     # P&L tracking
     total_cost_basis: float = field(init=False)
-    realized_pnl: float = 0.0
 
     # Current price tracking (updated by monitor)
     last_price: Optional[float] = None
@@ -91,15 +73,10 @@ class Position:
 
     @property
     def stop_loss_price(self) -> Optional[float]:
-        """Calculate stop loss price (5% below initial NBBO mid)."""
-        if self.initial_nbbo_mid:
-            return self.initial_nbbo_mid * (1 - STOP_LOSS_PCT)
+        """Calculate stop loss price (5% below actual entry price)."""
+        if self.entry_price:
+            return self.entry_price * (1 - STOP_LOSS_PCT)
         return None
-
-    @property
-    def is_high_conviction(self) -> bool:
-        """Check if this is a high-conviction trade (aggressive exits)."""
-        return self.conviction in (ConvictionLevel.HIGH, ConvictionLevel.VERY_HIGH)
 
     @property
     def current_profit_pct(self) -> Optional[float]:
@@ -115,79 +92,18 @@ class Position:
             return (self.last_price - self.entry_price) * self.shares_remaining
         return None
 
-    def get_shares_for_tier(self, tier: ExitTier) -> float:
-        """Calculate shares to sell for a given tier based on conviction level."""
-        if tier == ExitTier.TIER_3:
-            # Always sell all remaining shares at final tier
-            return self.shares_remaining
-
-        # Use conviction-based share percentages
-        if self.is_high_conviction:
-            # Aggressive: 25% / 25% / 50% (let winners run longer)
-            tier_pct = TIER_SHARES_AGGRESSIVE.get(tier, 0.25)
-        else:
-            # Standard: 50% / 25% / 25%
-            tier_pct = TIER_SHARES_STANDARD.get(tier, 0.50)
-
-        return self.shares * tier_pct
-
-    def get_exit_targets(self) -> Dict[ExitTier, float]:
-        """Get exit targets based on conviction level."""
-        if self.is_high_conviction:
-            return EXIT_TARGETS_AGGRESSIVE
-        return EXIT_TARGETS_STANDARD
-
-
-# Exit targets (profit % after costs)
-# We add ~0.5% buffer for exit costs (spread + slippage)
-EXIT_COST_BUFFER = 0.005  # 0.5%
-
-# Standard exit targets (base $5k trades)
-EXIT_TARGETS_STANDARD = {
-    ExitTier.TIER_1: 0.10 + EXIT_COST_BUFFER,  # 10.5% to net 10%
-    ExitTier.TIER_2: 0.15 + EXIT_COST_BUFFER,  # 15.5% to net 15%
-    ExitTier.TIER_3: 0.20 + EXIT_COST_BUFFER,  # 20.5% to net 20%
-}
-
-# Aggressive exit targets for high-conviction trades ($7.5k-$10k)
-# These trades showed early momentum signals - let winners run longer
-EXIT_TARGETS_AGGRESSIVE = {
-    ExitTier.TIER_1: 0.15 + EXIT_COST_BUFFER,  # 15.5% to net 15%
-    ExitTier.TIER_2: 0.25 + EXIT_COST_BUFFER,  # 25.5% to net 25%
-    ExitTier.TIER_3: 0.40 + EXIT_COST_BUFFER,  # 40.5% to net 40%
-}
-
-# Share percentages for standard exits (50% / 25% / 25%)
-TIER_SHARES_STANDARD = {
-    ExitTier.TIER_1: 0.50,  # 50% of position
-    ExitTier.TIER_2: 0.25,  # 25% of position
-    ExitTier.TIER_3: 0.25,  # Remaining 25%
-}
-
-# Share percentages for aggressive exits (25% / 25% / 50%)
-TIER_SHARES_AGGRESSIVE = {
-    ExitTier.TIER_1: 0.25,  # 25% of position (let more ride)
-    ExitTier.TIER_2: 0.25,  # 25% of position
-    ExitTier.TIER_3: 0.50,  # Remaining 50% (bigger exit at top)
-}
-
-# Default for backward compatibility
-EXIT_TARGETS = EXIT_TARGETS_STANDARD
-
 
 class PositionManager:
     """
-    Manages open positions and tiered exit strategy.
+    Manages open positions with stop loss protection.
 
     Uses WebSocket streaming for real-time price monitoring (sub-100ms).
     Falls back to 500ms REST polling if WebSocket unavailable.
 
-    Responsibilities:
-    - Track open positions with entry prices
-    - Subscribe to WebSocket quotes for monitored symbols
-    - Check exit conditions on each price update
-    - Trigger partial exits at each tier
-    - Publish exit trade requests
+    Exit conditions:
+    - Stop loss: 5% below entry price (automatic)
+    - Manual exit: User triggers via Telegram /exit
+    - Time-based exit: 10 min default (ExitTradeUseCase)
 
     Does NOT:
     - Execute trades (brokerage service does that)
@@ -202,16 +118,6 @@ class PositionManager:
         poll_interval: float = 0.5,  # 500ms fallback polling
         enabled: bool = True,
     ):
-        """
-        Initialize position manager.
-
-        Args:
-            event_bus: Event bus for publishing exit requests
-            quote_fetcher: Quote fetcher for REST price lookup (fallback)
-            stream_manager: WebSocket stream manager for real-time quotes
-            poll_interval: Seconds between price checks (fallback only)
-            enabled: Whether position management is enabled
-        """
         self.event_bus = event_bus
         self.quote_fetcher = quote_fetcher
         self.stream_manager = stream_manager
@@ -242,7 +148,7 @@ class PositionManager:
             enabled=enabled,
             poll_interval=poll_interval,
             has_stream_manager=stream_manager is not None,
-            exit_targets={k.value: f"{v*100:.1f}%" for k, v in EXIT_TARGETS.items()}
+            stop_loss_pct=f"{STOP_LOSS_PCT*100:.0f}%"
         )
 
     async def add_position(
@@ -254,20 +160,7 @@ class PositionManager:
         conviction: ConvictionLevel = ConvictionLevel.STANDARD,
         initial_nbbo_mid: Optional[float] = None,
     ) -> Position:
-        """
-        Add a new position to track.
-
-        Args:
-            ticker: Stock ticker
-            entry_price: Entry fill price
-            shares: Number of shares
-            article_id: Associated article ID
-            conviction: Conviction level (MINIMUM, STANDARD, HIGH, or VERY_HIGH)
-            initial_nbbo_mid: NBBO mid price at article publication (for stop loss)
-
-        Returns:
-            Created Position object
-        """
+        """Add a new position to track."""
         async with self._lock:
             position = Position(
                 ticker=ticker,
@@ -285,24 +178,14 @@ class PositionManager:
             if self.stream_manager:
                 await self.stream_manager.subscribe_symbol(ticker)
 
-            # Log with conviction-appropriate exit targets
-            targets = position.get_exit_targets()
-            strategy = "AGGRESSIVE" if position.is_high_conviction else "STANDARD"
-
             logger.info(
-                f"Position added for {strategy} tiered exit management",
+                "Position added (stop loss + let winners run)",
                 ticker=ticker,
                 entry_price=entry_price,
                 shares=shares,
                 cost_basis=position.total_cost_basis,
                 conviction=conviction.value,
-                initial_nbbo_mid=initial_nbbo_mid,
                 stop_loss_price=position.stop_loss_price,
-                targets={
-                    f"tier_1_{int(targets[ExitTier.TIER_1]*100)}pct": round(entry_price * (1 + targets[ExitTier.TIER_1]), 2),
-                    f"tier_2_{int(targets[ExitTier.TIER_2]*100)}pct": round(entry_price * (1 + targets[ExitTier.TIER_2]), 2),
-                    f"tier_3_{int(targets[ExitTier.TIER_3]*100)}pct": round(entry_price * (1 + targets[ExitTier.TIER_3]), 2),
-                }
             )
 
             return position
@@ -325,7 +208,6 @@ class PositionManager:
                 self._exits_in_progress.discard(ticker)
 
                 # Unsubscribe from quote stream to prevent memory leak
-                # Quote streams accumulate indefinitely if not cleaned up
                 if self.stream_manager:
                     try:
                         await self.stream_manager.unsubscribe_symbol(ticker)
@@ -335,20 +217,10 @@ class PositionManager:
                 logger.info(
                     "Position removed (fully exited)",
                     ticker=ticker,
-                    realized_pnl=position.realized_pnl,
-                    shares_sold=position.shares_sold
                 )
 
     async def request_manual_exit(self, ticker: str) -> bool:
-        """
-        Request manual exit of entire position.
-
-        Args:
-            ticker: Ticker to exit
-
-        Returns:
-            True if position exists and exit requested
-        """
+        """Request manual exit of entire position."""
         async with self._lock:
             if ticker in self._positions:
                 self._manual_exits[ticker] = True
@@ -361,11 +233,7 @@ class PositionManager:
             return False
 
     async def _handle_quote_event(self, event_type: str, event_data: dict) -> None:
-        """
-        Handle QuoteReceived event from WebSocket stream.
-
-        This is the primary exit check mechanism - runs on every quote update.
-        """
+        """Handle QuoteReceived event from WebSocket stream."""
         try:
             symbol = event_data.get("symbol")
             if not symbol or symbol not in self._positions:
@@ -403,7 +271,6 @@ class PositionManager:
             if self._manual_exits.get(ticker):
                 if ticker not in self._exits_in_progress:
                     self._exits_in_progress.add(ticker)
-                    # Release lock before executing exit
                     asyncio.create_task(self._execute_exit_async(
                         position,
                         position.shares_remaining,
@@ -413,8 +280,7 @@ class PositionManager:
                     self._manual_exits.pop(ticker, None)
                 return
 
-            # 🛑 STOP LOSS CHECK: Exit entire position if price drops 5% below initial NBBO
-            # This protects against "fake rallies" - good catalysts shouldn't dump below origin
+            # 🛑 STOP LOSS CHECK: Exit entire position if price drops 5% below entry
             if position.stop_loss_price and not position.stop_loss_triggered:
                 if current_price <= position.stop_loss_price:
                     exit_key = f"{ticker}_stop_loss"
@@ -422,17 +288,14 @@ class PositionManager:
                         self._exits_in_progress.add(exit_key)
                         position.stop_loss_triggered = True
                         loss_pct = (current_price - position.entry_price) / position.entry_price
-                        loss_from_initial = (current_price - position.initial_nbbo_mid) / position.initial_nbbo_mid
                         logger.warning(
-                            f"🛑 STOP LOSS TRIGGERED: Price dropped {STOP_LOSS_PCT*100:.0f}% below initial NBBO",
+                            f"🛑 STOP LOSS TRIGGERED: Price dropped {STOP_LOSS_PCT*100:.0f}% below entry",
                             ticker=ticker,
                             current_price=current_price,
                             stop_loss_price=position.stop_loss_price,
-                            initial_nbbo_mid=position.initial_nbbo_mid,
                             entry_price=position.entry_price,
-                            loss_from_entry_pct=f"{loss_pct*100:.1f}%",
-                            loss_from_initial_pct=f"{loss_from_initial*100:.1f}%",
-                            shares_remaining=position.shares_remaining
+                            loss_pct=f"{loss_pct*100:.1f}%",
+                            shares=position.shares_remaining
                         )
                         asyncio.create_task(self._execute_exit_async(
                             position,
@@ -442,9 +305,8 @@ class PositionManager:
                         ))
                     return
 
-            # NO AUTOMATIC TAKE-PROFITS: Let winners run!
-            # User exits manually via Telegram when they see weakness
-            # Time-based exit (10 min) handled by ExitTradeUseCase
+            # No automatic take-profits: let winners run.
+            # User exits via Telegram /exit or time-based exit (10 min).
 
     async def _execute_exit_async(
         self,
@@ -453,11 +315,10 @@ class PositionManager:
         exit_reason: str,
         profit_pct: float,
     ) -> None:
-        """Execute exit and update position state."""
+        """Execute exit and clean up tracking."""
         try:
             await self._execute_exit(position, shares, exit_reason, profit_pct)
         finally:
-            # Clean up exit-in-progress tracking
             exit_key = f"{position.ticker}_{exit_reason}"
             self._exits_in_progress.discard(exit_key)
 
@@ -468,15 +329,7 @@ class PositionManager:
         exit_reason: str,
         profit_pct: float,
     ) -> None:
-        """
-        Execute a partial or full exit.
-
-        Args:
-            position: Position to exit
-            shares: Number of shares to sell
-            exit_reason: Reason for exit (tier_1, tier_2, tier_3, manual_exit)
-            profit_pct: Current profit percentage
-        """
+        """Execute a full exit (sell all shares)."""
         if shares <= 0:
             return
 
@@ -485,7 +338,6 @@ class PositionManager:
             ticker=position.ticker,
             shares=int(shares),
             profit_pct=f"{profit_pct*100:.1f}%",
-            shares_remaining_before=position.shares_remaining,
             article_id=position.article_id
         )
 
@@ -493,7 +345,7 @@ class PositionManager:
         trade_request = TradeRequest(
             ticker=position.ticker,
             action=TradeAction.SELL,
-            shares=int(shares),  # Round to whole shares
+            shares=int(shares),
             amount_usd=None,
             leverage=None,
             article_id=position.article_id,
@@ -503,10 +355,6 @@ class PositionManager:
         # Publish trade request event
         from ...domain.brokerage.events import TradeRequestDomainEvent
 
-        # Include conviction info in exit metadata
-        exit_strategy = "aggressive" if position.is_high_conviction else "standard"
-        exit_targets = position.get_exit_targets()
-
         exit_event = TradeRequestDomainEvent(
             trade_request=trade_request,
             article_id=position.article_id,
@@ -515,11 +363,7 @@ class PositionManager:
                 "exit_reason": exit_reason,
                 "profit_pct": profit_pct,
                 "entry_price": position.entry_price,
-                "tier": position.current_tier.value,
                 "conviction": position.conviction.value,
-                "exit_strategy": exit_strategy,
-                "target_pct": exit_targets.get(position.current_tier, 0) * 100,
-                "initial_nbbo_mid": position.initial_nbbo_mid,
                 "stop_loss_price": position.stop_loss_price,
                 "stop_loss_triggered": position.stop_loss_triggered,
             }
@@ -530,28 +374,12 @@ class PositionManager:
         # Update position tracking
         async with self._lock:
             position.shares_remaining -= shares
-            position.shares_sold += shares
-
-            # Update tier status
-            if exit_reason == "tier_1":
-                position.tier_1_executed = True
-                position.current_tier = ExitTier.TIER_2
-            elif exit_reason == "tier_2":
-                position.tier_2_executed = True
-                position.current_tier = ExitTier.TIER_3
-            elif exit_reason == "tier_3":
-                position.tier_3_executed = True
-                position.current_tier = ExitTier.COMPLETE
-            elif exit_reason == "stop_loss":
-                # Stop loss exits everything
-                position.current_tier = ExitTier.COMPLETE
 
         logger.info(
             f"Exit trade request published: {exit_reason}",
             ticker=position.ticker,
             shares_sold=int(shares),
             shares_remaining=position.shares_remaining,
-            total_shares_sold=position.shares_sold
         )
 
         # Remove position if fully exited
@@ -565,17 +393,14 @@ class PositionManager:
 
         for ticker, position in positions_to_check:
             try:
-                # Get current price via REST (fallback)
                 current_price = None
 
                 if self.stream_manager:
-                    # Try WebSocket cache first
                     quote = await self.stream_manager.get_latest_quote(ticker)
                     if quote:
                         current_price = quote.get("bid")
 
                 if not current_price and self.quote_fetcher:
-                    # Fall back to REST
                     current_price = await self.quote_fetcher.get_realtime_price(ticker)
 
                 if current_price:
@@ -625,22 +450,19 @@ class PositionManager:
         self._monitor_task = asyncio.create_task(self._monitor_loop())
 
         logger.info(
-            "PositionManager started",
+            "PositionManager started (5% stop loss, let winners run)",
             poll_interval=self.poll_interval,
             has_websocket=self.stream_manager is not None,
-            exit_targets={k.value: f"{v*100:.1f}%" for k, v in EXIT_TARGETS.items()}
         )
 
     async def stop(self) -> None:
         """Stop position monitoring."""
         self._running = False
 
-        # Unsubscribe from quote events
         if self._quote_subscription_id:
             self.event_bus.unsubscribe("QuoteReceived", self._quote_subscription_id)
             self._quote_subscription_id = None
 
-        # Cancel polling loop
         if self._monitor_task:
             self._monitor_task.cancel()
             try:
@@ -649,30 +471,22 @@ class PositionManager:
                 pass
             self._monitor_task = None
 
-        logger.info(
-            "PositionManager stopped",
-            open_positions=len(self._positions)
-        )
+        logger.info("PositionManager stopped", open_positions=len(self._positions))
 
     def get_stats(self) -> Dict:
         """Get position manager statistics."""
         positions_summary = []
         for ticker, pos in self._positions.items():
-            targets = pos.get_exit_targets()
             positions_summary.append({
                 "ticker": ticker,
                 "entry_price": pos.entry_price,
                 "shares": pos.shares,
                 "shares_remaining": pos.shares_remaining,
-                "current_tier": pos.current_tier.value,
                 "conviction": pos.conviction.value,
-                "exit_strategy": "aggressive" if pos.is_high_conviction else "standard",
                 "entry_time": pos.entry_time.isoformat(),
                 "last_price": pos.last_price,
                 "profit_pct": f"{pos.current_profit_pct*100:.1f}%" if pos.current_profit_pct else None,
                 "unrealized_pnl": round(pos.unrealized_pnl, 2) if pos.unrealized_pnl else None,
-                "targets": {k.value: f"{v*100:.1f}%" for k, v in targets.items()},
-                "initial_nbbo_mid": pos.initial_nbbo_mid,
                 "stop_loss_price": pos.stop_loss_price,
                 "stop_loss_triggered": pos.stop_loss_triggered,
             })
@@ -684,7 +498,5 @@ class PositionManager:
             "poll_interval": self.poll_interval,
             "has_websocket": self.stream_manager is not None,
             "stop_loss_pct": f"{STOP_LOSS_PCT*100:.0f}%",
-            "exit_targets_standard": {k.value: f"{v*100:.1f}%" for k, v in EXIT_TARGETS_STANDARD.items()},
-            "exit_targets_aggressive": {k.value: f"{v*100:.1f}%" for k, v in EXIT_TARGETS_AGGRESSIVE.items()},
             "positions": positions_summary,
         }

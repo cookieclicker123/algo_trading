@@ -245,7 +245,7 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
     # Get event bus from container (needed for PositionManager and Services container)
     event_bus = container.event_bus()
 
-    # Create PositionManager for tiered exit strategy (10%/15%/20% profit targets)
+    # Create PositionManager for stop loss protection + let winners run
     # Uses WebSocket for real-time price monitoring with 500ms REST polling fallback
     from .brokerage.position_manager import PositionManager
     position_manager = PositionManager(
@@ -281,8 +281,7 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
                 except ValueError:
                     conviction = ConvictionLevel.STANDARD
 
-                # Extract initial_nbbo_mid for stop loss tracking
-                # Stop loss is 5% below initial NBBO mid (not entry price)
+                # Extract initial_nbbo_mid for analytics/logging
                 initial_nbbo_mid = metadata.get("initial_nbbo_mid")
 
                 if ticker and fill_price and shares:
@@ -294,22 +293,20 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
                         conviction=conviction,
                         initial_nbbo_mid=initial_nbbo_mid,
                     )
-                    strategy = "AGGRESSIVE" if conviction not in (ConvictionLevel.STANDARD, ConvictionLevel.MINIMUM) else "STANDARD"
                     logger.info(
-                        f"Position added from TradeExecuted event ({strategy} exits)",
+                        "Position added from TradeExecuted event (stop loss + let winners run)",
                         ticker=ticker,
                         entry_price=fill_price,
                         shares=shares,
                         conviction=conviction.value,
-                        initial_nbbo_mid=initial_nbbo_mid,
-                        stop_loss_price=initial_nbbo_mid * 0.95 if initial_nbbo_mid else None
+                        stop_loss_price=fill_price * 0.95 if fill_price else None
                     )
         except Exception as e:
             logger.error(f"Error handling TradeExecuted for PositionManager: {e}", exc_info=True)
 
     event_bus.subscribe("TradeExecuted", _on_trade_executed)
     await position_manager.start()
-    logger.info("PositionManager created and started (tiered exits + 5% stop loss below initial NBBO)")
+    logger.info("PositionManager created and started (5% stop loss, let winners run)")
     
     # Update trade handlers with exit_trade_use_case and position_manager
     if trade_handler:

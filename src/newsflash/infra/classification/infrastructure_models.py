@@ -19,7 +19,7 @@ class InfrastructureClassificationRequestData(BaseModel):
     article_tickers: list[str] = Field(default_factory=list, description="Stock tickers")
     article_summary: str = Field(default="", description="Article summary/content")
     article_published_at_iso: Optional[str] = Field(None, description="ISO publication timestamp for pre-filtering")
-    # Infrastructure-specific fields can be added here
+    article_received_at_iso: Optional[str] = Field(None, description="ISO timestamp when websocket received this article (for accurate latency calc)")
 
 
 class InfrastructureClassificationResponseData(BaseModel):

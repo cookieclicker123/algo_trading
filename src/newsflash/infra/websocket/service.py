@@ -564,7 +564,7 @@ class BenzingaWebSocketMicroservice:
         """Publish ArticleReceived infrastructure event."""
         event = ArticleReceivedEvent(
             article_data=article_data,
-            received_at=datetime.now()
+            received_at=datetime.now(timezone.utc)
         )
         await self.event_bus.publish(InfrastructureEventType.ARTICLE_RECEIVED, event.model_dump())
 

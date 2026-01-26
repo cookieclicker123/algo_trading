@@ -307,14 +307,15 @@ Summary: {summary}"""
                 await self._publish_skipped_event(infra_event, filter_reason)
                 return
 
-            # Step 2b: 20-SECOND MAX LATENCY FILTER
+            # Step 2b: 25-SECOND MAX LATENCY FILTER
             # ====================================================================
-            # Skip articles if websocket delivery was too slow (> 20 seconds after publication).
+            # Skip articles if websocket delivery was too slow (> 25 seconds after publication).
             # Late-arriving articles have missed the initial momentum opportunity and
             # are more likely to result in chasing rather than catching the move.
             # Analysis shows most profitable trades arrive quickly through websocket.
+            # Increased from 20s to 25s to catch good trades arriving 21-24s late.
             # ====================================================================
-            MAX_WEBSOCKET_LATENCY_SECONDS = 20.0
+            MAX_WEBSOCKET_LATENCY_SECONDS = 25.0
 
             if request_data.article_published_at_iso:
                 try:
@@ -322,12 +323,24 @@ Summary: {summary}"""
                     published_at = datetime.fromisoformat(
                         request_data.article_published_at_iso.replace("Z", "+00:00")
                     )
-                    now = datetime.now(timezone.utc)
-                    latency_seconds = (now - published_at).total_seconds()
+
+                    # Use websocket received_at for accurate latency (not datetime.now which includes processing time)
+                    if request_data.article_received_at_iso:
+                        received_at = datetime.fromisoformat(
+                            request_data.article_received_at_iso.replace("Z", "+00:00")
+                        )
+                        # Ensure timezone-aware comparison
+                        if received_at.tzinfo is None:
+                            received_at = received_at.replace(tzinfo=timezone.utc)
+                        latency_seconds = (received_at - published_at).total_seconds()
+                    else:
+                        # Fallback to datetime.now() if received_at not available
+                        now = datetime.now(timezone.utc)
+                        latency_seconds = (now - published_at).total_seconds()
 
                     if latency_seconds > MAX_WEBSOCKET_LATENCY_SECONDS:
                         logger.info(
-                            "⏭️ CLASSIFY INFRA: Skipping - websocket latency too high (>20s)",
+                            "⏭️ CLASSIFY INFRA: Skipping - websocket latency too high (>25s)",
                             article_id=request_data.article_id,
                             published_at=published_at.isoformat(),
                             latency_seconds=round(latency_seconds, 2),
@@ -456,6 +469,21 @@ Summary: {summary}"""
                         await self._publish_skipped_event(infra_event, f"market_cap_too_high:{round(market_cap)}M")
                         return
 
+                    # Minimum market cap filter: < $3M = too small, heavily manipulated
+                    MIN_MARKET_CAP_MILLIONS = 2
+
+                    if market_cap and market_cap < MIN_MARKET_CAP_MILLIONS:
+                        logger.info(
+                            "⏭️ MICROSTRUCTURE FILTER: Market cap too low - manipulation risk",
+                            article_id=request_data.article_id,
+                            ticker=primary_ticker,
+                            market_cap_millions=round(market_cap, 2),
+                            threshold_millions=MIN_MARKET_CAP_MILLIONS,
+                            reason="Sub-$3M stocks are heavily manipulated"
+                        )
+                        await self._publish_skipped_event(infra_event, f"market_cap_too_low:{round(market_cap, 1)}M")
+                        return
+
                     logger.debug(
                         "✅ MICROSTRUCTURE FILTER: Market cap check passed",
                         ticker=primary_ticker,
@@ -464,14 +492,12 @@ Summary: {summary}"""
 
             # Step 3e: PRICE FILTER (low-priced stocks move more on news)
             # ====================================================================
-            # Statistical analysis shows:
-            # - Winners: 97% have price < $20
-            # - Adding this filter improves P&L from $1,430 to $1,520
-            # - Minimal winner loss (27 → 27) while filtering more losers (554 → 532)
+            # Filters out high-priced stocks where news-driven % moves are smaller.
+            # $35 threshold permits biotech/pharma catalyst trades (e.g. SRPT @ $21).
             # ====================================================================
             if nbbo_snapshot:
                 current_price = nbbo_snapshot.get("mid") or nbbo_snapshot.get("ask") or 0
-                MAX_PRICE = 20.0
+                MAX_PRICE = 35.0
 
                 if current_price and current_price > MAX_PRICE:
                     logger.info(
@@ -483,6 +509,21 @@ Summary: {summary}"""
                         reason="Higher-priced stocks have smaller percentage moves"
                     )
                     await self._publish_skipped_event(infra_event, f"price_too_high:${round(current_price, 2)}")
+                    return
+
+                # Minimum price filter: < $0.25 = sub-penny territory, heavily manipulated
+                MIN_PRICE = 0.25
+
+                if current_price and current_price < MIN_PRICE:
+                    logger.info(
+                        "⏭️ MICROSTRUCTURE FILTER: Price too low - manipulation risk",
+                        article_id=request_data.article_id,
+                        ticker=primary_ticker,
+                        price=round(current_price, 4),
+                        threshold=MIN_PRICE,
+                        reason="Sub-$0.25 stocks are heavily manipulated"
+                    )
+                    await self._publish_skipped_event(infra_event, f"price_too_low:${round(current_price, 4)}")
                     return
 
                 logger.debug(

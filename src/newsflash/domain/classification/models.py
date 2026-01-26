@@ -39,6 +39,7 @@ class ClassificationRequest(BaseModel):
     article_tickers: FrozenSet[str] = Field(default_factory=frozenset, description="Stock tickers (immutable)")
     article_summary: str = Field(default="", description="Article summary/content")
     article_published_at: Optional[datetime] = Field(None, description="When article was originally published")
+    article_received_at: Optional[datetime] = Field(None, description="When websocket received this article (for accurate latency)")
     requested_at: datetime = Field(default_factory=datetime.now, description="When classification was requested")
     
     model_config = {"frozen": True, "validate_assignment": False}  # Immutable
