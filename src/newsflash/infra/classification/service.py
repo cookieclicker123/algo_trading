@@ -307,15 +307,16 @@ Summary: {summary}"""
                 await self._publish_skipped_event(infra_event, filter_reason)
                 return
 
-            # Step 2b: 25-SECOND MAX LATENCY FILTER
+            # Step 2b: 10-SECOND MAX LATENCY FILTER
             # ====================================================================
-            # Skip articles if websocket delivery was too slow (> 25 seconds after publication).
+            # Skip articles if websocket delivery was too slow (> 10 seconds after publication).
             # Late-arriving articles have missed the initial momentum opportunity and
             # are more likely to result in chasing rather than catching the move.
-            # Analysis shows most profitable trades arrive quickly through websocket.
-            # Increased from 20s to 25s to catch good trades arriving 21-24s late.
+            # Analysis shows ALL winners today entered within first 10 seconds.
+            # Reduced from 25s to 10s - winners are so big we're OK missing late entries
+            # in favor of avoiding late-entry losers like SAFX (entered at -15% from peak).
             # ====================================================================
-            MAX_WEBSOCKET_LATENCY_SECONDS = 25.0
+            MAX_WEBSOCKET_LATENCY_SECONDS = 10.0
 
             if request_data.article_published_at_iso:
                 try:
@@ -348,6 +349,14 @@ Summary: {summary}"""
                             tickers=request_data.article_tickers,
                             reason="Late articles have missed initial momentum"
                         )
+                        # Register skipped tickers for risk reduction on subsequent headlines
+                        try:
+                            from ...services.brokerage.auto_trade import register_skipped_ticker
+                            for ticker in request_data.article_tickers:
+                                register_skipped_ticker(ticker)
+                        except Exception as e:
+                            logger.debug(f"Could not register skipped ticker: {e}")
+
                         await self._publish_skipped_event(infra_event, f"latency_too_high:{round(latency_seconds)}s")
                         return
 

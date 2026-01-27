@@ -23,7 +23,7 @@ from enum import Enum
 
 from ...utils.logging_config import get_logger
 from ...shared.event_bus import AsyncEventBus
-from ...models.base_models import TradeRequest
+from ...domain.brokerage.models import TradeRequest
 from ...domain.brokerage.models import TradeAction, TradeInstrument
 
 logger = get_logger(__name__)
@@ -115,12 +115,14 @@ class PositionManager:
         event_bus: AsyncEventBus,
         quote_fetcher=None,  # AlpacaQuoteFetcher (for REST fallback)
         stream_manager=None,  # AlpacaMarketDataStreamManager (for WebSocket)
+        fast_notifier=None,  # FastTradeNotifier for immediate Telegram on stop loss
         poll_interval: float = 0.5,  # 500ms fallback polling
         enabled: bool = True,
     ):
         self.event_bus = event_bus
         self.quote_fetcher = quote_fetcher
         self.stream_manager = stream_manager
+        self.fast_notifier = fast_notifier
         self.poll_interval = poll_interval
         self.enabled = enabled
 
@@ -341,6 +343,27 @@ class PositionManager:
             article_id=position.article_id
         )
 
+        # Send fast Telegram notification for stop loss/manual exits (fire-and-forget)
+        if self.fast_notifier:
+            try:
+                # Estimate exit value (actual fill may differ slightly)
+                estimated_exit_price = position.last_price or position.entry_price * (1 + profit_pct)
+                estimated_value = estimated_exit_price * shares
+                pnl_usd = (estimated_exit_price - position.entry_price) * shares
+
+                self.fast_notifier.notify_exit_triggered(
+                    ticker=position.ticker,
+                    exit_reason=exit_reason,
+                    shares=int(shares),
+                    entry_price=position.entry_price,
+                    exit_price=estimated_exit_price,
+                    profit_pct=profit_pct,
+                    pnl_usd=pnl_usd,
+                    stop_loss_price=position.stop_loss_price,
+                )
+            except Exception as e:
+                logger.error(f"FastTradeNotifier exit notification failed: {e}")
+
         # Build sell trade request
         trade_request = TradeRequest(
             ticker=position.ticker,
@@ -394,17 +417,35 @@ class PositionManager:
         for ticker, position in positions_to_check:
             try:
                 current_price = None
+                price_source = None
 
+                # Try WebSocket cache first (fastest)
                 if self.stream_manager:
                     quote = await self.stream_manager.get_latest_quote(ticker)
                     if quote:
                         current_price = quote.get("bid")
+                        price_source = "websocket"
 
+                # Fallback to REST API if WebSocket failed
                 if not current_price and self.quote_fetcher:
                     current_price = await self.quote_fetcher.get_realtime_price(ticker)
+                    if current_price:
+                        price_source = "rest_api"
 
-                if current_price:
-                    await self._check_position_exit(ticker, current_price)
+                # CRITICAL: Log warning if we can't get price for stop loss monitoring
+                if not current_price:
+                    logger.warning(
+                        "⚠️ STOP LOSS: Cannot get price for position - stop loss check SKIPPED",
+                        ticker=ticker,
+                        entry_price=position.entry_price,
+                        stop_loss_price=position.stop_loss_price,
+                        has_stream_manager=self.stream_manager is not None,
+                        has_quote_fetcher=self.quote_fetcher is not None,
+                    )
+                    continue
+
+                # Check exit conditions with valid price
+                await self._check_position_exit(ticker, current_price)
 
             except Exception as e:
                 logger.error(f"Error checking position {ticker}: {e}", exc_info=True)

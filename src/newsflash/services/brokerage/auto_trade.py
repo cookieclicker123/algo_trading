@@ -54,6 +54,124 @@ from ..brokerage.position_manager import ConvictionLevel
 logger = get_logger(__name__)
 
 
+# ============================================================
+# DUPLICATE POSITION & COOLDOWN PROTECTION
+# ============================================================
+# Track active positions and recently exited tickers to prevent:
+# 1. Entering same ticker twice from different article IDs
+# 2. Re-entering a ticker immediately after time-based exit
+
+# Active tickers with open positions (set by composition_root on TradeExecuted)
+_active_positions: set = set()
+
+# Recently exited tickers with cooldown (ticker -> exit_time)
+_exited_tickers: dict = {}
+TICKER_COOLDOWN_MINUTES = 30  # Don't re-enter for 30 minutes after exit
+
+# ============================================================
+# RECENTLY SKIPPED TICKER TRACKING (Risk Reduction)
+# ============================================================
+# If we skipped a headline for a ticker recently, subsequent headlines
+# are higher risk (the first headline already moved the stock).
+# Cap position size at $5k for these "second wave" entries.
+
+_skipped_tickers: dict = {}  # ticker -> skip_time
+SKIPPED_TICKER_WINDOW_MINUTES = 10  # Remember skips for 10 minutes
+SKIPPED_TICKER_MAX_POSITION_USD = 5000  # Cap at $5k for recently skipped tickers
+
+
+def register_skipped_ticker(ticker: str) -> None:
+    """Register that we skipped a headline for this ticker."""
+    ticker_upper = ticker.upper()
+    _skipped_tickers[ticker_upper] = datetime.now(timezone.utc)
+    logger.info(
+        f"Ticker skip registered: {ticker_upper}",
+        window_minutes=SKIPPED_TICKER_WINDOW_MINUTES,
+        max_position_if_traded=f"${SKIPPED_TICKER_MAX_POSITION_USD}"
+    )
+
+
+def was_recently_skipped(ticker: str) -> bool:
+    """Check if we skipped a headline for this ticker recently."""
+    ticker_upper = ticker.upper()
+    if ticker_upper not in _skipped_tickers:
+        return False
+
+    skip_time = _skipped_tickers[ticker_upper]
+    window_end = skip_time + timedelta(minutes=SKIPPED_TICKER_WINDOW_MINUTES)
+
+    if datetime.now(timezone.utc) > window_end:
+        # Window expired, remove from tracking
+        del _skipped_tickers[ticker_upper]
+        return False
+
+    return True
+
+
+def get_skip_age_seconds(ticker: str) -> Optional[float]:
+    """Get how long ago we skipped this ticker, or None if not skipped recently."""
+    ticker_upper = ticker.upper()
+    if ticker_upper not in _skipped_tickers:
+        return None
+
+    skip_time = _skipped_tickers[ticker_upper]
+    return (datetime.now(timezone.utc) - skip_time).total_seconds()
+
+
+def register_active_position(ticker: str) -> None:
+    """Register a ticker as having an active position."""
+    _active_positions.add(ticker.upper())
+    logger.info(f"Position registered: {ticker.upper()}", active_count=len(_active_positions))
+
+
+def unregister_active_position(ticker: str) -> None:
+    """Unregister a ticker when position is closed."""
+    ticker_upper = ticker.upper()
+    _active_positions.discard(ticker_upper)
+    # Add to cooldown tracking
+    _exited_tickers[ticker_upper] = datetime.now(timezone.utc)
+    logger.info(
+        f"Position unregistered, cooldown started: {ticker_upper}",
+        active_count=len(_active_positions),
+        cooldown_minutes=TICKER_COOLDOWN_MINUTES
+    )
+
+
+def has_active_position(ticker: str) -> bool:
+    """Check if we already have an active position in this ticker."""
+    return ticker.upper() in _active_positions
+
+
+def is_ticker_in_cooldown(ticker: str) -> bool:
+    """Check if ticker is in cooldown period after recent exit."""
+    ticker_upper = ticker.upper()
+    if ticker_upper not in _exited_tickers:
+        return False
+
+    exit_time = _exited_tickers[ticker_upper]
+    cooldown_end = exit_time + timedelta(minutes=TICKER_COOLDOWN_MINUTES)
+
+    if datetime.now(timezone.utc) > cooldown_end:
+        # Cooldown expired, remove from tracking
+        del _exited_tickers[ticker_upper]
+        return False
+
+    return True
+
+
+def get_cooldown_remaining(ticker: str) -> Optional[float]:
+    """Get remaining cooldown time in minutes, or None if not in cooldown."""
+    ticker_upper = ticker.upper()
+    if ticker_upper not in _exited_tickers:
+        return None
+
+    exit_time = _exited_tickers[ticker_upper]
+    cooldown_end = exit_time + timedelta(minutes=TICKER_COOLDOWN_MINUTES)
+    remaining = (cooldown_end - datetime.now(timezone.utc)).total_seconds() / 60
+
+    return max(0, remaining)
+
+
 # Position sizing based on confluence score
 POSITION_SIZES_USD = {
     ConvictionLevel.MINIMUM: Decimal("5000.00"),      # Score 0: Surge window → $5k if surge found
@@ -667,6 +785,22 @@ def build_trade_request_for_article(
     # Use conviction-based position sizing
     TRADE_SIZE_USD = POSITION_SIZES_USD.get(conviction, POSITION_SIZES_USD[ConvictionLevel.STANDARD])
 
+    # Risk reduction: If we skipped a headline for this ticker recently, cap position
+    # The first headline already moved the stock - we're entering as "second wave" exit liquidity
+    ticker_to_check = ticker or (next(iter(article.tickers), None) if article.tickers else None)
+    if ticker_to_check and was_recently_skipped(ticker_to_check):
+        skip_age = get_skip_age_seconds(ticker_to_check)
+        original_size = TRADE_SIZE_USD
+        TRADE_SIZE_USD = min(TRADE_SIZE_USD, Decimal(str(SKIPPED_TICKER_MAX_POSITION_USD)))
+        logger.warning(
+            f"⚠️ RISK REDUCTION: Ticker was skipped {skip_age:.0f}s ago - capping position at ${SKIPPED_TICKER_MAX_POSITION_USD}",
+            ticker=ticker_to_check,
+            original_size=float(original_size),
+            capped_size=float(TRADE_SIZE_USD),
+            skip_age_seconds=skip_age,
+            reason="Second headline for same ticker - higher risk of fade"
+        )
+
     # Allow test override via environment variable (for load tests to avoid buying power issues)
     if os.getenv("TEST_TRADE_SIZE_USD"):
         TRADE_SIZE_USD = Decimal(os.getenv("TEST_TRADE_SIZE_USD"))
@@ -867,6 +1001,33 @@ async def process_imminent_article(
             logger.info(
                 "⏭️ AUTO-TRADE SKIPPED: Article has no tickers",
                 article_id=article_id
+            )
+            return
+
+        # ============================================================
+        # 🛡️ DUPLICATE POSITION GUARD: Don't enter if already have position
+        # ============================================================
+        if has_active_position(ticker):
+            logger.info(
+                "⏭️ AUTO-TRADE SKIPPED: Already have active position in ticker",
+                ticker=ticker,
+                article_id=article_id,
+                reason="Duplicate position prevention"
+            )
+            return
+
+        # ============================================================
+        # 🕐 TICKER COOLDOWN: Don't re-enter too soon after exit
+        # ============================================================
+        if is_ticker_in_cooldown(ticker):
+            remaining_min = get_cooldown_remaining(ticker)
+            logger.info(
+                "⏭️ AUTO-TRADE SKIPPED: Ticker in cooldown after recent exit",
+                ticker=ticker,
+                article_id=article_id,
+                cooldown_remaining_min=round(remaining_min, 1) if remaining_min else 0,
+                cooldown_total_min=TICKER_COOLDOWN_MINUTES,
+                reason="Preventing re-entry after time-based exit"
             )
             return
 

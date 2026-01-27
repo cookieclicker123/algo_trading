@@ -106,7 +106,7 @@ SECTOR_INDUSTRY_MAP: Dict[str, Dict[str, str]] = {
         "Restaurants": "consumer_services.txt",
         "Leisure": "consumer_services.txt",
         "Footwear & Accessories": "consumer_services.txt",
-        "Residential Construction": "consumer_services.txt",
+        "Residential Construction": "residential_construction.txt",
         "Home Improvement Retail": "consumer_services.txt",
         "Travel Services": "consumer_services.txt",
         "Apparel Manufacturing": "consumer_services.txt",

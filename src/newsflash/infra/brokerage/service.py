@@ -95,7 +95,12 @@ class BrokerageService:
         
         mode = "Paper Trading" if paper_trading else "Live Trading"
         logger.info(f"BrokerageService initialized for {mode}", paper_trading=paper_trading)
-    
+
+    @property
+    def stream_manager(self):
+        """Expose WebSocket stream manager for real-time quote subscriptions."""
+        return self.connection_manager.stream_manager if self.connection_manager else None
+
     async def start(self) -> None:
         """
         Start the brokerage service.

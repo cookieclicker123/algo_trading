@@ -184,6 +184,91 @@ class FastTradeNotifier:
 
         return "\n".join(message_parts)
 
+    def notify_exit_triggered(
+        self,
+        ticker: str,
+        exit_reason: str,
+        shares: float,
+        entry_price: float,
+        exit_price: float,
+        profit_pct: float,
+        pnl_usd: float,
+        stop_loss_price: Optional[float] = None,
+    ) -> None:
+        """
+        Send exit notification immediately (fire-and-forget).
+
+        Called when stop loss or manual exit is triggered.
+        """
+        if not self.enabled:
+            return
+
+        if not self.bot_1 and not self.bot_2:
+            return
+
+        # Format message
+        message = self._format_exit_message(
+            ticker=ticker,
+            exit_reason=exit_reason,
+            shares=shares,
+            entry_price=entry_price,
+            exit_price=exit_price,
+            profit_pct=profit_pct,
+            pnl_usd=pnl_usd,
+            stop_loss_price=stop_loss_price,
+        )
+
+        # Fire and forget - spawn background task
+        task = asyncio.create_task(self._send_to_all_bots(message, ticker))
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
+
+        logger.debug("FastTradeNotifier: Spawned exit notification task", ticker=ticker, exit_reason=exit_reason)
+
+    def _format_exit_message(
+        self,
+        ticker: str,
+        exit_reason: str,
+        shares: float,
+        entry_price: float,
+        exit_price: float,
+        profit_pct: float,
+        pnl_usd: float,
+        stop_loss_price: Optional[float] = None,
+    ) -> str:
+        """Format exit notification message."""
+        notification_time = datetime.now(timezone.utc)
+
+        # Choose emoji based on exit reason and P&L
+        if exit_reason == "stop_loss":
+            header = "🛑 STOP LOSS TRIGGERED"
+        elif exit_reason == "manual_exit":
+            header = "🚪 MANUAL EXIT"
+        else:
+            header = "📤 POSITION EXIT"
+
+        pnl_emoji = "🟢" if pnl_usd >= 0 else "🔴"
+
+        message_parts = [
+            header,
+            "",
+            f"📈 Ticker: {ticker}",
+            f"📦 Shares: {int(shares)}",
+            f"💵 Entry: ${entry_price:.2f}",
+            f"💸 Exit: ${exit_price:.2f}",
+            f"{pnl_emoji} P&L: ${pnl_usd:+.2f} ({profit_pct*100:+.1f}%)",
+        ]
+
+        if stop_loss_price and exit_reason == "stop_loss":
+            message_parts.append(f"🎯 Stop Loss Price: ${stop_loss_price:.2f}")
+
+        message_parts.extend([
+            "",
+            f"⏰ Triggered At: {notification_time.strftime('%Y-%m-%d %H:%M:%S UTC')}",
+        ])
+
+        return "\n".join(message_parts)
+
     async def _send_to_all_bots(self, message: str, ticker: str) -> None:
         """Send message to all configured bots."""
         tasks = []

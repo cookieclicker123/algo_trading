@@ -248,10 +248,25 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
     # Create PositionManager for stop loss protection + let winners run
     # Uses WebSocket for real-time price monitoring with 500ms REST polling fallback
     from .brokerage.position_manager import PositionManager
+
+    # Get stream_manager from connection_manager (it's not exposed directly on BrokerageService)
+    stream_manager = None
+    if hasattr(brokerage.infra, 'connection_manager') and brokerage.infra.connection_manager:
+        stream_manager = getattr(brokerage.infra.connection_manager, 'stream_manager', None)
+
+    if stream_manager:
+        logger.info("PositionManager will use WebSocket stream for real-time stop loss monitoring (SIP feed)")
+    else:
+        logger.warning("⚠️ PositionManager has NO WebSocket stream - stop loss relies on 500ms REST polling only!")
+
+    # Get fast_notifier for immediate Telegram on stop loss exits
+    fast_notifier = container.fast_trade_notifier()
+
     position_manager = PositionManager(
         event_bus=event_bus,
         quote_fetcher=brokerage.quote_fetcher,
-        stream_manager=brokerage.infra.stream_manager if hasattr(brokerage.infra, 'stream_manager') else None,
+        stream_manager=stream_manager,
+        fast_notifier=fast_notifier,
         poll_interval=0.5,  # 500ms fallback
         enabled=True,
     )
@@ -259,16 +274,17 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
 
     # Subscribe to TradeExecuted events to automatically track new positions
     from .brokerage.position_manager import ConvictionLevel
+    from .brokerage.auto_trade import register_active_position, unregister_active_position
 
     async def _on_trade_executed(event_type: str, event_data: dict):
         """Handle TradeExecuted event - add position if BUY order filled."""
         try:
             trade_request = event_data.get("trade_request", {})
             action = trade_request.get("action", "")
+            ticker = trade_request.get("ticker")
 
-            # Only track BUY trades (not SELL exits)
+            # Track BUY trades (entries) - add position
             if action.upper() == "BUY" and event_data.get("success"):
-                ticker = trade_request.get("ticker")
                 fill_price = event_data.get("fill_price")
                 shares = event_data.get("shares")
                 article_id = trade_request.get("article_id")
@@ -285,6 +301,9 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
                 initial_nbbo_mid = metadata.get("initial_nbbo_mid")
 
                 if ticker and fill_price and shares:
+                    # Register active position for duplicate guard
+                    register_active_position(ticker)
+
                     await position_manager.add_position(
                         ticker=ticker,
                         entry_price=fill_price,
@@ -301,6 +320,15 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
                         conviction=conviction.value,
                         stop_loss_price=fill_price * 0.95 if fill_price else None
                     )
+
+            # Track SELL trades (exits) - unregister position and start cooldown
+            elif action.upper() == "SELL" and event_data.get("success") and ticker:
+                unregister_active_position(ticker)
+                logger.info(
+                    "Position unregistered from TradeExecuted SELL (cooldown started)",
+                    ticker=ticker,
+                )
+
         except Exception as e:
             logger.error(f"Error handling TradeExecuted for PositionManager: {e}", exc_info=True)
 
