@@ -31,6 +31,7 @@ from ..brokerage.auto_trade import AutoTradeService
 from ..lifecycle_manager import LifecycleManager
 from ..websocket.feed_manager import FeedManager
 from ..websocket.feed_health_monitor import FeedHealthMonitor
+from ...infra.notification.fast_trade_notifier import create_fast_trade_notifier
 
 # Import statistics engines
 from ...infra.statistics.repository import StatisticsRepository
@@ -150,12 +151,20 @@ class ApplicationContainer(containers.DeclarativeContainer):
         telegram_config_2=telegram_config_2,
         metrics_service=shared.metrics_service,  # ✅ Inject metrics service
     )
-    
+
+    # Fast trade notifier for immediate Telegram notifications (bypasses event bus)
+    fast_trade_notifier = providers.Singleton(
+        create_fast_trade_notifier,
+        telegram_config_1=telegram_config_1,
+        telegram_config_2=telegram_config_2,
+    )
+
     brokerage_microservice = providers.Factory(
         initialize_brokerage_microservice,
         event_bus=shared.event_bus,
         paper_trading=config.paper_trading,
         metrics_service=shared.metrics_service,  # ✅ Inject metrics service
+        fast_notifier=fast_trade_notifier,  # ✅ Inject fast trade notifier for immediate Telegram
     )
     
     # Trade handler factories - DI container manages instances

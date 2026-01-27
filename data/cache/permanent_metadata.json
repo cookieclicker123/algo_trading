@@ -20467,5 +20467,29 @@
   "SW": {
     "industry": "Packaging & Containers",
     "sector": "Consumer Cyclical"
+  },
+  "PAG": {
+    "industry": "Auto & Truck Dealerships",
+    "sector": "Consumer Cyclical"
+  },
+  "ONL": {
+    "industry": "REIT - Office",
+    "sector": "Real Estate"
+  },
+  "LKFN": {
+    "industry": "Banks - Regional",
+    "sector": "Financial Services"
+  },
+  "FBP": {
+    "industry": "Banks - Regional",
+    "sector": "Financial Services"
+  },
+  "QSR": {
+    "industry": "Restaurants",
+    "sector": "Consumer Cyclical"
+  },
+  "HBT": {
+    "industry": "Banks - Regional",
+    "sector": "Financial Services"
   }
 }

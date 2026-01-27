@@ -14,6 +14,7 @@ from ...shared.event_bus import AsyncEventBus
 
 # Infrastructure layer
 from ...infra.brokerage import BrokerageService
+from ...infra.notification.fast_trade_notifier import FastTradeNotifier
 
 # Domain layer
 from ...domain.brokerage.listener import BrokerageDomainListener
@@ -107,32 +108,35 @@ async def initialize_brokerage_microservice(
     event_bus: AsyncEventBus,
     paper_trading: bool,
     metrics_service=None,  # Required - injected via DI
+    fast_notifier: Optional[FastTradeNotifier] = None,  # Optional fast trade notifications
 ) -> BrokerageMicroservice:
     """
     Initialize brokerage microservice independently.
-    
+
     This function knows ONLY about brokerage microservice.
     It doesn't know about other microservices.
-    
+
     Note: storage_query_service dependency will be wired in composition root.
-    
+
     Args:
         event_bus: Event bus instance (shared dependency)
         paper_trading: Whether to use paper trading (injected via DI)
         metrics_service: Metrics service (injected via DI)
-        
+        fast_notifier: Optional fast trade notifier for immediate Telegram notifications
+
     Returns:
         BrokerageMicroservice: Initialized brokerage microservice
     """
     logger.info("Initializing brokerage microservice...")
-    
+
     # Step 1: Infrastructure layer
     infra = BrokerageService(
         event_bus=event_bus,
         paper_trading=paper_trading,
-        metrics_service=metrics_service
+        metrics_service=metrics_service,
+        fast_notifier=fast_notifier,
     )
-    logger.info("Brokerage infrastructure initialized")
+    logger.info("Brokerage infrastructure initialized", fast_notifier_enabled=fast_notifier is not None)
     
     # Step 2: Domain listener (bridge infrastructure ↔ domain)
     from ...domain.brokerage.validators import TradeRequestValidator, TradeResultValidator

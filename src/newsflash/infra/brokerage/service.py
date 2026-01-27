@@ -19,6 +19,7 @@ from .queue_manager import TradeQueueManager
 from .events import BrokerageHealthStatusEvent
 from ...utils.brokerage.session_detector import get_market_session
 from ...utils.service_utils import serialize_stats
+from ..notification.fast_trade_notifier import FastTradeNotifier
 
 logger = get_logger(__name__)
 
@@ -45,42 +46,46 @@ class BrokerageService:
         event_bus: AsyncEventBus,
         metrics_service,  # Required - injected via DI
         paper_trading: bool = True,
+        fast_notifier: Optional[FastTradeNotifier] = None,
     ):
         """
         Initialize brokerage service.
-        
+
         Args:
             event_bus: Event bus instance for publishing/subscribing to events
             paper_trading: Whether to use paper trading
             metrics_service: Metrics service for statistics (injected via DI)
+            fast_notifier: Optional fast trade notifier for immediate Telegram notifications
         """
         self.paper_trading = paper_trading
-        
+
         # Core components - inject event_bus into all sub-components
         self.connection_manager = AlpacaConnectionManager(
             event_bus=event_bus,
             paper_trading=paper_trading,
             metrics_service=metrics_service
         )
-        
+
         # Quote fetcher needs market data client and optional WebSocket stream manager
         self.quote_fetcher = AlpacaQuoteFetcher(
             event_bus=event_bus,
             market_data_client=self.connection_manager.market_data_client,
             stream_manager=self.connection_manager.stream_manager  # Optional - backward compatible
         )
-        
-        # Trade executors
+
+        # Trade executors (with optional fast notifier for immediate Telegram)
         self.market_hours_executor = AlpacaMarketHoursTradeExecutor(
             event_bus=event_bus,
             quote_fetcher=self.quote_fetcher,
-            trading_client=self.connection_manager.trading_client
+            trading_client=self.connection_manager.trading_client,
+            fast_notifier=fast_notifier,
         )
-        
+
         self.extended_hours_executor = AlpacaExtendedHoursTradeExecutor(
             event_bus=event_bus,
             quote_fetcher=self.quote_fetcher,
-            trading_client=self.connection_manager.trading_client
+            trading_client=self.connection_manager.trading_client,
+            fast_notifier=fast_notifier,
         )
         
         self.queue_manager = TradeQueueManager(event_bus=event_bus)

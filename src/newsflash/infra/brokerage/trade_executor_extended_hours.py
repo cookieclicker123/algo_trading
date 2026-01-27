@@ -24,6 +24,7 @@ from ...utils.brokerage.ladder_algorithms import (
     calculate_limit_price,
     should_switch_to_late_step,
 )
+from ..notification.fast_trade_notifier import FastTradeNotifier
 
 logger = get_logger(__name__)
 
@@ -50,20 +51,31 @@ class AlpacaExtendedHoursTradeExecutor:
     - Send Telegram notifications
     """
     
-    def __init__(self, event_bus: AsyncEventBus, quote_fetcher: AlpacaQuoteFetcher, trading_client: TradingClient):
+    def __init__(
+        self,
+        event_bus: AsyncEventBus,
+        quote_fetcher: AlpacaQuoteFetcher,
+        trading_client: TradingClient,
+        fast_notifier: Optional[FastTradeNotifier] = None,
+    ):
         """
         Initialize extended hours trade executor.
-        
+
         Args:
             event_bus: Event bus instance for publishing/subscribing to events
             quote_fetcher: Quote fetcher instance for getting prices/NBBO
             trading_client: Alpaca TradingClient instance
+            fast_notifier: Optional fast trade notifier for immediate Telegram notifications
         """
         self.quote_fetcher = quote_fetcher
         self.event_bus = event_bus
         self.trading_client = trading_client
-        
-        logger.info("AlpacaExtendedHoursTradeExecutor initialized")
+        self.fast_notifier = fast_notifier
+
+        logger.info(
+            "AlpacaExtendedHoursTradeExecutor initialized",
+            fast_notifier_enabled=fast_notifier is not None
+        )
     
     async def execute(
         self,
@@ -1098,9 +1110,9 @@ class AlpacaExtendedHoursTradeExecutor:
         return False
     
     async def _publish_executed_event(self, trade_request: TradeRequest, result: Dict[str, Any]) -> None:
-        """Publish trade executed event."""
+        """Publish trade executed event and send fast notification."""
         infra_trade_request = build_infrastructure_trade_request_data(trade_request)
-        
+
         # Extract spread_info from instrument_details for notifications
         instrument_details = result.get("instrument_details", {})
         spread_info = {}
@@ -1113,6 +1125,24 @@ class AlpacaExtendedHoursTradeExecutor:
                 "mid": nbbo.get("mid")
             }
 
+        # FAST PATH: Send Telegram notification immediately (fire-and-forget)
+        # This bypasses the event bus layers for minimal latency
+        if self.fast_notifier and result.get("success") and trade_request.action.upper() == "BUY":
+            self.fast_notifier.notify_trade_executed(
+                ticker=trade_request.ticker,
+                action=trade_request.action.upper(),
+                shares=result.get("shares", 0),
+                fill_price=result.get("fill_price", 0),
+                total_cost=result.get("total_cost", 0),
+                session=result.get("session", "unknown"),
+                order_type=result.get("order_type", "LIMIT"),
+                spread_info=spread_info,
+                article_title=None,  # Not available at this layer
+                publication_time=None,  # Not available at this layer
+            )
+            logger.info("FastTradeNotifier: Triggered immediate notification", ticker=trade_request.ticker)
+
+        # STANDARD PATH: Publish event for stats/logging (continues in parallel)
         event = TradeExecutedEvent(
             trade_request=infra_trade_request,
             success=result["success"],
@@ -1132,7 +1162,7 @@ class AlpacaExtendedHoursTradeExecutor:
             source="brokerage",
             metadata=getattr(self, '_current_metadata', None)  # Exit metadata (tier, exit_reason, etc.)
         )
-        
+
         await self.event_bus.publish("TradeExecuted", event.model_dump())
         logger.debug("Published TradeExecuted event", ticker=trade_request.ticker)
     
