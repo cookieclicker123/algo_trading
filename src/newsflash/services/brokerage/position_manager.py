@@ -1,16 +1,25 @@
 """
-Position Manager - Tracks open positions with stop loss protection.
+Position Manager - Tracks open positions with tiered exit system.
 
-EXIT STRATEGY (Let Winners Run):
-- NO automatic take-profits (user exits manually via Telegram when they see weakness)
-- Stop Loss: 5% below actual entry price (limits max loss per trade)
-- Manual Exit: User can exit anytime via Telegram /exit command
-- Time-based Exit: Handled by ExitTradeUseCase (10 min default, can /hold to extend)
+EXIT STRATEGY (Tiered Profit-Taking + Stop Loss):
+Our edge is capturing 20-30% quick pops, not holding for massive winners.
 
-STOP LOSS:
-- 5% below actual entry price (NOT NBBO mid)
-- Anchored to fill price so max loss per trade is capped at ~5%
-- Winners massively outweigh the occasional 5% loss on failed trades
+TIERED EXITS (automatic profit-taking):
+- +15%: Exit 25% of position (lock in gains early)
+- +20%: Exit 25% of remaining
+- +25%: Exit 50% of remaining
+- +30%: Exit 50% of remaining
+- +35%: Exit 50% of remaining
+- +40%: Exit remaining position
+
+FLOOR RULE: After any tiered exit, remaining position cannot go below half
+of the last exit percentage. After +15% exit, floor is +7.5%. If price drops
+to floor, sell remaining position immediately.
+
+STOP LOSS (5% below entry price):
+- First 5 seconds: 2-second confirmation (brief spikes are noise, not signal)
+- After 5 seconds: Immediate execution (if crashing, it's real)
+- Rationale: SMTK went -7% at 1.8s then +37% at 2.0s - grace period prevents false stops
 
 Uses WebSocket for real-time price monitoring (sub-100ms latency).
 Falls back to 500ms polling if WebSocket unavailable.
@@ -40,10 +49,30 @@ class ConvictionLevel(Enum):
 # Stop loss configuration
 STOP_LOSS_PCT = 0.05  # 5% below actual entry price
 
+# Grace period for first 5 seconds after entry
+# Rationale: First 5 seconds are chaotic with brief spikes that recover instantly
+# (e.g., SMTK went -7% at 1.8s then +37% at 2.0s - recovered in 0.2s)
+# After 5 seconds, if stop is breached, it's a real crash - exit immediately
+ENTRY_GRACE_PERIOD_SECONDS = 5.0  # First 5 seconds: use confirmation
+STOP_LOSS_CONFIRMATION_SECONDS = 0.5  # During grace period: wait 0.5s to confirm (brief spikes recover faster)
+
+# Tiered exit configuration - capture 15-30% pops instead of holding for massive winners
+TIERED_EXIT_THRESHOLDS = [
+    (0.15, 0.25),  # +15%: Exit 25% of position (floor becomes +7.5%)
+    (0.20, 0.25),  # +20%: Exit 25% of remaining (floor becomes +10%)
+    (0.25, 0.50),  # +25%: Exit 50% of remaining
+    (0.30, 0.50),  # +30%: Exit 50% of remaining
+    (0.35, 0.50),  # +35%: Exit 50% of remaining
+    (0.40, 1.00),  # +40%: Exit remaining position
+]
+
+# Floor rule: If price drops below half of last exit threshold, exit remaining
+FLOOR_RULE_MULTIPLIER = 0.50  # Floor at 50% of last exit level
+
 
 @dataclass
 class Position:
-    """Represents an open position with stop loss protection."""
+    """Represents an open position with tiered exit system."""
     ticker: str
     entry_price: float
     shares: float
@@ -56,12 +85,20 @@ class Position:
     # Stop loss tracking - anchored to actual entry price
     initial_nbbo_mid: Optional[float] = None  # Kept for logging/analytics
     stop_loss_triggered: bool = False
+    stop_breach_time: Optional[datetime] = None  # For grace period confirmation
+
+    # Tiered exit tracking
+    next_tier_index: int = 0  # Index into TIERED_EXIT_THRESHOLDS
+    highest_profit_pct: float = 0.0  # Track peak for floor rule
+    last_exit_threshold: Optional[float] = None  # For floor rule calculation
+    total_exits_taken: int = 0  # Count of tiered exits completed
 
     # Position tracking
     shares_remaining: float = field(init=False)
 
     # P&L tracking
     total_cost_basis: float = field(init=False)
+    realized_pnl: float = 0.0  # Sum of P&L from all exits
 
     # Current price tracking (updated by monitor)
     last_price: Optional[float] = None
@@ -90,6 +127,21 @@ class Position:
         """Calculate unrealized P&L based on last known price."""
         if self.last_price:
             return (self.last_price - self.entry_price) * self.shares_remaining
+        return None
+
+    @property
+    def floor_price(self) -> Optional[float]:
+        """Calculate floor price based on last exit threshold (50% of last tier)."""
+        if self.last_exit_threshold is not None:
+            floor_pct = self.last_exit_threshold * FLOOR_RULE_MULTIPLIER
+            return self.entry_price * (1 + floor_pct)
+        return None
+
+    @property
+    def next_tier_threshold(self) -> Optional[tuple[float, float]]:
+        """Get next tiered exit threshold (profit_pct, exit_fraction) or None if all tiers complete."""
+        if self.next_tier_index < len(TIERED_EXIT_THRESHOLDS):
+            return TIERED_EXIT_THRESHOLDS[self.next_tier_index]
         return None
 
 
@@ -146,11 +198,13 @@ class PositionManager:
         self._exits_in_progress: set = set()
 
         logger.info(
-            "PositionManager initialized",
+            "PositionManager initialized (tiered exits + immediate stop loss)",
             enabled=enabled,
             poll_interval=poll_interval,
             has_stream_manager=stream_manager is not None,
-            stop_loss_pct=f"{STOP_LOSS_PCT*100:.0f}%"
+            stop_loss_pct=f"{STOP_LOSS_PCT*100:.0f}%",
+            tiered_exits=[f"+{t[0]*100:.0f}%: {t[1]*100:.0f}%" for t in TIERED_EXIT_THRESHOLDS],
+            floor_rule=f"{FLOOR_RULE_MULTIPLIER*100:.0f}% of last tier",
         )
 
     async def add_position(
@@ -181,13 +235,14 @@ class PositionManager:
                 await self.stream_manager.subscribe_symbol(ticker)
 
             logger.info(
-                "Position added (stop loss + let winners run)",
+                "Position added (tiered exits + immediate stop loss)",
                 ticker=ticker,
                 entry_price=entry_price,
                 shares=shares,
                 cost_basis=position.total_cost_basis,
                 conviction=conviction.value,
                 stop_loss_price=position.stop_loss_price,
+                first_tier=f"+{TIERED_EXIT_THRESHOLDS[0][0]*100:.0f}%",
             )
 
             return position
@@ -262,53 +317,176 @@ class PositionManager:
             logger.error(f"Error handling quote event: {e}", exc_info=True)
 
     async def _check_position_exit(self, ticker: str, current_price: float) -> None:
-        """Check and execute exit for a single position."""
+        """Check and execute exit for a single position (tiered exits + stop loss)."""
         async with self._lock:
             if ticker not in self._positions:
                 return
 
             position = self._positions[ticker]
+            profit_pct = (current_price - position.entry_price) / position.entry_price
+
+            # Update highest profit seen (for floor rule tracking)
+            if profit_pct > position.highest_profit_pct:
+                position.highest_profit_pct = profit_pct
 
             # Check for manual exit request first
             if self._manual_exits.get(ticker):
-                if ticker not in self._exits_in_progress:
-                    self._exits_in_progress.add(ticker)
+                exit_key = f"{ticker}_manual_exit"
+                if exit_key not in self._exits_in_progress:
+                    self._exits_in_progress.add(exit_key)
                     asyncio.create_task(self._execute_exit_async(
                         position,
                         position.shares_remaining,
                         "manual_exit",
-                        (current_price - position.entry_price) / position.entry_price
+                        profit_pct
                     ))
                     self._manual_exits.pop(ticker, None)
                 return
 
-            # 🛑 STOP LOSS CHECK: Exit entire position if price drops 5% below entry
+            # 🛑 STOP LOSS CHECK with grace period logic
+            # First 5 seconds: Use 2-second confirmation (volatility is extreme, brief spikes recover)
+            # After 5 seconds: Exit immediately (if still crashing, it's real)
             if position.stop_loss_price and not position.stop_loss_triggered:
                 if current_price <= position.stop_loss_price:
-                    exit_key = f"{ticker}_stop_loss"
-                    if exit_key not in self._exits_in_progress:
-                        self._exits_in_progress.add(exit_key)
-                        position.stop_loss_triggered = True
-                        loss_pct = (current_price - position.entry_price) / position.entry_price
-                        logger.warning(
-                            f"🛑 STOP LOSS TRIGGERED: Price dropped {STOP_LOSS_PCT*100:.0f}% below entry",
+                    now = datetime.now()
+                    seconds_since_entry = (now - position.entry_time).total_seconds()
+                    in_grace_period = seconds_since_entry <= ENTRY_GRACE_PERIOD_SECONDS
+
+                    if in_grace_period:
+                        # Within first 5 seconds - use confirmation to avoid false stops
+                        if position.stop_breach_time is None:
+                            position.stop_breach_time = now
+                            logger.info(
+                                f"⚠️ STOP BREACH (grace period): Starting {STOP_LOSS_CONFIRMATION_SECONDS}s confirmation",
+                                ticker=ticker,
+                                current_price=current_price,
+                                stop_loss_price=position.stop_loss_price,
+                                seconds_since_entry=round(seconds_since_entry, 1),
+                            )
+                            return
+
+                        breach_duration = (now - position.stop_breach_time).total_seconds()
+                        if breach_duration >= STOP_LOSS_CONFIRMATION_SECONDS:
+                            # Confirmed - price stayed below stop for 2+ seconds during grace period
+                            exit_key = f"{ticker}_stop_loss"
+                            if exit_key not in self._exits_in_progress:
+                                self._exits_in_progress.add(exit_key)
+                                position.stop_loss_triggered = True
+                                logger.warning(
+                                    f"🛑 STOP LOSS TRIGGERED (confirmed after {breach_duration:.1f}s)",
+                                    ticker=ticker,
+                                    current_price=current_price,
+                                    stop_loss_price=position.stop_loss_price,
+                                    entry_price=position.entry_price,
+                                    loss_pct=f"{profit_pct*100:.1f}%",
+                                    shares=position.shares_remaining,
+                                )
+                                asyncio.create_task(self._execute_exit_async(
+                                    position,
+                                    position.shares_remaining,
+                                    "stop_loss",
+                                    profit_pct
+                                ))
+                            return
+                    else:
+                        # After grace period - exit immediately
+                        exit_key = f"{ticker}_stop_loss"
+                        if exit_key not in self._exits_in_progress:
+                            self._exits_in_progress.add(exit_key)
+                            position.stop_loss_triggered = True
+                            logger.warning(
+                                f"🛑 STOP LOSS TRIGGERED (immediate - past grace period)",
+                                ticker=ticker,
+                                current_price=current_price,
+                                stop_loss_price=position.stop_loss_price,
+                                entry_price=position.entry_price,
+                                loss_pct=f"{profit_pct*100:.1f}%",
+                                shares=position.shares_remaining,
+                                seconds_since_entry=round(seconds_since_entry, 1),
+                            )
+                            asyncio.create_task(self._execute_exit_async(
+                                position,
+                                position.shares_remaining,
+                                "stop_loss",
+                                profit_pct
+                            ))
+                        return
+                else:
+                    # Price recovered above stop - reset breach timer
+                    if position.stop_breach_time is not None:
+                        logger.info(
+                            f"✅ STOP BREACH RECOVERED: Price back above stop",
                             ticker=ticker,
                             current_price=current_price,
                             stop_loss_price=position.stop_loss_price,
+                        )
+                        position.stop_breach_time = None
+
+            # 📉 FLOOR RULE CHECK: Exit if price drops below 50% of last exit threshold
+            # After taking profit at +20%, floor is +10%. If price drops to +10%, exit remaining.
+            if position.floor_price and position.shares_remaining > 0:
+                if current_price <= position.floor_price:
+                    exit_key = f"{ticker}_floor_exit"
+                    if exit_key not in self._exits_in_progress:
+                        self._exits_in_progress.add(exit_key)
+                        floor_pct = position.last_exit_threshold * FLOOR_RULE_MULTIPLIER
+                        logger.warning(
+                            f"📉 FLOOR RULE TRIGGERED: Price dropped to {floor_pct*100:.0f}% (half of +{position.last_exit_threshold*100:.0f}%)",
+                            ticker=ticker,
+                            current_price=current_price,
+                            floor_price=position.floor_price,
                             entry_price=position.entry_price,
-                            loss_pct=f"{loss_pct*100:.1f}%",
-                            shares=position.shares_remaining
+                            profit_pct=f"{profit_pct*100:.1f}%",
+                            shares_remaining=position.shares_remaining,
+                            last_exit_threshold=f"+{position.last_exit_threshold*100:.0f}%",
                         )
                         asyncio.create_task(self._execute_exit_async(
                             position,
                             position.shares_remaining,
-                            "stop_loss",
-                            loss_pct
+                            "floor_exit",
+                            profit_pct
                         ))
                     return
 
-            # No automatic take-profits: let winners run.
-            # User exits via Telegram /exit or time-based exit (10 min).
+            # 📈 TIERED EXIT CHECK: Take profit at predefined thresholds
+            # +20%: 50%, +25%: 50% of remaining, +30%: 50%, +35%: 50%, +40%: 100%
+            next_tier = position.next_tier_threshold
+            if next_tier and position.shares_remaining > 0:
+                threshold_pct, exit_fraction = next_tier
+
+                if profit_pct >= threshold_pct:
+                    # Calculate shares to exit
+                    shares_to_exit = int(position.shares_remaining * exit_fraction)
+                    if shares_to_exit < 1 and position.shares_remaining >= 1:
+                        shares_to_exit = int(position.shares_remaining)  # Exit all if fraction < 1 share
+
+                    if shares_to_exit > 0:
+                        exit_key = f"{ticker}_tier_{position.next_tier_index}"
+                        if exit_key not in self._exits_in_progress:
+                            self._exits_in_progress.add(exit_key)
+                            position.last_exit_threshold = threshold_pct  # Update for floor rule
+                            position.next_tier_index += 1
+                            position.total_exits_taken += 1
+
+                            logger.info(
+                                f"📈 TIERED EXIT: +{threshold_pct*100:.0f}% threshold reached - exiting {exit_fraction*100:.0f}%",
+                                ticker=ticker,
+                                current_price=current_price,
+                                entry_price=position.entry_price,
+                                profit_pct=f"+{profit_pct*100:.1f}%",
+                                shares_to_exit=shares_to_exit,
+                                shares_remaining_after=position.shares_remaining - shares_to_exit,
+                                tier_index=position.next_tier_index,
+                                total_tiers=len(TIERED_EXIT_THRESHOLDS),
+                                new_floor=f"+{threshold_pct * FLOOR_RULE_MULTIPLIER * 100:.0f}%",
+                            )
+                            asyncio.create_task(self._execute_exit_async(
+                                position,
+                                shares_to_exit,
+                                f"tier_{threshold_pct*100:.0f}pct",
+                                profit_pct
+                            ))
+                    return
 
     async def _execute_exit_async(
         self,
@@ -397,12 +575,18 @@ class PositionManager:
         # Update position tracking
         async with self._lock:
             position.shares_remaining -= shares
+            # Track realized P&L from this exit
+            estimated_exit_price = position.last_price or position.entry_price * (1 + profit_pct)
+            pnl_from_exit = (estimated_exit_price - position.entry_price) * shares
+            position.realized_pnl += pnl_from_exit
 
         logger.info(
             f"Exit trade request published: {exit_reason}",
             ticker=position.ticker,
             shares_sold=int(shares),
             shares_remaining=position.shares_remaining,
+            pnl_this_exit=round(pnl_from_exit, 2),
+            total_realized_pnl=round(position.realized_pnl, 2),
         )
 
         # Remove position if fully exited
@@ -491,9 +675,11 @@ class PositionManager:
         self._monitor_task = asyncio.create_task(self._monitor_loop())
 
         logger.info(
-            "PositionManager started (5% stop loss, let winners run)",
+            "PositionManager started (tiered exits + immediate 5% stop loss)",
             poll_interval=self.poll_interval,
             has_websocket=self.stream_manager is not None,
+            tiered_exits=[f"+{t[0]*100:.0f}%" for t in TIERED_EXIT_THRESHOLDS],
+            floor_rule=f"{FLOOR_RULE_MULTIPLIER*100:.0f}% of last tier",
         )
 
     async def stop(self) -> None:
@@ -518,6 +704,7 @@ class PositionManager:
         """Get position manager statistics."""
         positions_summary = []
         for ticker, pos in self._positions.items():
+            next_tier = pos.next_tier_threshold
             positions_summary.append({
                 "ticker": ticker,
                 "entry_price": pos.entry_price,
@@ -527,9 +714,15 @@ class PositionManager:
                 "entry_time": pos.entry_time.isoformat(),
                 "last_price": pos.last_price,
                 "profit_pct": f"{pos.current_profit_pct*100:.1f}%" if pos.current_profit_pct else None,
+                "highest_profit_pct": f"{pos.highest_profit_pct*100:.1f}%",
                 "unrealized_pnl": round(pos.unrealized_pnl, 2) if pos.unrealized_pnl else None,
+                "realized_pnl": round(pos.realized_pnl, 2),
                 "stop_loss_price": pos.stop_loss_price,
                 "stop_loss_triggered": pos.stop_loss_triggered,
+                "next_tier": f"+{next_tier[0]*100:.0f}%" if next_tier else "all_tiers_complete",
+                "tiers_taken": pos.total_exits_taken,
+                "floor_price": pos.floor_price,
+                "last_exit_threshold": f"+{pos.last_exit_threshold*100:.0f}%" if pos.last_exit_threshold else None,
             })
 
         return {
@@ -539,5 +732,7 @@ class PositionManager:
             "poll_interval": self.poll_interval,
             "has_websocket": self.stream_manager is not None,
             "stop_loss_pct": f"{STOP_LOSS_PCT*100:.0f}%",
+            "tiered_exits": [f"+{t[0]*100:.0f}%: {t[1]*100:.0f}% of remaining" for t in TIERED_EXIT_THRESHOLDS],
+            "floor_rule": f"{FLOOR_RULE_MULTIPLIER*100:.0f}% of last exit threshold",
             "positions": positions_summary,
         }

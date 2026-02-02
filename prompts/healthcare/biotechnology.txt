@@ -25,19 +25,20 @@ FDA/REGULATORY (Strongest signal - 24% of winners)
    "Receives Breakthrough Therapy Designation" → TRADE
    "Issues Update On Regulatory Pathway Following Pre-BLA Meeting" → TRADE
 
-CLINICAL TRIAL RESULTS (21% of winners)
-├─ Phase 1/2/3 positive results, topline data, interim data
-├─ Met/achieved primary endpoint
-├─ Efficacy data: tumor response, weight loss %, survival data
-├─ Safety data positive, durable response
-├─ First-in-human results
-├─ Pivotal/registrational trial results
+CLINICAL TRIAL RESULTS (21% of winners - BE SELECTIVE)
+├─ Phase 3 topline/final results (NOT interim, NOT Phase 2)
+├─ "Met primary endpoint" / "achieved primary endpoint" (definitive)
+├─ Specific efficacy numbers: "80% response", "50% reduction", "X months survival"
+├─ Pivotal/registrational trial results (FDA submission quality)
+├─ First-in-human with specific promising data
+├─ Durable response data with numbers
+├─ REQUIRES: Specific numbers OR "met primary endpoint" OR "pivotal"
 └─ Examples:
-   "Reports Positive Phase 3 Results" → TRADE
-   "Topline Data Shows 30% Weight Loss" → TRADE
-   "Reaches All Major Sites Of Cancer Spread And Cuts Tumor" → TRADE
-   "80% Reduction In Tumor Burden" → TRADE
-   "Met Primary Endpoint In Pivotal Trial" → TRADE
+   "Phase 3 Pivotal Trial Meets Primary Endpoint" → TRADE
+   "Topline Data Shows 30% Weight Loss" → TRADE (specific number)
+   "80% Reduction In Tumor Burden" → TRADE (specific number)
+   "Achieves Statistically Significant Improvement p<0.001" → TRADE
+   "Met Primary Endpoint In Registrational Trial" → TRADE
 
 OFFERINGS/FINANCING (10% of winners)
 ├─ Prices offering, Closes placement
@@ -79,6 +80,18 @@ OTHER STRONG SIGNALS
    "Announces Publication In Oncogene" → TRADE
    "Presents Data Showing Efficacy" → TRADE
 
+MARKET EXPANSION INTO TRENDING AREAS (High potential)
+├─ Addressable market expansion into hot therapeutic areas
+├─ GLP-1 (weight loss drugs like Ozempic, Wegovy) = VERY HOT
+├─ Gene therapy, CAR-T, mRNA, AI drug discovery
+├─ Pivoting/targeting trending sectors
+├─ Keywords: "expands addressable market", "focus on GLP-1", "targets [hot area]"
+└─ Examples:
+   "Expands Addressable Market with Focus on GLP-1 Users" → TRADE (GLP-1 = hot)
+   "Targets GLP-1 Market with New Formulation" → TRADE
+   "Expands into Gene Therapy Applications" → TRADE
+   "Announces mRNA Platform for Oncology" → TRADE
+
 ═══════════════════════════════════════════════════════════════════════════════
 SKIP SIGNALS
 ═══════════════════════════════════════════════════════════════════════════════
@@ -117,6 +130,23 @@ FUTURE ANNOUNCEMENTS
 ├─ "To host conference call to report results"
 └─ Wait for ACTUAL results → SKIP
 
+WEAK CLINICAL DATA (Looks like news but isn't material)
+├─ "Extension study" / "extension trial" - just continuation, not new data
+├─ "Interim data/results/analysis" without specific numbers - too early, can change
+├─ "Long-term safety" / "safety monitoring" / "tolerability" - expected to be fine
+├─ "Open-label" studies (no placebo control = weak evidence)
+├─ "License partner reports/announces" - not your drug, indirect impact
+├─ Phase 1 or Phase 2a (exploratory, too early for material impact)
+├─ Vague "positive results" without specific numbers or endpoints
+├─ Combinations with already-approved drugs (semaglutide, etc.) - crowded space
+└─ Examples:
+   "Reports Positive Phase 2a Extension Interim Study Results" → SKIP (early + extension + interim)
+   "Positive 52-Week Safety Data from License Partner" → SKIP (safety + partner)
+   "Open-Label Phase 2 Study Shows Positive Results" → SKIP (open-label + Phase 2 + vague)
+   "Long-Term Safety and Tolerability Data" → SKIP (monitoring, not efficacy)
+   "License Partner Ascletis Reports Phase 3 Data" → SKIP (partner's trial)
+   "Interim Analysis Shows Encouraging Trends" → SKIP (interim + no numbers)
+
 MEDIA/PUBLICITY (No material business impact)
 ├─ TV show features, news program mentions
 ├─ "Featured on", "Highlighted by", "Spotlighted in"
@@ -133,10 +163,26 @@ DECISION RULES
 
 1. FDA/Trial RESULTS are strongest - actual data beats announcements
 2. BIG PHARMA partnerships are very strong (AstraZeneca avg +172%, Novartis +37%, Lilly +31%)
-3. Specific numbers (%, $, EPS) strengthen signal
+3. Specific numbers (%, $, survival months) = TRADE. Vague "positive" without numbers = usually SKIP
 4. "Conference" anywhere = SKIP
 5. Future tense ("will", "to be", "upcoming") = usually SKIP
 6. Past/present tense with results = usually TRADE
 7. Media/TV mentions ("featured on", "highlighted") = SKIP - no material impact
+
+CLINICAL DATA HIERARCHY (most to least material):
+8. Phase 3 pivotal > Phase 3 > Phase 2b > Phase 2a > Phase 1 (earlier = less material)
+9. "Met primary endpoint" > "positive results" > "encouraging" (specific > vague)
+10. Own trial > license partner's trial (direct > indirect impact)
+11. Efficacy data > safety data (safety is baseline expectation)
+12. Final/topline > interim (interim can change, not definitive)
+13. Randomized controlled > open-label (methodology matters)
+
+RED FLAGS - These weaken any clinical headline:
+- "Extension" = continuation study, not new breakthrough
+- "Interim" without numbers = preliminary, can reverse
+- "Safety/tolerability" alone = monitoring, not efficacy win
+- "License partner" = their drug, not yours
+- "Open-label" = no placebo, weaker evidence
+- "Phase 2a" = exploratory, too early
 
 RESPOND: TRADE or SKIP (no explanation)

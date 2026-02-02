@@ -234,8 +234,8 @@ class QuoteValidator:
                 if bid_decimal <= 0 or ask_decimal <= 0:
                     return False
                 
-                if ask_decimal <= bid_decimal:  # Ask must be > bid
-                    logger.warning("Quote validation: ask <= bid, invalid quote")
+                if ask_decimal < bid_decimal:  # Ask must be >= bid (locked market where ask=bid is valid)
+                    logger.warning("Quote validation: ask < bid, invalid quote")
                     return False
                 
             except (ValueError, TypeError):
@@ -257,7 +257,7 @@ class QuoteValidator:
             if quote.bid <= 0 or quote.ask <= 0:
                 return False
             
-            if quote.ask <= quote.bid:
+            if quote.ask < quote.bid:  # Locked market where ask=bid is valid
                 return False
             
             return True

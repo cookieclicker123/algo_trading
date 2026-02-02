@@ -34,6 +34,16 @@ FDA/REGULATORY (14% of winners)
    "Receives FDA 510(K) Clearance For Surgical Instrument" → TRADE
    "Obtains CE Mark For New Product Line" → TRADE
 
+USPTO/PATENTS (Strong signal for small cap)
+├─ USPTO patent issuance/approval
+├─ Patent grants for core technology
+├─ IP protection for proprietary platforms
+├─ Key patents for medical devices/diagnostics
+└─ Examples:
+   "Announces USPTO Approval for Issuance of Patents for Proprietary Platform" → TRADE
+   "Receives Key Patent for Medical Device Technology" → TRADE
+   "USPTO Issues Patent for Diagnostic System" → TRADE
+
 PARTNERSHIPS (10% of winners)
 ├─ Retail partnerships (strong for consumer medical products)
 ├─ Distribution partnerships
@@ -130,9 +140,10 @@ DECISION RULES
 1. Retail/distribution partnerships = can be massive (70%+)
 2. Product launches with brand names = strong
 3. WHO/international approvals = strong
-4. "Submits" = SKIP, wait for approval
-5. Foundation/awareness partnerships = SKIP (non-commercial)
-6. Earnings = always SKIP
-7. Conference attendance = always SKIP
+4. USPTO patent issuance = strong (IP protection for small caps)
+5. "Submits" = SKIP, wait for approval
+6. Foundation/awareness partnerships = SKIP (non-commercial)
+7. Earnings = always SKIP
+8. Conference attendance = always SKIP
 
 RESPOND: TRADE or SKIP (no explanation)

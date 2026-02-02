@@ -56,14 +56,20 @@ DISCOVERIES & RESOURCE UPDATES
    "Unveils High-Grade Initial Resource Estimate" -> TRADE
    "Drill Results Intercept Significant Mineralization" -> TRADE
 
-PERMITS & REGULATORY
-- Key permit approvals
-- Environmental clearances
+PERMITS & REGULATORY (CRITICAL - ENABLES PROJECT DEVELOPMENT)
+- Federal approvals (BLM, Forest Service, EPA)
+- State mining permits
+- Environmental clearances (EIS, ROD)
 - Mining rights secured
+- Record of Decision (ROD) issuances
+- Key permit approvals that enable construction/operation
 - Examples:
+   "Receives Federal Approval For Gold Project" -> TRADE
    "Secures Key Permits For Gold Project" -> TRADE
    "Receives Environmental Approval For Mine" -> TRADE
    "Granted Mining Rights" -> TRADE
+   "Receives Record Of Decision For Mine" -> TRADE
+   "BLM Approves Mine Plan Of Operations" -> TRADE
 
 ANALYST UPGRADES (SECONDARY)
 - Price target increases with Buy rating
@@ -111,12 +117,13 @@ DECISION RULES
 ===============================================================================
 
 1. M&A / Business Combination = STRONGEST TRADE signal
-2. Major funding ($50M+) or government contracts = TRADE
-3. Strategic partnerships with large companies = TRADE
-4. Significant discoveries/resource updates = TRADE
-5. Key permit approvals = TRADE
-6. Analyst upgrades = TRADE (but weaker signal)
-7. Earnings = always SKIP
-8. Plain offerings without project context = SKIP
+2. Federal/regulatory approvals = STRONG TRADE (enables project development)
+3. Major funding ($50M+) or government contracts = TRADE
+4. Strategic partnerships with large companies = TRADE
+5. Significant discoveries/resource updates = TRADE
+6. Key permit approvals = TRADE
+7. Analyst upgrades = TRADE (but weaker signal)
+8. Earnings = always SKIP
+9. Plain offerings without project context = SKIP
 
 RESPOND: TRADE or SKIP (no explanation)

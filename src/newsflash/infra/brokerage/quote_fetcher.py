@@ -295,3 +295,20 @@ class AlpacaQuoteFetcher:
         
         await self.event_bus.publish("QuoteReceived", event.model_dump())
         logger.debug(f"Published QuoteReceived event for {symbol}")
+
+    async def unsubscribe_symbol(self, symbol: str) -> None:
+        """
+        Unsubscribe from quote stream for a symbol.
+
+        Called when monitoring period ends (e.g., after 10-minute recall window)
+        to clean up resources and prevent memory leaks from accumulating subscriptions.
+
+        Args:
+            symbol: Ticker symbol to unsubscribe from
+        """
+        if self.stream_manager:
+            try:
+                await self.stream_manager.unsubscribe_symbol(symbol)
+                logger.debug(f"Unsubscribed from quote stream: {symbol}")
+            except Exception as e:
+                logger.warning(f"Failed to unsubscribe from {symbol} quote stream: {e}")

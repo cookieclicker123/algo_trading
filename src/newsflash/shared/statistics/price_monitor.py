@@ -27,6 +27,7 @@ logger = get_logger(__name__)
 class QuoteFetcherProtocol(Protocol):
     """Protocol for quote fetching."""
     async def get_nbbo_snapshot(self, ticker: str) -> Optional[Dict[str, Any]]: ...
+    async def unsubscribe_symbol(self, symbol: str) -> None: ...
 
 
 class RepositoryProtocol(Protocol):
@@ -191,6 +192,22 @@ class PriceMonitor:
                 exc_info=True
             )
         finally:
+            # Clean up quote stream subscriptions for ALL tickers to prevent memory leaks
+            # initial_nbbos contains all tickers that were subscribed during initial fetch
+            tickers_to_unsubscribe = list(initial_nbbos.keys()) if initial_nbbos else []
+            for ticker in tickers_to_unsubscribe:
+                try:
+                    await self.quote_fetcher.unsubscribe_symbol(ticker)
+                except Exception as e:
+                    logger.debug(f"PriceMonitor: Failed to unsubscribe {ticker}: {e}")
+
+            if tickers_to_unsubscribe:
+                logger.info(
+                    "PriceMonitor: Cleaned up quote subscriptions",
+                    article_id=article_id,
+                    unsubscribed_count=len(tickers_to_unsubscribe)
+                )
+
             async with self._monitoring_lock:
                 self._monitoring_tasks.pop(article_id, None)
 

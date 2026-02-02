@@ -82,8 +82,11 @@ class AlpacaMarketDataStreamManager:
         # Store reference to main event loop for thread-safe publishing
         self._main_event_loop: Optional[asyncio.AbstractEventLoop] = None
         
-        # Subscription tracking (thread-safe locks for cross-thread access)
-        self._subscribed_symbols: Set[str] = set()
+        # Subscription tracking with reference counting (thread-safe locks for cross-thread access)
+        # Multiple components (price_monitor, position_manager) may subscribe to same symbol
+        # Only unsubscribe from WebSocket when refcount reaches 0
+        self._subscribed_symbols: Set[str] = set()  # Actual WebSocket subscriptions
+        self._subscription_refcount: Dict[str, int] = {}  # Reference counting per symbol
         self._subscription_lock = threading.Lock()  # Thread-safe (accessed from WebSocket thread)
         
         # Quote cache (symbol -> deque of recent quotes, max 1000 per symbol, for volume analysis)
@@ -187,7 +190,8 @@ class AlpacaMarketDataStreamManager:
         
         with self._subscription_lock:
             self._subscribed_symbols.clear()
-        
+            self._subscription_refcount.clear()
+
         logger.info("Alpaca Market Data WebSocket stream stopped")
     
     def _run_stream_sync(self) -> None:
@@ -206,45 +210,71 @@ class AlpacaMarketDataStreamManager:
     async def subscribe_symbol(self, symbol: str) -> None:
         """
         Subscribe to real-time quotes and trades for a symbol.
-        
+
+        Uses reference counting - multiple components can subscribe to the same symbol.
+        WebSocket subscription only happens on first subscribe.
+
         Args:
             symbol: Ticker symbol to subscribe to
         """
         with self._subscription_lock:  # Thread-safe lock
+            # Increment reference count
+            current_count = self._subscription_refcount.get(symbol, 0)
+            self._subscription_refcount[symbol] = current_count + 1
+
             if symbol in self._subscribed_symbols:
-                return  # Already subscribed
-            
+                # Already subscribed to WebSocket, just incremented refcount
+                logger.debug(f"Incremented subscription refcount for {symbol} to {current_count + 1}")
+                return
+
             if not self.stream:
                 logger.warning(f"Cannot subscribe to {symbol}: stream not started")
                 return
-            
+
             try:
                 # Subscribe to quotes and trades for this symbol
                 # subscribe_quotes/trades can be called multiple times with different symbols
                 if self.stream:
                     self.stream.subscribe_quotes(self._handle_quote_update, symbol)
                     self.stream.subscribe_trades(self._handle_trade_update, symbol)
-                
+
                 self._subscribed_symbols.add(symbol)
-                
-                logger.info(f"✅ Subscribed to {symbol} for real-time quotes and trades")
-                
+
+                logger.info(f"✅ Subscribed to {symbol} for real-time quotes and trades (refcount=1)")
+
             except Exception as e:
                 logger.error(f"Failed to subscribe to {symbol}: {e}", exc_info=True)
+                # Rollback refcount on failure
+                self._subscription_refcount[symbol] = current_count
 
     async def unsubscribe_symbol(self, symbol: str) -> None:
         """
         Unsubscribe from real-time quotes and trades for a symbol.
 
-        Called when a position is fully exited to clean up resources and
-        prevent memory leaks from accumulating subscriptions.
+        Uses reference counting - only actually unsubscribes from WebSocket when
+        refcount reaches 0. Safe to call even if another component is still using quotes.
 
         Args:
             symbol: Ticker symbol to unsubscribe from
         """
         with self._subscription_lock:  # Thread-safe lock
+            # Decrement reference count
+            current_count = self._subscription_refcount.get(symbol, 0)
+            if current_count <= 0:
+                logger.debug(f"Unsubscribe called for {symbol} but refcount already 0")
+                return
+
+            new_count = current_count - 1
+            self._subscription_refcount[symbol] = new_count
+
+            # If refcount > 0, other components still need this subscription
+            if new_count > 0:
+                logger.debug(f"Decremented subscription refcount for {symbol} to {new_count}")
+                return
+
+            # Refcount is now 0 - actually unsubscribe from WebSocket
             if symbol not in self._subscribed_symbols:
-                return  # Not subscribed
+                return  # Not subscribed to WebSocket
 
             if not self.stream:
                 logger.warning(f"Cannot unsubscribe from {symbol}: stream not started")
@@ -257,6 +287,7 @@ class AlpacaMarketDataStreamManager:
                     self.stream.unsubscribe_trades(symbol)
 
                 self._subscribed_symbols.discard(symbol)
+                self._subscription_refcount.pop(symbol, None)  # Clean up refcount entry
 
                 # Clear cached data for this symbol to free memory
                 with self._quote_cache_lock:
@@ -265,7 +296,7 @@ class AlpacaMarketDataStreamManager:
                 with self._trade_cache_lock:
                     self._trade_cache.pop(symbol, None)
 
-                logger.info(f"🔌 Unsubscribed from {symbol} quotes and trades (position exited)")
+                logger.info(f"🔌 Unsubscribed from {symbol} quotes and trades (refcount=0)")
 
             except Exception as e:
                 logger.error(f"Failed to unsubscribe from {symbol}: {e}", exc_info=True)

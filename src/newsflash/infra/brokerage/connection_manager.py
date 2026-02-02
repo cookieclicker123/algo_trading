@@ -60,18 +60,38 @@ class AlpacaConnectionManager:
         # Get API credentials from environment
         api_key = os.getenv("ALPACA_KEY")
         api_secret = os.getenv("ALPACA_SECRET")
-        
+
         if not api_key or not api_secret:
             raise ValueError("ALPACA_KEY and ALPACA_SECRET must be set in environment")
-        
-        # Initialize Alpaca TradingClient
+
+        # Initialize Alpaca TradingClient (primary - live or paper based on paper_trading flag)
         self.trading_client = TradingClient(
             api_key=api_key,
             secret_key=api_secret,
             paper=paper_trading
         )
-        
-        # Initialize Alpaca Market Data Client for quotes
+
+        # Initialize shadow paper trading client for parallel paper trades
+        # Only create if we're doing live trading AND paper keys are available
+        self.paper_shadow_client: Optional[TradingClient] = None
+        if not paper_trading:  # We're in live mode
+            paper_key = os.getenv("ALPACA_KEY_PAPER")
+            paper_secret = os.getenv("ALPACA_SECRET_PAPER")
+            if paper_key and paper_secret:
+                try:
+                    self.paper_shadow_client = TradingClient(
+                        api_key=paper_key,
+                        secret_key=paper_secret,
+                        paper=True  # Always paper for shadow
+                    )
+                    logger.info("✅ Shadow paper trading client initialized (will mirror live trades)")
+                except Exception as e:
+                    logger.warning(f"Could not initialize shadow paper client: {e}")
+                    self.paper_shadow_client = None
+            else:
+                logger.info("No ALPACA_KEY_PAPER/ALPACA_SECRET_PAPER - shadow paper trading disabled")
+
+        # Initialize Alpaca Market Data Client for quotes (use primary keys)
         self.market_data_client = StockHistoricalDataClient(
             api_key=api_key,
             secret_key=api_secret
@@ -124,6 +144,10 @@ class AlpacaConnectionManager:
     def get_trading_client(self) -> TradingClient:
         """Get the current Alpaca trading client instance."""
         return self.trading_client if self.is_connected else None
+
+    def get_paper_shadow_client(self) -> Optional[TradingClient]:
+        """Get the paper shadow trading client for parallel paper trades."""
+        return self.paper_shadow_client if self.is_connected else None
     
     async def start(self) -> None:
         """

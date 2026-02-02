@@ -14,9 +14,7 @@ Supported sectors:
 - Financial Services (3 industry groupings)
 - Consumer Defensive (3 industries)
 - Basic Materials (4 industries)
-
-Blacklisted sectors (removed due to poor performance):
-- Communication Services (0% win rate, -10.8% avg PnL - Jan 2026 data)
+- Communication Services (1 industry - Electronic Gaming & Multimedia only)
 """
 import asyncio
 from pathlib import Path
@@ -144,13 +142,17 @@ SECTOR_INDUSTRY_MAP: Dict[str, Dict[str, str]] = {
     },
 
     # =========================================================================
-    # COMMUNICATION SERVICES - REMOVED (0% win rate, -10.8% avg PnL in Jan 2026)
+    # COMMUNICATION SERVICES (1 industry - Electronic Gaming only)
+    # Re-enabled Jan 2026 after GCL +60% winner analysis
+    # Only Electronic Gaming & Multimedia - other industries remain blacklisted
     # =========================================================================
-    # "Communication Services": {
-    #     "Internet Content & Information": "internet_content.txt",
-    # },
-    # Industries: Entertainment, Internet Content & Information, Telecom Services
-    # All were consistent losers - KUST, PODC, SLE all lost money
+    "Communication Services": {
+        "Electronic Gaming & Multimedia": "electronic_gaming_multimedia.txt",
+        # Blacklisted industries (0% win rate, -10.8% avg PnL):
+        # - Internet Content & Information
+        # - Entertainment
+        # - Telecom Services
+    },
 
     # =========================================================================
     # CONSUMER DEFENSIVE (3 industries)

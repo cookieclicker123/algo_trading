@@ -421,7 +421,9 @@ class AlpacaExtendedHoursTradeExecutor:
                     await self._publish_failed_event(trade_request, error_result["error"], error_result)
                     return error_result
             
-            # EXIT LOGIC: For SELL orders, use marketable limit order at bid price to ensure fill
+            # EXIT LOGIC: For SELL orders, pricing depends on exit reason
+            # - Stop loss / floor exit: Aggressive (bid - discount) - need to get out NOW
+            # - Tiered profit exits: Less aggressive (bid or bid + small premium) - we're profitable, can wait
             if action == "SELL":
                 # CRITICAL FIX: Cancel any existing open orders for this ticker before placing new sell
                 # This prevents "insufficient qty available" errors when shares are held by pending orders
@@ -439,16 +441,26 @@ class AlpacaExtendedHoursTradeExecutor:
                     }
                     await self._publish_failed_event(trade_request, error_result["error"])
                     return error_result
-                
+
+                # Check exit reason from metadata to determine pricing strategy
+                exit_reason = metadata.get("exit_reason", "") if metadata else ""
+                is_urgent_exit = exit_reason in ["stop_loss", "floor_exit", "manual_exit"]
+
                 # Use marketable limit order: price below bid to ensure immediate fill
-                # This is critical for fast-moving markets - we need to get filled NOW
-                # Strategy: Dynamic discount based on liquidity and spread conditions
-                # Since our system rarely makes losing trades, we prioritize fill probability over cost
-                
-                # Base discount: 0.5% or $0.02 minimum
-                base_discount_pct = 0.005  # 0.5%
-                base_discount_dollar = 0.02
-                price_discount = max(bid_price * base_discount_pct, base_discount_dollar)
+                # Strategy: Different aggressiveness based on urgency
+
+                if is_urgent_exit:
+                    # URGENT EXIT: Aggressive pricing - need to get out NOW
+                    # Base discount: 0.5% or $0.02 minimum
+                    base_discount_pct = 0.005  # 0.5%
+                    base_discount_dollar = 0.02
+                    price_discount = max(bid_price * base_discount_pct, base_discount_dollar)
+                else:
+                    # TIERED PROFIT EXIT: Less aggressive - we're profitable, can afford better fills
+                    # Start at bid (no discount), use smaller discount if needed
+                    base_discount_pct = 0.001  # 0.1%
+                    base_discount_dollar = 0.01
+                    price_discount = max(bid_price * base_discount_pct, base_discount_dollar)
                 
                 # Dynamic adjustment 1: Increase discount if bid_size is insufficient
                 # If we need to sell more shares than available at bid, we need to discount more to reach lower price levels
@@ -473,13 +485,19 @@ class AlpacaExtendedHoursTradeExecutor:
                 
                 # Apply multipliers to base discount
                 price_discount = price_discount * liquidity_multiplier * spread_multiplier
-                
-                # Cap at reasonable maximum: 2% or $0.05 (whichever is larger)
-                # This ensures we don't discount excessively, but still prioritize fills
-                max_discount_pct = 0.02  # 2%
-                max_discount_dollar = 0.05
+
+                # Cap at reasonable maximum based on urgency
+                if is_urgent_exit:
+                    # Urgent exits: Allow up to 2% discount for guaranteed fills
+                    max_discount_pct = 0.02  # 2%
+                    max_discount_dollar = 0.05
+                else:
+                    # Tiered exits: Cap at 0.5% - we're profitable, keep more of it
+                    max_discount_pct = 0.005  # 0.5%
+                    max_discount_dollar = 0.02
+
                 price_discount = min(price_discount, max(bid_price * max_discount_pct, max_discount_dollar))
-                
+
                 limit_price = round(bid_price - price_discount, 2)
                 
                 # Enhanced logging with dynamic adjustments
@@ -499,9 +517,11 @@ class AlpacaExtendedHoursTradeExecutor:
                     else:
                         spread_info = f" | spread={spread_pct:.2f}% (normal)"
                 
+                exit_type = "URGENT" if is_urgent_exit else "TIERED PROFIT"
                 logger.info(
-                    f"💰 EXIT ORDER: Placing marketable limit order with dynamic discount to maximize fill probability",
+                    f"💰 EXIT ORDER ({exit_type}): Placing limit order - {'aggressive' if is_urgent_exit else 'less aggressive'} pricing",
                     ticker=trade_request.ticker,
+                    exit_reason=exit_reason,
                     limit_price=limit_price,
                     bid_price=bid_price,
                     price_discount=price_discount,

@@ -2,9 +2,11 @@
 Alpaca Brokerage Service - main orchestrator for brokerage infrastructure.
 Pure infrastructure - coordinates connection, quotes, executors, and queue.
 """
+import asyncio
 import time
 from typing import Optional, Dict, Any
 from datetime import datetime
+from copy import deepcopy
 
 from ...utils.logging_config import get_logger
 from ...models.base_models import TradeRequest
@@ -87,12 +89,33 @@ class BrokerageService:
             trading_client=self.connection_manager.trading_client,
             fast_notifier=fast_notifier,
         )
-        
+
         self.queue_manager = TradeQueueManager(event_bus=event_bus)
-        
+
         # Event bus
         self.event_bus = event_bus
-        
+
+        # Shadow paper trading executors (for parallel paper trades when in live mode)
+        self.paper_shadow_extended_executor = None
+        self.paper_shadow_market_executor = None
+        paper_shadow_client = self.connection_manager.get_paper_shadow_client()
+        if paper_shadow_client:
+            # Create shadow executors that trade on paper account
+            # Note: No fast_notifier for shadow - we don't want double notifications
+            self.paper_shadow_extended_executor = AlpacaExtendedHoursTradeExecutor(
+                event_bus=event_bus,
+                quote_fetcher=self.quote_fetcher,
+                trading_client=paper_shadow_client,
+                fast_notifier=None,  # No notifications for shadow trades
+            )
+            self.paper_shadow_market_executor = AlpacaMarketHoursTradeExecutor(
+                event_bus=event_bus,
+                quote_fetcher=self.quote_fetcher,
+                trading_client=paper_shadow_client,
+                fast_notifier=None,  # No notifications for shadow trades
+            )
+            logger.info("✅ Shadow paper executors initialized for parallel paper trading")
+
         mode = "Paper Trading" if paper_trading else "Live Trading"
         logger.info(f"BrokerageService initialized for {mode}", paper_trading=paper_trading)
 
@@ -260,22 +283,34 @@ class BrokerageService:
             # Route to appropriate executor
             if session == "market_hours":
                 logger.info("📈 MARKET HOURS: Using market order strategy")
-                return await self.market_hours_executor.execute(
+                result = await self.market_hours_executor.execute(
                     trade_request,
                     timing_info,
                     deadline,
                     metadata=metadata,
                 )
+                # Fire shadow paper trade (if enabled and live trade succeeded)
+                if result.get("success") and self.paper_shadow_market_executor:
+                    asyncio.create_task(self._execute_shadow_paper_trade(
+                        trade_request, session, timing_info, metadata, is_market_hours=True
+                    ))
+                return result
 
             # Extended hours (premarket or postmarket)
             logger.info("🌙 EXTENDED HOURS: Using limit order strategy", session=session)
-            return await self.extended_hours_executor.execute(
+            result = await self.extended_hours_executor.execute(
                 trade_request,
                 session,
                 timing_info,
                 deadline,
                 metadata=metadata,
             )
+            # Fire shadow paper trade (if enabled and live trade succeeded)
+            if result.get("success") and self.paper_shadow_extended_executor:
+                asyncio.create_task(self._execute_shadow_paper_trade(
+                    trade_request, session, timing_info, metadata, is_market_hours=False
+                ))
+            return result
         
         except TimeoutError as exc:
             logger.error(f"⏱️ Trade execution timed out: {exc}")
@@ -296,7 +331,87 @@ class BrokerageService:
                 "order_type": None,
                 "instrument": "stock",
             }
-    
+
+    async def _execute_shadow_paper_trade(
+        self,
+        trade_request: TradeRequest,
+        session: str,
+        timing_info: Dict[str, float],
+        metadata: Optional[Dict[str, Any]],
+        is_market_hours: bool,
+    ) -> None:
+        """
+        Execute a shadow paper trade (fire-and-forget).
+
+        Shadow trades mirror live trades to paper account with 50x position size.
+        This allows comparing live vs paper performance.
+
+        Args:
+            trade_request: Original trade request
+            session: Trading session
+            timing_info: Timing info from original trade
+            metadata: Metadata from original trade
+            is_market_hours: Whether this is market hours trading
+        """
+        try:
+            # Create shadow trade request with 50x position size
+            PAPER_MULTIPLIER = 50  # Paper trades at 50x live size
+            shadow_request = deepcopy(trade_request)
+            if shadow_request.amount_usd:
+                shadow_request.amount_usd = shadow_request.amount_usd * PAPER_MULTIPLIER
+
+            logger.info(
+                "📋 SHADOW PAPER TRADE: Mirroring to paper account",
+                ticker=shadow_request.ticker,
+                action=shadow_request.action,
+                live_amount=trade_request.amount_usd,
+                paper_amount=shadow_request.amount_usd,
+                multiplier=f"{PAPER_MULTIPLIER}x"
+            )
+
+            # Execute on paper (no deadline - fire and forget)
+            if is_market_hours and self.paper_shadow_market_executor:
+                result = await self.paper_shadow_market_executor.execute(
+                    shadow_request,
+                    timing_info,
+                    timeout_deadline=None,
+                    metadata=metadata,
+                )
+            elif self.paper_shadow_extended_executor:
+                result = await self.paper_shadow_extended_executor.execute(
+                    shadow_request,
+                    session,
+                    timing_info,
+                    timeout_deadline=None,
+                    metadata=metadata,
+                )
+            else:
+                logger.warning("No shadow executor available")
+                return
+
+            if result.get("success"):
+                logger.info(
+                    "✅ SHADOW PAPER TRADE FILLED",
+                    ticker=shadow_request.ticker,
+                    fill_price=result.get("fill_price"),
+                    shares=result.get("shares"),
+                    paper_amount=shadow_request.amount_usd
+                )
+            else:
+                logger.warning(
+                    "⚠️ SHADOW PAPER TRADE FAILED (non-critical)",
+                    ticker=shadow_request.ticker,
+                    error=result.get("error")
+                )
+
+        except Exception as e:
+            # Shadow trades are non-critical - don't let failures affect live trading
+            logger.warning(
+                "⚠️ Shadow paper trade error (non-critical)",
+                ticker=trade_request.ticker,
+                error=str(e)
+            )
+
     async def get_realtime_price(
         self,
         ticker: str,
