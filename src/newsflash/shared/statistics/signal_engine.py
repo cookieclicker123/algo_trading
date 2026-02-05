@@ -18,6 +18,7 @@ from ...domain.brokerage.events import TradeExecutedDomainEvent
 from ...domain.brokerage.models import MarketSession
 from ...infra.brokerage.quote_fetcher import AlpacaQuoteFetcher
 from .yahoo_finance_coordinator import YahooFinanceCoordinator
+from .headline_classifier import get_headline_classifier
 
 try:
     from alpaca.trading.client import TradingClient
@@ -121,7 +122,7 @@ class SignalStatsEngine:
         """Handle Domain.TradeExecuted event."""
         try:
             trade_result = event.trade_result
-            
+
             # Only track successful trades
             if not trade_result.success or trade_result.status.value != "executed":
                 logger.debug(
@@ -130,7 +131,7 @@ class SignalStatsEngine:
                     status=trade_result.status.value
                 )
                 return
-            
+
             # Get session from trade_result (it has the correct session)
             session_enum = trade_result.session
             # Map MarketSession enum to string format used by repository
@@ -147,78 +148,208 @@ class SignalStatsEngine:
                     session = "market_hours"  # Default fallback
                 else:
                     session = current_session
-            
-            # Extract entry details from TradeResult
-            entry_price = float(trade_result.fill_price) if trade_result.fill_price else 0.0
-            entry_shares = int(trade_result.shares) if trade_result.shares else 0
-            entry_amount_usd = float(trade_result.total_cost) if trade_result.total_cost else 0.0
-            
-            # Extract NBBO from trade_request dict (stored by mapper as _spread_info)
+
+            # Check if this is a BUY or SELL
             trade_request_dict = trade_result.trade_request
-            entry_nbbo = trade_request_dict.get("_spread_info", {})
-            if not entry_nbbo:
-                # Try alternative location
-                entry_nbbo = trade_request_dict.get("spread_info", {})
-            
-            # Get ticker and article_id
-            ticker = trade_result.get_ticker()
-            article_id = trade_request_dict.get("article_id")
-            
-            # Generate trade_id (use order_id if available, otherwise generate)
-            trade_id = trade_request_dict.get("order_id") or trade_request_dict.get("_order_id")
-            if not trade_id:
-                trade_id = f"trade_{int(event.executed_at.timestamp() * 1000)}"
-            
-            # Map session string back to MarketSession enum for record
-            if session == "market_hours":
-                session_enum = MarketSession.MARKET
-            elif session == "premarket":
-                session_enum = MarketSession.PREMARKET
-            elif session == "postmarket":
-                session_enum = MarketSession.POSTMARKET
-            else:
-                session_enum = MarketSession.MARKET  # Default fallback
-            
-            # Create signal record (metadata will be added later)
-            record = SignalRecord(
-                trade_id=trade_id,
-                article_id=article_id,
-                ticker=ticker,
-                session=session_enum,
-                executed_at=event.executed_at,
-                entry_price=entry_price,
-                entry_shares=entry_shares,
-                entry_amount_usd=entry_amount_usd,
-                entry_nbbo=entry_nbbo if entry_nbbo else None
-            )
-            
-            # Append record immediately (before metadata fetch)
-            await self.repository.append_signal_record(
-                record=record,
-                session=session,
-                date=event.executed_at
-            )
-            
-            # Fetch ticker metadata asynchronously (tracked for finalization)
-            # Pass executed_at so we can determine session from timestamp (stateless)
-            metadata_task = asyncio.create_task(
-                self._fetch_and_update_metadata(record, event.executed_at)
-            )
-            
-            # Track pending metadata fetch
-            async with self._metadata_lock:
-                self._pending_metadata[record.trade_id] = (record.ticker, session, event.executed_at, metadata_task)
-            
-            logger.debug(
-                "Signal: Recorded trade execution",
-                trade_id=trade_id,
-                ticker=ticker,
-                article_id=article_id
-            )
-            
+            action = trade_request_dict.get("action", "BUY").upper()
+
+            if action == "SELL":
+                # Handle SELL - update corresponding BUY record with exit data
+                await self._handle_sell_trade(event, session)
+                return
+
+            # Handle BUY - create new signal record
+            await self._handle_buy_trade(event, session)
+
         except Exception as e:
             logger.error(
                 "Error handling trade executed for signal",
+                error=str(e),
+                exc_info=True
+            )
+
+    async def _handle_buy_trade(
+        self,
+        event: TradeExecutedDomainEvent,
+        session: str,
+    ) -> None:
+        """Handle BUY trade - create new signal record."""
+        trade_result = event.trade_result
+
+        # Extract entry details from TradeResult
+        entry_price = float(trade_result.fill_price) if trade_result.fill_price else 0.0
+        entry_shares = int(trade_result.shares) if trade_result.shares else 0
+        entry_amount_usd = float(trade_result.total_cost) if trade_result.total_cost else 0.0
+
+        # Extract NBBO from trade_request dict (stored by mapper as _spread_info)
+        trade_request_dict = trade_result.trade_request
+        entry_nbbo = trade_request_dict.get("_spread_info", {})
+        if not entry_nbbo:
+            # Try alternative location
+            entry_nbbo = trade_request_dict.get("spread_info", {})
+
+        # Get ticker and article_id
+        ticker = trade_result.get_ticker()
+        article_id = trade_request_dict.get("article_id")
+        headline = trade_request_dict.get("headline") or trade_request_dict.get("title")
+
+        # Generate trade_id (use order_id if available, otherwise generate)
+        trade_id = trade_request_dict.get("order_id") or trade_request_dict.get("_order_id")
+        if not trade_id:
+            trade_id = f"trade_{int(event.executed_at.timestamp() * 1000)}"
+
+        # Map session string back to MarketSession enum for record
+        if session == "market_hours":
+            session_enum = MarketSession.MARKET
+        elif session == "premarket":
+            session_enum = MarketSession.PREMARKET
+        elif session == "postmarket":
+            session_enum = MarketSession.POSTMARKET
+        else:
+            session_enum = MarketSession.MARKET  # Default fallback
+
+        # Create signal record (metadata will be added later)
+        record = SignalRecord(
+            trade_id=trade_id,
+            article_id=article_id,
+            ticker=ticker,
+            session=session_enum,
+            executed_at=event.executed_at,
+            entry_price=entry_price,
+            entry_shares=entry_shares,
+            entry_amount_usd=entry_amount_usd,
+            entry_nbbo=entry_nbbo if entry_nbbo else None
+        )
+
+        # Append record immediately (before metadata fetch)
+        await self.repository.append_signal_record(
+            record=record,
+            session=session,
+            date=event.executed_at
+        )
+
+        # Fetch ticker metadata asynchronously (tracked for finalization)
+        # Pass executed_at so we can determine session from timestamp (stateless)
+        metadata_task = asyncio.create_task(
+            self._fetch_and_update_metadata(record, event.executed_at)
+        )
+
+        # Track pending metadata fetch
+        async with self._metadata_lock:
+            self._pending_metadata[record.trade_id] = (record.ticker, session, event.executed_at, metadata_task)
+
+        # Spawn async enrichment task (fire-and-forget, NEVER blocks execution)
+        # Collects spread/price/volume data at T+5s, T+10s, T+30s, T+1min, T+5min
+        # Also classifies headline type using AI (background only)
+        asyncio.create_task(
+            self._enrich_trade_stats(
+                trade_id=trade_id,
+                ticker=ticker,
+                session=session,
+                executed_at=event.executed_at,
+                entry_price=entry_price,
+                entry_nbbo=entry_nbbo,
+                article_id=article_id,
+                headline=headline,
+            )
+        )
+
+        logger.info(
+            "Signal: Recorded BUY trade",
+            trade_id=trade_id,
+            ticker=ticker,
+            entry_price=entry_price,
+            shares=entry_shares,
+            article_id=article_id
+        )
+
+    async def _handle_sell_trade(
+        self,
+        event: TradeExecutedDomainEvent,
+        session: str,
+    ) -> None:
+        """Handle SELL trade - update corresponding BUY record with exit data."""
+        trade_result = event.trade_result
+        trade_request_dict = trade_result.trade_request
+
+        ticker = trade_result.get_ticker()
+        exit_price = float(trade_result.fill_price) if trade_result.fill_price else 0.0
+        exit_shares = int(trade_result.shares) if trade_result.shares else 0
+        exit_amount_usd = float(trade_result.total_cost) if trade_result.total_cost else 0.0
+
+        # Get exit reason from metadata (set by position manager)
+        metadata = trade_request_dict.get("metadata", {}) or {}
+        exit_reason = metadata.get("exit_reason", "unknown")
+        entry_price_from_meta = metadata.get("entry_price")
+
+        # Find matching BUY records for this ticker in today's session
+        # Update the most recent one that doesn't have exit data yet
+        try:
+            file_path = self.repository._get_session_file_path("signal", session, event.executed_at)
+            session_file = await self.repository._load_signal_file(file_path, session, event.executed_at)
+
+            # Find records for this ticker without exit data (oldest first to FIFO match)
+            matching_records = [
+                r for r in session_file.records
+                if r.ticker == ticker and r.exit_price is None
+            ]
+
+            if not matching_records:
+                logger.warning(
+                    "Signal: SELL trade but no matching BUY record found",
+                    ticker=ticker,
+                    exit_price=exit_price,
+                    exit_shares=exit_shares
+                )
+                return
+
+            # Use FIFO - update oldest unfilled record first
+            target_record = matching_records[0]
+
+            # Calculate P&L
+            entry_price = entry_price_from_meta or target_record.entry_price
+            pnl_usd = (exit_price - entry_price) * exit_shares
+            pnl_percent = ((exit_price - entry_price) / entry_price * 100) if entry_price else 0.0
+
+            # Calculate hold duration
+            hold_duration = (event.executed_at - target_record.executed_at).total_seconds()
+
+            # Prepare update
+            updates = {
+                "exit_price": exit_price,
+                "exit_shares": exit_shares,
+                "exit_amount_usd": exit_amount_usd,
+                "exit_reason": exit_reason,
+                "exited_at": event.executed_at.isoformat(),
+                "hold_duration_seconds": hold_duration,
+                "profit_loss_usd": round(pnl_usd, 2),
+                "profit_loss_percent": round(pnl_percent, 2),
+            }
+
+            # Update record in repository
+            await self.repository.update_signal_record(
+                trade_id=target_record.trade_id,
+                updates=updates,
+                session=session,
+                date=event.executed_at
+            )
+
+            logger.info(
+                "Signal: Recorded SELL trade (exit)",
+                ticker=ticker,
+                trade_id=target_record.trade_id,
+                entry_price=entry_price,
+                exit_price=exit_price,
+                exit_reason=exit_reason,
+                pnl_usd=round(pnl_usd, 2),
+                pnl_percent=f"{pnl_percent:+.1f}%",
+                hold_seconds=round(hold_duration, 1)
+            )
+
+        except Exception as e:
+            logger.error(
+                "Error updating signal record with exit data",
+                ticker=ticker,
                 error=str(e),
                 exc_info=True
             )
@@ -478,3 +609,251 @@ class SignalStatsEngine:
                 trade_id=trade_id,
                 error=str(e)
             )
+
+    async def _enrich_trade_stats(
+        self,
+        trade_id: str,
+        ticker: str,
+        session: str,
+        executed_at: datetime,
+        entry_price: float,
+        entry_nbbo: Optional[Dict[str, Any]],
+        article_id: Optional[str],
+        headline: Optional[str] = None,
+    ) -> None:
+        """
+        Async enrichment of trade statistics - runs in background, NEVER blocks execution.
+
+        Collects spread/price/volume data at multiple time points after trade.
+        Also classifies headline type using AI (fast, lightweight model).
+        Fire-and-forget: failures are logged but don't affect anything.
+        """
+        try:
+            updates: Dict[str, Any] = {}
+
+            # Classify headline type in background (uses fast Groq model)
+            if headline:
+                try:
+                    # Get industry from metadata for industry-specific classification
+                    metadata = await self.yahoo_finance_coordinator.fetch_metadata(ticker, timeout=10.0)
+                    industry = metadata.get("industry") if metadata else None
+
+                    if industry:
+                        classifier = get_headline_classifier()
+                        headline_type = await classifier.classify(
+                            headline=headline,
+                            industry=industry,
+                            timeout=5.0
+                        )
+                        if headline_type:
+                            updates["headline_type"] = headline_type
+                            logger.debug(
+                                "Signal: Classified headline",
+                                trade_id=trade_id,
+                                ticker=ticker,
+                                headline_type=headline_type
+                            )
+                except Exception as e:
+                    logger.debug(f"Headline classification failed for {ticker}: {e}")
+
+            # Calculate immediate fill quality metrics
+            if entry_nbbo:
+                mid = entry_nbbo.get("mid")
+                ask = entry_nbbo.get("ask")
+                spread = entry_nbbo.get("spread", 0)
+
+                if mid and entry_price:
+                    slippage_mid = ((entry_price - mid) / mid * 100) if mid else 0
+                    updates["slippage_vs_mid"] = round(slippage_mid, 3)
+
+                if ask and entry_price:
+                    slippage_ask = ((entry_price - ask) / ask * 100) if ask else 0
+                    updates["slippage_vs_ask"] = round(slippage_ask, 3)
+
+                if ask and spread:
+                    spread_pct = (spread / ask * 100)
+                    updates["spread_at_fill"] = round(spread_pct, 2)
+
+            # Add timing info
+            updates["time_of_day"] = executed_at.strftime("%H:%M")
+            updates["day_of_week"] = executed_at.strftime("%A")
+
+            # Determine minutes after market open
+            hour = executed_at.hour
+            minute = executed_at.minute
+            if hour < 9 or (hour == 9 and minute < 30):
+                # Premarket - minutes after 4 AM
+                updates["minutes_after_open"] = (hour - 4) * 60 + minute
+            else:
+                # Regular hours - minutes after 9:30
+                updates["minutes_after_open"] = (hour - 9) * 60 + (minute - 30)
+
+            # Write immediate updates
+            await self.repository.update_signal_record(
+                trade_id=trade_id,
+                updates=updates,
+                session=session,
+                date=executed_at
+            )
+
+            # Now collect time-series data at intervals
+            # T+5 seconds
+            await asyncio.sleep(5)
+            await self._collect_timepoint_data(trade_id, ticker, session, executed_at, entry_price, "5s", updates)
+
+            # T+10 seconds
+            await asyncio.sleep(5)  # 5 more seconds
+            await self._collect_timepoint_data(trade_id, ticker, session, executed_at, entry_price, "10s", updates)
+
+            # T+30 seconds
+            await asyncio.sleep(20)  # 20 more seconds
+            await self._collect_timepoint_data(trade_id, ticker, session, executed_at, entry_price, "30s", updates)
+
+            # T+1 minute
+            await asyncio.sleep(30)  # 30 more seconds
+            await self._collect_timepoint_data(trade_id, ticker, session, executed_at, entry_price, "1min", updates)
+
+            # T+5 minutes - collect volume summary
+            await asyncio.sleep(240)  # 4 more minutes
+            await self._collect_volume_summary(trade_id, ticker, session, executed_at, updates)
+
+            # Mark enrichment complete
+            updates["enrichment_completed"] = True
+            updates["enrichment_completed_at"] = datetime.now().isoformat()
+
+            await self.repository.update_signal_record(
+                trade_id=trade_id,
+                updates=updates,
+                session=session,
+                date=executed_at
+            )
+
+            logger.info(
+                "Signal: Trade enrichment completed",
+                trade_id=trade_id,
+                ticker=ticker,
+            )
+
+        except asyncio.CancelledError:
+            logger.debug(f"Signal enrichment cancelled for {trade_id}")
+        except Exception as e:
+            logger.warning(
+                "Signal: Enrichment failed (non-critical)",
+                trade_id=trade_id,
+                ticker=ticker,
+                error=str(e)
+            )
+
+    async def _collect_timepoint_data(
+        self,
+        trade_id: str,
+        ticker: str,
+        session: str,
+        executed_at: datetime,
+        entry_price: float,
+        timepoint: str,
+        updates: Dict[str, Any],
+    ) -> None:
+        """Collect spread and price at a specific timepoint."""
+        try:
+            if not self.quote_fetcher:
+                return
+
+            nbbo = await self.quote_fetcher.get_nbbo_snapshot(ticker)
+            if not nbbo:
+                return
+
+            bid = nbbo.get("bid", 0)
+            ask = nbbo.get("ask", 0)
+            mid = nbbo.get("mid") or ((bid + ask) / 2 if bid and ask else 0)
+            spread = ask - bid if ask and bid else 0
+            spread_pct = (spread / ask * 100) if ask else 0
+
+            # Store spread
+            updates[f"spread_at_{timepoint}"] = round(spread_pct, 2)
+
+            # Store price
+            if mid:
+                updates[f"price_at_{timepoint}"] = round(mid, 4)
+
+            # Calculate spread compression if we have initial spread
+            if "spread_at_fill" in updates and updates["spread_at_fill"]:
+                initial = updates["spread_at_fill"]
+                if initial > 0:
+                    compression = ((initial - spread_pct) / initial * 100)
+                    if timepoint in ["5s", "10s"]:
+                        # Use 10s as proxy for 2s compression (we don't have 2s data)
+                        pass
+                    elif timepoint == "30s":
+                        updates["spread_compression_30s"] = round(compression, 1)
+
+            # Write incremental update
+            await self.repository.update_signal_record(
+                trade_id=trade_id,
+                updates={
+                    f"spread_at_{timepoint}": updates.get(f"spread_at_{timepoint}"),
+                    f"price_at_{timepoint}": updates.get(f"price_at_{timepoint}"),
+                },
+                session=session,
+                date=executed_at
+            )
+
+        except Exception as e:
+            logger.debug(f"Failed to collect {timepoint} data for {ticker}: {e}")
+
+    async def _collect_volume_summary(
+        self,
+        trade_id: str,
+        ticker: str,
+        session: str,
+        executed_at: datetime,
+        updates: Dict[str, Any],
+    ) -> None:
+        """Collect volume summary after 5 minutes."""
+        try:
+            # Try to get volume data from Yahoo Finance (has historical minute bars)
+            import yfinance as yf
+
+            stock = yf.Ticker(ticker)
+            hist = stock.history(period="1d", interval="1m")
+
+            if len(hist) > 0:
+                # Get volume for first 1, 5, 10 minutes
+                # This is approximate - based on available minute bars
+                vol_1min = int(hist.head(1)["Volume"].sum()) if len(hist) >= 1 else None
+                vol_5min = int(hist.head(5)["Volume"].sum()) if len(hist) >= 5 else None
+                vol_10min = int(hist.head(10)["Volume"].sum()) if len(hist) >= 10 else None
+
+                if vol_1min:
+                    updates["volume_1min"] = vol_1min
+                if vol_5min:
+                    updates["volume_5min"] = vol_5min
+                if vol_10min:
+                    updates["volume_10min"] = vol_10min
+
+                # Get float and ADV from info
+                info = stock.info
+                if info:
+                    float_shares = info.get("floatShares")
+                    avg_vol = info.get("averageVolume")
+
+                    if float_shares:
+                        updates["float_shares"] = int(float_shares)
+                    if avg_vol:
+                        updates["avg_daily_volume"] = int(avg_vol)
+
+                    # Calculate volume vs ADV ratio
+                    if vol_1min and avg_vol:
+                        # Normalize to per-minute ADV (assuming 390 min trading day)
+                        adv_per_min = avg_vol / 390
+                        updates["volume_vs_adv_ratio"] = round(vol_1min / adv_per_min, 2) if adv_per_min else None
+
+                await self.repository.update_signal_record(
+                    trade_id=trade_id,
+                    updates=updates,
+                    session=session,
+                    date=executed_at
+                )
+
+        except Exception as e:
+            logger.debug(f"Failed to collect volume summary for {ticker}: {e}")

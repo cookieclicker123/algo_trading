@@ -173,14 +173,74 @@ class SignalRecord(BaseModel):
     exit_price: Optional[float] = Field(None, description="Exit fill price")
     exit_shares: Optional[int] = Field(None, description="Number of shares exited")
     exit_amount_usd: Optional[float] = Field(None, description="Total exit amount in USD")
+    exit_reason: Optional[str] = Field(None, description="Exit reason: stop_loss, early_exit_10pct, tier_15pct, manual_exit, time_exit, etc.")
+    exited_at: Optional[datetime] = Field(None, description="When exit was executed")
+    hold_duration_seconds: Optional[float] = Field(None, description="Seconds held from entry to exit")
     profit_loss_usd: Optional[float] = Field(None, description="Profit/loss in USD")
     profit_loss_percent: Optional[float] = Field(None, description="Profit/loss percentage")
-    
+
+    # Price tracking during hold period (like recall engine)
+    highest_price_during_hold: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Highest price reached during hold: price, timestamp, percent_gain_from_entry"
+    )
+    max_adverse_excursion: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Lowest price during hold (max drawdown): price, timestamp, percent_loss_from_entry"
+    )
+
     # Volume analysis at article publish time (for future filtering research)
     volume_stats: Optional[Dict[str, Any]] = Field(
         None,
         description="Volume microstructures: move_type, surge_multiplier, trade_count_multiplier, max_excursion_pct, etc."
     )
+
+    # === ENHANCED STATS (collected async post-trade, never delays execution) ===
+
+    # Spread tracking at multiple time points
+    spread_at_receive: Optional[float] = Field(None, description="Spread % when article received")
+    spread_at_confluence: Optional[float] = Field(None, description="Spread % after 2s confluence")
+    spread_at_fill: Optional[float] = Field(None, description="Spread % at actual fill time")
+    spread_at_5s: Optional[float] = Field(None, description="Spread % at T+5 seconds")
+    spread_at_10s: Optional[float] = Field(None, description="Spread % at T+10 seconds")
+    spread_at_30s: Optional[float] = Field(None, description="Spread % at T+30 seconds")
+    spread_compression_2s: Optional[float] = Field(None, description="Spread compression % in first 2s")
+    spread_compression_30s: Optional[float] = Field(None, description="Spread compression % in first 30s")
+
+    # Fill quality metrics
+    slippage_vs_mid: Optional[float] = Field(None, description="Slippage %: (fill - mid) / mid * 100")
+    slippage_vs_ask: Optional[float] = Field(None, description="Slippage %: (fill - ask) / ask * 100")
+    fill_speed_ms: Optional[float] = Field(None, description="Milliseconds from order to fill")
+
+    # Volume windows (collected async)
+    volume_1min: Optional[int] = Field(None, description="Volume in first 1 minute after news")
+    volume_5min: Optional[int] = Field(None, description="Volume in first 5 minutes after news")
+    volume_10min: Optional[int] = Field(None, description="Volume in first 10 minutes after news")
+    trade_count_1min: Optional[int] = Field(None, description="Trade count in first 1 minute")
+
+    # Market context
+    float_shares: Optional[int] = Field(None, description="Float shares")
+    avg_daily_volume: Optional[int] = Field(None, description="Average daily volume")
+    volume_vs_adv_ratio: Optional[float] = Field(None, description="First minute volume / ADV ratio")
+
+    # Headline classification
+    headline_type: Optional[str] = Field(None, description="Catalyst type: contract, fda, partnership, earnings, etc.")
+
+    # Timing
+    time_of_day: Optional[str] = Field(None, description="HH:MM format")
+    minutes_after_open: Optional[float] = Field(None, description="Minutes after market/premarket open")
+    day_of_week: Optional[str] = Field(None, description="Monday, Tuesday, etc.")
+
+    # Post-trade price tracking (async collected over 30s-10min)
+    price_at_5s: Optional[float] = Field(None, description="Price at T+5 seconds")
+    price_at_10s: Optional[float] = Field(None, description="Price at T+10 seconds")
+    price_at_30s: Optional[float] = Field(None, description="Price at T+30 seconds")
+    price_at_1min: Optional[float] = Field(None, description="Price at T+1 minute")
+    price_at_5min: Optional[float] = Field(None, description="Price at T+5 minutes")
+
+    # Enrichment tracking
+    enrichment_completed: bool = Field(False, description="Whether async enrichment finished")
+    enrichment_completed_at: Optional[datetime] = Field(None, description="When enrichment finished")
     
     # Tracking metadata
     recorded_at: datetime = Field(default_factory=datetime.now, description="When record was created")

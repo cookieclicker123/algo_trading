@@ -1,8 +1,13 @@
 """
 Position Manager - Tracks open positions with tiered exit system.
 
-EXIT STRATEGY (Tiered Profit-Taking + Stop Loss):
+EXIT STRATEGY (Tiered Profit-Taking + Stop Loss + Early Exit):
 Our edge is capturing 20-30% quick pops, not holding for massive winners.
+
+EARLY EXIT (5-min 10% rule):
+- After 5 minutes, if profit >= 10%, exit entire position immediately
+- Rationale: ELBM hit +11% at 6:55 but was only +6% at 10 min - capture the move early
+- Takes precedence over tiered exits when triggered
 
 TIERED EXITS (automatic profit-taking):
 - +15%: Exit 25% of position (lock in gains early)
@@ -17,7 +22,7 @@ of the last exit percentage. After +15% exit, floor is +7.5%. If price drops
 to floor, sell remaining position immediately.
 
 STOP LOSS (5% below entry price):
-- First 5 seconds: 2-second confirmation (brief spikes are noise, not signal)
+- First 5 seconds: 0.5s confirmation (brief spikes are noise, not signal)
 - After 5 seconds: Immediate execution (if crashing, it's real)
 - Rationale: SMTK went -7% at 1.8s then +37% at 2.0s - grace period prevents false stops
 
@@ -68,6 +73,12 @@ TIERED_EXIT_THRESHOLDS = [
 
 # Floor rule: If price drops below half of last exit threshold, exit remaining
 FLOOR_RULE_MULTIPLIER = 0.50  # Floor at 50% of last exit level
+
+# Early exit configuration - exit entire position if profit >= 10% after 5 minutes
+# Rationale: ELBM 2026-02-03 hit +11% at 6:55 but we missed it. By 10 min it was +6%.
+# If we're up 10%+ after 5 minutes, take the win instead of waiting for tiered exits.
+EARLY_EXIT_MINUTES = 5.0  # Check after 5 minutes of holding
+EARLY_EXIT_PROFIT_PCT = 0.10  # Exit if profit >= 10%
 
 
 @dataclass
@@ -198,11 +209,12 @@ class PositionManager:
         self._exits_in_progress: set = set()
 
         logger.info(
-            "PositionManager initialized (tiered exits + immediate stop loss)",
+            "PositionManager initialized (early exit + tiered exits + stop loss)",
             enabled=enabled,
             poll_interval=poll_interval,
             has_stream_manager=stream_manager is not None,
             stop_loss_pct=f"{STOP_LOSS_PCT*100:.0f}%",
+            early_exit=f"+{EARLY_EXIT_PROFIT_PCT*100:.0f}% after {EARLY_EXIT_MINUTES:.0f} min",
             tiered_exits=[f"+{t[0]*100:.0f}%: {t[1]*100:.0f}%" for t in TIERED_EXIT_THRESHOLDS],
             floor_rule=f"{FLOOR_RULE_MULTIPLIER*100:.0f}% of last tier",
         )
@@ -344,7 +356,7 @@ class PositionManager:
                 return
 
             # 🛑 STOP LOSS CHECK with grace period logic
-            # First 5 seconds: Use 2-second confirmation (volatility is extreme, brief spikes recover)
+            # First 5 seconds: Use 0.5s confirmation (volatility is extreme, brief spikes recover)
             # After 5 seconds: Exit immediately (if still crashing, it's real)
             if position.stop_loss_price and not position.stop_loss_triggered:
                 if current_price <= position.stop_loss_price:
@@ -447,6 +459,35 @@ class PositionManager:
                             profit_pct
                         ))
                     return
+
+            # 🚀 EARLY EXIT CHECK: Exit entire position if profit >= 10% after 5 minutes
+            # Takes the win early instead of waiting for tiered exits or 10-min auto-exit.
+            # Rationale: ELBM hit +11% at 6:55 but was only +6% at 10 min. Capture the move.
+            now = datetime.now()
+            minutes_held = (now - position.entry_time).total_seconds() / 60.0
+            if (minutes_held >= EARLY_EXIT_MINUTES and
+                profit_pct >= EARLY_EXIT_PROFIT_PCT and
+                position.shares_remaining > 0):
+                exit_key = f"{ticker}_early_exit_10pct"
+                if exit_key not in self._exits_in_progress:
+                    self._exits_in_progress.add(exit_key)
+                    logger.info(
+                        f"🚀 EARLY EXIT: +{profit_pct*100:.1f}% profit after {minutes_held:.1f} min - exiting entire position",
+                        ticker=ticker,
+                        current_price=current_price,
+                        entry_price=position.entry_price,
+                        profit_pct=f"+{profit_pct*100:.1f}%",
+                        minutes_held=round(minutes_held, 1),
+                        shares_remaining=position.shares_remaining,
+                        threshold=f"+{EARLY_EXIT_PROFIT_PCT*100:.0f}% after {EARLY_EXIT_MINUTES:.0f} min",
+                    )
+                    asyncio.create_task(self._execute_exit_async(
+                        position,
+                        position.shares_remaining,
+                        "early_exit_10pct",
+                        profit_pct
+                    ))
+                return
 
             # 📈 TIERED EXIT CHECK: Take profit at predefined thresholds
             # +20%: 50%, +25%: 50% of remaining, +30%: 50%, +35%: 50%, +40%: 100%
@@ -675,9 +716,10 @@ class PositionManager:
         self._monitor_task = asyncio.create_task(self._monitor_loop())
 
         logger.info(
-            "PositionManager started (tiered exits + immediate 5% stop loss)",
+            "PositionManager started (early exit + tiered exits + 5% stop loss)",
             poll_interval=self.poll_interval,
             has_websocket=self.stream_manager is not None,
+            early_exit=f"+{EARLY_EXIT_PROFIT_PCT*100:.0f}% after {EARLY_EXIT_MINUTES:.0f} min",
             tiered_exits=[f"+{t[0]*100:.0f}%" for t in TIERED_EXIT_THRESHOLDS],
             floor_rule=f"{FLOOR_RULE_MULTIPLIER*100:.0f}% of last tier",
         )
@@ -732,6 +774,7 @@ class PositionManager:
             "poll_interval": self.poll_interval,
             "has_websocket": self.stream_manager is not None,
             "stop_loss_pct": f"{STOP_LOSS_PCT*100:.0f}%",
+            "early_exit": f"+{EARLY_EXIT_PROFIT_PCT*100:.0f}% after {EARLY_EXIT_MINUTES:.0f} min → exit 100%",
             "tiered_exits": [f"+{t[0]*100:.0f}%: {t[1]*100:.0f}% of remaining" for t in TIERED_EXIT_THRESHOLDS],
             "floor_rule": f"{FLOOR_RULE_MULTIPLIER*100:.0f}% of last exit threshold",
             "positions": positions_summary,

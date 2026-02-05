@@ -40,24 +40,29 @@ CLINICAL TRIAL RESULTS (21% of winners - BE SELECTIVE)
    "Achieves Statistically Significant Improvement p<0.001" → TRADE
    "Met Primary Endpoint In Registrational Trial" → TRADE
 
-OFFERINGS/FINANCING (10% of winners)
-├─ Prices offering, Closes placement
-├─ Private placement completed, PIPE
-├─ Securities purchase agreement signed
-├─ Gross/net proceeds received
+OFFERINGS/FINANCING → SKIP ALL
+├─ Biotech offerings are almost always DILUTIVE
+├─ Even "at market" offerings signal the company needs cash (weakness)
+├─ We are looking for ONLY the best news - offerings are not catalysts
+├─ SKIP: Prices offering, Closes placement, PIPE, private placement
+├─ SKIP: Securities purchase agreement, gross/net proceeds
 └─ Examples:
-   "Prices $50M Public Offering" → TRADE
-   "Entered Into Securities Purchase Agreement" → TRADE
+   "Prices $50M Public Offering" → SKIP (dilution)
+   "Announces Underwritten Offering" → SKIP (dilution)
+   "Entered Into Securities Purchase Agreement" → SKIP (dilution)
 
-PARTNERSHIPS (8% of winners - BIG PHARMA = STRONG)
-├─ Partnership with major pharma: Pfizer, AstraZeneca, Novartis, Merck, Lilly, Roche, J&J, AbbVie, Sanofi
-├─ Licensing agreement, Collaboration agreement
-├─ Strategic agreement, Option-to-license
-├─ Joint development deals
+PARTNERSHIPS (8% of winners - BIG PHARMA ONLY)
+├─ ONLY trade partnerships with MAJOR PHARMA: Pfizer, AstraZeneca, Novartis, Merck, Lilly, Roche, J&J, AbbVie, Sanofi, GSK, BMS, Amgen, Gilead, Biogen
+├─ Licensing agreement, Collaboration agreement (with major pharma)
+├─ Strategic agreement, Option-to-license (with major pharma)
+├─ Joint development deals (with major pharma)
+├─ SKIP: Partnerships with CROs, consultants, or unknown firms
+├─ SKIP: "IND readiness", "regulatory support", "clinical trial design" partnerships (these are service contracts, not drug deals)
 └─ Examples:
-   "Partners with AstraZeneca on Gene Therapy" → TRADE (very strong)
-   "Signs Licensing Agreement with Pfizer" → TRADE (very strong)
-   "Enters Collaboration Agreement" → TRADE
+   "Partners with AstraZeneca on Gene Therapy" → TRADE (major pharma)
+   "Signs Licensing Agreement with Pfizer" → TRADE (major pharma)
+   "Partners with DUCK FLATS Pharma for IND Readiness" → SKIP (consultant, not pharma)
+   "Engages CRO for Clinical Support" → SKIP (service contract)
 
 M&A
 ├─ Merger agreement, To be acquired
@@ -115,6 +120,16 @@ LEGAL/LAWSUITS
 ├─ Class action, Securities fraud, Lawsuit
 ├─ Law firm names: Bragar Eagel, Scott+Scott, Kirby McInerney
 └─ ANY legal action → SKIP
+
+SERVICE/CONSULTING PARTNERSHIPS (No material impact)
+├─ Partnerships with CROs, consultants, regulatory advisors
+├─ "IND readiness", "regulatory support", "clinical trial design"
+├─ "Engages", "Retains", "Hires" (service relationships)
+├─ Any partnership NOT with major pharma (Pfizer, Novartis, etc.)
+└─ Examples:
+   "Partners with [Unknown Firm] for IND Readiness" → SKIP
+   "Engages Regulatory Advisor for FDA Strategy" → SKIP
+   "Retains CRO for Clinical Development" → SKIP
 
 ADMINISTRATIVE
 ├─ Inducement grants, Nasdaq listing rule

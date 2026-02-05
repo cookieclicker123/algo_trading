@@ -569,7 +569,78 @@ Summary: {summary}"""
                     spread=round(spread, 4) if spread else "unknown"
                 )
 
-            # Step 4: All checks passed - proceed to multi-sector LLM classification
+            # Step 4: UNIVERSAL CATALYST CHECK (before industry-specific LLM)
+            # ====================================================================
+            # Some catalysts are universally bullish regardless of industry:
+            # - Debt elimination/restructuring (improves balance sheet)
+            # - Definitive agreements (M&A or partnership finalized)
+            # - Being acquired (acquisition target)
+            # These bypass industry LLM classification to avoid false negatives.
+            # ====================================================================
+            UNIVERSAL_TRADE_PATTERNS = [
+                # Debt elimination/restructuring
+                (r'\b(eliminates?|removes?|restructures?|retires?).*\b(debt|obligation|liability|liabilities)\b', 'debt_elimination'),
+                (r'\b(debt|obligation).*\b(eliminat|remov|restructur|retir)\b', 'debt_elimination'),
+                (r'\bimproving cash flow\b', 'cash_flow_improvement'),
+                # Definitive agreements (M&A finalized)
+                (r'\b(completes?|signs?|enters?|executes?).*definitive.*agreement\b', 'definitive_agreement'),
+                (r'\bdefinitive.*agreement.*\b(complet|sign|enter|execut)\b', 'definitive_agreement'),
+                # Acquisition target
+                (r'\bto be acquired\b', 'acquisition_target'),
+                (r'\breceives? (buyout|acquisition) (offer|proposal)\b', 'acquisition_target'),
+                # Strategic investment received (not making, receiving)
+                (r'\b(receives?|secures?|closes?).*strategic investment\b', 'strategic_investment_received'),
+            ]
+
+            for pattern, catalyst_type in UNIVERSAL_TRADE_PATTERNS:
+                if re.search(pattern, headline_lower):
+                    logger.info(
+                        f"🎯 UNIVERSAL CATALYST: Matched '{catalyst_type}' - bypassing industry LLM",
+                        article_id=request_data.article_id,
+                        ticker=primary_ticker,
+                        pattern=catalyst_type,
+                        headline_snippet=headline_lower[:80]
+                    )
+
+                    # Get sector/industry for logging (optional, don't fail if unavailable)
+                    sector, industry = None, None
+                    if self.metadata_cache:
+                        metadata = await self.metadata_cache.get(primary_ticker)
+                        if metadata:
+                            sector = metadata.get("sector")
+                            industry = metadata.get("industry")
+
+                    # Publish IMMINENT classification directly (bypass LLM)
+                    response_data = InfrastructureClassificationResponseData(
+                        classification="imminent",
+                        confidence="HIGH",
+                        reasoning=f"Universal catalyst: {catalyst_type}"
+                    )
+
+                    completed_event = ClassificationCompletedInfrastructureEvent(
+                        request_data=request_data,
+                        response_data=response_data,
+                        completed_at=datetime.now(),
+                        latency_ms=0.0,  # No LLM call
+                        success=True,
+                        source="universal_catalyst"
+                    )
+
+                    await self.event_bus.publish(
+                        InfrastructureEventType.CLASSIFICATION_COMPLETED,
+                        completed_event.model_dump()
+                    )
+
+                    logger.info(
+                        f"✅ UNIVERSAL CATALYST: Published IMMINENT for {catalyst_type}",
+                        article_id=request_data.article_id,
+                        ticker=primary_ticker,
+                        sector=sector,
+                        industry=industry
+                    )
+                    return  # Don't proceed to industry LLM
+
+            # Step 5: Proceed to multi-sector LLM classification
             # ========================================================================
             # MULTI-SECTOR TRADING STRATEGY
             # ========================================================================

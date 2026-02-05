@@ -13,7 +13,7 @@ Supported sectors:
 - Consumer Cyclical (6 industry groupings)
 - Financial Services (3 industry groupings)
 - Consumer Defensive (3 industries)
-- Basic Materials (4 industries)
+- Basic Materials (5 industries)
 - Communication Services (1 industry - Electronic Gaming & Multimedia only)
 """
 import asyncio
@@ -164,7 +164,7 @@ SECTOR_INDUSTRY_MAP: Dict[str, Dict[str, str]] = {
     },
 
     # =========================================================================
-    # BASIC MATERIALS (4 industries)
+    # BASIC MATERIALS (5 industries)
     # =========================================================================
     "Basic Materials": {
         "Specialty Chemicals": "specialty_chemicals.txt",
@@ -172,6 +172,9 @@ SECTOR_INDUSTRY_MAP: Dict[str, Dict[str, str]] = {
         # Gold and Precious Metals - M&A, contracts, discoveries are key catalysts
         "Gold": "precious_metals_mining.txt",
         "Other Precious Metals & Mining": "precious_metals_mining.txt",
+        # Industrial Metals - lithium, cobalt, graphite, uranium, rare earths, copper
+        # DOD/DOE contracts, offtake agreements, strategic investments are key catalysts
+        "Other Industrial Metals & Mining": "other_industrial_metals_mining.txt",
     },
 }
 

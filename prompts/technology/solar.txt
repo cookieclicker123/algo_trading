@@ -14,6 +14,18 @@ INDUSTRY CONTEXT:
 TRADE SIGNALS
 ===============================================================================
 
+UNIVERSAL CATALYSTS (always trade regardless of industry)
+- Debt elimination, debt restructuring, payment obligation removed
+- Definitive agreements (M&A or partnership finalized)
+- Acquisition target announcements
+- Strategic investments received
+- Examples:
+   "Eliminates Remaining $X Million Legacy Debt" -> TRADE
+   "Completes Definitive Agreement With..." -> TRADE
+   "Signs Definitive Agreement For..." -> TRADE
+   "Removes Multi-Year Payment Obligation" -> TRADE
+   "Restructures Debt, Improves Cash Flow" -> TRADE
+
 CONTRACTS (23% of winners)
 - Utility-scale project contracts
 - Commercial installation deals
@@ -26,11 +38,13 @@ CONTRACTS (23% of winners)
 
 M&A ACTIVITY (10% of winners)
 - Acquisition announcements
+- Definitive agreements (deal finalized)
 - Strategic acquisitions
 - Private equity interest
 - Examples:
    "To Be Acquired By Major Energy Company" -> TRADE
    "Acquires Regional Solar Installer" -> TRADE
+   "Completes Definitive Agreement With Partner" -> TRADE
 
 PARTNERSHIPS
 - Technology partnerships

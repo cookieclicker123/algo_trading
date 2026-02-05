@@ -59,14 +59,20 @@ class TickerValidator:
             return
         
         self._is_running = True
-        
-        # Initial load (async, non-blocking)
-        asyncio.create_task(self._refresh_tradeable_tickers())
-        
+
+        # Initial load (BLOCKING - wait for cache before accepting articles)
+        # This ensures no articles are missed due to empty cache at startup
+        logger.info("TickerValidator: Loading tradeable tickers cache (blocking)...")
+        await self._refresh_tradeable_tickers()
+        logger.info(
+            "TickerValidator: Cache loaded successfully",
+            cache_size=len(self._tradeable_tickers)
+        )
+
         # Start background refresh task (every hour)
         self._refresh_task = asyncio.create_task(self._periodic_refresh())
-        
-        logger.info("TickerValidator started - initial load in progress, hourly refresh scheduled")
+
+        logger.info("TickerValidator started - cache ready, hourly refresh scheduled")
     
     async def stop(self) -> None:
         """
@@ -242,11 +248,11 @@ class TickerValidator:
         if not tickers:
             return False
         
-        # If cache is empty (still loading), return False to block classification
-        # This prevents wasting Groq API calls until cache is ready
+        # If cache is empty, return False to block classification
+        # This should NOT happen since cache loads blocking at startup, but keep as safety check
         if not self._tradeable_tickers:
-            logger.warning(
-                "TickerValidator: Cache is empty (still loading), blocking classification",
+            logger.error(
+                "TickerValidator: Cache is empty (unexpected - should have loaded at startup), blocking classification",
                 tickers=tickers,
                 cache_size=len(self._tradeable_tickers)
             )

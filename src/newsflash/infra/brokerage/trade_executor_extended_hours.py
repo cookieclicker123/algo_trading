@@ -32,20 +32,26 @@ logger = get_logger(__name__)
 class AlpacaExtendedHoursTradeExecutor:
     """
     Executes stock trades during extended hours.
-    
-    Entry (BUY) Strategy:
-    - Place single limit order at ask price
-    - No retry if order doesn't fill (fast-moving markets require immediate execution)
-    
-    Exit (SELL) Strategy:
-    - Place single marketable limit order at bid price (with discount to ensure immediate fill)
-    - No retry if order doesn't fill (fast-moving markets require immediate execution)
-    
+
+    Entry (BUY) Strategy - Chase-the-Ask:
+    - Place limit order at current ask (no premium)
+    - If not filled in 500ms, re-check NBBO and place at new ask
+    - Repeat up to 10 times (5 seconds total)
+    - Abort if price exceeds 5% above initial ask (price collar)
+    - This saves premium on normal fills while catching runners
+
+    Exit (SELL) Strategy - Chase-the-Bid:
+    - Place limit order at current bid (no discount)
+    - If not filled in 500ms, re-check NBBO and place at new bid
+    - Repeat up to 10 times (5 seconds total)
+    - Abort if bid falls below 5% under initial bid (price floor)
+    - This saves money by not giving away unnecessary discounts
+
     Responsibilities:
     - Execute limit orders (stocks only)
     - Handle trade execution
     - Publish trade events
-    
+
     Does NOT:
     - Know about business logic
     - Send Telegram notifications
@@ -178,11 +184,12 @@ class AlpacaExtendedHoursTradeExecutor:
             
             trading_start = time.time()
             
-            # SIMPLIFIED ENTRY LOGIC: For BUY orders, use marketable limit order to ensure fill
+            # ENTRY LOGIC: Chase-the-ask approach for BUY orders
+            # Strategy: Place at ask, chase every 500ms if not filled, up to 5% price collar
+            # This saves premium on normal fills while still catching runners
             if action == "BUY":
-                ask_price = nbbo_snapshot.get("ask")
-                ask_size = nbbo_snapshot.get("ask_size")
-                if not ask_price or ask_price <= 0:
+                initial_ask = nbbo_snapshot.get("ask")
+                if not initial_ask or initial_ask <= 0:
                     error_result = {
                         "success": False,
                         "error": "Could not retrieve ask price for entry trade",
@@ -192,499 +199,517 @@ class AlpacaExtendedHoursTradeExecutor:
                     }
                     await self._publish_failed_event(trade_request, error_result["error"])
                     return error_result
-                
-                # Use marketable limit order: price above ask to ensure immediate fill
-                # This is critical for fast-moving markets - we need to get filled NOW
-                # Strategy: Dynamic premium based on liquidity and spread conditions
-                # Since our system rarely makes losing trades, we prioritize fill probability over cost
-                
-                # Base premium: 0.5% or $0.02 minimum
-                base_premium_pct = 0.005  # 0.5%
-                base_premium_dollar = 0.02
-                price_premium = max(ask_price * base_premium_pct, base_premium_dollar)
-                
-                # Dynamic adjustment 1: Increase premium if ask_size is insufficient
-                # If we need more shares than available at ask, we need to pay more to reach higher price levels
-                liquidity_multiplier = 1.0
-                if ask_size is not None and ask_size > 0 and ask_size < quantity:
-                    shortfall_ratio = quantity / ask_size  # e.g., 1188 / 200 = 5.94x
-                    # Scale multiplier: more aggressive for larger shortfalls, capped at 3x
-                    # Formula: 1.0 + (shortfall_ratio - 1.0) * 0.15, max 3.0
-                    liquidity_multiplier = min(1.0 + (shortfall_ratio - 1.0) * 0.15, 3.0)
-                
-                # Dynamic adjustment 2: Increase premium for wide spreads
-                # Wide spreads indicate lower liquidity or higher volatility
-                bid_price = nbbo_snapshot.get("bid")
-                spread_multiplier = 1.0
-                if bid_price and bid_price > 0:
-                    spread = ask_price - bid_price
-                    spread_pct = (spread / ask_price) * 100
-                    # If spread > 0.5%, increase premium (wider spread = more premium needed)
-                    if spread_pct > 0.5:
-                        # Scale: 1.0x for 0.5% spread, up to 1.5x for 2%+ spread
-                        spread_multiplier = min(1.0 + (spread_pct - 0.5) * 0.25, 1.5)
-                
-                # Apply multipliers to base premium
-                price_premium = price_premium * liquidity_multiplier * spread_multiplier
-                
-                # Cap at reasonable maximum: 2% or $0.05 (whichever is larger)
-                # This ensures we don't overpay excessively, but still prioritize fills
-                max_premium_pct = 0.02  # 2%
-                max_premium_dollar = 0.05
-                price_premium = min(price_premium, max(ask_price * max_premium_pct, max_premium_dollar))
-                
-                limit_price = round(ask_price + price_premium, 2)
-                
-                # Enhanced logging with dynamic adjustments
-                liquidity_info = ""
-                spread_info = ""
-                if ask_size is not None:
-                    if ask_size < quantity:
-                        liquidity_info = f" | ask_size={ask_size} < qty={quantity} → {liquidity_multiplier:.2f}x premium"
-                    else:
-                        liquidity_info = f" | ask_size={ask_size} >= qty={quantity} (sufficient)"
-                
-                if bid_price:
-                    spread = ask_price - bid_price
-                    spread_pct = (spread / ask_price) * 100
-                    if spread_pct > 0.5:
-                        spread_info = f" | spread={spread_pct:.2f}% (wide) → {spread_multiplier:.2f}x premium"
-                    else:
-                        spread_info = f" | spread={spread_pct:.2f}% (normal)"
-                
+
+                # Price collar: Maximum we're willing to pay (5% above initial ask)
+                # This prevents chasing into pump-and-dumps
+                MAX_SLIPPAGE_PCT = 0.05  # 5% max slippage from decision point
+                max_price = round(initial_ask * (1 + MAX_SLIPPAGE_PCT), 2)
+
+                # Chase parameters
+                CHASE_INTERVAL_MS = 500  # Check every 500ms
+                MAX_CHASE_ATTEMPTS = 10  # 10 attempts = 5 seconds total
+                chase_attempts = []
+
                 logger.info(
-                    f"💰 ENTRY ORDER: Placing marketable limit order with dynamic premium to maximize fill probability",
+                    f"💰 ENTRY ORDER: Starting chase-the-ask strategy",
                     ticker=trade_request.ticker,
-                    limit_price=limit_price,
-                    ask_price=ask_price,
-                    price_premium=price_premium,
-                    premium_pct=(price_premium / ask_price * 100) if ask_price > 0 else 0,
+                    initial_ask=initial_ask,
+                    max_price=max_price,
+                    max_slippage_pct=f"{MAX_SLIPPAGE_PCT*100:.0f}%",
                     quantity=quantity,
-                    ask_size=ask_size,
-                    bid=bid_price,
-                    liquidity_multiplier=liquidity_multiplier,
-                    spread_multiplier=spread_multiplier,
-                    liquidity_info=liquidity_info,
-                    spread_info=spread_info
+                    max_attempts=MAX_CHASE_ATTEMPTS,
                 )
-                
-                order_data = LimitOrderRequest(
-                    symbol=trade_request.ticker,
-                    qty=quantity,
-                    side=OrderSide.BUY,
-                    limit_price=limit_price,
-                    time_in_force=TimeInForce.DAY,
-                    extended_hours=True
-                )
-                
-                order = self.trading_client.submit_order(order_data=order_data)
-                current_order_id = order.id
-                
-                # Immediately check if order was rejected (catch broker rejections early)
-                try:
-                    immediate_status = self.trading_client.get_order_by_id(order.id)
-                    if immediate_status.status in ["rejected", "canceled", "expired"]:
-                        reject_reason = getattr(immediate_status, 'reject_reason', 'Unknown')
+
+                for attempt in range(1, MAX_CHASE_ATTEMPTS + 1):
+                    # Get fresh NBBO for each attempt (except first which uses initial)
+                    if attempt > 1:
+                        fresh_nbbo = await self.quote_fetcher.get_nbbo_snapshot(trade_request.ticker)
+                        if fresh_nbbo:
+                            current_ask = fresh_nbbo.get("ask")
+                            nbbo_snapshot = fresh_nbbo  # Update for result reporting
+                        else:
+                            current_ask = None
+                    else:
+                        current_ask = initial_ask
+
+                    if not current_ask or current_ask <= 0:
+                        logger.warning(
+                            f"Chase attempt {attempt}: Could not get ask price, skipping",
+                            ticker=trade_request.ticker
+                        )
+                        await asyncio.sleep(CHASE_INTERVAL_MS / 1000)
+                        continue
+
+                    # Check price collar - abort if ask exceeds max acceptable price
+                    if current_ask > max_price:
+                        logger.warning(
+                            f"🛑 ENTRY ABORTED: Price exceeded {MAX_SLIPPAGE_PCT*100:.0f}% collar",
+                            ticker=trade_request.ticker,
+                            current_ask=current_ask,
+                            max_price=max_price,
+                            initial_ask=initial_ask,
+                            slippage_pct=f"{((current_ask - initial_ask) / initial_ask * 100):.1f}%",
+                            attempts_made=attempt - 1,
+                        )
                         error_result = {
                             "success": False,
-                            "error": f"Order immediately {immediate_status.status}: {reject_reason}",
+                            "error": f"Price exceeded {MAX_SLIPPAGE_PCT*100:.0f}% collar (ask ${current_ask} > max ${max_price})",
                             "session": session,
-                            "order_type": "LIMIT",
+                            "order_type": "CHASE_LIMIT",
                             "instrument": "stock",
-                            "limit_price_attempted": limit_price,
+                            "initial_ask": initial_ask,
+                            "final_ask": current_ask,
+                            "max_price": max_price,
+                            "chase_attempts": chase_attempts,
                             "nbbo": nbbo_snapshot,
                         }
-                        logger.warning(
-                            f"❌ ENTRY ORDER IMMEDIATELY REJECTED: Order was {immediate_status.status}",
-                            ticker=trade_request.ticker,
-                            limit_price=limit_price,
-                            ask=ask_price,
-                            reject_reason=reject_reason
-                        )
                         await self._publish_failed_event(trade_request, error_result["error"], error_result)
                         return error_result
-                except Exception as status_error:
-                    logger.debug(
-                        "Could not check immediate order status (will check during fill wait)",
-                        ticker=trade_request.ticker,
-                        error=str(status_error)
-                    )
-                
-                # Wait for fill with timeout (10 seconds for extended hours)
-                # News trades usually have high volume, but extended hours can have lower liquidity
-                # 10 seconds balances speed vs reliability
-                fill_wait_start = time.time()
-                fill_timeout = 10.0  # 10 seconds max wait for entry in extended hours
-                deadline_for_fill = min(timeout_deadline, time.monotonic() + fill_timeout) if timeout_deadline else time.monotonic() + fill_timeout
-                filled = await self._wait_for_fill(order.id, 0.5, deadline_for_fill)
-                fill_wait_time = time.time() - fill_wait_start
-                
-                if filled:
-                    # Order filled - get details
-                    order_status = self.trading_client.get_order_by_id(order.id)
-                    fill_price = float(order_status.filled_avg_price) if order_status.filled_avg_price else limit_price
-                    filled_shares = float(order_status.filled_qty) if order_status.filled_qty else quantity
-                    total_trading_time = time.time() - trading_start
-                    total_time = time.time() - total_start_time
-                    
+
+                    # Place limit order at current ask (no premium)
+                    limit_price = round(current_ask, 2)
+
                     logger.info(
-                        f"✅ ENTRY ORDER FILLED at ask price",
+                        f"📈 Chase attempt {attempt}/{MAX_CHASE_ATTEMPTS}: Placing limit at ask",
                         ticker=trade_request.ticker,
-                        fill_price=fill_price,
-                        shares=filled_shares
+                        limit_price=limit_price,
+                        initial_ask=initial_ask,
+                        slippage_so_far=f"{((limit_price - initial_ask) / initial_ask * 100):.2f}%" if limit_price > initial_ask else "0%",
                     )
-                    
-                    total_cost = fill_price * filled_shares if fill_price and filled_shares else None
-                    commission = 0.0
-                    
-                    result = {
-                        "success": True,
-                        "shares": filled_shares,
-                        "fill_price": fill_price,
-                        "total_cost": total_cost,
-                        "commission": commission,
-                        "session": session,
-                        "order_type": "LIMIT",
-                        "instrument": "stock",
-                        "limit_price_used": limit_price,
-                        "timing_info": {
-                            "session_detection": session_time,
-                            "connection": connect_time,
-                            "nbbo_retrieval": nbbo_time,
-                            "fill_wait": fill_wait_time,
-                            "trading_time": total_trading_time,
-                            "total": total_time,
-                        },
-                        "instrument_details": {
-                            "leverage": leverage,
-                            "capital_required": capital_required,
-                            "price_fallback_used": price_fallback_used,
-                            "nbbo": nbbo_snapshot,
-                        },
-                    }
-                    
-                    await self._publish_executed_event(trade_request, result)
-                    return result
-                else:
-                    # Entry order didn't fill - this should be rare with marketable limit order
-                    # Check order status to see if it was rejected
+
+                    # Cancel any previous order before placing new one
+                    if current_order_id:
+                        await self._cancel_order_safely(current_order_id)
+                        current_order_id = None
+
+                    order_data = LimitOrderRequest(
+                        symbol=trade_request.ticker,
+                        qty=quantity,
+                        side=OrderSide.BUY,
+                        limit_price=limit_price,
+                        time_in_force=TimeInForce.DAY,
+                        extended_hours=True
+                    )
+
+                    try:
+                        order = self.trading_client.submit_order(order_data=order_data)
+                        current_order_id = order.id
+                    except Exception as order_error:
+                        logger.error(
+                            f"Chase attempt {attempt}: Order submission failed",
+                            ticker=trade_request.ticker,
+                            error=str(order_error)
+                        )
+                        chase_attempts.append({
+                            "attempt": attempt,
+                            "limit_price": limit_price,
+                            "result": "submission_failed",
+                            "error": str(order_error)
+                        })
+                        await asyncio.sleep(CHASE_INTERVAL_MS / 1000)
+                        continue
+
+                    # Wait for fill (500ms)
+                    attempt_start = time.time()
+                    await asyncio.sleep(CHASE_INTERVAL_MS / 1000)
+
+                    # Check if filled
                     try:
                         order_status = self.trading_client.get_order_by_id(order.id)
-                        if order_status.status in ["rejected", "canceled", "expired"]:
-                            reject_reason = getattr(order_status, 'reject_reason', 'Unknown')
-                            error_result = {
-                                "success": False,
-                                "error": f"Order {order_status.status}: {reject_reason}",
-                                "session": session,
-                                "order_type": "LIMIT",
-                                "instrument": "stock",
-                                "limit_price_attempted": limit_price,
-                                "nbbo": nbbo_snapshot,
-                            }
-                            logger.warning(
-                                f"❌ ENTRY ORDER REJECTED: Order was {order_status.status}",
+
+                        if order_status.status == "filled":
+                            # SUCCESS - Order filled
+                            fill_price = float(order_status.filled_avg_price) if order_status.filled_avg_price else limit_price
+                            filled_shares = float(order_status.filled_qty) if order_status.filled_qty else quantity
+                            total_trading_time = time.time() - trading_start
+                            total_time = time.time() - total_start_time
+
+                            chase_attempts.append({
+                                "attempt": attempt,
+                                "limit_price": limit_price,
+                                "result": "filled",
+                                "fill_price": fill_price,
+                            })
+
+                            logger.info(
+                                f"✅ ENTRY FILLED on attempt {attempt}",
                                 ticker=trade_request.ticker,
-                                limit_price=limit_price,
-                                ask=ask_price,
-                                reject_reason=reject_reason
+                                fill_price=fill_price,
+                                shares=filled_shares,
+                                initial_ask=initial_ask,
+                                slippage=f"{((fill_price - initial_ask) / initial_ask * 100):.2f}%" if fill_price > initial_ask else "0%",
                             )
-                            await self._publish_failed_event(trade_request, error_result["error"], error_result)
-                            return error_result
+
+                            total_cost = fill_price * filled_shares if fill_price and filled_shares else None
+                            commission = 0.0
+
+                            result = {
+                                "success": True,
+                                "shares": filled_shares,
+                                "fill_price": fill_price,
+                                "total_cost": total_cost,
+                                "commission": commission,
+                                "session": session,
+                                "order_type": "CHASE_LIMIT",
+                                "instrument": "stock",
+                                "limit_price_used": limit_price,
+                                "timing_info": {
+                                    "session_detection": session_time,
+                                    "connection": connect_time,
+                                    "nbbo_retrieval": nbbo_time,
+                                    "trading_time": total_trading_time,
+                                    "total": total_time,
+                                    "chase_attempts": attempt,
+                                },
+                                "instrument_details": {
+                                    "leverage": leverage,
+                                    "capital_required": capital_required,
+                                    "price_fallback_used": price_fallback_used,
+                                    "nbbo": nbbo_snapshot,
+                                    "initial_ask": initial_ask,
+                                    "max_price": max_price,
+                                    "chase_attempts_detail": chase_attempts,
+                                },
+                            }
+
+                            current_order_id = None  # Clear tracking
+                            await self._publish_executed_event(trade_request, result)
+                            return result
+
+                        elif order_status.status in ["rejected", "canceled", "expired"]:
+                            reject_reason = getattr(order_status, 'reject_reason', 'Unknown')
+                            chase_attempts.append({
+                                "attempt": attempt,
+                                "limit_price": limit_price,
+                                "result": order_status.status,
+                                "reason": reject_reason,
+                            })
+                            logger.warning(
+                                f"Chase attempt {attempt}: Order {order_status.status}",
+                                ticker=trade_request.ticker,
+                                reason=reject_reason
+                            )
+                            current_order_id = None
+                            # Continue to next attempt
+                        else:
+                            # Order still open (pending/new) - will cancel and retry
+                            chase_attempts.append({
+                                "attempt": attempt,
+                                "limit_price": limit_price,
+                                "result": "not_filled",
+                                "status": order_status.status,
+                            })
+
                     except Exception as status_error:
-                        logger.debug(
-                            "Could not check order status after timeout",
+                        logger.warning(
+                            f"Chase attempt {attempt}: Could not check order status",
                             ticker=trade_request.ticker,
                             error=str(status_error)
                         )
-                    
-                    # Order didn't fill within timeout - cancel and fail
-                    await self._cancel_order_safely(order.id)
-                    error_result = {
-                        "success": False,
-                        "error": "Entry order did not fill within timeout (unexpected with marketable limit)",
-                        "session": session,
-                        "order_type": "LIMIT",
-                        "instrument": "stock",
-                        "limit_price_attempted": limit_price,
-                        "ask_price": ask_price,
-                        "price_premium": price_premium,
-                        "nbbo": nbbo_snapshot,
-                    }
-                    logger.warning(
-                        f"❌ ENTRY ORDER FAILED: Did not fill within timeout (unexpected)",
-                        ticker=trade_request.ticker,
-                        limit_price=limit_price,
-                        ask=ask_price,
-                        ask_size=ask_size,
-                        quantity=quantity
-                    )
-                    await self._publish_failed_event(trade_request, error_result["error"], error_result)
-                    return error_result
+                        chase_attempts.append({
+                            "attempt": attempt,
+                            "limit_price": limit_price,
+                            "result": "status_check_failed",
+                            "error": str(status_error),
+                        })
+
+                # All attempts exhausted - cancel any pending order and fail
+                if current_order_id:
+                    await self._cancel_order_safely(current_order_id)
+                    current_order_id = None
+
+                final_ask = nbbo_snapshot.get("ask") if nbbo_snapshot else None
+                logger.warning(
+                    f"❌ ENTRY FAILED: All {MAX_CHASE_ATTEMPTS} chase attempts exhausted",
+                    ticker=trade_request.ticker,
+                    initial_ask=initial_ask,
+                    final_ask=final_ask,
+                    max_price=max_price,
+                    chase_attempts=chase_attempts,
+                )
+
+                error_result = {
+                    "success": False,
+                    "error": f"Entry failed after {MAX_CHASE_ATTEMPTS} chase attempts",
+                    "session": session,
+                    "order_type": "CHASE_LIMIT",
+                    "instrument": "stock",
+                    "initial_ask": initial_ask,
+                    "final_ask": final_ask,
+                    "max_price": max_price,
+                    "chase_attempts": chase_attempts,
+                    "nbbo": nbbo_snapshot,
+                }
+                await self._publish_failed_event(trade_request, error_result["error"], error_result)
+                return error_result
             
-            # EXIT LOGIC: For SELL orders, pricing depends on exit reason
-            # - Stop loss / floor exit: Aggressive (bid - discount) - need to get out NOW
-            # - Tiered profit exits: Less aggressive (bid or bid + small premium) - we're profitable, can wait
+            # EXIT LOGIC: Chase-the-Bid approach for SELL orders
+            # Strategy: Place limit order at current bid (no discount)
+            # If not filled in 500ms, re-check NBBO and place at new bid
+            # Repeat up to 10 times (5 seconds total)
+            # This saves money by not giving away unnecessary discounts
+            # Price floor: Won't go below 5% under initial bid (prevents selling into a crash)
             if action == "SELL":
                 # CRITICAL FIX: Cancel any existing open orders for this ticker before placing new sell
                 # This prevents "insufficient qty available" errors when shares are held by pending orders
                 await self._cancel_all_open_orders_for_ticker(trade_request.ticker)
 
-                bid_price = nbbo_snapshot.get("bid")
-                bid_size = nbbo_snapshot.get("bid_size")
-                if not bid_price or bid_price <= 0:
+                initial_bid = nbbo_snapshot.get("bid")
+                if not initial_bid or initial_bid <= 0:
                     error_result = {
                         "success": False,
                         "error": "Could not retrieve bid price for exit trade",
                         "session": session,
-                        "order_type": "LIMIT",
+                        "order_type": "CHASE_LIMIT",
                         "instrument": "stock",
                     }
                     await self._publish_failed_event(trade_request, error_result["error"])
                     return error_result
 
-                # Check exit reason from metadata to determine pricing strategy
+                # Price floor: Minimum we're willing to accept (5% below initial bid)
+                # This prevents chasing down into a crash
+                MAX_SLIPPAGE_PCT = 0.05  # 5% max slippage from decision point
+                min_price = round(initial_bid * (1 - MAX_SLIPPAGE_PCT), 2)
+
+                # Chase parameters (same as entry)
+                CHASE_INTERVAL_MS = 500  # Check every 500ms
+                MAX_CHASE_ATTEMPTS = 10  # 10 attempts = 5 seconds total
+                chase_attempts = []
+
                 exit_reason = metadata.get("exit_reason", "") if metadata else ""
-                is_urgent_exit = exit_reason in ["stop_loss", "floor_exit", "manual_exit"]
 
-                # Use marketable limit order: price below bid to ensure immediate fill
-                # Strategy: Different aggressiveness based on urgency
-
-                if is_urgent_exit:
-                    # URGENT EXIT: Aggressive pricing - need to get out NOW
-                    # Base discount: 0.5% or $0.02 minimum
-                    base_discount_pct = 0.005  # 0.5%
-                    base_discount_dollar = 0.02
-                    price_discount = max(bid_price * base_discount_pct, base_discount_dollar)
-                else:
-                    # TIERED PROFIT EXIT: Less aggressive - we're profitable, can afford better fills
-                    # Start at bid (no discount), use smaller discount if needed
-                    base_discount_pct = 0.001  # 0.1%
-                    base_discount_dollar = 0.01
-                    price_discount = max(bid_price * base_discount_pct, base_discount_dollar)
-                
-                # Dynamic adjustment 1: Increase discount if bid_size is insufficient
-                # If we need to sell more shares than available at bid, we need to discount more to reach lower price levels
-                liquidity_multiplier = 1.0
-                if bid_size is not None and bid_size > 0 and bid_size < quantity:
-                    shortfall_ratio = quantity / bid_size  # e.g., 1188 / 200 = 5.94x
-                    # Scale multiplier: more aggressive for larger shortfalls, capped at 3x
-                    # Formula: 1.0 + (shortfall_ratio - 1.0) * 0.15, max 3.0
-                    liquidity_multiplier = min(1.0 + (shortfall_ratio - 1.0) * 0.15, 3.0)
-                
-                # Dynamic adjustment 2: Increase discount for wide spreads
-                # Wide spreads indicate lower liquidity or higher volatility
-                ask_price = nbbo_snapshot.get("ask")
-                spread_multiplier = 1.0
-                if ask_price and ask_price > 0:
-                    spread = ask_price - bid_price
-                    spread_pct = (spread / bid_price) * 100
-                    # If spread > 0.5%, increase discount (wider spread = more discount needed)
-                    if spread_pct > 0.5:
-                        # Scale: 1.0x for 0.5% spread, up to 1.5x for 2%+ spread
-                        spread_multiplier = min(1.0 + (spread_pct - 0.5) * 0.25, 1.5)
-                
-                # Apply multipliers to base discount
-                price_discount = price_discount * liquidity_multiplier * spread_multiplier
-
-                # Cap at reasonable maximum based on urgency
-                if is_urgent_exit:
-                    # Urgent exits: Allow up to 2% discount for guaranteed fills
-                    max_discount_pct = 0.02  # 2%
-                    max_discount_dollar = 0.05
-                else:
-                    # Tiered exits: Cap at 0.5% - we're profitable, keep more of it
-                    max_discount_pct = 0.005  # 0.5%
-                    max_discount_dollar = 0.02
-
-                price_discount = min(price_discount, max(bid_price * max_discount_pct, max_discount_dollar))
-
-                limit_price = round(bid_price - price_discount, 2)
-                
-                # Enhanced logging with dynamic adjustments
-                liquidity_info = ""
-                spread_info = ""
-                if bid_size is not None:
-                    if bid_size < quantity:
-                        liquidity_info = f" | bid_size={bid_size} < qty={quantity} → {liquidity_multiplier:.2f}x discount"
-                    else:
-                        liquidity_info = f" | bid_size={bid_size} >= qty={quantity} (sufficient)"
-                
-                if ask_price:
-                    spread = ask_price - bid_price
-                    spread_pct = (spread / bid_price) * 100
-                    if spread_pct > 0.5:
-                        spread_info = f" | spread={spread_pct:.2f}% (wide) → {spread_multiplier:.2f}x discount"
-                    else:
-                        spread_info = f" | spread={spread_pct:.2f}% (normal)"
-                
-                exit_type = "URGENT" if is_urgent_exit else "TIERED PROFIT"
                 logger.info(
-                    f"💰 EXIT ORDER ({exit_type}): Placing limit order - {'aggressive' if is_urgent_exit else 'less aggressive'} pricing",
+                    f"💰 EXIT ORDER: Starting chase-the-bid strategy",
                     ticker=trade_request.ticker,
                     exit_reason=exit_reason,
-                    limit_price=limit_price,
-                    bid_price=bid_price,
-                    price_discount=price_discount,
-                    discount_pct=(price_discount / bid_price * 100) if bid_price > 0 else 0,
+                    initial_bid=initial_bid,
+                    min_price=min_price,
+                    max_slippage_pct=f"{MAX_SLIPPAGE_PCT*100:.0f}%",
                     quantity=quantity,
-                    bid_size=bid_size,
-                    ask=ask_price,
-                    liquidity_multiplier=liquidity_multiplier,
-                    spread_multiplier=spread_multiplier,
-                    liquidity_info=liquidity_info,
-                    spread_info=spread_info
+                    max_attempts=MAX_CHASE_ATTEMPTS,
                 )
-                
-                order_data = LimitOrderRequest(
-                    symbol=trade_request.ticker,
-                    qty=quantity,
-                    side=OrderSide.SELL,
-                    limit_price=limit_price,
-                    time_in_force=TimeInForce.DAY,
-                    extended_hours=True
-                )
-                
-                order = self.trading_client.submit_order(order_data=order_data)
-                
-                # Immediately check if order was rejected (catch broker rejections early)
-                try:
-                    immediate_status = self.trading_client.get_order_by_id(order.id)
-                    if immediate_status.status in ["rejected", "canceled", "expired"]:
-                        reject_reason = getattr(immediate_status, 'reject_reason', 'Unknown')
+
+                for attempt in range(1, MAX_CHASE_ATTEMPTS + 1):
+                    # Get fresh NBBO for each attempt (except first which uses initial)
+                    if attempt > 1:
+                        fresh_nbbo = await self.quote_fetcher.get_nbbo_snapshot(trade_request.ticker)
+                        if fresh_nbbo:
+                            current_bid = fresh_nbbo.get("bid")
+                            nbbo_snapshot = fresh_nbbo  # Update for result reporting
+                        else:
+                            current_bid = None
+                    else:
+                        current_bid = initial_bid
+
+                    if not current_bid or current_bid <= 0:
+                        logger.warning(
+                            f"Chase attempt {attempt}: Could not get bid price, skipping",
+                            ticker=trade_request.ticker
+                        )
+                        await asyncio.sleep(CHASE_INTERVAL_MS / 1000)
+                        continue
+
+                    # Check price floor - abort if bid falls below min acceptable price
+                    if current_bid < min_price:
+                        logger.warning(
+                            f"🛑 EXIT ABORTED: Price fell below {MAX_SLIPPAGE_PCT*100:.0f}% floor",
+                            ticker=trade_request.ticker,
+                            current_bid=current_bid,
+                            min_price=min_price,
+                            initial_bid=initial_bid,
+                            slippage_pct=f"{((initial_bid - current_bid) / initial_bid * 100):.1f}%",
+                            attempts_made=attempt - 1,
+                        )
                         error_result = {
                             "success": False,
-                            "error": f"Order immediately {immediate_status.status}: {reject_reason}",
+                            "error": f"Price fell below {MAX_SLIPPAGE_PCT*100:.0f}% floor (bid ${current_bid} < min ${min_price})",
                             "session": session,
-                            "order_type": "LIMIT",
+                            "order_type": "CHASE_LIMIT",
                             "instrument": "stock",
-                            "limit_price_attempted": limit_price,
+                            "initial_bid": initial_bid,
+                            "final_bid": current_bid,
+                            "min_price": min_price,
+                            "chase_attempts": chase_attempts,
                             "nbbo": nbbo_snapshot,
                         }
-                        logger.warning(
-                            f"❌ EXIT ORDER IMMEDIATELY REJECTED: Order was {immediate_status.status}",
-                            ticker=trade_request.ticker,
-                            limit_price=limit_price,
-                            bid=bid_price,
-                            reject_reason=reject_reason
-                        )
                         await self._publish_failed_event(trade_request, error_result["error"], error_result)
                         return error_result
-                except Exception as status_error:
-                    logger.debug(
-                        "Could not check immediate order status (will check during fill wait)",
-                        ticker=trade_request.ticker,
-                        error=str(status_error)
-                    )
-                
-                # Wait for fill with timeout (10 seconds for extended hours)
-                fill_wait_start = time.time()
-                fill_timeout = 10.0  # 10 seconds max wait for exit in extended hours
-                deadline_for_fill = min(timeout_deadline, time.monotonic() + fill_timeout) if timeout_deadline else time.monotonic() + fill_timeout
-                filled = await self._wait_for_fill(order.id, 0.5, deadline_for_fill)
-                fill_wait_time = time.time() - fill_wait_start
-                
-                if filled:
-                    # Order filled - get details
-                    order_status = self.trading_client.get_order_by_id(order.id)
-                    fill_price = float(order_status.filled_avg_price) if order_status.filled_avg_price else limit_price
-                    filled_shares = float(order_status.filled_qty) if order_status.filled_qty else quantity
-                    total_trading_time = time.time() - trading_start
-                    total_time = time.time() - total_start_time
-                    
+
+                    # Place limit order at current bid (no discount - save money)
+                    limit_price = round(current_bid, 2)
+
                     logger.info(
-                        f"✅ EXIT ORDER FILLED at bid price",
+                        f"📉 Chase attempt {attempt}/{MAX_CHASE_ATTEMPTS}: Placing limit at bid",
                         ticker=trade_request.ticker,
-                        fill_price=fill_price,
-                        shares=filled_shares
+                        limit_price=limit_price,
+                        initial_bid=initial_bid,
+                        slippage_so_far=f"{((initial_bid - limit_price) / initial_bid * 100):.2f}%" if limit_price < initial_bid else "0%",
                     )
-                    
-                    total_cost = fill_price * filled_shares if fill_price and filled_shares else None
-                    commission = 0.0
-                    
-                    result = {
-                        "success": True,
-                        "shares": filled_shares,
-                        "fill_price": fill_price,
-                        "total_cost": total_cost,
-                        "commission": commission,
-                        "session": session,
-                        "order_type": "LIMIT",
-                        "instrument": "stock",
-                        "limit_price_used": limit_price,
-                        "timing_info": {
-                            "session_detection": session_time,
-                            "connection": connect_time,
-                            "nbbo_retrieval": nbbo_time,
-                            "fill_wait": fill_wait_time,
-                            "trading_time": total_trading_time,
-                            "total": total_time,
-                        },
-                        "instrument_details": {
-                            "leverage": leverage,
-                            "capital_required": capital_required,
-                            "price_fallback_used": price_fallback_used,
-                            "nbbo": nbbo_snapshot,
-                        },
-                    }
-                    
-                    await self._publish_executed_event(trade_request, result)
-                    return result
-                else:
-                    # Exit order didn't fill - this should be rare with marketable limit order
-                    # Check order status to see if it was rejected
+
+                    # Cancel any previous order before placing new one
+                    if current_order_id:
+                        await self._cancel_order_safely(current_order_id)
+                        current_order_id = None
+
+                    order_data = LimitOrderRequest(
+                        symbol=trade_request.ticker,
+                        qty=quantity,
+                        side=OrderSide.SELL,
+                        limit_price=limit_price,
+                        time_in_force=TimeInForce.DAY,
+                        extended_hours=True
+                    )
+
+                    try:
+                        order = self.trading_client.submit_order(order_data=order_data)
+                        current_order_id = order.id
+                    except Exception as order_error:
+                        logger.error(
+                            f"Chase attempt {attempt}: Order submission failed",
+                            ticker=trade_request.ticker,
+                            error=str(order_error)
+                        )
+                        chase_attempts.append({
+                            "attempt": attempt,
+                            "limit_price": limit_price,
+                            "result": "submission_failed",
+                            "error": str(order_error)
+                        })
+                        await asyncio.sleep(CHASE_INTERVAL_MS / 1000)
+                        continue
+
+                    # Wait for fill (500ms)
+                    await asyncio.sleep(CHASE_INTERVAL_MS / 1000)
+
+                    # Check if filled
                     try:
                         order_status = self.trading_client.get_order_by_id(order.id)
-                        if order_status.status in ["rejected", "canceled", "expired"]:
-                            reject_reason = getattr(order_status, 'reject_reason', 'Unknown')
-                            error_result = {
-                                "success": False,
-                                "error": f"Order {order_status.status}: {reject_reason}",
-                                "session": session,
-                                "order_type": "LIMIT",
-                                "instrument": "stock",
-                                "limit_price_attempted": limit_price,
-                                "bid_price": bid_price,
-                                "nbbo": nbbo_snapshot,
-                            }
-                            logger.warning(
-                                f"❌ EXIT ORDER REJECTED: Order was {order_status.status}",
+
+                        if order_status.status == "filled":
+                            # SUCCESS - Order filled
+                            fill_price = float(order_status.filled_avg_price) if order_status.filled_avg_price else limit_price
+                            filled_shares = float(order_status.filled_qty) if order_status.filled_qty else quantity
+                            total_trading_time = time.time() - trading_start
+                            total_time = time.time() - total_start_time
+
+                            chase_attempts.append({
+                                "attempt": attempt,
+                                "limit_price": limit_price,
+                                "result": "filled",
+                                "fill_price": fill_price,
+                            })
+
+                            logger.info(
+                                f"✅ EXIT FILLED on attempt {attempt}",
                                 ticker=trade_request.ticker,
-                                limit_price=limit_price,
-                                bid=bid_price,
-                                reject_reason=reject_reason
+                                fill_price=fill_price,
+                                shares=filled_shares,
+                                initial_bid=initial_bid,
+                                slippage=f"{((initial_bid - fill_price) / initial_bid * 100):.2f}%" if fill_price < initial_bid else "0%",
                             )
-                            await self._publish_failed_event(trade_request, error_result["error"], error_result)
-                            return error_result
+
+                            total_cost = fill_price * filled_shares if fill_price and filled_shares else None
+                            commission = 0.0
+
+                            result = {
+                                "success": True,
+                                "shares": filled_shares,
+                                "fill_price": fill_price,
+                                "total_cost": total_cost,
+                                "commission": commission,
+                                "session": session,
+                                "order_type": "CHASE_LIMIT",
+                                "instrument": "stock",
+                                "limit_price_used": limit_price,
+                                "timing_info": {
+                                    "session_detection": session_time,
+                                    "connection": connect_time,
+                                    "nbbo_retrieval": nbbo_time,
+                                    "trading_time": total_trading_time,
+                                    "total": total_time,
+                                    "chase_attempts": attempt,
+                                },
+                                "instrument_details": {
+                                    "leverage": leverage,
+                                    "capital_required": capital_required,
+                                    "price_fallback_used": price_fallback_used,
+                                    "nbbo": nbbo_snapshot,
+                                    "initial_bid": initial_bid,
+                                    "min_price": min_price,
+                                    "chase_attempts_detail": chase_attempts,
+                                },
+                            }
+
+                            current_order_id = None  # Clear tracking
+                            await self._publish_executed_event(trade_request, result)
+                            return result
+
+                        elif order_status.status in ["rejected", "canceled", "expired"]:
+                            reject_reason = getattr(order_status, 'reject_reason', 'Unknown')
+                            chase_attempts.append({
+                                "attempt": attempt,
+                                "limit_price": limit_price,
+                                "result": order_status.status,
+                                "reason": reject_reason,
+                            })
+                            logger.warning(
+                                f"Chase attempt {attempt}: Order {order_status.status}",
+                                ticker=trade_request.ticker,
+                                reason=reject_reason
+                            )
+                            current_order_id = None
+                            # Continue to next attempt
+                        else:
+                            # Order still open (pending/new) - will cancel and retry
+                            chase_attempts.append({
+                                "attempt": attempt,
+                                "limit_price": limit_price,
+                                "result": "not_filled",
+                                "status": order_status.status,
+                            })
+
                     except Exception as status_error:
-                        logger.debug(
-                            "Could not check order status after timeout",
+                        logger.warning(
+                            f"Chase attempt {attempt}: Could not check order status",
                             ticker=trade_request.ticker,
                             error=str(status_error)
                         )
-                    
-                    # Order didn't fill within timeout - cancel and fail
-                    await self._cancel_order_safely(order.id)
-                    error_result = {
-                        "success": False,
-                        "error": "Exit order did not fill within timeout (unexpected with marketable limit)",
-                        "session": session,
-                        "order_type": "LIMIT",
-                        "instrument": "stock",
-                        "limit_price_attempted": limit_price,
-                        "bid_price": bid_price,
-                        "price_discount": price_discount,
-                        "nbbo": nbbo_snapshot,
-                    }
-                    logger.warning(
-                        f"❌ EXIT ORDER FAILED: Did not fill within timeout (unexpected)",
-                        ticker=trade_request.ticker,
-                        limit_price=limit_price,
-                        bid=bid_price,
-                        bid_size=bid_size,
-                        quantity=quantity
-                    )
-                    await self._publish_failed_event(trade_request, error_result["error"], error_result)
-                    return error_result
+                        chase_attempts.append({
+                            "attempt": attempt,
+                            "limit_price": limit_price,
+                            "result": "status_check_failed",
+                            "error": str(status_error),
+                        })
+
+                # All attempts exhausted - cancel any pending order and fail
+                if current_order_id:
+                    await self._cancel_order_safely(current_order_id)
+                    current_order_id = None
+
+                final_bid = nbbo_snapshot.get("bid") if nbbo_snapshot else None
+                logger.warning(
+                    f"❌ EXIT FAILED: All {MAX_CHASE_ATTEMPTS} chase attempts exhausted",
+                    ticker=trade_request.ticker,
+                    initial_bid=initial_bid,
+                    final_bid=final_bid,
+                    min_price=min_price,
+                    chase_attempts=chase_attempts,
+                )
+
+                error_result = {
+                    "success": False,
+                    "error": f"Exit failed after {MAX_CHASE_ATTEMPTS} chase attempts",
+                    "session": session,
+                    "order_type": "CHASE_LIMIT",
+                    "instrument": "stock",
+                    "initial_bid": initial_bid,
+                    "final_bid": final_bid,
+                    "min_price": min_price,
+                    "chase_attempts": chase_attempts,
+                    "nbbo": nbbo_snapshot,
+                }
+                await self._publish_failed_event(trade_request, error_result["error"], error_result)
+                return error_result
             
             # Legacy ladder logic (should not be reached for SELL, but kept for safety)
             # Calculate ladder base price (start at midprice for better fills)

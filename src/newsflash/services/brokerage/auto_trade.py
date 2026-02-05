@@ -7,18 +7,18 @@ Confluence Scoring System (2-second observation window after publication):
 - Buying pressure >80% → +1 point
 
 Position sizing by score:
-- Score 0: 8-second surge window (if surge found → $10, else SKIP)
-- Score 1: $15 (STANDARD)
-- Score 2: $25 (HIGH)
-- Score 3: $35 (VERY_HIGH)
+- Score 0: 8-second surge window (if surge found → $200, else SKIP)
+- Score 1: $300 (STANDARD)
+- Score 2: $500 (HIGH)
+- Score 3: $700 (VERY_HIGH)
 
 Surge window (8s, stricter criteria - ALL FOUR required):
 - Volume ≥ 2000 shares AND ≥ 3x prior 10min average
 - Trade count ≥ 3x prior 10min average (minimum 20)
 - Price action ≥ 5% UP
 - Buying pressure ≥ 80%
-- If met within 3s → STANDARD sizing ($15)
-- If met after 3s → MINIMUM sizing ($10)
+- If met within 3s → STANDARD sizing ($300)
+- If met after 3s → MINIMUM sizing ($200)
 
 Stop loss: 5% below actual entry price - caps max loss per trade.
 Chase filter: 7% max ask change from reception (only for immediate entries, not surge).
@@ -176,15 +176,15 @@ def get_cooldown_remaining(ticker: str) -> Optional[float]:
 
 # Position sizing based on confluence score
 # ============================================================
-# POSITION SIZING - LIVE TRADING (minimal risk while testing)
+# POSITION SIZING - LIVE TRADING
 # ============================================================
-# Live: $10-35 range, scaled by conviction level
+# Base: $200, scaled by conviction level (1x, 1.5x, 2.5x, 3.5x)
 # Paper shadow trades use 50x these amounts for meaningful stats
 POSITION_SIZES_USD = {
-    ConvictionLevel.MINIMUM: Decimal("10.00"),        # Score 0: Surge window → $10 if surge found
-    ConvictionLevel.STANDARD: Decimal("15.00"),       # Score 1: $15 position
-    ConvictionLevel.HIGH: Decimal("25.00"),           # Score 2: $25 position
-    ConvictionLevel.VERY_HIGH: Decimal("35.00"),      # Score 3: $35 position (max confluence)
+    ConvictionLevel.MINIMUM: Decimal("200.00"),       # Score 0: Surge window → $200 if surge found
+    ConvictionLevel.STANDARD: Decimal("300.00"),      # Score 1: $300 position (1.5x base)
+    ConvictionLevel.HIGH: Decimal("500.00"),          # Score 2: $500 position (2.5x base)
+    ConvictionLevel.VERY_HIGH: Decimal("700.00"),     # Score 3: $700 position (3.5x base)
 }
 
 # Paper shadow multiplier - paper trades use this multiplier for comparison
@@ -206,8 +206,8 @@ BUYING_PRESSURE_THRESHOLD = 0.80      # 80% buying pressure = +1 point
 # - Price action ≥ 5%
 # - Buying pressure ≥ 80%
 # Position sizing based on timing:
-# - Fast surge (≤3s): STANDARD conviction ($15) - strong signal
-# - Slow surge (>3s): MINIMUM conviction ($10) - weaker signal
+# - Fast surge (≤3s): STANDARD conviction ($300) - strong signal
+# - Slow surge (>3s): MINIMUM conviction ($200) - weaker signal
 LAST_CHANCE_WINDOW_SECONDS = 8        # Total window for surge monitoring
 LAST_CHANCE_POLL_INTERVAL = 0.1       # Check every 100ms (WebSocket data is instant)
 SURGE_PRICE_ACTION_PCT = 5.0          # 5% price move required for surge
@@ -243,8 +243,8 @@ async def monitor_for_last_chance_surge(
     FAST IMPLEMENTATION: Uses WebSocket cached data only (no REST API calls).
     Each check takes milliseconds instead of 8+ seconds.
 
-    If ALL criteria are met within 3s → STANDARD conviction ($15).
-    If ALL criteria are met after 3s → MINIMUM conviction ($10).
+    If ALL criteria are met within 3s → STANDARD conviction ($300).
+    If ALL criteria are met after 3s → MINIMUM conviction ($200).
     If 8 seconds pass without qualifying → SKIP.
 
     Args:
@@ -505,9 +505,9 @@ async def check_confluence_signals(
 
     Position sizing by score:
     - Score 0: MINIMUM → 8-second surge window (STANDARD $15 if fast, MINIMUM $10 if slow, else SKIP)
-    - Score 1: STANDARD → $7,500
-    - Score 2: HIGH → $10,000
-    - Score 3: VERY_HIGH → $15,000
+    - Score 1: STANDARD → $300
+    - Score 2: HIGH → $500
+    - Score 3: VERY_HIGH → $700
 
     Args:
         market_data_client: Alpaca market data client for trades
@@ -714,14 +714,14 @@ async def check_confluence_signals(
 
         # ============================================================
         # STEP 4: Determine conviction level from confluence score
-        # Score 0 = MINIMUM (surge window), 1 = STANDARD ($7.5k), 2 = HIGH ($10k), 3 = VERY_HIGH ($15k)
+        # Score 0 = MINIMUM (surge window $200), 1 = STANDARD ($300), 2 = HIGH ($500), 3 = VERY_HIGH ($700)
         # ============================================================
         metadata["confluence_score"] = confluence_score
 
         if confluence_score >= 3:
             conviction = ConvictionLevel.VERY_HIGH
             logger.info(
-                f"🔥🔥 VERY HIGH CONVICTION (score {confluence_score}): All 3 criteria met → $15k position",
+                f"🔥🔥 VERY HIGH CONVICTION (score {confluence_score}): All 3 criteria met → $700 position",
                 ticker=ticker,
                 position_size=f"${POSITION_SIZES_USD[conviction]}",
                 volume_surge=metadata.get("volume_surge"),
@@ -731,7 +731,7 @@ async def check_confluence_signals(
         elif confluence_score == 2:
             conviction = ConvictionLevel.HIGH
             logger.info(
-                f"🔥 HIGH CONVICTION (score {confluence_score}): 2 criteria met → $10k position",
+                f"🔥 HIGH CONVICTION (score {confluence_score}): 2 criteria met → $500 position",
                 ticker=ticker,
                 position_size=f"${POSITION_SIZES_USD[conviction]}",
                 volume_surge=metadata.get("volume_surge"),
@@ -741,7 +741,7 @@ async def check_confluence_signals(
         elif confluence_score == 1:
             conviction = ConvictionLevel.STANDARD
             logger.info(
-                f"📊 STANDARD CONVICTION (score {confluence_score}): 1 criterion met → $7.5k position",
+                f"📊 STANDARD CONVICTION (score {confluence_score}): 1 criterion met → $300 position",
                 ticker=ticker,
                 position_size=f"${POSITION_SIZES_USD[conviction]}",
                 volume_surge=metadata.get("volume_surge"),
@@ -885,10 +885,10 @@ def build_trade_request_for_article(
     Build a trade request from an article with conviction-based position sizing.
 
     Position sizes based on conviction level:
-    - MINIMUM: $5,000 (surge trade)
-    - STANDARD: $7,500 (1 criterion met)
-    - HIGH: $10,000 (2 criteria met)
-    - VERY_HIGH: $15,000 (all 3 criteria met)
+    - MINIMUM: $200 (surge trade)
+    - STANDARD: $300 (1 criterion met)
+    - HIGH: $500 (2 criteria met)
+    - VERY_HIGH: $700 (all 3 criteria met)
 
     Args:
         article: Domain Article model
@@ -964,7 +964,7 @@ def build_trade_request_for_article(
         trade_request = TradeRequest(
             ticker=ticker,
             action=TradeAction.BUY,
-            shares=float(shares),  # Explicit shares calculated from $10k
+            shares=float(shares),  # Explicit shares calculated from position size
             amount_usd=TRADE_SIZE_USD,  # Reference value for tracking
             leverage=None,  # No leverage - direct capital
             article_id=article.id,
@@ -1157,7 +1157,7 @@ async def process_imminent_article(
         # - Price excursion >1% → +1 point
         # - Buying pressure >80% → +1 point
         #
-        # Position sizing: 0=surge($10-15 based on timing), 1=$15, 2=$25, 3=$35
+        # Position sizing: 0=surge($200-300 based on timing), 1=$300, 2=$500, 3=$700
         conviction, confluence_metadata = await check_confluence_signals(
             market_data_client=market_data_client,
             quote_fetcher=quote_fetcher,
@@ -1185,7 +1185,7 @@ async def process_imminent_article(
         # to prove itself with ALL strict surge criteria:
         # - Volume ≥ 10x, Trades ≥ 10x, Price ≥ 5%, Buying pressure ≥ 80%
         #
-        # If ALL met within 3s → STANDARD ($15), after 3s → MINIMUM ($10)
+        # If ALL met within 3s → STANDARD ($300), after 3s → MINIMUM ($200)
         # If 8 seconds pass without qualifying → SKIP
         is_surge_trade = False
         if conviction == ConvictionLevel.MINIMUM:
@@ -1229,7 +1229,7 @@ async def process_imminent_article(
             if surge_seconds <= FAST_SURGE_THRESHOLD_SECONDS:
                 conviction = ConvictionLevel.STANDARD
                 logger.info(
-                    "🚀 FAST SURGE: All criteria met within 3s → STANDARD sizing ($15)",
+                    "🚀 FAST SURGE: All criteria met within 3s → STANDARD sizing ($300)",
                     ticker=ticker,
                     article_id=article_id,
                     surge_seconds=surge_seconds,
@@ -1242,7 +1242,7 @@ async def process_imminent_article(
             else:
                 # Keep conviction at MINIMUM for slow surge trades
                 logger.info(
-                    "🚀 SLOW SURGE: All criteria met after 3s → MINIMUM sizing ($10)",
+                    "🚀 SLOW SURGE: All criteria met after 3s → MINIMUM sizing ($200)",
                     ticker=ticker,
                     article_id=article_id,
                     surge_seconds=surge_seconds,
@@ -1300,6 +1300,7 @@ async def process_imminent_article(
 
         # Filter 1: Market cap check (minimum $3M to avoid manipulated sub-penny stocks)
         MIN_MARKET_CAP_MILLIONS = 2.0  # $2M minimum
+        MIN_BIOTECH_PRICE = 30.0  # Biotechs must be $30+ (data shows sub-$30 biotechs have poor risk/reward)
         if metadata_cache:
             try:
                 ticker_metadata = await metadata_cache.get_permanent(ticker)
@@ -1314,8 +1315,25 @@ async def process_imminent_article(
                             article_id=article_id
                         )
                         return
+
+                    # Filter 1b: Biotech price filter - only trade $30+ biotechs
+                    # Data shows: $30+ biotechs move 100-300%, sub-$5 biotechs only 5-18%
+                    # Sub-$30 biotechs have weak catalysts (IND, early phase, offerings) and high failure rate
+                    industry = ticker_metadata.get("industry", "")
+                    ticker_price = ticker_metadata.get("price", 0)
+                    if industry == "Biotechnology" and ticker_price < MIN_BIOTECH_PRICE:
+                        logger.info(
+                            "⏭️ AUTO-TRADE SKIPPED: Biotech below $30 price threshold",
+                            ticker=ticker,
+                            industry=industry,
+                            price=round(ticker_price, 2),
+                            min_biotech_price=MIN_BIOTECH_PRICE,
+                            article_id=article_id,
+                            reason="Only trade quality biotechs ($30+) with real drugs and revenue"
+                        )
+                        return
             except Exception as e:
-                logger.debug(f"Could not check market cap: {e}")
+                logger.debug(f"Could not check market cap/biotech filter: {e}")
 
         # Filter 2: Ask price stability check (must be ~0% change to trade)
         # If ask moved significantly, we're late to the trade
@@ -1334,8 +1352,8 @@ async def process_imminent_article(
             return
 
         # Filter 3: Spread compression check (compression > 50% = danger)
-        # Positive spread_compression_pct means spread got tighter (bad)
-        # Negative means spread widened (neutral/good)
+        # Positive spread_compression_pct means spread got tighter (good for liquidity)
+        # Negative means spread widened (bad)
         spread_compression_pct = confluence_metadata.get("spread_compression_pct", 0)
         SPREAD_COMPRESSION_THRESHOLD = 50.0  # Max 50% compression allowed
         if spread_compression_pct > SPREAD_COMPRESSION_THRESHOLD:
@@ -1349,6 +1367,42 @@ async def process_imminent_article(
                 article_id=article_id
             )
             return
+
+        # Filter 4: Wide spread filter - spreads 10%+ of mid price need compression
+        # Wide spreads indicate illiquidity. Only trade if liquidity is IMPROVING (spread tightening).
+        # Example: OGEN had 10% spread with no improvement = skip (illiquid trap)
+        initial_spread = confluence_metadata.get("initial_spread")
+        initial_ask = confluence_metadata.get("initial_ask")
+        initial_bid = confluence_metadata.get("initial_bid", 0)
+        if initial_spread and initial_ask and initial_bid:
+            initial_mid = (initial_ask + initial_bid) / 2
+            if initial_mid > 0:
+                spread_pct_of_mid = (initial_spread / initial_mid) * 100
+                WIDE_SPREAD_THRESHOLD = 10.0  # 10%+ spread = wide/illiquid
+                MIN_COMPRESSION_FOR_WIDE = 10.0  # Require at least 10% compression for wide spreads
+
+                if spread_pct_of_mid >= WIDE_SPREAD_THRESHOLD:
+                    if spread_compression_pct < MIN_COMPRESSION_FOR_WIDE:
+                        logger.info(
+                            "⏭️ AUTO-TRADE SKIPPED: Wide spread (10%+) without sufficient compression",
+                            ticker=ticker,
+                            spread_pct_of_mid=round(spread_pct_of_mid, 2),
+                            spread_compression_pct=round(spread_compression_pct, 2),
+                            min_compression_required=MIN_COMPRESSION_FOR_WIDE,
+                            initial_spread=initial_spread,
+                            final_spread=confluence_metadata.get("final_spread"),
+                            article_id=article_id,
+                            reason="Wide spreads require liquidity improvement (spread tightening) to trade"
+                        )
+                        return
+                    else:
+                        logger.info(
+                            "✅ Wide spread but liquidity improving - allowing trade",
+                            ticker=ticker,
+                            spread_pct_of_mid=round(spread_pct_of_mid, 2),
+                            spread_compression_pct=round(spread_compression_pct, 2),
+                            article_id=article_id
+                        )
 
         logger.info(
             "✅ EARLY-ENTRY FILTERS PASSED",
