@@ -10,7 +10,7 @@ REFACTORED: Core engine now orchestrates specialized modules:
 """
 import asyncio
 from datetime import datetime
-from typing import Optional, Dict, Any, Set
+from typing import Optional, Dict, Any, Set, List
 
 try:
     from alpaca.data import StockHistoricalDataClient
@@ -34,12 +34,14 @@ from ...domain.classification.events import ArticleClassifiedDomainEvent
 from ...domain.brokerage.events import TradeExecutedDomainEvent, TradeFailedDomainEvent
 from ...domain.brokerage.models import MarketSession
 from ...infra.classification.infrastructure_models import ClassificationSkippedInfrastructureEvent
+from ...services.brokerage.auto_trade import check_confluence_signals
 
 # Extracted modules
 from .trade_trigger import TradeTrigger
 from .surge_monitor import SurgeMonitor
 from .price_monitor import PriceMonitor
 from .record_manager import RecordManager
+from .headline_classifier import get_headline_classifier
 
 logger = get_logger(__name__)
 
@@ -225,14 +227,64 @@ class RecallStatsEngine:
             classification = event.result.classification.value
 
             filter_reason = None
-            if classification != "IMMINENT":
+            if classification.upper() != "IMMINENT":
                 filter_reason = f"ai_classification:{classification}"
 
             await self.record_manager.update_classification(
                 article_id, classification, filter_reason
             )
+
+            # For IMMINENT articles, classify headline type in background
+            if classification.upper() == "IMMINENT" and event.title:
+                asyncio.create_task(
+                    self._classify_headline_type(article_id, event.title, event.tickers)
+                )
         except Exception as e:
             logger.error("Error handling classification", error=str(e), exc_info=True)
+
+    async def _classify_headline_type(
+        self, article_id: str, headline: str, tickers: List[str]
+    ) -> None:
+        """Classify headline type for IMMINENT articles (background task)."""
+        try:
+            # Get industry from first ticker's metadata
+            industry = None
+            for ticker in tickers:
+                try:
+                    metadata = await self.yahoo_finance_coordinator.fetch_metadata(
+                        ticker, timeout=5.0, queue_on_failure=False
+                    )
+                    if metadata and metadata.get("industry"):
+                        industry = metadata["industry"]
+                        break
+                except Exception:
+                    continue
+
+            if not industry:
+                logger.debug(
+                    "No industry found for headline classification",
+                    article_id=article_id
+                )
+                return
+
+            # Classify headline type
+            classifier = get_headline_classifier()
+            headline_type = await classifier.classify(
+                headline=headline,
+                industry=industry,
+                timeout=5.0
+            )
+
+            if headline_type:
+                await self.record_manager.update_headline_type(article_id, headline_type)
+                logger.info(
+                    "Classified headline type for recall",
+                    article_id=article_id,
+                    headline_type=headline_type,
+                    industry=industry
+                )
+        except Exception as e:
+            logger.debug(f"Headline type classification failed: {e}")
 
     async def _handle_trade_executed(self, event: TradeExecutedDomainEvent) -> None:
         """Handle Domain.TradeExecuted event."""
@@ -281,6 +333,26 @@ class RecallStatsEngine:
             )
         except Exception as e:
             logger.error("Error handling classification skipped", error=str(e), exc_info=True)
+
+    async def record_postfilter_skip(self, article_id: str, reason: str) -> bool:
+        """
+        Record why an IMMINENT article was skipped by post-AI checks.
+
+        Call this from auto_trade.py when skipping an IMMINENT article due to:
+        - postfilter_no_surge: Score 0 and no qualifying surge
+        - postfilter_low_volume: Window volume < 2000
+        - postfilter_spread_too_wide: Spread > 10%
+        - postfilter_spread_no_improvement: 5-10% spread without compression
+        - postfilter_ask_moved: Ask moved > 3%
+        - postfilter_chase: Ask moved > 7% from reception
+        - postfilter_zero_volume: Dead market
+        - postfilter_active_position: Already holding ticker
+        - postfilter_cooldown: Ticker in cooldown
+
+        Returns:
+            True if updated, False if failed
+        """
+        return await self.record_manager.update_postfilter_reason(article_id, reason)
 
     # ==================== Article Processing ====================
 
@@ -469,6 +541,34 @@ class RecallStatsEngine:
         }
         session_enum = session_enum_map.get(session, MarketSession.MARKET)
 
+        # Calculate confluence window data (0-2 seconds) for the primary ticker
+        # This uses the same logic as auto_trade.py for apples-to-apples comparison
+        confluence_data = {}
+        if primary_ticker and article.published_at and self.market_data_client and self.quote_fetcher:
+            try:
+                _, confluence_metadata = await check_confluence_signals(
+                    ticker=primary_ticker,
+                    publication_time=article.published_at,
+                    market_data_client=self.market_data_client,
+                    quote_fetcher=self.quote_fetcher
+                )
+                if confluence_metadata and confluence_metadata.get("confluence_checked"):
+                    confluence_data = confluence_metadata
+                    logger.debug(
+                        "Confluence data captured for recall",
+                        article_id=article.id,
+                        ticker=primary_ticker,
+                        confluence_score=confluence_metadata.get("confluence_score"),
+                        confluence_imbalance_ratio=confluence_metadata.get("confluence_imbalance_ratio")
+                    )
+            except Exception as e:
+                logger.warning(
+                    "Failed to capture confluence data for recall",
+                    article_id=article.id,
+                    ticker=primary_ticker,
+                    error=str(e)
+                )
+
         record = RecallRecord(
             article_id=article.id,
             title=article.title,
@@ -477,7 +577,37 @@ class RecallStatsEngine:
             published_at=article.published_at,
             received_at=received_at,
             initial_nbbo=initial_nbbos.get(primary_ticker) if primary_ticker else None,
-            volume_stats=volume_stats
+            volume_stats=volume_stats,
+            # Confluence window data (0-2 seconds) - aligned with trade decision point
+            confluence_score=confluence_data.get("confluence_score"),
+            confluence_volume=confluence_data.get("confluence_volume"),
+            confluence_trade_count=confluence_data.get("confluence_trade_count"),
+            confluence_buy_volume=confluence_data.get("confluence_buy_volume"),
+            confluence_sell_volume=confluence_data.get("confluence_sell_volume"),
+            confluence_buying_pressure_pct=confluence_data.get("confluence_buying_pressure_pct"),
+            confluence_imbalance_ratio=confluence_data.get("confluence_imbalance_ratio"),
+            confluence_price_excursion_pct=confluence_data.get("confluence_price_excursion_pct"),
+            confluence_first_price=confluence_data.get("confluence_first_price"),
+            confluence_max_price=confluence_data.get("confluence_max_price"),
+            confluence_min_price=confluence_data.get("confluence_min_price"),
+            confluence_vwap=confluence_data.get("confluence_vwap"),
+            confluence_initial_spread=confluence_data.get("confluence_initial_spread"),
+            confluence_final_spread=confluence_data.get("confluence_final_spread"),
+            confluence_spread_compression_pct=confluence_data.get("confluence_spread_compression_pct"),
+            confluence_first_trade_latency_ms=confluence_data.get("confluence_first_trade_latency_ms"),
+            confluence_avg_trade_size=confluence_data.get("confluence_avg_trade_size"),
+            confluence_max_trade_gap_ms=confluence_data.get("confluence_max_trade_gap_ms"),
+            confluence_has_volume_surge=confluence_data.get("confluence_has_volume_surge"),
+            confluence_has_price_excursion=confluence_data.get("confluence_has_price_excursion"),
+            confluence_has_buying_pressure=confluence_data.get("confluence_has_buying_pressure"),
+            confluence_last_price=confluence_data.get("confluence_last_price"),
+            confluence_price_direction=confluence_data.get("confluence_price_direction"),
+            confluence_dollar_volume=confluence_data.get("confluence_dollar_volume"),
+            confluence_max_single_trade=confluence_data.get("confluence_max_single_trade"),
+            confluence_median_trade_size=confluence_data.get("confluence_median_trade_size"),
+            confluence_large_trade_pct=confluence_data.get("confluence_large_trade_pct"),
+            confluence_uptick_count=confluence_data.get("confluence_uptick_count"),
+            confluence_downtick_count=confluence_data.get("confluence_downtick_count"),
         )
 
         # Append record (fire-and-forget)

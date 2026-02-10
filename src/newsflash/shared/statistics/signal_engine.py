@@ -208,17 +208,70 @@ class SignalStatsEngine:
         else:
             session_enum = MarketSession.MARKET  # Default fallback
 
-        # Create signal record (metadata will be added later)
+        # Extract confluence and surge metadata from trade request
+        # This metadata originates from auto_trade.py's check_confluence_signals()
+        confluence_metadata = trade_request_dict.get("metadata", {}) or {}
+
+        # Create signal record with confluence and surge data from the trade decision point
         record = SignalRecord(
             trade_id=trade_id,
             article_id=article_id,
             ticker=ticker,
+            headline=headline,
             session=session_enum,
             executed_at=event.executed_at,
             entry_price=entry_price,
             entry_shares=entry_shares,
             entry_amount_usd=entry_amount_usd,
-            entry_nbbo=entry_nbbo if entry_nbbo else None
+            entry_nbbo=entry_nbbo if entry_nbbo else None,
+            # === CONFLUENCE WINDOW DATA (0-2 seconds after publication) ===
+            confluence_score=confluence_metadata.get("confluence_score"),
+            confluence_volume=confluence_metadata.get("confluence_volume"),
+            confluence_trade_count=confluence_metadata.get("confluence_trade_count") or confluence_metadata.get("trade_count"),
+            confluence_buy_volume=confluence_metadata.get("confluence_buy_volume") or confluence_metadata.get("buy_volume"),
+            confluence_sell_volume=confluence_metadata.get("confluence_sell_volume") or confluence_metadata.get("sell_volume"),
+            confluence_buying_pressure_pct=confluence_metadata.get("confluence_buying_pressure_pct") or confluence_metadata.get("buying_pressure_pct"),
+            confluence_imbalance_ratio=confluence_metadata.get("confluence_imbalance_ratio"),
+            confluence_price_excursion_pct=confluence_metadata.get("confluence_price_excursion_pct") or confluence_metadata.get("price_excursion_pct"),
+            confluence_first_price=confluence_metadata.get("confluence_first_price"),
+            confluence_max_price=confluence_metadata.get("confluence_max_price"),
+            confluence_min_price=confluence_metadata.get("confluence_min_price"),
+            confluence_vwap=confluence_metadata.get("confluence_vwap"),
+            confluence_initial_spread=confluence_metadata.get("confluence_initial_spread") or confluence_metadata.get("initial_spread"),
+            confluence_final_spread=confluence_metadata.get("confluence_final_spread") or confluence_metadata.get("final_spread"),
+            confluence_spread_compression_pct=confluence_metadata.get("confluence_spread_compression_pct") or confluence_metadata.get("spread_compression_pct"),
+            confluence_first_trade_latency_ms=confluence_metadata.get("confluence_first_trade_latency_ms"),
+            confluence_avg_trade_size=confluence_metadata.get("confluence_avg_trade_size"),
+            confluence_max_trade_gap_ms=confluence_metadata.get("confluence_max_trade_gap_ms"),
+            confluence_has_volume_surge=confluence_metadata.get("confluence_has_volume_surge") or confluence_metadata.get("volume_surge"),
+            confluence_has_price_excursion=confluence_metadata.get("confluence_has_price_excursion") or confluence_metadata.get("has_price_excursion"),
+            confluence_has_buying_pressure=confluence_metadata.get("confluence_has_buying_pressure") or confluence_metadata.get("has_buying_pressure"),
+            # Additional market physics for long-term analysis
+            confluence_last_price=confluence_metadata.get("confluence_last_price"),
+            confluence_price_direction=confluence_metadata.get("confluence_price_direction"),
+            confluence_dollar_volume=confluence_metadata.get("confluence_dollar_volume"),
+            confluence_max_single_trade=confluence_metadata.get("confluence_max_single_trade"),
+            confluence_median_trade_size=confluence_metadata.get("confluence_median_trade_size"),
+            confluence_large_trade_pct=confluence_metadata.get("confluence_large_trade_pct"),
+            confluence_uptick_count=confluence_metadata.get("confluence_uptick_count"),
+            confluence_downtick_count=confluence_metadata.get("confluence_downtick_count"),
+            # === SURGE WINDOW DATA (8-second last chance, only if confluence failed) ===
+            surge_triggered=confluence_metadata.get("surge_triggered"),
+            surge_found=confluence_metadata.get("surge_found"),
+            surge_detection_cycle=confluence_metadata.get("surge_detection_cycle"),
+            surge_seconds_elapsed=confluence_metadata.get("surge_seconds_elapsed"),
+            surge_volume=confluence_metadata.get("surge_volume"),
+            surge_trade_count=confluence_metadata.get("surge_trade_count"),
+            surge_buy_volume=confluence_metadata.get("surge_buy_volume"),
+            surge_sell_volume=confluence_metadata.get("surge_sell_volume"),
+            surge_buying_pressure_pct=confluence_metadata.get("surge_buying_pressure_pct"),
+            surge_imbalance_ratio=confluence_metadata.get("surge_imbalance_ratio"),
+            surge_price_excursion_pct=confluence_metadata.get("surge_price_excursion_pct") or confluence_metadata.get("surge_max_excursion_pct"),
+            surge_volume_multiplier=confluence_metadata.get("surge_volume_multiplier") or confluence_metadata.get("surge_multiplier"),
+            surge_trade_count_multiplier=confluence_metadata.get("surge_trade_count_multiplier"),
+            surge_ask=confluence_metadata.get("surge_ask"),
+            surge_bid=confluence_metadata.get("surge_bid"),
+            surge_mid=confluence_metadata.get("surge_mid"),
         )
 
         # Append record immediately (before metadata fetch)
@@ -255,12 +308,15 @@ class SignalStatsEngine:
         )
 
         logger.info(
-            "Signal: Recorded BUY trade",
+            "Signal: Recorded BUY trade with confluence data",
             trade_id=trade_id,
             ticker=ticker,
             entry_price=entry_price,
             shares=entry_shares,
-            article_id=article_id
+            article_id=article_id,
+            confluence_score=confluence_metadata.get("confluence_score"),
+            confluence_imbalance_ratio=confluence_metadata.get("confluence_imbalance_ratio"),
+            surge_found=confluence_metadata.get("surge_found"),
         )
 
     async def _handle_sell_trade(
@@ -277,34 +333,68 @@ class SignalStatsEngine:
         exit_shares = int(trade_result.shares) if trade_result.shares else 0
         exit_amount_usd = float(trade_result.total_cost) if trade_result.total_cost else 0.0
 
-        # Get exit reason from metadata (set by position manager)
+        # Get exit reason and peak data from metadata (set by position manager)
         metadata = trade_request_dict.get("metadata", {}) or {}
         exit_reason = metadata.get("exit_reason", "unknown")
         entry_price_from_meta = metadata.get("entry_price")
+        highest_profit_pct = metadata.get("highest_profit_pct")
+        highest_price = metadata.get("highest_price")
 
-        # Find matching BUY records for this ticker in today's session
-        # Update the most recent one that doesn't have exit data yet
+        # Find matching BUY records for this ticker across ALL sessions today
+        # Trades opened in premarket may close in market_hours or postmarket
         try:
-            file_path = self.repository._get_session_file_path("signal", session, event.executed_at)
-            session_file = await self.repository._load_signal_file(file_path, session, event.executed_at)
+            matching_records = []
+            found_session = None
 
-            # Find records for this ticker without exit data (oldest first to FIFO match)
-            matching_records = [
-                r for r in session_file.records
-                if r.ticker == ticker and r.exit_price is None
-            ]
+            # Search all sessions for matching BUY record
+            for search_session in ["premarket", "market_hours", "postmarket"]:
+                try:
+                    file_path = self.repository._get_session_file_path("signal", search_session, event.executed_at)
+                    session_file = await self.repository._load_signal_file(file_path, search_session, event.executed_at)
+
+                    # Find records for this ticker without exit data
+                    session_matches = [
+                        r for r in session_file.records
+                        if r.ticker == ticker and r.exit_price is None
+                    ]
+                    if session_matches:
+                        matching_records.extend(session_matches)
+                        if not found_session:
+                            found_session = search_session
+                except Exception:
+                    # Session file doesn't exist, skip
+                    continue
 
             if not matching_records:
                 logger.warning(
-                    "Signal: SELL trade but no matching BUY record found",
+                    "Signal: SELL trade but no matching BUY record found in any session",
                     ticker=ticker,
                     exit_price=exit_price,
                     exit_shares=exit_shares
                 )
                 return
 
-            # Use FIFO - update oldest unfilled record first
+            # Use FIFO - update oldest unfilled record first (sort by executed_at)
+            matching_records.sort(key=lambda r: r.executed_at)
             target_record = matching_records[0]
+
+            # Determine which session the BUY was in
+            buy_session = None
+            for search_session in ["premarket", "market_hours", "postmarket"]:
+                try:
+                    file_path = self.repository._get_session_file_path("signal", search_session, event.executed_at)
+                    session_file = await self.repository._load_signal_file(file_path, search_session, event.executed_at)
+                    if any(r.trade_id == target_record.trade_id for r in session_file.records):
+                        buy_session = search_session
+                        break
+                except Exception:
+                    continue
+
+            if not buy_session:
+                buy_session = session  # Fallback to sell session
+
+            # Use the buy_session for updates
+            session = buy_session
 
             # Calculate P&L
             entry_price = entry_price_from_meta or target_record.entry_price
@@ -313,6 +403,14 @@ class SignalStatsEngine:
 
             # Calculate hold duration
             hold_duration = (event.executed_at - target_record.executed_at).total_seconds()
+
+            # Build highest_price_during_hold dict for analytics
+            highest_price_data = None
+            if highest_price and highest_profit_pct is not None:
+                highest_price_data = {
+                    "price": highest_price,
+                    "percent_gain_from_entry": round(highest_profit_pct * 100, 2),
+                }
 
             # Prepare update
             updates = {
@@ -324,6 +422,7 @@ class SignalStatsEngine:
                 "hold_duration_seconds": hold_duration,
                 "profit_loss_usd": round(pnl_usd, 2),
                 "profit_loss_percent": round(pnl_percent, 2),
+                "highest_price_during_hold": highest_price_data,
             }
 
             # Update record in repository
@@ -343,6 +442,7 @@ class SignalStatsEngine:
                 exit_reason=exit_reason,
                 pnl_usd=round(pnl_usd, 2),
                 pnl_percent=f"{pnl_percent:+.1f}%",
+                peak_profit_pct=f"+{highest_profit_pct*100:.1f}%" if highest_profit_pct else None,
                 hold_seconds=round(hold_duration, 1)
             )
 

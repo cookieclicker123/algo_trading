@@ -219,18 +219,30 @@ class PriceMonitor:
         article_id: str
     ) -> Optional[tuple[Optional[Dict], Optional[Dict]]]:
         """
-        Fetch and analyze minute bars for price tracking.
+        Fetch and analyze price data for tracking.
+
+        First tries trade-level data for accuracy (especially premarket),
+        falls back to minute bars if trades unavailable.
 
         Returns:
             (highest_price_data, max_adverse_data) or None on error
         """
         try:
-            bars_end = monitoring_start + timedelta(minutes=15)
+            monitoring_end = monitoring_start + timedelta(minutes=12)
+
+            # Try trade-level data first (more accurate for premarket)
+            trade_analysis = await self._analyze_trades(
+                ticker, monitoring_start, monitoring_end, entry_price, article_id
+            )
+            if trade_analysis:
+                return trade_analysis
+
+            # Fall back to minute bars
             bars_request = StockBarsRequest(
                 symbol_or_symbols=[ticker],
                 timeframe=TimeFrame.Minute,
                 start=monitoring_start,
-                end=bars_end,
+                end=monitoring_end,
                 feed=DataFeed.SIP
             )
             bars_response = self.market_data_client.get_stock_bars(bars_request)
@@ -269,7 +281,97 @@ class PriceMonitor:
 
         except Exception as e:
             logger.debug(
-                "PriceMonitor: Error fetching minute bars",
+                "PriceMonitor: Error fetching price data",
+                article_id=article_id,
+                ticker=ticker,
+                error=str(e)
+            )
+            return None
+
+    async def _analyze_trades(
+        self,
+        ticker: str,
+        start: datetime,
+        end: datetime,
+        entry_price: float,
+        article_id: str
+    ) -> Optional[tuple[Optional[Dict], Optional[Dict]]]:
+        """
+        Analyze individual trades to find true high/low (more accurate for premarket).
+
+        Returns:
+            (highest_price_data, max_adverse_data) or None if unavailable
+        """
+        if not StockTradesRequest:
+            return None
+
+        try:
+            trades_request = StockTradesRequest(
+                symbol_or_symbols=[ticker],
+                start=start,
+                end=end,
+                feed=DataFeed.SIP
+            )
+            trades_response = self.market_data_client.get_stock_trades(trades_request)
+
+            if not trades_response or not trades_response.data or ticker not in trades_response.data:
+                return None
+
+            trades = trades_response.data[ticker]
+            if not trades:
+                return None
+
+            # Find actual high and low from trades
+            highest_price = None
+            highest_ts = None
+            lowest_price = None
+            lowest_ts = None
+
+            for trade in trades:
+                trade_price = float(trade.price) if trade.price else None
+                if not trade_price:
+                    continue
+
+                trade_ts = trade.timestamp
+                if trade_ts.tzinfo is None:
+                    trade_ts = trade_ts.replace(tzinfo=timezone.utc)
+
+                if highest_price is None or trade_price > highest_price:
+                    highest_price = trade_price
+                    highest_ts = trade_ts
+
+                if lowest_price is None or trade_price < lowest_price:
+                    lowest_price = trade_price
+                    lowest_ts = trade_ts
+
+            highest_price_data = None
+            if highest_price and highest_ts:
+                highest_price_data = self._build_price_data(
+                    highest_price, highest_ts, entry_price, ticker, is_gain=True
+                )
+                logger.debug(
+                    "PriceMonitor: Found high from trades",
+                    article_id=article_id,
+                    ticker=ticker,
+                    highest_price=highest_price,
+                    entry_price=entry_price,
+                    gain_pct=highest_price_data.get("percent_gain_from_entry")
+                )
+
+            max_adverse_data = None
+            if lowest_price and lowest_ts:
+                max_adverse_data = self._build_price_data(
+                    lowest_price, lowest_ts, entry_price, ticker, is_gain=False
+                )
+
+            if highest_price_data or max_adverse_data:
+                return (highest_price_data, max_adverse_data)
+
+            return None
+
+        except Exception as e:
+            logger.debug(
+                "PriceMonitor: Error fetching trades",
                 article_id=article_id,
                 ticker=ticker,
                 error=str(e)

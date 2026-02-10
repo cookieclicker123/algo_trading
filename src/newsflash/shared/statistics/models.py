@@ -1,11 +1,176 @@
 """
 Statistics data models - shared between recall and signal engines.
+
+STRUCTURE:
+- Confluence Window (0-2s): Always captured for IMMINENT articles
+  - Overall stats + 4 sub-slices (0-500ms, 500-1000ms, 1000-1500ms, 1500-2000ms)
+  - Pressure consistency, timing, baseline ratios
+- Surge Window (8s): Only captured if trade was surge-based
+- Pre-news Baseline (5s before): For computing ratios
 """
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 
 from ...domain.brokerage.models import MarketSession
+
+
+# ===== Sub-Slice Model for Micro-Trajectory Analysis =====
+
+class ConfluenceSlice(BaseModel):
+    """Stats for a single time slice within the 2-second confluence window."""
+    slice_start_ms: int = Field(..., description="Start of slice in ms from publication")
+    slice_end_ms: int = Field(..., description="End of slice in ms from publication")
+
+    # Volume
+    volume: int = Field(0, description="Total shares traded in this slice")
+    trade_count: int = Field(0, description="Number of trades in this slice")
+    buy_volume: int = Field(0, description="Volume from uptick trades")
+    sell_volume: int = Field(0, description="Volume from downtick trades")
+
+    # Price
+    first_price: Optional[float] = Field(None, description="First trade price in slice")
+    last_price: Optional[float] = Field(None, description="Last trade price in slice")
+    high_price: Optional[float] = Field(None, description="Highest price in slice")
+    low_price: Optional[float] = Field(None, description="Lowest price in slice")
+
+    # Pressure
+    imbalance_ratio: Optional[float] = Field(None, description="(buy-sell)/(buy+sell), -1 to +1")
+    pressure_sign: int = Field(0, description="+1 if net buying, -1 if net selling, 0 if neutral")
+    uptick_count: int = Field(0, description="Number of uptick trades")
+    downtick_count: int = Field(0, description="Number of downtick trades")
+
+    # Liquidity
+    spread_at_end: Optional[float] = Field(None, description="Spread at end of slice")
+    bid_depth_at_end: Optional[int] = Field(None, description="Bid depth at end of slice")
+    ask_depth_at_end: Optional[int] = Field(None, description="Ask depth at end of slice")
+
+    model_config = {"frozen": False}
+
+
+class ConfluenceWindow(BaseModel):
+    """
+    Comprehensive 2-second confluence window stats with sub-slice breakdown.
+
+    This is the core data structure for ML feature extraction.
+    Captures micro-trajectory within the decision window.
+    """
+    # === OVERALL 2-SECOND STATS ===
+    window_start_ms: int = Field(0, description="Start of window in ms from publication")
+    window_end_ms: int = Field(2000, description="End of window in ms from publication")
+
+    # Volume totals
+    total_volume: int = Field(0, description="Total shares traded in 2s")
+    total_trades: int = Field(0, description="Total trade count in 2s")
+    total_buy_volume: int = Field(0, description="Total buy volume (upticks)")
+    total_sell_volume: int = Field(0, description="Total sell volume (downticks)")
+    dollar_volume: Optional[float] = Field(None, description="Total dollar volume")
+
+    # Price trajectory
+    first_price: Optional[float] = Field(None, description="First trade price")
+    last_price: Optional[float] = Field(None, description="Last trade price")
+    high_price: Optional[float] = Field(None, description="Highest price in window")
+    low_price: Optional[float] = Field(None, description="Lowest price in window")
+    vwap: Optional[float] = Field(None, description="Volume-weighted average price")
+    price_excursion_pct: Optional[float] = Field(None, description="Max move from first price %")
+    price_direction: int = Field(0, description="+1 up, -1 down, 0 flat")
+
+    # Pressure analysis
+    imbalance_ratio: Optional[float] = Field(None, description="(buy-sell)/(buy+sell)")
+    buying_pressure_pct: Optional[float] = Field(None, description="buy/(buy+sell) * 100")
+    uptick_count: int = Field(0, description="Total uptick trades")
+    downtick_count: int = Field(0, description="Total downtick trades")
+    uptick_ratio: Optional[float] = Field(None, description="upticks/(upticks+downticks)")
+
+    # Pressure consistency (KEY FEATURE: does pressure sustain?)
+    pressure_first_half: Optional[float] = Field(None, description="Imbalance ratio in first 1s")
+    pressure_second_half: Optional[float] = Field(None, description="Imbalance ratio in second 1s")
+    pressure_consistent: Optional[bool] = Field(None, description="Same sign pressure in both halves")
+    pressure_strengthening: Optional[bool] = Field(None, description="Second half stronger than first")
+
+    # Trade size analysis
+    avg_trade_size: Optional[float] = Field(None, description="Average shares per trade")
+    median_trade_size: Optional[float] = Field(None, description="Median shares per trade")
+    max_single_trade: Optional[int] = Field(None, description="Largest single trade")
+    large_trade_pct: Optional[float] = Field(None, description="% volume from trades >= 500 shares")
+
+    # Timing (KEY FEATURES for reaction speed)
+    first_trade_latency_ms: Optional[float] = Field(None, description="Ms to first trade after pub")
+    first_uptick_latency_ms: Optional[float] = Field(None, description="Ms to first uptick")
+    max_trade_gap_ms: Optional[float] = Field(None, description="Longest gap between trades")
+    trades_in_first_500ms: int = Field(0, description="Trade count in first 500ms")
+    volume_in_first_500ms: int = Field(0, description="Volume in first 500ms")
+
+    # Spread/liquidity
+    initial_spread: Optional[float] = Field(None, description="Spread at window start")
+    final_spread: Optional[float] = Field(None, description="Spread at window end")
+    spread_compression_pct: Optional[float] = Field(None, description="Spread change %")
+    initial_bid_depth: Optional[int] = Field(None, description="Bid depth at start")
+    initial_ask_depth: Optional[int] = Field(None, description="Ask depth at start")
+    final_bid_depth: Optional[int] = Field(None, description="Bid depth at end")
+    final_ask_depth: Optional[int] = Field(None, description="Ask depth at end")
+    depth_ratio_change: Optional[float] = Field(None, description="Change in bid/ask depth ratio")
+    quote_update_count: int = Field(0, description="Number of quote updates in window")
+
+    # === RATIOS VS PRE-NEWS BASELINE (5 seconds before) ===
+    baseline_volume_5s: Optional[int] = Field(None, description="Volume in 5s before news")
+    baseline_trades_5s: Optional[int] = Field(None, description="Trade count in 5s before news")
+    baseline_spread: Optional[float] = Field(None, description="Avg spread in 5s before news")
+    baseline_avg_trade_size: Optional[float] = Field(None, description="Avg trade size before news")
+
+    volume_ratio: Optional[float] = Field(None, description="2s_volume / 5s_baseline_volume")
+    trade_count_ratio: Optional[float] = Field(None, description="2s_trades / 5s_baseline_trades")
+    spread_ratio: Optional[float] = Field(None, description="final_spread / baseline_spread")
+    trade_size_ratio: Optional[float] = Field(None, description="2s_avg_size / baseline_avg_size")
+
+    # === CONFLUENCE SCORING ===
+    has_volume_surge: bool = Field(False, description="Volume >= 2000 shares")
+    has_price_excursion: bool = Field(False, description="Price move >= 1%")
+    has_buying_pressure: bool = Field(False, description="Buying pressure >= 80%")
+    confluence_score: int = Field(0, description="Sum of above (0-3)")
+    confluence_met: bool = Field(False, description="Score >= 1 (trade triggered)")
+
+    # === SUB-SLICES (8 x 250ms for granular micro-trajectory) ===
+    slices: List[ConfluenceSlice] = Field(
+        default_factory=list,
+        description="8 sub-slices: 0-250ms, 250-500ms, 500-750ms, 750-1000ms, 1000-1250ms, 1250-1500ms, 1500-1750ms, 1750-2000ms"
+    )
+
+    model_config = {"frozen": False}
+
+
+class SurgeWindow(BaseModel):
+    """
+    8-second surge window stats - only populated if trade was surge-based.
+
+    Surge occurs when confluence failed but continued monitoring detected activity.
+    """
+    triggered: bool = Field(False, description="Whether surge monitoring was triggered")
+    found: bool = Field(False, description="Whether surge criteria were met")
+    detection_cycle: Optional[int] = Field(None, description="Which poll cycle detected surge (1-16)")
+    seconds_elapsed: Optional[float] = Field(None, description="Seconds into window when found")
+
+    # Volume at surge detection
+    volume: Optional[int] = Field(None, description="Total volume at detection")
+    trade_count: Optional[int] = Field(None, description="Trade count at detection")
+    buy_volume: Optional[int] = Field(None, description="Buy volume at detection")
+    sell_volume: Optional[int] = Field(None, description="Sell volume at detection")
+
+    # Pressure at surge
+    buying_pressure_pct: Optional[float] = Field(None, description="Buying pressure %")
+    imbalance_ratio: Optional[float] = Field(None, description="Imbalance ratio")
+    price_excursion_pct: Optional[float] = Field(None, description="Price excursion %")
+
+    # Multipliers vs baseline
+    volume_multiplier: Optional[float] = Field(None, description="Volume vs 10min avg")
+    trade_count_multiplier: Optional[float] = Field(None, description="Trade count vs 10min avg")
+
+    # NBBO at surge
+    bid: Optional[float] = Field(None, description="Bid at surge detection")
+    ask: Optional[float] = Field(None, description="Ask at surge detection")
+    mid: Optional[float] = Field(None, description="Mid at surge detection")
+
+    model_config = {"frozen": False}
 
 
 # ===== Recall Engine Models =====
@@ -55,14 +220,78 @@ class RecallRecord(BaseModel):
         None,
         description="AI classification: 'IMMINENT', 'SPECULATIVE', 'ROUTINE', 'IGNORE'. Always populated so we know why wasn't traded."
     )
-    
+
+    # Post-AI filter reason (why IMMINENT article wasn't traded)
+    # Only set for articles that passed AI classification but failed post-AI checks
+    postfilter_reason: Optional[str] = Field(
+        None,
+        description="Post-AI skip reason: 'postfilter_no_surge', 'postfilter_low_volume', 'postfilter_spread_too_wide', etc."
+    )
+
+    # Headline type classification (for statistical analysis)
+    headline_type: Optional[str] = Field(
+        None,
+        description="Catalyst type: contract, fda, partnership, earnings, etc. Only classified for IMMINENT articles."
+    )
+
     # Volume analysis at article receive time (for future filtering research)
+    # NOTE: This is from the 4-second SURGE detection window, NOT the confluence window
     # Ticker -> Stats dictionary
     volume_stats: Dict[str, Any] = Field(
         default_factory=dict,
-        description="ticker -> {move_type, surge_multiplier, trade_count_multiplier, max_excursion_pct, ...}"
+        description="ticker -> {move_type, surge_multiplier, trade_count_multiplier, max_excursion_pct, ...} (4-second window)"
     )
-    
+
+    # === CONFLUENCE WINDOW STATS (0-2 seconds after publication) ===
+    # These match the EXACT metrics used for trade decisions in auto_trade.py
+    # Aligned with SignalRecord for apples-to-apples comparison
+    confluence_score: Optional[int] = Field(None, description="Confluence score 0-3 (volume + price + pressure)")
+    confluence_volume: Optional[int] = Field(None, description="Total volume in 2s window")
+    confluence_trade_count: Optional[int] = Field(None, description="Number of trades in 2s window")
+    confluence_buy_volume: Optional[int] = Field(None, description="Buy volume (tick rule) in 2s window")
+    confluence_sell_volume: Optional[int] = Field(None, description="Sell volume (tick rule) in 2s window")
+    confluence_buying_pressure_pct: Optional[float] = Field(None, description="Buy volume / total volume * 100")
+    confluence_imbalance_ratio: Optional[float] = Field(None, description="(buy - sell) / (buy + sell), range -1 to +1")
+    confluence_price_excursion_pct: Optional[float] = Field(None, description="Max price move % in 2s window")
+    confluence_first_price: Optional[float] = Field(None, description="First trade price in window")
+    confluence_max_price: Optional[float] = Field(None, description="Max price in 2s window")
+    confluence_min_price: Optional[float] = Field(None, description="Min price in 2s window")
+    confluence_vwap: Optional[float] = Field(None, description="Volume-weighted avg price in 2s window")
+    confluence_initial_spread: Optional[float] = Field(None, description="Spread at start of confluence")
+    confluence_final_spread: Optional[float] = Field(None, description="Spread at end of confluence (2s)")
+    confluence_spread_compression_pct: Optional[float] = Field(None, description="Spread compression % over 2s")
+    confluence_first_trade_latency_ms: Optional[float] = Field(None, description="Ms from publication to first trade")
+    confluence_avg_trade_size: Optional[float] = Field(None, description="Average trade size in window")
+    confluence_max_trade_gap_ms: Optional[float] = Field(None, description="Longest gap between trades (ms)")
+    confluence_has_volume_surge: Optional[bool] = Field(None, description="Volume >= 2000 shares")
+    confluence_has_price_excursion: Optional[bool] = Field(None, description="Price move >= 1%")
+    confluence_has_buying_pressure: Optional[bool] = Field(None, description="Buying pressure >= 80%")
+    # Additional market physics (same as SignalRecord)
+    confluence_last_price: Optional[float] = Field(None, description="Last trade price in 2s window")
+    confluence_price_direction: Optional[int] = Field(None, description="+1 up, -1 down, 0 flat")
+    confluence_dollar_volume: Optional[float] = Field(None, description="Total dollar volume in 2s window")
+    confluence_max_single_trade: Optional[int] = Field(None, description="Largest single trade size")
+    confluence_median_trade_size: Optional[float] = Field(None, description="Median trade size")
+    confluence_large_trade_pct: Optional[float] = Field(None, description="% of volume from trades >= 500 shares")
+    confluence_uptick_count: Optional[int] = Field(None, description="Number of uptick trades")
+    confluence_downtick_count: Optional[int] = Field(None, description="Number of downtick trades")
+
+    # === STRUCTURED CONFLUENCE WINDOW (comprehensive micro-trajectory) ===
+    # This replaces the flat confluence_ fields above for ML analysis
+    # Contains sub-slices, pressure consistency, timing, and baseline ratios
+    confluence_window: Optional[ConfluenceWindow] = Field(
+        None,
+        description="Structured 2-second confluence window with sub-slices and ML features"
+    )
+
+    # === STRUCTURED SURGE WINDOW (only if surge-based trade) ===
+    # Only populated if trade was made based on 8-second surge monitoring
+    # If confluence_met=True, this should be None
+    surge_window: Optional[SurgeWindow] = Field(
+        None,
+        description="8-second surge window stats - only if surge-based trade"
+    )
+
     # Tracking metadata
     tracked_at: datetime = Field(default_factory=datetime.now, description="When tracking started")
     price_checked_at: Optional[datetime] = Field(None, description="When 10-minute price check completed")
@@ -195,6 +424,73 @@ class SignalRecord(BaseModel):
         description="Volume microstructures: move_type, surge_multiplier, trade_count_multiplier, max_excursion_pct, etc."
     )
 
+    # === CONFLUENCE WINDOW STATS (0-2 seconds after publication) ===
+    # These are the EXACT metrics from the trade decision point
+    confluence_score: Optional[int] = Field(None, description="Confluence score 0-3 (volume + price + pressure)")
+    confluence_volume: Optional[int] = Field(None, description="Total volume in 2s window")
+    confluence_trade_count: Optional[int] = Field(None, description="Number of trades in 2s window")
+    confluence_buy_volume: Optional[int] = Field(None, description="Buy volume (tick rule) in 2s window")
+    confluence_sell_volume: Optional[int] = Field(None, description="Sell volume (tick rule) in 2s window")
+    confluence_buying_pressure_pct: Optional[float] = Field(None, description="Buy volume / total volume * 100")
+    confluence_imbalance_ratio: Optional[float] = Field(None, description="(buy - sell) / (buy + sell), range -1 to +1")
+    confluence_price_excursion_pct: Optional[float] = Field(None, description="Max price move % in 2s window")
+    confluence_first_price: Optional[float] = Field(None, description="First trade price in window")
+    confluence_max_price: Optional[float] = Field(None, description="Max price in 2s window")
+    confluence_min_price: Optional[float] = Field(None, description="Min price in 2s window")
+    confluence_vwap: Optional[float] = Field(None, description="Volume-weighted avg price in 2s window")
+    confluence_initial_spread: Optional[float] = Field(None, description="Spread at start of confluence")
+    confluence_final_spread: Optional[float] = Field(None, description="Spread at end of confluence (2s)")
+    confluence_spread_compression_pct: Optional[float] = Field(None, description="Spread compression % over 2s")
+    confluence_first_trade_latency_ms: Optional[float] = Field(None, description="Ms from publication to first trade")
+    confluence_avg_trade_size: Optional[float] = Field(None, description="Average trade size in window")
+    confluence_max_trade_gap_ms: Optional[float] = Field(None, description="Longest gap between trades (ms)")
+    confluence_has_volume_surge: Optional[bool] = Field(None, description="Volume >= 2000 shares")
+    confluence_has_price_excursion: Optional[bool] = Field(None, description="Price move >= 1%")
+    confluence_has_buying_pressure: Optional[bool] = Field(None, description="Buying pressure >= 80%")
+    # Additional market physics for long-term analysis
+    confluence_last_price: Optional[float] = Field(None, description="Last trade price in 2s window")
+    confluence_price_direction: Optional[int] = Field(None, description="+1 up, -1 down, 0 flat")
+    confluence_dollar_volume: Optional[float] = Field(None, description="Total dollar volume in 2s window")
+    confluence_max_single_trade: Optional[int] = Field(None, description="Largest single trade size (institutional indicator)")
+    confluence_median_trade_size: Optional[float] = Field(None, description="Median trade size (retail vs institutional)")
+    confluence_large_trade_pct: Optional[float] = Field(None, description="% of volume from trades >= 500 shares")
+    confluence_uptick_count: Optional[int] = Field(None, description="Number of trades at higher price than previous")
+    confluence_downtick_count: Optional[int] = Field(None, description="Number of trades at lower price than previous")
+
+    # === SURGE WINDOW STATS (8-second last chance, only if confluence failed) ===
+    # Stricter criteria: volume >= 3x avg, trade count >= 3x, price >= 5%, pressure >= 80%
+    surge_triggered: Optional[bool] = Field(None, description="Whether surge window was triggered")
+    surge_found: Optional[bool] = Field(None, description="Whether surge criteria were met")
+    surge_detection_cycle: Optional[int] = Field(None, description="Which poll cycle detected surge (1-16)")
+    surge_seconds_elapsed: Optional[float] = Field(None, description="Seconds into surge window when found")
+    surge_volume: Optional[int] = Field(None, description="Volume at surge detection")
+    surge_trade_count: Optional[int] = Field(None, description="Trade count at surge detection")
+    surge_buy_volume: Optional[int] = Field(None, description="Buy volume at surge detection")
+    surge_sell_volume: Optional[int] = Field(None, description="Sell volume at surge detection")
+    surge_buying_pressure_pct: Optional[float] = Field(None, description="Buying pressure % at surge")
+    surge_imbalance_ratio: Optional[float] = Field(None, description="Imbalance ratio at surge")
+    surge_price_excursion_pct: Optional[float] = Field(None, description="Price excursion % at surge")
+    surge_volume_multiplier: Optional[float] = Field(None, description="Volume vs 10min avg multiplier")
+    surge_trade_count_multiplier: Optional[float] = Field(None, description="Trade count vs 10min avg multiplier")
+    surge_ask: Optional[float] = Field(None, description="Ask price at surge detection")
+    surge_bid: Optional[float] = Field(None, description="Bid price at surge detection")
+    surge_mid: Optional[float] = Field(None, description="Mid price at surge detection")
+
+    # === STRUCTURED CONFLUENCE WINDOW (comprehensive micro-trajectory) ===
+    # Contains sub-slices, pressure consistency, timing, and baseline ratios
+    # This is the core data for ML feature extraction
+    confluence_window: Optional[ConfluenceWindow] = Field(
+        None,
+        description="Structured 2-second confluence window with sub-slices and ML features"
+    )
+
+    # === STRUCTURED SURGE WINDOW (only if surge-based trade) ===
+    # Only populated if trade was made based on 8-second surge monitoring
+    surge_window: Optional[SurgeWindow] = Field(
+        None,
+        description="8-second surge window stats - only if surge-based trade"
+    )
+
     # === ENHANCED STATS (collected async post-trade, never delays execution) ===
 
     # Spread tracking at multiple time points
@@ -223,7 +519,8 @@ class SignalRecord(BaseModel):
     avg_daily_volume: Optional[int] = Field(None, description="Average daily volume")
     volume_vs_adv_ratio: Optional[float] = Field(None, description="First minute volume / ADV ratio")
 
-    # Headline classification
+    # Headline
+    headline: Optional[str] = Field(None, description="Article headline/title")
     headline_type: Optional[str] = Field(None, description="Catalyst type: contract, fda, partnership, earnings, etc.")
 
     # Timing

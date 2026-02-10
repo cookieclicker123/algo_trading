@@ -11,6 +11,10 @@ construction_contract
 engineering_contract
 service_contract
 maintenance_contract
+strategic_agreement
+framework_agreement
+cooperation_agreement
+procurement_deal
 supply_agreement
 equipment_order
 fleet_order
@@ -27,6 +31,12 @@ plant_closure
 capacity_increase
 automation_deal
 technology_partnership
+debt_restructuring
+financing_secured
+bank_financing
+project_milestone
+pilot_success
+project_completion
 analyst_upgrade
 analyst_downgrade
 earnings_beat
@@ -47,6 +57,10 @@ environmental_compliance
 union_agreement
 labor_dispute
 other
+
+IMPORTANT: If headline mentions "framework agreement" or "cooperation agreement", return "framework_agreement" or "cooperation_agreement".
+If headline mentions "procurement" with a dollar/RMB amount, return "procurement_deal".
+If headline mentions "financing restructuring" or "bank financing", return "debt_restructuring" or "financing_secured".
 
 Headline: {headline}
 

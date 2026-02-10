@@ -432,6 +432,45 @@ Summary: {summary}"""
                 # Conference/marketing (no price impact)
                 (r'\b(to present at|will present at|to participate in|annual.*conference|healthcare conference|j\.p\. morgan.*conference|at ces\b|ces 2026)\b', 'conference'),
                 (r'\b(kol event|webinar|webcast|fireside chat|conference call)\b', 'webinar'),
+
+                # ============================================================
+                # VAGUE/NON-COMMITTAL LANGUAGE (Feb 2026 backtest: 100% losers)
+                # ============================================================
+                # Non-binding = not a real deal, frequently falls through
+                (r'\bnon-binding\b', 'non_binding'),
+                (r'\bnon binding\b', 'non_binding'),
+                # NOTE: LOI (Letter of Intent) removed from prefilter - sent to AI for nuanced classification
+                # Acquisition LOIs with named targets are winning patterns, vague LOIs are losers
+                # "Enters Into" without specifics = meaningless corporate speak
+                (r'\benters into\b(?!.*(agreement|contract|deal).*\$)', 'enters_into_vague'),
+
+                # ============================================================
+                # DEFENSIVE/DISTRESSED LANGUAGE (Feb 2026 backtest: 100% losers)
+                # ============================================================
+                # Financial restructuring = often distressed company
+                (r'\b(financing restructuring|restructures? (debt|loan|credit)|debt restructuring)\b', 'restructuring_distress'),
+                # Defensive corporate language
+                (r'\bstrengthens? (its )?financial position\b', 'defensive_language'),
+                (r'\bimproves? (its )?financial (position|flexibility)\b', 'defensive_language'),
+
+                # ============================================================
+                # PROVISIONAL/LIMITED (Feb 2026 backtest: high loser rate)
+                # ============================================================
+                # Patent allowance = not final grant
+                (r'\bpatent allowance\b', 'patent_not_final'),
+                # Canadian-only patents (limited market)
+                (r'\bcanadian patent\b(?!.*us|.*fda|.*united states)', 'limited_geography'),
+
+                # ============================================================
+                # LINE EXTENSIONS / LABEL EXPANSIONS (not breakthrough - BFRI pattern)
+                # ============================================================
+                # Body part expansions for existing drugs
+                (r'\b(extremities|trunk|neck|torso|limbs)\b.*\b(study|trial|results)\b', 'line_extension_body'),
+                (r'\b(study|trial|results)\b.*\b(extremities|trunk|neck|torso|limbs)\b', 'line_extension_body'),
+                # Supplemental NDA / label expansion language
+                (r'\b(supplemental nda|snda|label expansion|additional indication)\b', 'line_extension'),
+                # "New indication" for existing drug
+                (r'\bnew indication\b.*\bexisting\b', 'line_extension'),
             ]
 
             for pattern, reason in HEADLINE_BLACKLIST:
@@ -478,20 +517,57 @@ Summary: {summary}"""
                         await self._publish_skipped_event(infra_event, f"market_cap_too_high:{round(market_cap)}M")
                         return
 
-                    # Minimum market cap filter: < $3M = too small, heavily manipulated
+                    # Minimum market cap filter: < $2M = too small, heavily manipulated
+                    # EXCEPTION: Transformational headlines (large $ relative to company) bypass this
                     MIN_MARKET_CAP_MILLIONS = 2
 
                     if market_cap and market_cap < MIN_MARKET_CAP_MILLIONS:
-                        logger.info(
-                            "⏭️ MICROSTRUCTURE FILTER: Market cap too low - manipulation risk",
-                            article_id=request_data.article_id,
-                            ticker=primary_ticker,
-                            market_cap_millions=round(market_cap, 2),
-                            threshold_millions=MIN_MARKET_CAP_MILLIONS,
-                            reason="Sub-$3M stocks are heavily manipulated"
-                        )
-                        await self._publish_skipped_event(infra_event, f"market_cap_too_low:{round(market_cap, 1)}M")
-                        return
+                        # Check for transformational headline exception
+                        # If headline contains dollar amount > 5x market cap, let AI decide
+                        headline = request_data.article_title
+                        dollar_amount = self._extract_dollar_amount_millions(headline)
+
+                        if dollar_amount and market_cap > 0:
+                            magnitude_ratio = dollar_amount / market_cap
+                            if magnitude_ratio >= 5.0:
+                                # Transformational headline - bypass market cap filter
+                                logger.info(
+                                    "✅ MARKET CAP EXCEPTION: Transformational headline bypasses low market cap filter",
+                                    article_id=request_data.article_id,
+                                    ticker=primary_ticker,
+                                    market_cap_millions=round(market_cap, 2),
+                                    dollar_amount_millions=round(dollar_amount, 1),
+                                    magnitude_ratio=f"{magnitude_ratio:.1f}x",
+                                    headline=headline[:80],
+                                    reason="Dollar amount is transformational relative to company size - letting AI decide"
+                                )
+                                # Don't return - continue to classification
+                            else:
+                                # Dollar amount not large enough to be transformational
+                                logger.info(
+                                    "⏭️ MICROSTRUCTURE FILTER: Market cap too low - manipulation risk",
+                                    article_id=request_data.article_id,
+                                    ticker=primary_ticker,
+                                    market_cap_millions=round(market_cap, 2),
+                                    threshold_millions=MIN_MARKET_CAP_MILLIONS,
+                                    dollar_amount_millions=round(dollar_amount, 1) if dollar_amount else None,
+                                    magnitude_ratio=f"{magnitude_ratio:.1f}x" if dollar_amount else None,
+                                    reason="Sub-$2M stocks are heavily manipulated (dollar amount not transformational)"
+                                )
+                                await self._publish_skipped_event(infra_event, f"prefilter_market_cap_too_low:{round(market_cap, 1)}M")
+                                return
+                        else:
+                            # No dollar amount in headline - apply normal filter
+                            logger.info(
+                                "⏭️ MICROSTRUCTURE FILTER: Market cap too low - manipulation risk",
+                                article_id=request_data.article_id,
+                                ticker=primary_ticker,
+                                market_cap_millions=round(market_cap, 2),
+                                threshold_millions=MIN_MARKET_CAP_MILLIONS,
+                                reason="Sub-$2M stocks are heavily manipulated"
+                            )
+                            await self._publish_skipped_event(infra_event, f"prefilter_market_cap_too_low:{round(market_cap, 1)}M")
+                            return
 
                     logger.debug(
                         "✅ MICROSTRUCTURE FILTER: Market cap check passed",
@@ -499,26 +575,14 @@ Summary: {summary}"""
                         market_cap_millions=round(market_cap, 1) if market_cap else "unknown"
                     )
 
-            # Step 3e: PRICE FILTER (low-priced stocks move more on news)
+            # Step 3e: PRICE FILTER (minimum only - max price filter removed)
             # ====================================================================
-            # Filters out high-priced stocks where news-driven % moves are smaller.
-            # $35 threshold permits biotech/pharma catalyst trades (e.g. SRPT @ $21).
+            # MAX PRICE FILTER REMOVED: AI classification now handles headline quality.
+            # Biotech analysis showed best winners are $1-10 stocks with strong catalysts.
+            # The AI prompt filters weak headlines (IND clearances, service partnerships).
             # ====================================================================
             if nbbo_snapshot:
                 current_price = nbbo_snapshot.get("mid") or nbbo_snapshot.get("ask") or 0
-                MAX_PRICE = 35.0
-
-                if current_price and current_price > MAX_PRICE:
-                    logger.info(
-                        "⏭️ MICROSTRUCTURE FILTER: Price too high for news-driven trade",
-                        article_id=request_data.article_id,
-                        ticker=primary_ticker,
-                        price=round(current_price, 2),
-                        threshold=MAX_PRICE,
-                        reason="Higher-priced stocks have smaller percentage moves"
-                    )
-                    await self._publish_skipped_event(infra_event, f"price_too_high:${round(current_price, 2)}")
-                    return
 
                 # Minimum price filter: < $0.25 = sub-penny territory, heavily manipulated
                 MIN_PRICE = 0.25
@@ -817,17 +881,18 @@ Summary: {summary}"""
 
         try:
             # Classify via multi-sector classifier
-            classification, sector, industry, latency_ms = await self.sector_classifier.classify(
+            classification, sector, industry, latency_ms, position_size = await self.sector_classifier.classify(
                 headline=headline,
                 ticker=primary_ticker
             )
 
             logger.info(
-                f"Sector classification: {classification}",
+                f"Sector classification: {classification}" + (f" {position_size}" if position_size else ""),
                 article_id=request_data.article_id,
                 ticker=primary_ticker,
                 sector=sector,
                 industry=industry,
+                position_size=position_size,
                 latency_ms=round(latency_ms, 1)
             )
 
@@ -837,7 +902,8 @@ Summary: {summary}"""
                 response_data = InfrastructureClassificationResponseData(
                     classification="imminent",
                     confidence="HIGH",
-                    reasoning=f"{sector}/{industry} - LLM classified as tradeable"
+                    reasoning=f"{sector}/{industry} - LLM classified as tradeable",
+                    position_size=position_size
                 )
 
                 completed_event = ClassificationCompletedInfrastructureEvent(
@@ -855,11 +921,12 @@ Summary: {summary}"""
                 )
 
                 logger.info(
-                    f"Published IMMINENT classification for {sector} TRADE signal",
+                    f"Published IMMINENT classification for {sector} TRADE {position_size or 'MODERATE'} signal",
                     article_id=request_data.article_id,
                     ticker=primary_ticker,
                     sector=sector,
                     industry=industry,
+                    position_size=position_size,
                     latency_ms=round(latency_ms, 1)
                 )
 
@@ -894,6 +961,69 @@ Summary: {summary}"""
                 InfrastructureEventType.CLASSIFICATION_FAILED,
                 failed_event.model_dump()
             )
+
+    def _extract_dollar_amount_millions(self, headline: str) -> Optional[float]:
+        """
+        Extract the largest dollar amount from a headline and convert to millions.
+
+        Handles formats:
+        - "$40 Million" / "$40M" / "$40 million"
+        - "US$40 Million" / "US$40M"
+        - "$4.75 Million"
+        - "$500,000" (converts to 0.5M)
+        - "$1 Billion" / "$1B" (converts to 1000M)
+
+        Returns:
+            Dollar amount in millions, or None if no amount found
+        """
+        if not headline:
+            return None
+
+        headline_lower = headline.lower()
+
+        # Pattern for millions: $X Million, $XM, US$X Million
+        millions_patterns = [
+            r'(?:us)?\$(\d+(?:\.\d+)?)\s*(?:million|m\b)',  # $40 Million, $40M, US$40M
+            r'(?:us)?\$(\d+(?:\.\d+)?)\s*(?:billion|b\b)',  # $1 Billion, $1B (multiply by 1000)
+        ]
+
+        amounts = []
+
+        # Check millions patterns
+        for pattern in millions_patterns[:1]:  # First pattern is millions
+            matches = re.findall(pattern, headline_lower)
+            for match in matches:
+                try:
+                    amounts.append(float(match))
+                except ValueError:
+                    pass
+
+        # Check billions patterns (convert to millions)
+        for pattern in millions_patterns[1:]:  # Second pattern is billions
+            matches = re.findall(pattern, headline_lower)
+            for match in matches:
+                try:
+                    amounts.append(float(match) * 1000)  # Convert billions to millions
+                except ValueError:
+                    pass
+
+        # Also check for raw dollar amounts without Million/M suffix
+        # e.g., "$500,000" → 0.5M
+        raw_pattern = r'(?:us)?\$(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)'
+        raw_matches = re.findall(raw_pattern, headline_lower)
+        for match in raw_matches:
+            try:
+                # Remove commas and convert
+                value = float(match.replace(',', ''))
+                # Only include if it looks like a significant amount (> $100k)
+                if value >= 100000:
+                    amounts.append(value / 1_000_000)  # Convert to millions
+            except ValueError:
+                pass
+
+        if amounts:
+            return max(amounts)  # Return the largest amount found
+        return None
 
     async def _publish_skipped_event(
         self,

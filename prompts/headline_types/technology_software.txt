@@ -1,4 +1,4 @@
-Classify this software headline into exactly ONE type from this list:
+Classify this software/technology headline into exactly ONE type from this list:
 
 contract_win
 enterprise_deal
@@ -46,7 +46,15 @@ restructuring
 layoffs
 ipo_filing
 spac_merger
+debt_restructuring
+financing_secured
+bank_financing
+credit_facility
+project_financing
 other
+
+IMPORTANT: If headline mentions "financing restructuring" or "bank financing" or "financial position strengthened", return "debt_restructuring" or "financing_secured".
+If headline mentions "credit facility" or "loan", return "credit_facility".
 
 Headline: {headline}
 

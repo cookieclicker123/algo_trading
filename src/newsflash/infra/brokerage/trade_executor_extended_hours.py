@@ -200,27 +200,118 @@ class AlpacaExtendedHoursTradeExecutor:
                     await self._publish_failed_event(trade_request, error_result["error"])
                     return error_result
 
-                # Price collar: Maximum we're willing to pay (5% above initial ask)
-                # This prevents chasing into pump-and-dumps
-                MAX_SLIPPAGE_PCT = 0.05  # 5% max slippage from decision point
+                # Price collar: Maximum we're willing to pay (10% above initial ask for extended chase)
+                # This prevents chasing into pump-and-dumps while allowing runners
+                MAX_SLIPPAGE_PCT = 0.10  # 10% max slippage for extended chase
                 max_price = round(initial_ask * (1 + MAX_SLIPPAGE_PCT), 2)
 
-                # Chase parameters
-                CHASE_INTERVAL_MS = 500  # Check every 500ms
-                MAX_CHASE_ATTEMPTS = 10  # 10 attempts = 5 seconds total
+                # =================================================================
+                # TWO-PHASE ENTRY STRATEGY
+                # =================================================================
+                # Phase 1: Quick chase (5 seconds) - retry every 500ms
+                #   - If filled: done
+                #   - If not filled: check spread, move to Phase 2 if tight
+                #
+                # Phase 2: Patient mode (up to 2 minutes total) - retry every 3s
+                #   - Only if spread < 5% (tight = liquid eventually)
+                #   - Wait for volume to arrive on quiet names like RITR
+                #   - This catches transformational headlines that start slow
+                # =================================================================
+
+                # Phase 1: Quick chase
+                PHASE1_INTERVAL_MS = 500  # Check every 500ms
+                PHASE1_ATTEMPTS = 10  # 10 attempts = 5 seconds
+
+                # Phase 2: Patient mode (only if Phase 1 fails and spread tight)
+                PHASE2_INTERVAL_MS = 3000  # Check every 3 seconds
+                PHASE2_MAX_DURATION_S = 120  # Up to 2 minutes total
+                PHASE2_SPREAD_THRESHOLD_PCT = 0.05  # Must have <5% spread to continue
+
                 chase_attempts = []
+                phase2_active = False
+                entry_start_time = time.time()
 
                 logger.info(
-                    f"💰 ENTRY ORDER: Starting chase-the-ask strategy",
+                    f"💰 ENTRY ORDER: Starting two-phase chase strategy",
                     ticker=trade_request.ticker,
                     initial_ask=initial_ask,
                     max_price=max_price,
                     max_slippage_pct=f"{MAX_SLIPPAGE_PCT*100:.0f}%",
                     quantity=quantity,
-                    max_attempts=MAX_CHASE_ATTEMPTS,
+                    phase1_duration="5s",
+                    phase2_duration="up to 2min if spread <5%",
                 )
 
-                for attempt in range(1, MAX_CHASE_ATTEMPTS + 1):
+                attempt = 0
+                while True:
+                    attempt += 1
+                    elapsed = time.time() - entry_start_time
+
+                    # Determine which phase we're in
+                    if attempt <= PHASE1_ATTEMPTS:
+                        # Phase 1: Quick chase
+                        interval_ms = PHASE1_INTERVAL_MS
+                        phase_name = "Phase1"
+                    else:
+                        # Phase 2: Patient mode
+                        if elapsed > PHASE2_MAX_DURATION_S:
+                            logger.warning(
+                                f"🛑 ENTRY TIMEOUT: Exceeded {PHASE2_MAX_DURATION_S}s without fill",
+                                ticker=trade_request.ticker,
+                                attempts_made=attempt - 1,
+                                elapsed_seconds=round(elapsed, 1),
+                            )
+                            error_result = {
+                                "success": False,
+                                "error": f"Entry timed out after {round(elapsed)}s ({attempt-1} attempts)",
+                                "session": session,
+                                "order_type": "CHASE_LIMIT",
+                                "instrument": "stock",
+                                "chase_attempts": chase_attempts,
+                            }
+                            if current_order_id:
+                                await self._cancel_order_safely(current_order_id)
+                            await self._publish_failed_event(trade_request, error_result["error"], error_result)
+                            return error_result
+
+                        interval_ms = PHASE2_INTERVAL_MS
+                        phase_name = "Phase2"
+
+                        # First time entering Phase 2 - check spread requirement
+                        if not phase2_active:
+                            fresh_nbbo = await self.quote_fetcher.get_nbbo_snapshot(trade_request.ticker)
+                            if fresh_nbbo:
+                                spread = fresh_nbbo.get("spread", 0)
+                                ask = fresh_nbbo.get("ask", initial_ask)
+                                spread_pct = spread / ask if ask > 0 else 1.0
+
+                                if spread_pct >= PHASE2_SPREAD_THRESHOLD_PCT:
+                                    logger.warning(
+                                        f"🛑 ENTRY ABORTED: Spread too wide for extended chase",
+                                        ticker=trade_request.ticker,
+                                        spread_pct=f"{spread_pct*100:.1f}%",
+                                        threshold=f"{PHASE2_SPREAD_THRESHOLD_PCT*100:.0f}%",
+                                        attempts_made=attempt - 1,
+                                    )
+                                    error_result = {
+                                        "success": False,
+                                        "error": f"Spread {spread_pct*100:.1f}% > {PHASE2_SPREAD_THRESHOLD_PCT*100:.0f}% threshold for extended chase",
+                                        "session": session,
+                                        "order_type": "CHASE_LIMIT",
+                                        "instrument": "stock",
+                                        "chase_attempts": chase_attempts,
+                                    }
+                                    if current_order_id:
+                                        await self._cancel_order_safely(current_order_id)
+                                    await self._publish_failed_event(trade_request, error_result["error"], error_result)
+                                    return error_result
+
+                                phase2_active = True
+                                logger.info(
+                                    f"📊 PHASE 2: Entering patient mode (spread {spread_pct*100:.1f}% < 5%)",
+                                    ticker=trade_request.ticker,
+                                    remaining_time=f"{PHASE2_MAX_DURATION_S - elapsed:.0f}s",
+                                )
                     # Get fresh NBBO for each attempt (except first which uses initial)
                     if attempt > 1:
                         fresh_nbbo = await self.quote_fetcher.get_nbbo_snapshot(trade_request.ticker)
@@ -237,7 +328,7 @@ class AlpacaExtendedHoursTradeExecutor:
                             f"Chase attempt {attempt}: Could not get ask price, skipping",
                             ticker=trade_request.ticker
                         )
-                        await asyncio.sleep(CHASE_INTERVAL_MS / 1000)
+                        await asyncio.sleep(interval_ms / 1000)
                         continue
 
                     # Check price collar - abort if ask exceeds max acceptable price
@@ -263,6 +354,8 @@ class AlpacaExtendedHoursTradeExecutor:
                             "chase_attempts": chase_attempts,
                             "nbbo": nbbo_snapshot,
                         }
+                        if current_order_id:
+                            await self._cancel_order_safely(current_order_id)
                         await self._publish_failed_event(trade_request, error_result["error"], error_result)
                         return error_result
 
@@ -270,10 +363,11 @@ class AlpacaExtendedHoursTradeExecutor:
                     limit_price = round(current_ask, 2)
 
                     logger.info(
-                        f"📈 Chase attempt {attempt}/{MAX_CHASE_ATTEMPTS}: Placing limit at ask",
+                        f"📈 {phase_name} attempt {attempt}: Placing limit at ask",
                         ticker=trade_request.ticker,
                         limit_price=limit_price,
                         initial_ask=initial_ask,
+                        elapsed_seconds=round(elapsed, 1),
                         slippage_so_far=f"{((limit_price - initial_ask) / initial_ask * 100):.2f}%" if limit_price > initial_ask else "0%",
                     )
 
@@ -306,12 +400,12 @@ class AlpacaExtendedHoursTradeExecutor:
                             "result": "submission_failed",
                             "error": str(order_error)
                         })
-                        await asyncio.sleep(CHASE_INTERVAL_MS / 1000)
+                        await asyncio.sleep(interval_ms / 1000)
                         continue
 
                     # Wait for fill (500ms)
                     attempt_start = time.time()
-                    await asyncio.sleep(CHASE_INTERVAL_MS / 1000)
+                    await asyncio.sleep(interval_ms / 1000)
 
                     # Check if filled
                     try:
@@ -413,36 +507,6 @@ class AlpacaExtendedHoursTradeExecutor:
                             "error": str(status_error),
                         })
 
-                # All attempts exhausted - cancel any pending order and fail
-                if current_order_id:
-                    await self._cancel_order_safely(current_order_id)
-                    current_order_id = None
-
-                final_ask = nbbo_snapshot.get("ask") if nbbo_snapshot else None
-                logger.warning(
-                    f"❌ ENTRY FAILED: All {MAX_CHASE_ATTEMPTS} chase attempts exhausted",
-                    ticker=trade_request.ticker,
-                    initial_ask=initial_ask,
-                    final_ask=final_ask,
-                    max_price=max_price,
-                    chase_attempts=chase_attempts,
-                )
-
-                error_result = {
-                    "success": False,
-                    "error": f"Entry failed after {MAX_CHASE_ATTEMPTS} chase attempts",
-                    "session": session,
-                    "order_type": "CHASE_LIMIT",
-                    "instrument": "stock",
-                    "initial_ask": initial_ask,
-                    "final_ask": final_ask,
-                    "max_price": max_price,
-                    "chase_attempts": chase_attempts,
-                    "nbbo": nbbo_snapshot,
-                }
-                await self._publish_failed_event(trade_request, error_result["error"], error_result)
-                return error_result
-            
             # EXIT LOGIC: Chase-the-Bid approach for SELL orders
             # Strategy: Place limit order at current bid (no discount)
             # If not filled in 500ms, re-check NBBO and place at new bid
@@ -506,7 +570,7 @@ class AlpacaExtendedHoursTradeExecutor:
                             f"Chase attempt {attempt}: Could not get bid price, skipping",
                             ticker=trade_request.ticker
                         )
-                        await asyncio.sleep(CHASE_INTERVAL_MS / 1000)
+                        await asyncio.sleep(interval_ms / 1000)
                         continue
 
                     # Check price floor - abort if bid falls below min acceptable price
@@ -575,11 +639,11 @@ class AlpacaExtendedHoursTradeExecutor:
                             "result": "submission_failed",
                             "error": str(order_error)
                         })
-                        await asyncio.sleep(CHASE_INTERVAL_MS / 1000)
+                        await asyncio.sleep(interval_ms / 1000)
                         continue
 
                     # Wait for fill (500ms)
-                    await asyncio.sleep(CHASE_INTERVAL_MS / 1000)
+                    await asyncio.sleep(interval_ms / 1000)
 
                     # Check if filled
                     try:

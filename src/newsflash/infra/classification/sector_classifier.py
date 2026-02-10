@@ -285,7 +285,7 @@ class SectorClassifier:
         self,
         headline: str,
         ticker: str,
-    ) -> Tuple[str, Optional[str], Optional[str], float]:
+    ) -> Tuple[str, Optional[str], Optional[str], float, Optional[str]]:
         """
         Classify a headline from any supported sector.
 
@@ -294,11 +294,12 @@ class SectorClassifier:
             ticker: Primary ticker symbol
 
         Returns:
-            Tuple of (classification, sector, industry, latency_ms):
+            Tuple of (classification, sector, industry, latency_ms, position_size):
             - classification: "TRADE", "SKIP", "NOT_SUPPORTED_SECTOR", or "UNSUPPORTED_INDUSTRY"
             - sector: Sector name if supported, else None
             - industry: Industry name if supported, else None
             - latency_ms: Classification latency in milliseconds
+            - position_size: "SMALL", "MODERATE", "LARGE", "MAX", or None if not TRADE
         """
         start_time = datetime.now()
 
@@ -314,7 +315,7 @@ class SectorClassifier:
                 headline=headline[:50]
             )
             self._stats["not_supported_sector"] += 1
-            return "NOT_SUPPORTED_SECTOR", None, None, latency_ms
+            return "NOT_SUPPORTED_SECTOR", None, None, latency_ms, None
 
         sector = metadata.get("sector", "")
         industry = metadata.get("industry", "")
@@ -329,7 +330,7 @@ class SectorClassifier:
                 headline=headline[:50]
             )
             self._stats["not_supported_sector"] += 1
-            return "NOT_SUPPORTED_SECTOR", sector, None, latency_ms
+            return "NOT_SUPPORTED_SECTOR", sector, None, latency_ms, None
 
         # Step 3: Check if supported industry within sector
         industry_map = SECTOR_INDUSTRY_MAP.get(sector, {})
@@ -343,7 +344,7 @@ class SectorClassifier:
                 headline=headline[:50]
             )
             self._stats["unsupported_industry"] += 1
-            return "UNSUPPORTED_INDUSTRY", sector, industry, latency_ms
+            return "UNSUPPORTED_INDUSTRY", sector, industry, latency_ms, None
 
         # Step 4: Load industry-specific prompt
         prompt = self._load_prompt(sector, industry)
@@ -351,22 +352,56 @@ class SectorClassifier:
             latency_ms = (datetime.now() - start_time).total_seconds() * 1000
             logger.error("Failed to load prompt", sector=sector, industry=industry)
             self._stats["errors"] += 1
-            return "SKIP", sector, industry, latency_ms
+            return "SKIP", sector, industry, latency_ms, None
 
         # Step 5: Call Groq LLM for classification
         if not self.client:
             latency_ms = (datetime.now() - start_time).total_seconds() * 1000
             logger.error("Groq client not initialized")
             self._stats["errors"] += 1
-            return "SKIP", sector, industry, latency_ms
+            return "SKIP", sector, industry, latency_ms, None
 
         try:
-            # Simple prompt: just the headline
+            # Build context-aware user message
+            # Include price and market cap so AI can assess magnitude relative to company size
+            price = metadata.get("price", 0)
+            market_cap = metadata.get("market_cap_millions", 0)
+
+            # Context-aware message format
+            # This allows the AI to understand that $40M into a $2M company is transformational
+            if price and market_cap:
+                user_message = f"""HEADLINE: {headline}
+
+CONTEXT:
+- Ticker: {ticker}
+- Sector: {sector}
+- Industry: {industry}
+- Price: ${price:.2f}
+- Market Cap: ${market_cap:.1f}M
+
+IMPORTANT: When the headline contains dollar figures (investments, contracts, partnerships),
+assess them RELATIVE to the company's market cap:
+- Investment/contract > 10% of market cap = significant, worth noting
+- Investment/contract > 25% of market cap = major deal, likely TRADE
+- Investment/contract > 50% of market cap = transformational, very likely TRADE
+- Investment/contract > 100% of market cap = massive, almost certainly TRADE
+- A "$40M investment" means very different things for a $2M vs $500M company
+
+Also consider sector norms:
+- Industrials contracts with specific $ values are usually real deals
+- Biotech: Phase 3 results matter more than deal size
+- Tech: Large enterprise contracts relative to market cap are significant
+
+Respond: TRADE or SKIP"""
+            else:
+                # Fallback to headline-only if no metadata
+                user_message = headline
+
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": prompt},
-                    {"role": "user", "content": headline}
+                    {"role": "user", "content": user_message}
                 ],
                 temperature=0.0,  # Deterministic for consistency
                 max_tokens=10,    # Only need "TRADE" or "SKIP"
@@ -375,11 +410,25 @@ class SectorClassifier:
             # Parse response
             result = response.choices[0].message.content.strip().upper()
 
-            # Normalize to TRADE or SKIP
+            # Extract position size from response (TRADE SMALL, TRADE MODERATE, TRADE LARGE, TRADE MAX)
+            position_size = None
             if "TRADE" in result:
                 classification = "TRADE"
                 self._stats["trade_signals"] += 1
                 self._stats["by_sector"][sector]["trade"] += 1
+
+                # Parse position size
+                if "MAX" in result:
+                    position_size = "MAX"
+                elif "LARGE" in result:
+                    position_size = "LARGE"
+                elif "MODERATE" in result:
+                    position_size = "MODERATE"
+                elif "SMALL" in result:
+                    position_size = "SMALL"
+                else:
+                    # Default to MODERATE if just "TRADE" without size
+                    position_size = "MODERATE"
             else:
                 classification = "SKIP"
                 self._stats["skip_signals"] += 1
@@ -395,15 +444,16 @@ class SectorClassifier:
             )
 
             logger.info(
-                f"🎯 {sector} classification: {classification}",
+                f"🎯 {sector} classification: {classification}" + (f" {position_size}" if position_size else ""),
                 ticker=ticker,
                 sector=sector,
                 industry=industry,
+                position_size=position_size,
                 headline=headline[:60],
                 latency_ms=round(latency_ms, 1)
             )
 
-            return classification, sector, industry, latency_ms
+            return classification, sector, industry, latency_ms, position_size
 
         except Exception as e:
             latency_ms = (datetime.now() - start_time).total_seconds() * 1000
@@ -415,12 +465,12 @@ class SectorClassifier:
                 headline=headline[:50]
             )
             self._stats["errors"] += 1
-            return "SKIP", sector, industry, latency_ms
+            return "SKIP", sector, industry, latency_ms, None
 
     async def classify_batch(
         self,
         headlines: list[Tuple[str, str]],  # List of (headline, ticker) tuples
-    ) -> list[Tuple[str, Optional[str], Optional[str], float]]:
+    ) -> list[Tuple[str, Optional[str], Optional[str], float, Optional[str]]]:
         """
         Classify multiple headlines in parallel.
 
@@ -428,7 +478,7 @@ class SectorClassifier:
             headlines: List of (headline, ticker) tuples
 
         Returns:
-            List of (classification, sector, industry, latency_ms) tuples
+            List of (classification, sector, industry, latency_ms, position_size) tuples
         """
         tasks = [self.classify(headline, ticker) for headline, ticker in headlines]
         return await asyncio.gather(*tasks)

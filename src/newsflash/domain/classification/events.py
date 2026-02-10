@@ -40,6 +40,8 @@ class ArticleClassifiedDomainEvent(BaseModel):
     tickers: List[str] = Field(default_factory=list, description="Article tickers (for immediate auto-trade)")
     title: str = Field(default="", description="Article title (for logging)")
     published_at: Optional[datetime] = Field(None, description="Article publication time (for confluence scoring)")
+    # AI-determined position size for immediate trading (no confluence delay)
+    position_size: Optional[str] = Field(None, description="AI position size: SMALL, MODERATE, LARGE, MAX")
     source: str = Field(default="domain.classification", description="Event source")
 
     model_config = {"frozen": True}  # Immutable

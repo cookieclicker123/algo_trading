@@ -228,12 +228,14 @@ class ClassificationDomainListener(
 
         # Step 3: PUBLISH typed domain event (factory already validated)
         # Include tickers/title/published_at to avoid storage race condition in auto-trade
+        # Include position_size for AI-based position sizing (no confluence delay)
         await self.publish_article_classified(
             domain_result,
             infra_event.completed_at,
             tickers=infra_event.request_data.article_tickers,
             title=infra_event.request_data.article_title,
             published_at=published_at,
+            position_size=infra_event.response_data.position_size,
         )
     
     @handle_errors(log_context="ClassificationDomainListener: Error handling classification failed event")
@@ -282,6 +284,7 @@ class ClassificationDomainListener(
         tickers: Optional[list] = None,
         title: Optional[str] = None,
         published_at: Optional[datetime] = None,
+        position_size: Optional[str] = None,
     ) -> None:
         """
         Publish ArticleClassified domain event (implements DomainClassificationEventPublisher).
@@ -292,6 +295,7 @@ class ClassificationDomainListener(
             tickers: Article tickers (included to avoid storage race condition)
             title: Article title (for logging)
             published_at: Article publication time (for confluence scoring)
+            position_size: AI-determined position size (SMALL, MODERATE, LARGE, MAX)
         """
         domain_event = ArticleClassifiedDomainEvent(
             article_id=result.article_id,
@@ -300,6 +304,7 @@ class ClassificationDomainListener(
             tickers=tickers or [],
             title=title or "",
             published_at=published_at,
+            position_size=position_size,
         )
         await self.event_bus.publish(DomainEventType.ARTICLE_CLASSIFIED, domain_event.model_dump())
 
@@ -310,7 +315,8 @@ class ClassificationDomainListener(
             confidence=result.confidence.value,
             reasoning=result.reasoning,
             tickers=tickers,
-            has_published_at=published_at is not None
+            has_published_at=published_at is not None,
+            position_size=position_size
         )
     
     @handle_errors(log_context="ClassificationDomainListener: Error publishing domain classification failed event")

@@ -326,6 +326,84 @@ class RecordManager:
 
         return updated
 
+    async def update_postfilter_reason(
+        self,
+        article_id: str,
+        postfilter_reason: str,
+    ) -> bool:
+        """
+        Update record with post-AI filter reason.
+
+        Called when an IMMINENT article is skipped due to post-AI checks
+        (e.g., no surge, low volume, spread too wide, etc.)
+
+        Returns:
+            True if updated immediately, False if failed
+        """
+        record_loc = self._record_locations.get(article_id)
+        if not record_loc:
+            logger.debug(
+                "RecordManager: No record location for postfilter update",
+                article_id=article_id,
+                postfilter_reason=postfilter_reason
+            )
+            return False
+
+        updated = await self.repository.update_recall_record(
+            article_id=article_id,
+            updates={"postfilter_reason": postfilter_reason},
+            session=record_loc[0],
+            date=record_loc[1]
+        )
+
+        if updated:
+            logger.info(
+                "RecordManager: Updated postfilter reason",
+                article_id=article_id,
+                postfilter_reason=postfilter_reason
+            )
+
+        return updated
+
+    async def update_headline_type(
+        self,
+        article_id: str,
+        headline_type: str,
+    ) -> bool:
+        """
+        Update record with headline type classification.
+
+        Called for IMMINENT articles to store the catalyst type
+        (e.g., contract, fda, partnership, earnings, etc.)
+
+        Returns:
+            True if updated immediately, False if failed
+        """
+        record_loc = self._record_locations.get(article_id)
+        if not record_loc:
+            logger.debug(
+                "RecordManager: No record location for headline_type update",
+                article_id=article_id,
+                headline_type=headline_type
+            )
+            return False
+
+        updated = await self.repository.update_recall_record(
+            article_id=article_id,
+            updates={"headline_type": headline_type},
+            session=record_loc[0],
+            date=record_loc[1]
+        )
+
+        if updated:
+            logger.debug(
+                "RecordManager: Updated headline_type",
+                article_id=article_id,
+                headline_type=headline_type
+            )
+
+        return updated
+
     # ==================== Trade Updates ====================
 
     async def update_trade_executed(

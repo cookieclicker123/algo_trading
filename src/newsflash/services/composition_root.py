@@ -382,6 +382,10 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
     )
     await recall_engine.start()
     logger.info("RecallStatsEngine started - tracking missed opportunities (with volume stats)")
+
+    # Set recall engine reference in auto_trade for recording post-AI skips
+    from .brokerage.auto_trade import set_recall_engine
+    set_recall_engine(recall_engine)
     
     # Create signal engine via DI container factory (yahoo_finance_coordinator, quote_fetcher, trading_client)
     # Note: yahoo_finance_coordinator is already started above (shared with MarketDataValidator)
@@ -402,7 +406,7 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
     )
     await failed_trades_engine.start()
     logger.info("FailedTradeStatsEngine started - tracking failed trades")
-    
+
     logger.info("All services initialized via DI container")
     
     services = Services(

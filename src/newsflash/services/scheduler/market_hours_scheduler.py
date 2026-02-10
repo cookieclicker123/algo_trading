@@ -336,12 +336,16 @@ class MarketHoursScheduler:
                 await self.services.websocket.stop()
                 self._websocket_shutdown = True
                 logger.info("MarketHoursScheduler: Websocket stopped for off-hours")
-                
+
                 # Send success notification
                 await self._send_notification(
                     f"✅ WebSocket shutdown complete\n"
                     f"🕐 Time: {time_str}"
                 )
+
+            # Run daily analytics job after shutdown (non-blocking)
+            asyncio.create_task(self._run_daily_analytics())
+
         except Exception as e:
             logger.error(
                 "MarketHoursScheduler: Error stopping websocket",
@@ -516,6 +520,126 @@ class MarketHoursScheduler:
                 f"🚨 Error: {str(e)}"
             )
     
+    async def _run_daily_analytics(self) -> None:
+        """
+        Run daily jobs after postmarket shutdown.
+
+        1. Daily Analytics: Full stats with all features for ML/backtesting
+        2. Winners Summary: Human-readable list for pattern recognition
+        3. Trade Classification: Confusion matrix (TP/FP/FN/TN)
+        4. Weekly Aggregation: On Fridays, aggregate week's data for ML training
+        """
+        try:
+            from ...jobs.daily_analytics import DailyAnalyticsJob
+            from ...jobs.winners_summary import WinnersSummaryJob
+            from ...jobs.trade_classification import TradeClassificationJob, WeeklyAggregationJob
+
+            logger.info("MarketHoursScheduler: Running daily analytics job")
+
+            job = DailyAnalyticsJob()
+            report = await job.run()
+
+            if report:
+                # Send summary notification
+                regime_emoji = {"bullish": "📈", "bearish": "📉", "neutral": "➡️"}.get(
+                    report.market_regime.regime, "➡️"
+                )
+                await self._send_notification(
+                    f"📊 Daily Analytics Complete\n"
+                    f"📅 Date: {report.date}\n"
+                    f"🎯 Trades: {report.total_trades} ({report.profitable_trades}W/{report.losing_trades}L)\n"
+                    f"📈 Win Rate: {report.win_rate_pct}%\n"
+                    f"💰 P&L: ${report.total_pnl_usd:+.2f}\n"
+                    f"⬆️ Avg Peak: {report.avg_peak_profit_pct:+.1f}%\n"
+                    f"📤 Avg Exit: {report.avg_exit_profit_pct:+.1f}%\n"
+                    f"💸 Left on Table: {report.avg_money_left_on_table_pct:.1f}%\n"
+                    f"{regime_emoji} Market: {report.market_regime.regime.upper()}"
+                )
+                logger.info(
+                    "MarketHoursScheduler: Daily analytics completed",
+                    date=report.date,
+                    trades=report.total_trades,
+                    win_rate=f"{report.win_rate_pct}%",
+                    pnl=f"${report.total_pnl_usd:+.2f}",
+                )
+            else:
+                logger.info("MarketHoursScheduler: No trades found for daily analytics")
+                await self._send_notification(
+                    f"📊 Daily Analytics: No trades today"
+                )
+
+            # Run winners summary (human-readable format)
+            try:
+                winners_job = WinnersSummaryJob()
+                winners_file = await winners_job.run()
+                if winners_file:
+                    logger.info(
+                        "MarketHoursScheduler: Winners summary generated",
+                        file=str(winners_file)
+                    )
+            except Exception as e:
+                logger.warning(f"Winners summary failed: {e}")
+
+            # Run trade classification (confusion matrix)
+            try:
+                classification_job = TradeClassificationJob()
+                classification_result = await classification_job.run()
+                if classification_result:
+                    counts = classification_result.get("counts", {})
+                    await self._send_notification(
+                        f"📊 Trade Classification Complete\n"
+                        f"✅ TP: {counts.get('true_positive', 0)} | "
+                        f"❌ FP: {counts.get('false_positive', 0)}\n"
+                        f"⚠️ FN: {counts.get('false_negative', 0)} | "
+                        f"✓ TN: {counts.get('true_negative', 0)}\n"
+                        f"📈 Precision: {classification_result.get('precision', 'N/A')}\n"
+                        f"🎯 Recall: {classification_result.get('recall', 'N/A')}\n"
+                        f"📐 F1: {classification_result.get('f1_score', 'N/A')}"
+                    )
+                    logger.info(
+                        "MarketHoursScheduler: Trade classification complete",
+                        precision=classification_result.get("precision"),
+                        recall=classification_result.get("recall"),
+                        f1=classification_result.get("f1_score"),
+                    )
+            except Exception as e:
+                logger.warning(f"Trade classification failed: {e}")
+
+            # On Fridays, run weekly aggregation for ML training data
+            et_tz = pytz.timezone("US/Eastern")
+            now_et = datetime.now(et_tz)
+            if now_et.weekday() == 4:  # Friday
+                try:
+                    weekly_job = WeeklyAggregationJob()
+                    weekly_result = await weekly_job.run()
+                    if weekly_result:
+                        await self._send_notification(
+                            f"📦 Weekly Aggregation Complete\n"
+                            f"📅 Week: {weekly_result.get('week')}\n"
+                            f"📊 Samples: {weekly_result['totals'].get('total_trades', 0) + weekly_result['totals'].get('total_opportunities', 0)}\n"
+                            f"📈 Precision: {weekly_result['metrics'].get('precision', 'N/A')}\n"
+                            f"🎯 Recall: {weekly_result['metrics'].get('recall', 'N/A')}\n"
+                            f"📁 Training data: {weekly_result.get('training_file')}"
+                        )
+                        logger.info(
+                            "MarketHoursScheduler: Weekly aggregation complete",
+                            week=weekly_result.get("week"),
+                            training_file=weekly_result.get("training_file"),
+                        )
+                except Exception as e:
+                    logger.warning(f"Weekly aggregation failed: {e}")
+
+        except Exception as e:
+            logger.error(
+                "MarketHoursScheduler: Daily analytics job failed",
+                error=str(e),
+                exc_info=True
+            )
+            await self._send_notification(
+                f"❌ Daily Analytics FAILED\n"
+                f"🚨 Error: {str(e)}"
+            )
+
     async def _startup_websocket(self) -> None:
         """Startup websocket service."""
         if self.services.websocket:

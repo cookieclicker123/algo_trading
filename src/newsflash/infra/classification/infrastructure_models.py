@@ -25,12 +25,13 @@ class InfrastructureClassificationRequestData(BaseModel):
 class InfrastructureClassificationResponseData(BaseModel):
     """
     Infrastructure classification response data model - format received from Groq API.
-    
+
     This is the raw response from Groq, before domain transformation.
     """
     classification: str = Field(..., description="Classification: 'imminent' or 'ignore'")
     confidence: str = Field(..., description="Confidence: 'HIGH', 'MEDIUM', or 'LOW'")
     reasoning: str = Field(..., description="Reasoning for classification")
+    position_size: Optional[str] = Field(None, description="AI-determined position size: 'SMALL', 'MODERATE', 'LARGE', 'MAX'")
     # Raw Groq API response fields can be added here
 
 
