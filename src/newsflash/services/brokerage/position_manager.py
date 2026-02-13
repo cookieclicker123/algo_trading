@@ -152,6 +152,17 @@ class Position:
     confirmation_received: bool = False  # True once volume/activity confirmed
     scale_in_triggered: bool = False  # True once scale-in order sent
 
+    # === MOMENTUM TRACKING (Phase 1: Data Collection) ===
+    # After Tier 2 (+15%), track price trajectory for comparison analysis.
+    # End-of-day will compare fixed tier exits vs momentum-based trailing.
+    momentum_tracking_active: bool = False  # True once Tier 2 triggered
+    momentum_tier_2_time: Optional[datetime] = None  # When +15% tier triggered
+    momentum_tier_2_price: Optional[float] = None  # Price at +15% trigger
+    momentum_peak_after_tier_2: float = 0.0  # Highest profit % after Tier 2
+    momentum_peak_price: Optional[float] = None  # Price at peak
+    momentum_peak_time: Optional[datetime] = None  # Time of peak
+    momentum_trajectory: List[Dict[str, Any]] = field(default_factory=list)  # Price samples after Tier 2
+
     def __post_init__(self):
         self.shares_remaining = self.shares
         self.total_cost_basis = self.entry_price * self.shares
@@ -885,6 +896,23 @@ class PositionManager:
                             position.next_tier_index += 1
                             position.total_exits_taken += 1
 
+                            # === MOMENTUM TRACKING: Start after Tier 2 (+15%) ===
+                            # Tier 1 is index 1, threshold 0.15 (+15%)
+                            # After triggering tier 1, next_tier_index becomes 2
+                            if position.next_tier_index == 2 and not position.momentum_tracking_active:
+                                position.momentum_tracking_active = True
+                                position.momentum_tier_2_time = now
+                                position.momentum_tier_2_price = current_price
+                                position.momentum_peak_after_tier_2 = profit_pct
+                                position.momentum_peak_price = current_price
+                                position.momentum_peak_time = now
+                                logger.info(
+                                    "📊 MOMENTUM TRACKING: Started after Tier 2 (+15%)",
+                                    ticker=ticker,
+                                    tier_2_price=current_price,
+                                    profit_pct=f"+{profit_pct*100:.1f}%",
+                                )
+
                             # Get new floor from fixed mapping
                             new_floor_pct = TIER_FLOOR_PCT.get(threshold_pct)
                             new_floor_str = f"+{new_floor_pct*100:.1f}%" if new_floor_pct else "N/A (fully exited)"
@@ -907,6 +935,38 @@ class PositionManager:
                                 profit_pct
                             ))
                     return
+
+            # === MOMENTUM TRACKING: Record samples after Tier 2 ===
+            # Sample every ~500ms to build trajectory for comparison analysis
+            if position.momentum_tracking_active and position.shares_remaining > 0:
+                # Update peak tracking
+                if profit_pct > position.momentum_peak_after_tier_2:
+                    position.momentum_peak_after_tier_2 = profit_pct
+                    position.momentum_peak_price = current_price
+                    position.momentum_peak_time = now
+
+                # Record trajectory sample (limit to every 500ms to avoid too much data)
+                should_sample = True
+                if position.momentum_trajectory:
+                    last_sample_time = position.momentum_trajectory[-1].get("time")
+                    if last_sample_time:
+                        last_dt = datetime.fromisoformat(last_sample_time) if isinstance(last_sample_time, str) else last_sample_time
+                        if (now - last_dt).total_seconds() < 0.5:
+                            should_sample = False
+
+                if should_sample:
+                    # Calculate velocity (rate of change since Tier 2)
+                    seconds_since_tier_2 = (now - position.momentum_tier_2_time).total_seconds() if position.momentum_tier_2_time else 0
+                    tier_2_profit = (position.momentum_tier_2_price - position.entry_price) / position.entry_price if position.momentum_tier_2_price else 0.15
+                    velocity = (profit_pct - tier_2_profit) / seconds_since_tier_2 if seconds_since_tier_2 > 0 else 0
+
+                    position.momentum_trajectory.append({
+                        "time": now.isoformat(),
+                        "price": current_price,
+                        "profit_pct": round(profit_pct * 100, 2),
+                        "seconds_since_tier_2": round(seconds_since_tier_2, 2),
+                        "velocity_pct_per_sec": round(velocity * 100, 4),  # % change per second
+                    })
 
     async def _execute_exit_async(
         self,
@@ -979,6 +1039,20 @@ class PositionManager:
         # Calculate highest price from highest_profit_pct for signal analytics
         highest_price = position.entry_price * (1 + position.highest_profit_pct) if position.highest_profit_pct > 0 else None
 
+        # Build momentum tracking data for exit analysis
+        momentum_data = None
+        if position.momentum_tracking_active:
+            momentum_data = {
+                "tier_2_triggered": True,
+                "tier_2_time": position.momentum_tier_2_time.isoformat() if position.momentum_tier_2_time else None,
+                "tier_2_price": position.momentum_tier_2_price,
+                "peak_after_tier_2_pct": round(position.momentum_peak_after_tier_2 * 100, 2),
+                "peak_price": position.momentum_peak_price,
+                "peak_time": position.momentum_peak_time.isoformat() if position.momentum_peak_time else None,
+                "trajectory_samples": len(position.momentum_trajectory),
+                "trajectory": position.momentum_trajectory[-50:] if position.momentum_trajectory else [],  # Last 50 samples
+            }
+
         exit_event = TradeRequestDomainEvent(
             trade_request=trade_request,
             article_id=position.article_id,
@@ -993,6 +1067,8 @@ class PositionManager:
                 # Peak tracking for exit pattern analysis
                 "highest_profit_pct": position.highest_profit_pct,
                 "highest_price": highest_price,
+                # Momentum tracking for fixed vs trailing comparison
+                "momentum_tracking": momentum_data,
             }
         )
 

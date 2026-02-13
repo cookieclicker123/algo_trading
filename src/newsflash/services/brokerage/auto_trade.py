@@ -63,9 +63,12 @@ logger = get_logger(__name__)
 # Active tickers with open positions (set by composition_root on TradeExecuted)
 _active_positions: set = set()
 
-# Recently exited tickers with cooldown (ticker -> exit_time)
+# Recently exited tickers with cooldown (ticker -> {exit_time, was_profitable})
 _exited_tickers: dict = {}
-TICKER_COOLDOWN_MINUTES = 30  # Don't re-enter for 30 minutes after exit
+
+# Dynamic cooldown: shorter for profitable exits, longer for losing exits
+TICKER_COOLDOWN_PROFIT_MINUTES = 5    # Re-enter after 5 min if exited profitably
+TICKER_COOLDOWN_LOSS_MINUTES = 30     # Wait 30 min after a loss
 
 # ============================================================
 # RECENTLY SKIPPED TICKER TRACKING (Risk Reduction)
@@ -259,16 +262,27 @@ def register_active_position(ticker: str) -> None:
     logger.info(f"Position registered: {ticker.upper()}", active_count=len(_active_positions))
 
 
-def unregister_active_position(ticker: str) -> None:
-    """Unregister a ticker when position is closed."""
+def unregister_active_position(ticker: str, was_profitable: bool = False) -> None:
+    """
+    Unregister a ticker when position is closed.
+
+    Dynamic cooldown:
+    - Profitable exit: 5 min cooldown (shorter, allow catching second wave)
+    - Loss exit: 30 min cooldown (longer, avoid re-entering bad setups)
+    """
     ticker_upper = ticker.upper()
     _active_positions.discard(ticker_upper)
-    # Add to cooldown tracking
-    _exited_tickers[ticker_upper] = datetime.now(timezone.utc)
+    # Add to cooldown tracking with profit info
+    _exited_tickers[ticker_upper] = {
+        "exit_time": datetime.now(timezone.utc),
+        "was_profitable": was_profitable
+    }
+    cooldown_minutes = TICKER_COOLDOWN_PROFIT_MINUTES if was_profitable else TICKER_COOLDOWN_LOSS_MINUTES
     logger.info(
-        f"Position unregistered, cooldown started: {ticker_upper}",
+        f"Position unregistered, dynamic cooldown started: {ticker_upper}",
         active_count=len(_active_positions),
-        cooldown_minutes=TICKER_COOLDOWN_MINUTES
+        was_profitable=was_profitable,
+        cooldown_minutes=cooldown_minutes
     )
 
 
@@ -283,8 +297,13 @@ def is_ticker_in_cooldown(ticker: str) -> bool:
     if ticker_upper not in _exited_tickers:
         return False
 
-    exit_time = _exited_tickers[ticker_upper]
-    cooldown_end = exit_time + timedelta(minutes=TICKER_COOLDOWN_MINUTES)
+    exit_data = _exited_tickers[ticker_upper]
+    exit_time = exit_data["exit_time"]
+    was_profitable = exit_data.get("was_profitable", False)
+
+    # Dynamic cooldown based on exit outcome
+    cooldown_minutes = TICKER_COOLDOWN_PROFIT_MINUTES if was_profitable else TICKER_COOLDOWN_LOSS_MINUTES
+    cooldown_end = exit_time + timedelta(minutes=cooldown_minutes)
 
     if datetime.now(timezone.utc) > cooldown_end:
         # Cooldown expired, remove from tracking
@@ -300,8 +319,13 @@ def get_cooldown_remaining(ticker: str) -> Optional[float]:
     if ticker_upper not in _exited_tickers:
         return None
 
-    exit_time = _exited_tickers[ticker_upper]
-    cooldown_end = exit_time + timedelta(minutes=TICKER_COOLDOWN_MINUTES)
+    exit_data = _exited_tickers[ticker_upper]
+    exit_time = exit_data["exit_time"]
+    was_profitable = exit_data.get("was_profitable", False)
+
+    # Dynamic cooldown based on exit outcome
+    cooldown_minutes = TICKER_COOLDOWN_PROFIT_MINUTES if was_profitable else TICKER_COOLDOWN_LOSS_MINUTES
+    cooldown_end = exit_time + timedelta(minutes=cooldown_minutes)
     remaining = (cooldown_end - datetime.now(timezone.utc)).total_seconds() / 60
 
     return max(0, remaining)
@@ -1591,15 +1615,35 @@ async def process_imminent_article(
         # ============================================================
         if is_ticker_in_cooldown(ticker):
             remaining_min = get_cooldown_remaining(ticker)
+            # Get cooldown type for logging
+            ticker_upper = ticker.upper()
+            exit_data = _exited_tickers.get(ticker_upper, {})
+            was_profitable = exit_data.get("was_profitable", False)
+            cooldown_min = TICKER_COOLDOWN_PROFIT_MINUTES if was_profitable else TICKER_COOLDOWN_LOSS_MINUTES
             logger.info(
-                "⏭️ AUTO-TRADE SKIPPED: Ticker in cooldown after recent exit",
+                "⏭️ AUTO-TRADE SKIPPED: Ticker in dynamic cooldown after recent exit",
                 ticker=ticker,
                 article_id=article_id,
                 cooldown_remaining_min=round(remaining_min, 1) if remaining_min else 0,
-                cooldown_total_min=TICKER_COOLDOWN_MINUTES,
-                reason="Preventing re-entry after time-based exit"
+                cooldown_total_min=cooldown_min,
+                cooldown_type="profit" if was_profitable else "loss",
+                reason=f"{'Short' if was_profitable else 'Long'} cooldown after {'profitable' if was_profitable else 'losing'} exit"
             )
             await _record_postfilter_skip(article_id, "postfilter_cooldown")
+            return
+
+        # ============================================================
+        # 🚫 TICKER BLACKLIST: Don't trade serial pump-and-dump tickers
+        # ============================================================
+        from .ticker_blacklist import is_ticker_blacklisted
+        if await is_ticker_blacklisted(ticker):
+            logger.info(
+                "⏭️ AUTO-TRADE SKIPPED: Ticker is blacklisted (3+ consecutive FPs)",
+                ticker=ticker,
+                article_id=article_id,
+                reason="Serial pump-and-dump ticker"
+            )
+            await _record_postfilter_skip(article_id, "postfilter_blacklisted")
             return
 
         # ============================================================
@@ -1735,10 +1779,30 @@ async def process_imminent_article(
         # Filter 1: Market cap check (minimum $2M to avoid manipulated stocks)
         MIN_MARKET_CAP_MILLIONS = 2.0  # $2M minimum
         MIN_BIOTECH_PRICE = 30.0  # Biotechs must be $30+ (data shows sub-$30 biotechs have poor risk/reward)
+        ticker_sector = None  # Track sector for statistics
+        ticker_industry = None  # Track industry for statistics
         if metadata_cache:
             try:
                 ticker_metadata = await metadata_cache.get_permanent(ticker)
                 if ticker_metadata:
+                    # Extract sector and industry for tracking
+                    ticker_sector = ticker_metadata.get("sector")
+                    ticker_industry = ticker_metadata.get("industry", "")
+                    confluence_metadata["sector"] = ticker_sector
+                    confluence_metadata["industry"] = ticker_industry
+
+                    # Check if sector is hot (logging only, not blocking yet)
+                    from .sector_tracker import is_sector_hot
+                    sector_is_hot = await is_sector_hot(ticker_sector)
+                    confluence_metadata["sector_is_hot"] = sector_is_hot
+                    if sector_is_hot:
+                        logger.info(
+                            f"⚠️ SECTOR HOT: {ticker_sector} has 3+ FPs today (proceeding with caution)",
+                            ticker=ticker,
+                            sector=ticker_sector,
+                            article_id=article_id
+                        )
+
                     market_cap_millions = ticker_metadata.get("market_cap_millions", 0)
                     if market_cap_millions and market_cap_millions < MIN_MARKET_CAP_MILLIONS:
                         logger.info(
@@ -1754,13 +1818,12 @@ async def process_imminent_article(
                     # Filter 1b: Biotech price filter - only trade $30+ biotechs
                     # Data shows: $30+ biotechs move 100-300%, sub-$5 biotechs only 5-18%
                     # Sub-$30 biotechs have weak catalysts (IND, early phase, offerings) and high failure rate
-                    industry = ticker_metadata.get("industry", "")
                     ticker_price = ticker_metadata.get("price", 0)
-                    if industry == "Biotechnology" and ticker_price < MIN_BIOTECH_PRICE:
+                    if ticker_industry == "Biotechnology" and ticker_price < MIN_BIOTECH_PRICE:
                         logger.info(
                             "⏭️ AUTO-TRADE SKIPPED: Biotech below $30 price threshold",
                             ticker=ticker,
-                            industry=industry,
+                            industry=ticker_industry,
                             price=round(ticker_price, 2),
                             min_biotech_price=MIN_BIOTECH_PRICE,
                             article_id=article_id,
@@ -2169,6 +2232,77 @@ async def process_imminent_article(
             confluence_metadata["ask_vs_first_trade_pct"] = round(ask_vs_first_trade_pct, 2)
 
         # ============================================================
+        # 🎯 PRE-NEWS RUNUP FILTER
+        # ============================================================
+        # Check if stock already moved significantly BEFORE the news.
+        # If it ran 5%+ in the 30 minutes prior, the news may already be priced in.
+        # Could indicate: insider buying, leaked news, or technical breakout unrelated to news.
+        PRE_NEWS_LOOKBACK_SECONDS = 1800  # 30 minutes
+        PRE_NEWS_RUNUP_THRESHOLD = 5.0  # 5%
+
+        pre_news_change_pct = None
+        stream_manager = getattr(quote_fetcher, 'stream_manager', None) if quote_fetcher else None
+
+        if stream_manager and published_at:
+            try:
+                # Get historical quotes from WebSocket cache
+                cached_quotes = await stream_manager.get_recent_quotes(ticker, max_quotes=3000)
+
+                if cached_quotes and len(cached_quotes) > 10:
+                    pub_time_utc = published_at.replace(tzinfo=timezone.utc) if published_at.tzinfo is None else published_at
+                    target_time = pub_time_utc - timedelta(seconds=PRE_NEWS_LOOKBACK_SECONDS)
+
+                    # Find quote closest to 30 min ago
+                    price_30min_ago = None
+                    price_at_pub = None
+
+                    for quote in cached_quotes:
+                        quote_time = quote.get("timestamp")
+                        if quote_time:
+                            if isinstance(quote_time, str):
+                                quote_time = datetime.fromisoformat(quote_time.replace('Z', '+00:00'))
+
+                            # Find price around 30 min before publication
+                            time_diff_30min = abs((quote_time - target_time).total_seconds())
+                            if time_diff_30min < 120 and price_30min_ago is None:  # Within 2 min of target
+                                price_30min_ago = quote.get("ask") or quote.get("mid")
+
+                            # Find price around publication time
+                            time_diff_pub = abs((quote_time - pub_time_utc).total_seconds())
+                            if time_diff_pub < 5 and price_at_pub is None:  # Within 5s of pub
+                                price_at_pub = quote.get("ask") or quote.get("mid")
+
+                    if price_30min_ago and price_at_pub and price_30min_ago > 0:
+                        pre_news_change_pct = ((price_at_pub - price_30min_ago) / price_30min_ago) * 100
+
+                        if pre_news_change_pct > PRE_NEWS_RUNUP_THRESHOLD:
+                            logger.info(
+                                "⏭️ AUTO-TRADE SKIPPED: Pre-news runup detected (stock already moved >5% before news)",
+                                ticker=ticker,
+                                price_30min_ago=round(price_30min_ago, 4),
+                                price_at_pub=round(price_at_pub, 4),
+                                pre_news_change_pct=round(pre_news_change_pct, 2),
+                                max_allowed=PRE_NEWS_RUNUP_THRESHOLD,
+                                article_id=article_id,
+                                reason="Stock already ran before news - could be priced in or leaked"
+                            )
+                            await _record_postfilter_skip(article_id, f"postfilter_pre_news_runup:{pre_news_change_pct:.1f}%")
+                            return
+
+                        logger.debug(
+                            "✅ PRE-NEWS CHECK PASSED",
+                            ticker=ticker,
+                            pre_news_change_pct=round(pre_news_change_pct, 2),
+                            max_allowed=PRE_NEWS_RUNUP_THRESHOLD
+                        )
+
+                        # Store for statistics
+                        confluence_metadata["pre_news_30min_change_pct"] = round(pre_news_change_pct, 2)
+
+            except Exception as e:
+                logger.debug(f"Pre-news runup check failed (non-blocking): {e}")
+
+        # ============================================================
         # 🎯 MOMENTUM EXHAUSTION FILTER
         # ============================================================
         # If trades already ran X% within confluence window, you're entering at TOP.
@@ -2245,6 +2379,9 @@ async def process_imminent_article(
         # 📊 FILTER CHECKPOINT VALUES (for hit rate analysis)
         # ============================================================
         # Capture all filter values for TP/FP comparison
+        # Extract hour for time-of-day analysis
+        hour = received_at.hour if received_at else None
+
         filter_values = {
             "spread_pct": confluence_metadata.get("initial_spread_pct"),
             "fill_spread_pct": confluence_metadata.get("fill_spread_pct"),
@@ -2252,6 +2389,7 @@ async def process_imminent_article(
             "recv_to_fill_pct": confluence_metadata.get("recv_to_fill_pct"),
             "ask_vs_first_trade_pct": confluence_metadata.get("ask_vs_first_trade_pct"),
             "confluence_runup_pct": confluence_metadata.get("confluence_runup_pct"),
+            "pre_news_30min_change_pct": confluence_metadata.get("pre_news_30min_change_pct"),
             "entry_delay_seconds": round(entry_delay_seconds, 2),
             "confluence_score": confluence_metadata.get("confluence_score"),
             "max_excursion_pct": confluence_metadata.get("confluence_price_excursion_pct"),
@@ -2260,12 +2398,17 @@ async def process_imminent_article(
             "dollar_volume": confluence_metadata.get("confluence_dollar_volume"),
             "trade_count": confluence_metadata.get("confluence_trade_count"),
             "first_trade_latency_ms": confluence_metadata.get("confluence_first_trade_latency_ms"),
+            "hour": hour,
+            "sector": confluence_metadata.get("sector"),
+            "industry": confluence_metadata.get("industry"),
+            "sector_is_hot": confluence_metadata.get("sector_is_hot", False),
         }
         # All filters passed for executed trades
         filters_checked = {
             "circuit_breaker": True,
             "duplicate_position": True,
             "cooldown": True,
+            "blacklist": True,
             "strength_or_surge": True,
             "market_cap": True,
             "biotech_price": True,
@@ -2273,6 +2416,7 @@ async def process_imminent_article(
             "pub_to_recv": True,
             "recv_to_fill": True,
             "pump_and_dump": True,
+            "pre_news_runup": True,
             "momentum_exhaustion": True,
             "late_entry": True,
         }

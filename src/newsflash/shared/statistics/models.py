@@ -234,6 +234,12 @@ class RecallRecord(BaseModel):
         description="Catalyst type: contract, fda, partnership, earnings, etc. Only classified for IMMINENT articles."
     )
 
+    # Time-of-day tracking (for hour-by-hour win rate analysis)
+    hour: Optional[int] = Field(None, description="Hour of day (0-23 ET) when article was received")
+
+    # News source tracking (for source quality analysis)
+    news_source: Optional[str] = Field(None, description="News source: 'benzinga_websocket', 'pr_newswire', 'sec_filing', etc.")
+
     # Volume analysis at article receive time (for future filtering research)
     # NOTE: This is from the 4-second SURGE detection window, NOT the confluence window
     # Ticker -> Stats dictionary
@@ -275,6 +281,18 @@ class RecallRecord(BaseModel):
     confluence_large_trade_pct: Optional[float] = Field(None, description="% of volume from trades >= 500 shares")
     confluence_uptick_count: Optional[int] = Field(None, description="Number of uptick trades")
     confluence_downtick_count: Optional[int] = Field(None, description="Number of downtick trades")
+
+    # === FLOAT-NORMALIZED VOLUME (Phase 1: Data Collection) ===
+    # Track volume as % of float to normalize across different sized companies
+    float_shares: Optional[int] = Field(None, description="Float shares from FMP/cache")
+    confluence_volume_float_pct: Optional[float] = Field(
+        None,
+        description="Confluence window volume as % of float: (confluence_volume / float_shares) * 100"
+    )
+    surge_volume_float_pct: Optional[float] = Field(
+        None,
+        description="Surge window volume as % of float: (surge_volume / float_shares) * 100"
+    )
 
     # === GAP/TRAP DETECTION: Price at publication vs reception ===
     # Critical for false negative analysis: did price run away before we could act?
@@ -568,14 +586,34 @@ class SignalRecord(BaseModel):
     avg_daily_volume: Optional[int] = Field(None, description="Average daily volume")
     volume_vs_adv_ratio: Optional[float] = Field(None, description="First minute volume / ADV ratio")
 
+    # === FLOAT-NORMALIZED VOLUME (Phase 1: Data Collection) ===
+    # Track volume as % of float to normalize across different sized companies
+    # A 10M float stock trading 100k shares (1%) is more significant than 100M float trading 100k (0.1%)
+    confluence_volume_float_pct: Optional[float] = Field(
+        None,
+        description="Confluence window volume as % of float: (confluence_volume / float_shares) * 100"
+    )
+    surge_volume_float_pct: Optional[float] = Field(
+        None,
+        description="Surge window volume as % of float: (surge_volume / float_shares) * 100"
+    )
+    volume_1min_float_pct: Optional[float] = Field(
+        None,
+        description="First minute volume as % of float: (volume_1min / float_shares) * 100"
+    )
+
     # Headline
     headline: Optional[str] = Field(None, description="Article headline/title")
     headline_type: Optional[str] = Field(None, description="Catalyst type: contract, fda, partnership, earnings, etc.")
 
     # Timing
     time_of_day: Optional[str] = Field(None, description="HH:MM format")
+    hour: Optional[int] = Field(None, description="Hour of day (0-23 ET) for time-of-day win rate analysis")
     minutes_after_open: Optional[float] = Field(None, description="Minutes after market/premarket open")
     day_of_week: Optional[str] = Field(None, description="Monday, Tuesday, etc.")
+
+    # News source tracking
+    news_source: Optional[str] = Field(None, description="News source: 'benzinga_websocket', 'pr_newswire', 'sec_filing', etc.")
 
     # Post-trade price tracking (async collected over 30s-10min)
     price_at_5s: Optional[float] = Field(None, description="Price at T+5 seconds")
@@ -600,6 +638,37 @@ class SignalRecord(BaseModel):
         None,
         description="Filter name -> passed (True/False). All filters that were evaluated."
     )
+
+    # === MOMENTUM EXIT ANALYSIS (Phase 1: Data Collection) ===
+    # Track price trajectory after +15% to compare fixed tiers vs momentum trailing
+    # This data enables end-of-day analysis to determine which method would have performed better
+    momentum_tracking: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Momentum exit analysis data: trajectory, peak tracking, velocity calculations"
+    )
+    # Structure of momentum_tracking:
+    # {
+    #   "tier_2_triggered": bool,           # Did trade reach +15%?
+    #   "tier_2_triggered_at": timestamp,   # When +15% was first reached
+    #   "tier_2_price": float,              # Price at +15% trigger
+    #   "trajectory_after_tier_2": [        # Price samples after +15%
+    #     {"timestamp": iso, "price": float, "pct_from_entry": float, "velocity_3s": float}
+    #   ],
+    #   "peak_after_tier_2": {              # Highest point after +15%
+    #     "price": float, "pct_from_entry": float, "timestamp": iso, "seconds_after_tier_2": float
+    #   },
+    #   "momentum_exit_would_have": {       # What momentum system would have done
+    #     "exit_price": float, "exit_pct": float, "exit_reason": str,
+    #     "exit_timestamp": iso, "seconds_after_tier_2": float
+    #   },
+    #   "fixed_tier_actual": {              # What fixed tier system actually did
+    #     "exit_price": float, "exit_pct": float, "exit_reason": str
+    #   },
+    #   "comparison": {                     # Direct comparison
+    #     "momentum_better_by_pct": float,  # Positive = momentum wins
+    #     "momentum_exit_earlier_by_s": float
+    #   }
+    # }
 
     # Tracking metadata
     recorded_at: datetime = Field(default_factory=datetime.now, description="When record was created")

@@ -19,7 +19,8 @@ News-based trading system that monitors Benzinga WebSocket for IMMINENT headline
 | 2 | **Auto-Trade Enabled** | Config flag | Master switch for trading |
 | 3 | **Classification = IMMINENT** | AI classifier | Only trade AI-confirmed strong catalysts |
 | 4 | **Active Position** | No duplicate | Cannot enter same ticker twice |
-| 5 | **Ticker Cooldown** | 30 min after exit | Prevent re-entry after time-based exit |
+| 5 | **Ticker Cooldown** | 5 min (profit) / 30 min (loss) | Dynamic cooldown based on exit outcome |
+| 6 | **Ticker Blacklist** | 3 consecutive FPs | Auto-blacklist serial pump-and-dump tickers |
 
 ### Microstructure Gating (Must Pass ONE)
 
@@ -56,8 +57,9 @@ News-based trading system that monitors Benzinga WebSocket for IMMINENT headline
 | 5 | **Pub→Recv Ask Change** | ≤ 3% | Front-running detection (VRME) |
 | 6 | **Recv→Fill Ask Change** | ≤ 3% | Chase/volatility filter |
 | 7 | **Ask vs First Trade** | ≤ 3% premium | Pump-and-dump pattern (EPOW) |
-| 8 | **Confluence Runup** | ≤ 5% | Momentum exhaustion - entering at top |
-| 9 | **Entry Delay** | ≤ 10s from publication | Fights late WebSocket deliveries |
+| 8 | **Pre-News Runup** | ≤ 5% in prior 30 min | News may be priced in or leaked |
+| 9 | **Confluence Runup** | ≤ 5% | Momentum exhaustion - entering at top |
+| 10 | **Entry Delay** | ≤ 10s from publication | Fights late WebSocket deliveries |
 
 ---
 
@@ -211,7 +213,7 @@ Orders that don't fill are cancelled and retried at current ask.
 |------------|---------|--------|
 | Circuit Breaker | Daily P&L ≤ -$5 | Block all new trades |
 | Duplicate Guard | Active position exists | Block entry |
-| Cooldown | 30 min after exit | Block re-entry |
+| Cooldown | 5 min (profit) / 30 min (loss) | Dynamic re-entry prevention |
 | Session End | 10 min before close | Force exit all |
 | Spread Filter | >5% spread | Block entry |
 | Selling Pressure | Imbalance < -0.3 | Block entry (>65% selling) |
@@ -324,7 +326,8 @@ The system's primary defensive goal is preventing gap-and-trap scenarios:
 | Front-running | Pub→Recv >3% | Price moved before we saw article |
 | Chase trap | Recv→Fill >3% | Price moving during our checks |
 | Pump-and-dump | Ask vs First Trade >3% | Ask inflated above trade prices |
-| Momentum exhaustion | Runup >5% | Move already happened in window |
+| Pre-news leak | Pre-news runup >5% | Stock already ran before news (insider buying, leaked) |
+| Momentum exhaustion | Confluence runup >5% | Move already happened in window |
 | Late delivery | Entry Delay >10s | WebSocket delivered article late |
 | Selling pressure | Imbalance < -0.3 | Smart money exiting, we'd be exit liquidity |
 | Wide spread | Spread >5% | Instant loss on entry |

@@ -46,6 +46,9 @@ AUTO_TRADE_EXIT_DELAY_MINUTES = int(os.getenv("AUTO_TRADE_EXIT_DELAY_MINUTES", "
 # Brokerage Configuration
 PAPER_TRADING = os.getenv("PAPER_TRADING", "true").lower() == "true"
 
+# FMP (Financial Modeling Prep) Configuration - for float and market cap data
+FMP_API_KEY = os.getenv("FMP_API_KEY", "")
+
 # Extended-hours ladder tuning (cents and milliseconds)
 LADDER_INITIAL_CENTS = int(os.getenv("LADDER_INITIAL_CENTS", "1"))            # first step from NBBO
 LADDER_STEP_CENTS = int(os.getenv("LADDER_STEP_CENTS", "1"))                  # step for early attempts

@@ -17,6 +17,7 @@ from ...utils.brokerage.session_detector import get_market_session, get_market_s
 from ...domain.brokerage.events import TradeExecutedDomainEvent
 from ...domain.brokerage.models import MarketSession
 from ...infra.brokerage.quote_fetcher import AlpacaQuoteFetcher
+from ...infra.cache.metadata_cache import MetadataCache
 from .yahoo_finance_coordinator import YahooFinanceCoordinator
 from .headline_classifier import get_headline_classifier
 
@@ -47,7 +48,8 @@ class SignalStatsEngine:
         repository: StatisticsRepository,
         yahoo_finance_coordinator: YahooFinanceCoordinator,
         quote_fetcher: Optional[AlpacaQuoteFetcher] = None,
-        trading_client: Optional["TradingClient"] = None
+        trading_client: Optional["TradingClient"] = None,
+        metadata_cache: Optional[MetadataCache] = None
     ):
         """
         Initialize signal statistics engine.
@@ -58,12 +60,14 @@ class SignalStatsEngine:
             yahoo_finance_coordinator: Shared Yahoo Finance coordinator (for industry/sector/market_cap)
             quote_fetcher: Optional quote fetcher for price from NBBO
             trading_client: Optional trading client for exchange info
+            metadata_cache: Optional metadata cache for float shares (instant lookups)
         """
         self.event_bus = event_bus
         self.repository = repository
         self.yahoo_finance_coordinator = yahoo_finance_coordinator
         self.quote_fetcher = quote_fetcher
         self.trading_client = trading_client
+        self.metadata_cache = metadata_cache
         
         # Track pending metadata fetches (trade_id -> (ticker, session, executed_at, task))
         self._pending_metadata: Dict[str, tuple[str, str, datetime, asyncio.Task]] = {}
@@ -357,6 +361,7 @@ class SignalStatsEngine:
         entry_price_from_meta = metadata.get("entry_price")
         highest_profit_pct = metadata.get("highest_profit_pct")
         highest_price = metadata.get("highest_price")
+        momentum_tracking = metadata.get("momentum_tracking")  # Phase 1: Data collection
 
         # Find matching BUY records for this ticker across ALL sessions today
         # Trades opened in premarket may close in market_hours or postmarket
@@ -441,6 +446,8 @@ class SignalStatsEngine:
                 "profit_loss_usd": round(pnl_usd, 2),
                 "profit_loss_percent": round(pnl_percent, 2),
                 "highest_price_during_hold": highest_price_data,
+                # Momentum tracking data (Phase 1: compare fixed tiers vs trailing)
+                "momentum_tracking": momentum_tracking,
             }
 
             # Update record in repository
@@ -461,7 +468,8 @@ class SignalStatsEngine:
                 pnl_usd=round(pnl_usd, 2),
                 pnl_percent=f"{pnl_percent:+.1f}%",
                 peak_profit_pct=f"+{highest_profit_pct*100:.1f}%" if highest_profit_pct else None,
-                hold_seconds=round(hold_duration, 1)
+                hold_seconds=round(hold_duration, 1),
+                has_momentum_data=momentum_tracking is not None,
             )
 
         except Exception as e:
@@ -525,6 +533,31 @@ class SignalStatsEngine:
         ratio = order_shares / ask_size
         return round(ratio, 2)
 
+    def _calculate_volume_float_pct(
+        self,
+        volume: Optional[int],
+        float_shares: Optional[int]
+    ) -> Optional[float]:
+        """
+        Calculate volume as percentage of float.
+
+        Float-normalized volume helps compare activity across different sized companies.
+        A 10M float stock trading 100k shares (1%) is more significant than
+        a 100M float stock trading 100k shares (0.1%).
+
+        Args:
+            volume: Number of shares traded
+            float_shares: Total float shares
+
+        Returns:
+            Volume as percentage of float, or None if invalid
+        """
+        if not volume or not float_shares or float_shares <= 0:
+            return None
+
+        pct = (volume / float_shares) * 100
+        return round(pct, 4)
+
     async def _fetch_and_update_metadata(
         self,
         record: SignalRecord,
@@ -571,6 +604,26 @@ class SignalStatsEngine:
                         metadata["price"] = price
                     if exchange:
                         metadata["exchange"] = exchange
+
+                    # Get float_shares for float-normalized volume calculations
+                    # Try metadata_cache first (instant), fallback to metadata from coordinator
+                    float_shares = None
+                    if self.metadata_cache:
+                        try:
+                            float_shares = await self.metadata_cache.get_float(record.ticker)
+                        except Exception:
+                            pass
+                    if not float_shares:
+                        float_shares = metadata.get("float_shares")
+
+                    # Calculate float-normalized volumes (Phase 1: Data Collection)
+                    confluence_volume_float_pct = self._calculate_volume_float_pct(
+                        record.confluence_volume, float_shares
+                    )
+                    surge_volume_float_pct = self._calculate_volume_float_pct(
+                        record.surge_volume, float_shares
+                    )
+
                     # Determine session from executed_at timestamp (stateless)
                     session, _ = get_market_session_from_timestamp(executed_at)
                     if session == "closed":
@@ -584,11 +637,20 @@ class SignalStatsEngine:
                             session = "postmarket"
                         else:
                             session = "market_hours"  # Default fallback
-                    
+
+                    # Build updates with metadata and float-normalized volumes
+                    updates = {"ticker_metadata": metadata}
+                    if float_shares:
+                        updates["float_shares"] = int(float_shares)
+                    if confluence_volume_float_pct is not None:
+                        updates["confluence_volume_float_pct"] = confluence_volume_float_pct
+                    if surge_volume_float_pct is not None:
+                        updates["surge_volume_float_pct"] = surge_volume_float_pct
+
                     # Update record in repository
                     await self.repository.update_signal_record(
                         trade_id=record.trade_id,
-                        updates={"ticker_metadata": metadata},
+                        updates=updates,
                         session=session,
                         date=executed_at
                     )
@@ -1010,6 +1072,11 @@ class SignalStatsEngine:
 
                     if float_shares:
                         updates["float_shares"] = int(float_shares)
+                        # Calculate float-normalized 1-minute volume
+                        if vol_1min:
+                            volume_1min_float_pct = self._calculate_volume_float_pct(vol_1min, float_shares)
+                            if volume_1min_float_pct is not None:
+                                updates["volume_1min_float_pct"] = volume_1min_float_pct
                     if avg_vol:
                         updates["avg_daily_volume"] = int(avg_vol)
 

@@ -3,21 +3,26 @@ Metadata cache - permanent and daily-refreshed ticker metadata.
 
 Eliminates Yahoo Finance API latency for known tickers by caching:
 - Permanent: sector, industry, exchange (never changes)
-- Daily: market_cap_millions (refreshed at 4am UK time)
+- Daily: market_cap_millions, float_shares (refreshed at 4am UK time)
 
 Cache files stored in data/cache/ directory.
+
+FMP (Financial Modeling Prep) is used as primary source for daily data (faster).
+YFinance is used as fallback.
 """
 import asyncio
 import json
 import os
 from datetime import datetime, time, timezone, timedelta
 from pathlib import Path
-from typing import Optional, Dict, Any, Set
+from typing import Optional, Dict, Any, Set, Tuple
 from concurrent.futures import ThreadPoolExecutor
 
+import requests
 import yfinance as yf
 
 from ...utils.logging_config import get_logger
+from ...config.settings import FMP_API_KEY
 
 logger = get_logger(__name__)
 
@@ -171,19 +176,22 @@ class MetadataCache:
         """
         Set daily metadata for a ticker.
 
-        Only stores: market_cap_millions
+        Stores: market_cap_millions, float_shares
         """
         ticker = ticker.upper()
         daily_data = {
             k: v for k, v in data.items()
-            if k in ("market_cap_millions",) and v is not None
+            if k in ("market_cap_millions", "float_shares") and v is not None
         }
 
         if not daily_data:
             return
 
         async with self._daily_lock:
-            self._daily[ticker] = daily_data
+            # Merge with existing data (don't overwrite fields not in new data)
+            existing = self._daily.get(ticker, {})
+            existing.update(daily_data)
+            self._daily[ticker] = existing
 
     async def set_from_full_metadata(self, ticker: str, metadata: Dict[str, Any]) -> None:
         """
@@ -262,53 +270,131 @@ class MetadataCache:
 
     async def refresh_daily_cache(self) -> int:
         """
-        Refresh daily cache (market_cap) for all known tickers.
+        Refresh daily cache (market_cap, float_shares) for all known tickers.
 
         Called at 4am UK time daily.
+        Uses FMP as primary source (faster), falls back to yfinance.
         Returns number of tickers refreshed.
         """
         tickers = await self.get_all_tickers()
         if not tickers:
             return 0
 
-        logger.info("Refreshing daily cache", tickers=len(tickers))
+        logger.info("Refreshing daily cache", tickers=len(tickers), use_fmp=bool(FMP_API_KEY))
 
         refreshed = 0
-        batch_size = 50  # Process in batches to avoid overwhelming yfinance
         ticker_list = list(tickers)
 
-        for i in range(0, len(ticker_list), batch_size):
-            batch = ticker_list[i:i + batch_size]
-            tasks = [self._fetch_market_cap(t) for t in batch]
-            results = await asyncio.gather(*tasks, return_exceptions=True)
+        if FMP_API_KEY:
+            # FMP supports batch requests - much faster
+            batch_size = 100  # FMP allows multiple symbols per request
+            for i in range(0, len(ticker_list), batch_size):
+                batch = ticker_list[i:i + batch_size]
+                results = await self._fetch_daily_data_fmp_batch(batch)
 
-            for ticker, result in zip(batch, results):
-                if isinstance(result, Exception):
-                    continue
-                if result is not None:
-                    await self.set_daily(ticker, {"market_cap_millions": result})
-                    refreshed += 1
+                for ticker, data in results.items():
+                    if data:
+                        await self.set_daily(ticker, data)
+                        refreshed += 1
 
-            # Small delay between batches
-            await asyncio.sleep(0.5)
+                # Small delay between batches
+                await asyncio.sleep(0.3)
+        else:
+            # Fallback to yfinance (slower)
+            batch_size = 50
+            for i in range(0, len(ticker_list), batch_size):
+                batch = ticker_list[i:i + batch_size]
+                tasks = [self._fetch_daily_data_yfinance(t) for t in batch]
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+
+                for ticker, result in zip(batch, results):
+                    if isinstance(result, Exception):
+                        continue
+                    if result:
+                        await self.set_daily(ticker, result)
+                        refreshed += 1
+
+                await asyncio.sleep(0.5)
 
         # Update daily date and save
         self._daily_date = datetime.now().strftime("%Y-%m-%d")
         await self._save_caches()
 
-        logger.info("Daily cache refresh complete", refreshed=refreshed)
+        logger.info("Daily cache refresh complete", refreshed=refreshed, total=len(tickers))
         return refreshed
 
-    async def _fetch_market_cap(self, ticker: str) -> Optional[float]:
-        """Fetch market cap for a single ticker."""
+    async def _fetch_daily_data_fmp_batch(self, tickers: list) -> Dict[str, Dict[str, Any]]:
+        """
+        Fetch market_cap and float_shares for multiple tickers from FMP.
+
+        FMP profile endpoint returns both marketCap and floatShares.
+        Much faster than yfinance for bulk operations.
+        """
+        if not tickers or not FMP_API_KEY:
+            return {}
+
+        loop = asyncio.get_event_loop()
+
+        def fetch_sync():
+            FMP_PROFILE_URL = "https://financialmodelingprep.com/stable/profile"
+            symbols_str = ",".join(tickers)
+
+            try:
+                params = {
+                    "apikey": FMP_API_KEY,
+                    "symbol": symbols_str,
+                }
+                response = requests.get(FMP_PROFILE_URL, params=params, timeout=60)
+
+                if response.status_code != 200:
+                    logger.warning("FMP API error", status=response.status_code)
+                    return {}
+
+                data = response.json()
+
+                results = {}
+                if isinstance(data, list):
+                    for item in data:
+                        symbol = item.get("symbol")
+                        if symbol:
+                            market_cap = item.get("mktCap") or item.get("marketCap")
+                            float_shares = item.get("floatShares")
+
+                            daily_data = {}
+                            if market_cap is not None:
+                                daily_data["market_cap_millions"] = market_cap / 1_000_000
+                            if float_shares is not None:
+                                daily_data["float_shares"] = int(float_shares)
+
+                            if daily_data:
+                                results[symbol.upper()] = daily_data
+
+                return results
+
+            except Exception as e:
+                logger.warning("FMP batch fetch failed", error=str(e), tickers=len(tickers))
+                return {}
+
+        return await loop.run_in_executor(self._executor, fetch_sync)
+
+    async def _fetch_daily_data_yfinance(self, ticker: str) -> Optional[Dict[str, Any]]:
+        """Fetch market_cap and float_shares from yfinance (fallback)."""
         loop = asyncio.get_event_loop()
         try:
             def fetch_sync():
                 try:
                     info = yf.Ticker(ticker).info
+                    result = {}
+
                     market_cap = info.get("marketCap")
                     if market_cap is not None:
-                        return market_cap / 1_000_000
+                        result["market_cap_millions"] = market_cap / 1_000_000
+
+                    float_shares = info.get("floatShares")
+                    if float_shares is not None:
+                        result["float_shares"] = int(float_shares)
+
+                    return result if result else None
                 except Exception:
                     pass
                 return None
@@ -316,6 +402,17 @@ class MetadataCache:
             return await loop.run_in_executor(self._executor, fetch_sync)
         except Exception:
             return None
+
+    async def get_float(self, ticker: str) -> Optional[int]:
+        """
+        Get cached float shares for a ticker.
+
+        Returns None if not cached.
+        """
+        daily = await self.get_daily(ticker)
+        if daily:
+            return daily.get("float_shares")
+        return None
 
     # ==================== Persistence ====================
 

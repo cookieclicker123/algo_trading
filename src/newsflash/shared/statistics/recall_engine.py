@@ -66,7 +66,8 @@ class RecallStatsEngine:
         quote_fetcher: AlpacaQuoteFetcher,
         yahoo_finance_coordinator: YahooFinanceCoordinator,
         market_data_client: Optional["StockHistoricalDataClient"] = None,
-        trading_client: Optional["TradingClient"] = None
+        trading_client: Optional["TradingClient"] = None,
+        metadata_cache: Optional[Any] = None  # MetadataCache for float shares
     ):
         """Initialize recall statistics engine with all dependencies."""
         self.event_bus = event_bus
@@ -75,6 +76,7 @@ class RecallStatsEngine:
         self.yahoo_finance_coordinator = yahoo_finance_coordinator
         self.market_data_client = market_data_client
         self.trading_client = trading_client
+        self.metadata_cache = metadata_cache
 
         # Shared state
         self._monitoring_tasks: Dict[str, asyncio.Task] = {}
@@ -115,7 +117,8 @@ class RecallStatsEngine:
             repository=repository,
             quote_fetcher=quote_fetcher,
             metadata_fetcher=yahoo_finance_coordinator,
-            trading_client=trading_client
+            trading_client=trading_client,
+            metadata_cache=metadata_cache
         )
 
         # Event subscription wrappers
@@ -658,6 +661,28 @@ class RecallStatsEngine:
             except Exception as e:
                 logger.debug(f"Could not fetch pub_time_ask for recall: {e}")
 
+        # === FLOAT-NORMALIZED VOLUME (Phase 1: Data Collection) ===
+        # Get float_shares from metadata_cache for float-normalized volume calculations
+        float_shares = None
+        confluence_volume_float_pct = None
+        surge_volume_float_pct = None
+
+        if primary_ticker and self.metadata_cache:
+            try:
+                float_shares = await self.metadata_cache.get_float(primary_ticker)
+                if float_shares:
+                    confluence_volume = confluence_data.get("confluence_volume")
+                    if confluence_volume:
+                        confluence_volume_float_pct = round((confluence_volume / float_shares) * 100, 4)
+
+                    # Get surge volume from volume_stats if available
+                    primary_volume_stats = volume_stats.get(primary_ticker, {}) if primary_ticker else {}
+                    surge_volume = primary_volume_stats.get("surge_volume")
+                    if surge_volume:
+                        surge_volume_float_pct = round((surge_volume / float_shares) * 100, 4)
+            except Exception as e:
+                logger.debug(f"Could not get float_shares for {primary_ticker}: {e}")
+
         record = RecallRecord(
             article_id=article.id,
             title=article.title,
@@ -697,6 +722,10 @@ class RecallStatsEngine:
             confluence_large_trade_pct=confluence_data.get("confluence_large_trade_pct"),
             confluence_uptick_count=confluence_data.get("confluence_uptick_count"),
             confluence_downtick_count=confluence_data.get("confluence_downtick_count"),
+            # Float-normalized volume (Phase 1: Data Collection)
+            float_shares=float_shares,
+            confluence_volume_float_pct=confluence_volume_float_pct,
+            surge_volume_float_pct=surge_volume_float_pct,
             # Gap/trap detection fields - critical for false negative analysis
             pub_time_ask=pub_time_ask,
             recv_time_ask=recv_time_ask,

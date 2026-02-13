@@ -13,6 +13,20 @@ from ...utils.brokerage.session_detector import get_market_session_from_timestam
 logger = get_logger(__name__)
 
 
+def calculate_volume_float_pct(volume: Optional[int], float_shares: Optional[int]) -> Optional[float]:
+    """
+    Calculate volume as percentage of float.
+
+    Float-normalized volume helps compare activity across different sized companies.
+    A 10M float stock trading 100k shares (1%) is more significant than
+    a 100M float stock trading 100k shares (0.1%).
+    """
+    if not volume or not float_shares or float_shares <= 0:
+        return None
+    pct = (volume / float_shares) * 100
+    return round(pct, 4)
+
+
 class QuoteFetcherProtocol(Protocol):
     """Protocol for quote fetching."""
     async def get_nbbo_snapshot(self, ticker: str) -> Optional[Dict[str, Any]]: ...
@@ -64,7 +78,8 @@ class RecordManager:
         repository: RepositoryProtocol,
         quote_fetcher: QuoteFetcherProtocol,
         metadata_fetcher: MetadataFetcherProtocol,
-        trading_client: Optional[Any] = None
+        trading_client: Optional[Any] = None,
+        metadata_cache: Optional[Any] = None  # MetadataCache for float shares
     ):
         """
         Initialize record manager.
@@ -74,11 +89,13 @@ class RecordManager:
             quote_fetcher: Quote fetcher for NBBO snapshots
             metadata_fetcher: Yahoo Finance coordinator for metadata
             trading_client: Optional Alpaca trading client for exchange info
+            metadata_cache: Optional metadata cache for float shares (instant lookups)
         """
         self.repository = repository
         self.quote_fetcher = quote_fetcher
         self.metadata_fetcher = metadata_fetcher
         self.trading_client = trading_client
+        self.metadata_cache = metadata_cache
 
         # Pending updates state
         self._pending_metadata: Dict[str, tuple[list[str], str, datetime, asyncio.Task]] = {}
@@ -218,6 +235,21 @@ class RecordManager:
                     if metadata_errors:
                         updates["metadata_errors"] = metadata_errors
 
+                    # Calculate float-normalized volumes if we have float_shares
+                    # Get float_shares from metadata_cache (instant) or from fetched metadata
+                    float_shares = None
+                    for ticker in tickers:
+                        if self.metadata_cache:
+                            try:
+                                float_shares = await self.metadata_cache.get_float(ticker)
+                            except Exception:
+                                pass
+                        if not float_shares and ticker in metadata_dict:
+                            float_shares = metadata_dict[ticker].get("float_shares")
+                        if float_shares:
+                            updates["float_shares"] = int(float_shares)
+                            break
+
                     updated = await self.repository.update_recall_record(
                         article_id=article_id,
                         updates=updates,
@@ -230,7 +262,8 @@ class RecordManager:
                             logger.info(
                                 "RecordManager: Updated metadata",
                                 article_id=article_id,
-                                tickers=list(metadata_dict.keys())
+                                tickers=list(metadata_dict.keys()),
+                                has_float=float_shares is not None
                             )
                         async with self._metadata_lock:
                             self._pending_metadata.pop(article_id, None)

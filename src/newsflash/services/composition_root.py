@@ -134,6 +134,18 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
     # This prevents race conditions where articles arrive before cache is fully loaded
     await asyncio.sleep(0.1)
 
+    # Start TickerBlacklist (auto-blacklist after 3 consecutive FPs)
+    from .brokerage.ticker_blacklist import get_ticker_blacklist
+    ticker_blacklist = get_ticker_blacklist()
+    await ticker_blacklist.start()
+    logger.info("TickerBlacklist started", stats=ticker_blacklist.get_stats())
+
+    # Start SectorTracker (track FPs per sector - hot sector detection)
+    from .brokerage.sector_tracker import get_sector_tracker
+    sector_tracker = get_sector_tracker()
+    await sector_tracker.start()
+    logger.info("SectorTracker started")
+
     # Get shared YahooFinanceCoordinator from container (singleton - shared with stats engines)
     # Uses MetadataCache for instant lookups, only calls yfinance for cache misses
     yahoo_finance_coordinator = container.yahoo_finance_coordinator()
@@ -370,11 +382,39 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
 
             # Track SELL trades (exits) - unregister position and start cooldown
             elif action.upper() == "SELL" and event_data.get("success") and ticker:
-                unregister_active_position(ticker)
+                # Extract profit info from metadata for dynamic cooldown
+                metadata = event_data.get("metadata", {}) or {}
+                profit_pct = metadata.get("profit_pct")
+                was_profitable = profit_pct is not None and profit_pct > 0
+                unregister_active_position(ticker, was_profitable=was_profitable)
                 logger.info(
-                    "Position unregistered from TradeExecuted SELL (cooldown started)",
+                    "Position unregistered from TradeExecuted SELL (dynamic cooldown started)",
                     ticker=ticker,
+                    was_profitable=was_profitable,
+                    profit_pct=f"{profit_pct*100:.1f}%" if profit_pct else "unknown",
                 )
+
+                # Record outcome for ticker blacklist (auto-blacklist after 3 FPs)
+                from .brokerage.ticker_blacklist import record_trade_outcome
+                try:
+                    newly_blacklisted = await record_trade_outcome(ticker, was_profitable)
+                    if newly_blacklisted:
+                        logger.warning(f"Ticker {ticker} has been auto-blacklisted after 3 consecutive FPs")
+                except Exception as bl_error:
+                    logger.debug(f"Error recording blacklist outcome: {bl_error}")
+
+                # Record outcome for sector tracking
+                from .brokerage.sector_tracker import record_sector_outcome
+                try:
+                    # Get sector from metadata cache if available
+                    sector = None
+                    if brokerage.metadata_cache:
+                        ticker_meta = await brokerage.metadata_cache.get_permanent(ticker)
+                        if ticker_meta:
+                            sector = ticker_meta.get("sector")
+                    await record_sector_outcome(sector, was_profitable)
+                except Exception as st_error:
+                    logger.debug(f"Error recording sector outcome: {st_error}")
 
         except Exception as e:
             logger.error(f"Error handling TradeExecuted for PositionManager: {e}", exc_info=True)
@@ -425,24 +465,26 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
         quote_fetcher=brokerage.quote_fetcher,  # Use property (not .infra directly)
         yahoo_finance_coordinator=yahoo_finance_coordinator,  # Use already-started shared singleton
         market_data_client=brokerage.infra.connection_manager.market_data_client if brokerage else None,
-        trading_client=brokerage.infra.connection_manager.trading_client if brokerage else None
+        trading_client=brokerage.infra.connection_manager.trading_client if brokerage else None,
+        metadata_cache=metadata_cache,  # For float-normalized volume calculations
     )
     await recall_engine.start()
-    logger.info("RecallStatsEngine started - tracking missed opportunities (with volume stats)")
+    logger.info("RecallStatsEngine started - tracking missed opportunities (with volume stats, float normalization)")
 
     # Set recall engine reference in auto_trade for recording post-AI skips
     from .brokerage.auto_trade import set_recall_engine
     set_recall_engine(recall_engine)
-    
+
     # Create signal engine via DI container factory (yahoo_finance_coordinator, quote_fetcher, trading_client)
     # Note: yahoo_finance_coordinator is already started above (shared with MarketDataValidator)
     signal_engine = container.signal_stats_engine(
         yahoo_finance_coordinator=yahoo_finance_coordinator,  # Use already-started shared singleton
         quote_fetcher=brokerage.quote_fetcher if brokerage else None,
-        trading_client=brokerage.infra.connection_manager.trading_client if brokerage else None
+        trading_client=brokerage.infra.connection_manager.trading_client if brokerage else None,
+        metadata_cache=metadata_cache,  # For float-normalized volume calculations
     )
     await signal_engine.start()
-    logger.info("SignalStatsEngine started - tracking trade executions")
+    logger.info("SignalStatsEngine started - tracking trade executions (with float normalization)")
     
     # Create failed trades engine via DI container factory (yahoo_finance_coordinator, quote_fetcher, trading_client)
     # Note: yahoo_finance_coordinator is already started above (shared with MarketDataValidator)
