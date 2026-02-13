@@ -59,6 +59,22 @@ PRODUCT MILESTONES
    "Passes Critical Missile Test" -> TRADE
 
 ===============================================================================
+
+SHARE REPURCHASE (Bullish signal - size based on % of market cap)
+├─ Share repurchase/buyback announcements = TRADE
+├─ Company buying back shares = confidence in undervaluation
+├─ Reduces float, increases EPS = bullish for price
+├─ SIZE BY MARKET CAP PERCENTAGE (context provided):
+│   - >25% of market cap = TRADE MAX (transformational)
+│   - 10-25% of market cap = TRADE LARGE
+│   - 5-10% of market cap = TRADE MODERATE
+│   - <5% of market cap = TRADE SMALL
+└─ Examples:
+   "$10M Repurchase" for $30M company (33%) → TRADE MAX
+   "$5M Buyback" for $40M company (12.5%) → TRADE LARGE
+   "Announces Share Repurchase Program" (no $ amount) → TRADE SMALL
+   "Board Authorizes Stock Buyback" → TRADE SMALL
+
 SKIP SIGNALS
 ===============================================================================
 

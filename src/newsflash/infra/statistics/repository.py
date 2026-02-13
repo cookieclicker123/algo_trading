@@ -360,7 +360,7 @@ class StatisticsRepository:
                     if "price_check_10min" in updates:
                         new_price_check = updates["price_check_10min"]
                         new_was_counted = new_price_check and new_price_check.get("moved_1_percent")
-                        
+
                         # If transitioning from not counted to counted
                         if new_was_counted and not old_was_counted:
                             session_file.summary["articles_with_1_percent_move"] += 1
@@ -372,6 +372,50 @@ class StatisticsRepository:
                             session_file.summary["articles_with_1_percent_move"] = max(0, session_file.summary["articles_with_1_percent_move"] - 1)
                             if old_filter_reason and not record.is_traded:
                                 session_file.summary["missed_opportunities"] = max(0, session_file.summary["missed_opportunities"] - 1)
+
+                        # Update large trade pattern stats (for pump-and-dump analysis)
+                        # Only update when we first get price_check data (not on subsequent updates)
+                        if new_price_check and not old_price_check:
+                            large_trade_pct = record.confluence_large_trade_pct
+                            max_single_trade = record.confluence_max_single_trade
+                            trade_count = record.confluence_trade_count
+
+                            if large_trade_pct is not None or max_single_trade is not None:
+                                # Ensure large_trade_stats exists in summary
+                                if "large_trade_stats" not in session_file.summary:
+                                    session_file.summary["large_trade_stats"] = {
+                                        "total_with_data": 0,
+                                        "avg_large_trade_pct": 0.0,
+                                        "avg_max_single_trade": 0.0,
+                                        "avg_trade_count": 0.0,
+                                        "movers": {"count": 0, "avg_large_trade_pct": 0.0, "avg_max_single_trade": 0.0},
+                                        "non_movers": {"count": 0, "avg_large_trade_pct": 0.0, "avg_max_single_trade": 0.0}
+                                    }
+
+                                stats = session_file.summary["large_trade_stats"]
+
+                                # Update overall stats (running average)
+                                n = stats["total_with_data"]
+                                if large_trade_pct is not None:
+                                    stats["avg_large_trade_pct"] = (stats["avg_large_trade_pct"] * n + large_trade_pct) / (n + 1)
+                                if max_single_trade is not None:
+                                    stats["avg_max_single_trade"] = (stats["avg_max_single_trade"] * n + max_single_trade) / (n + 1)
+                                if trade_count is not None:
+                                    stats["avg_trade_count"] = (stats["avg_trade_count"] * n + trade_count) / (n + 1)
+                                stats["total_with_data"] = n + 1
+
+                                # Update breakdown by outcome
+                                if new_was_counted:  # moved 1%+
+                                    cat = stats["movers"]
+                                else:
+                                    cat = stats["non_movers"]
+
+                                m = cat["count"]
+                                if large_trade_pct is not None:
+                                    cat["avg_large_trade_pct"] = (cat["avg_large_trade_pct"] * m + large_trade_pct) / (m + 1)
+                                if max_single_trade is not None:
+                                    cat["avg_max_single_trade"] = (cat["avg_max_single_trade"] * m + max_single_trade) / (m + 1)
+                                cat["count"] = m + 1
                     
                     # Update traded count if is_traded was updated
                     if "is_traded" in updates:
@@ -592,6 +636,100 @@ class StatisticsRepository:
                 file_path=str(file_path)
             )
     
+    def _calculate_recall_summary(self, records: list) -> dict:
+        """Recalculate summary from records (used when records are removed)."""
+        summary = {
+            "total_articles_tracked": len(records),
+            "articles_with_1_percent_move": 0,
+            "articles_traded": 0,
+            "missed_opportunities": 0,
+            "filter_breakdown": {},
+            "ticker_breakdown": {},
+            "large_trade_stats": {
+                "total_with_data": 0,
+                "avg_large_trade_pct": 0.0,
+                "avg_max_single_trade": 0.0,
+                "avg_trade_count": 0.0,
+                "movers": {"count": 0, "avg_large_trade_pct": 0.0, "avg_max_single_trade": 0.0},
+                "non_movers": {"count": 0, "avg_large_trade_pct": 0.0, "avg_max_single_trade": 0.0}
+            }
+        }
+
+        large_trade_pcts = []
+        max_single_trades = []
+        trade_counts = []
+        mover_large_pcts = []
+        mover_max_singles = []
+        non_mover_large_pcts = []
+        non_mover_max_singles = []
+
+        for record in records:
+            # Count 1% moves
+            moved_1_pct = record.price_check_10min and record.price_check_10min.get("moved_1_percent")
+            if moved_1_pct:
+                summary["articles_with_1_percent_move"] += 1
+                if record.filter_reason and not record.is_traded:
+                    summary["missed_opportunities"] += 1
+
+            # Count traded
+            if record.is_traded:
+                summary["articles_traded"] += 1
+
+            # Filter breakdown
+            if record.filter_reason:
+                summary["filter_breakdown"][record.filter_reason] = \
+                    summary["filter_breakdown"].get(record.filter_reason, 0) + 1
+
+            # Ticker breakdown
+            for ticker in record.tickers:
+                summary["ticker_breakdown"][ticker] = \
+                    summary["ticker_breakdown"].get(ticker, 0) + 1
+
+            # Large trade stats
+            if record.confluence_large_trade_pct is not None:
+                large_trade_pcts.append(record.confluence_large_trade_pct)
+                if moved_1_pct:
+                    mover_large_pcts.append(record.confluence_large_trade_pct)
+                else:
+                    non_mover_large_pcts.append(record.confluence_large_trade_pct)
+
+            if record.confluence_max_single_trade is not None:
+                max_single_trades.append(record.confluence_max_single_trade)
+                if moved_1_pct:
+                    mover_max_singles.append(record.confluence_max_single_trade)
+                else:
+                    non_mover_max_singles.append(record.confluence_max_single_trade)
+
+            if record.confluence_trade_count is not None:
+                trade_counts.append(record.confluence_trade_count)
+
+        # Calculate averages for large trade stats
+        stats = summary["large_trade_stats"]
+        stats["total_with_data"] = len(large_trade_pcts) or len(max_single_trades)
+
+        if large_trade_pcts:
+            stats["avg_large_trade_pct"] = sum(large_trade_pcts) / len(large_trade_pcts)
+        if max_single_trades:
+            stats["avg_max_single_trade"] = sum(max_single_trades) / len(max_single_trades)
+        if trade_counts:
+            stats["avg_trade_count"] = sum(trade_counts) / len(trade_counts)
+
+        # Movers
+        stats["movers"]["count"] = len(mover_large_pcts) or len(mover_max_singles)
+        if mover_large_pcts:
+            stats["movers"]["avg_large_trade_pct"] = sum(mover_large_pcts) / len(mover_large_pcts)
+        if mover_max_singles:
+            stats["movers"]["avg_max_single_trade"] = sum(mover_max_singles) / len(mover_max_singles)
+
+        # Non-movers
+        stats["non_movers"]["count"] = len(non_mover_large_pcts) or len(non_mover_max_singles)
+        if non_mover_large_pcts:
+            stats["non_movers"]["avg_large_trade_pct"] = sum(non_mover_large_pcts) / len(non_mover_large_pcts)
+        if non_mover_max_singles:
+            stats["non_movers"]["avg_max_single_trade"] = sum(non_mover_max_singles) / len(non_mover_max_singles)
+
+        return summary
+
     async def _load_recall_file(
         self,
         file_path: Path,

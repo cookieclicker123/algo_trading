@@ -4,13 +4,20 @@ Trade Classification Job - Confusion Matrix for ML Training.
 Classifies all trading decisions into:
 - True Positive (TP): Traded and profitable (>= +2%)
 - False Positive (FP): Traded and lost money (<= -2%)
-- False Negative (FN): Didn't trade but should have (10%+ peak, classified IMMINENT)
+- False Negative (FN): Didn't trade but should have (10%+ peak, would have been profitable)
 - True Negative (TN): Correctly ignored (wouldn't have been profitable)
+
+FN verification uses actual Alpaca tick data to simulate:
+- Entry at +3s after publication
+- 1.25s soft stop confirmation in first 5 seconds
+- Hard stop after 5 seconds
+- Take profits: +15% (50%), +30% (25%), +40% (25%) with trailing stop
 
 Data sources:
 - Signal records: All trades we placed (entry data)
 - Recall records: All opportunities we considered (peak data for FN/TN)
 - Alpaca orders: Actual trade P&L (for TP/FP)
+- Alpaca tick data: Simulation for FN verification
 """
 import asyncio
 import json
@@ -23,6 +30,7 @@ from typing import Dict, List, Any, Optional, Tuple
 import pytz
 
 from ..utils.logging_config import get_logger
+from .trade_simulator import simulate_trade, SimulationResult
 
 logger = get_logger(__name__)
 
@@ -32,8 +40,155 @@ ET_TZ = pytz.timezone("US/Eastern")
 WINNER_THRESHOLD_PCT = 2.0      # >= +2% = winner (TP)
 LOSER_THRESHOLD_PCT = -2.0      # <= -2% = loser (FP)
 MIN_PEAK_FOR_FN_PCT = 10.0      # 10%+ peak for false negative
-MAX_MAE_FOR_FN_PCT = 5.0        # Max 5% MAE for tradeable opportunity
+MAX_MAE_FOR_FN_PCT = 10.0       # Max 10% MAE (proxy, refined by tick simulation)
 MARKET_REGIME_THRESHOLD = 0.2   # +/- 0.2% = neutral, beyond = bullish/bearish
+
+# FN eligibility filters (must pass ALL to be considered a missed opportunity)
+MAX_SPREAD_PCT = 10.0           # Spread must be < 10% of ask price
+MAX_LATENCY_SECONDS = 10.0      # Article must arrive within 10 seconds of publication
+MAX_MARKET_CAP_MILLIONS = 300.0 # Only small caps (< $300M market cap)
+MIN_STOCK_PRICE = 0.15          # Minimum $0.15 stock price
+
+# Tick simulation flag - when True, FN candidates are verified with actual tick data
+SIMULATE_FN_WITH_TICK_DATA = True
+
+
+# Move type thresholds
+# SURGE: Explosive volume with strong directional buying
+SURGE_MIN_VOLUME = 2000
+SURGE_MIN_VOLUME_MULTIPLIER = 10.0
+SURGE_MIN_TRADE_COUNT_MULTIPLIER = 10.0
+SURGE_MIN_IMBALANCE_RATIO = 0.8
+SURGE_MIN_EXCURSION_PCT = 5.0  # Must be positive (upward)
+
+# STRENGTH: Good volume with directional bias and volatility
+STRENGTH_MIN_VOLUME_MULTIPLIER = 5.0
+STRENGTH_MIN_TRADE_COUNT_MULTIPLIER = 5.0
+STRENGTH_MIN_IMBALANCE_RATIO = 0.0  # Just needs to be positive
+STRENGTH_MIN_EXCURSION_PCT = 0.5  # Either direction (proves volatility)
+
+# LOW_ACTIVITY: Some trading but not meeting strength criteria
+LOW_ACTIVITY_MIN_VOLUME = 100
+LOW_ACTIVITY_MIN_TRADES = 3
+
+
+def derive_move_type(
+    volume: Optional[int],
+    trade_count: Optional[int],
+    imbalance_ratio: Optional[float],
+    price_excursion_pct: Optional[float],
+    volume_multiplier: Optional[float] = None,
+    trade_count_multiplier: Optional[float] = None,
+    has_volume_surge: Optional[bool] = None,
+    has_buying_pressure: Optional[bool] = None,
+    has_price_excursion: Optional[bool] = None,
+) -> Dict[str, Any]:
+    """
+    Derive move type from confluence stats with exact criteria.
+
+    Move types:
+    - surge: volume>=2000, 10x volume mult, 10x trade mult, imbalance>=0.8, excursion>=+5%
+    - strength: 5x volume mult, 5x trade mult, positive imbalance, excursion>=0.5%
+    - low_activity: Some volume/trades but not meeting strength criteria
+    - inactive: No meaningful activity
+
+    When multipliers aren't available, falls back to binary flags (has_volume_surge, etc.)
+
+    Returns dict with:
+    - move_type: str
+    - move_type_details: dict with threshold checks
+    """
+    result = {
+        "move_type": "inactive",
+        "move_type_details": {
+            "volume": volume,
+            "trade_count": trade_count,
+            "imbalance_ratio": imbalance_ratio,
+            "price_excursion_pct": price_excursion_pct,
+            "volume_multiplier": volume_multiplier,
+            "trade_count_multiplier": trade_count_multiplier,
+            "has_volume_surge": has_volume_surge,
+            "has_buying_pressure": has_buying_pressure,
+            "has_price_excursion": has_price_excursion,
+        }
+    }
+
+    # Check for inactive first
+    if (volume is None or volume == 0) and (trade_count is None or trade_count == 0):
+        result["move_type"] = "inactive"
+        return result
+
+    # Check SURGE criteria (all must be met)
+    # With multipliers available:
+    is_surge_with_multipliers = (
+        volume is not None and volume >= SURGE_MIN_VOLUME and
+        volume_multiplier is not None and volume_multiplier >= SURGE_MIN_VOLUME_MULTIPLIER and
+        trade_count_multiplier is not None and trade_count_multiplier >= SURGE_MIN_TRADE_COUNT_MULTIPLIER and
+        imbalance_ratio is not None and imbalance_ratio >= SURGE_MIN_IMBALANCE_RATIO and
+        price_excursion_pct is not None and price_excursion_pct >= SURGE_MIN_EXCURSION_PCT
+    )
+
+    # Fallback using binary flags when multipliers unavailable:
+    # If has_volume_surge flag + meets volume/imbalance/excursion thresholds
+    is_surge_fallback = (
+        has_volume_surge is True and
+        volume is not None and volume >= SURGE_MIN_VOLUME and
+        imbalance_ratio is not None and imbalance_ratio >= SURGE_MIN_IMBALANCE_RATIO and
+        price_excursion_pct is not None and price_excursion_pct >= SURGE_MIN_EXCURSION_PCT
+    )
+
+    if is_surge_with_multipliers or is_surge_fallback:
+        result["move_type"] = "surge"
+        result["move_type_details"]["surge_checks"] = {
+            "volume_ok": volume >= SURGE_MIN_VOLUME if volume else False,
+            "volume_mult_ok": volume_multiplier >= SURGE_MIN_VOLUME_MULTIPLIER if volume_multiplier else None,
+            "trade_mult_ok": trade_count_multiplier >= SURGE_MIN_TRADE_COUNT_MULTIPLIER if trade_count_multiplier else None,
+            "imbalance_ok": imbalance_ratio >= SURGE_MIN_IMBALANCE_RATIO if imbalance_ratio else False,
+            "excursion_ok": price_excursion_pct >= SURGE_MIN_EXCURSION_PCT if price_excursion_pct else False,
+            "used_fallback": is_surge_fallback and not is_surge_with_multipliers,
+        }
+        return result
+
+    # Check STRENGTH criteria (all must be met)
+    # With multipliers:
+    is_strength_with_multipliers = (
+        volume_multiplier is not None and volume_multiplier >= STRENGTH_MIN_VOLUME_MULTIPLIER and
+        trade_count_multiplier is not None and trade_count_multiplier >= STRENGTH_MIN_TRADE_COUNT_MULTIPLIER and
+        imbalance_ratio is not None and imbalance_ratio > STRENGTH_MIN_IMBALANCE_RATIO and
+        price_excursion_pct is not None and abs(price_excursion_pct) >= STRENGTH_MIN_EXCURSION_PCT
+    )
+
+    # Fallback: has_buying_pressure AND has_price_excursion AND positive imbalance
+    is_strength_fallback = (
+        has_buying_pressure is True and
+        has_price_excursion is True and
+        imbalance_ratio is not None and imbalance_ratio > STRENGTH_MIN_IMBALANCE_RATIO
+    )
+
+    if is_strength_with_multipliers or is_strength_fallback:
+        result["move_type"] = "strength"
+        result["move_type_details"]["strength_checks"] = {
+            "volume_mult_ok": volume_multiplier >= STRENGTH_MIN_VOLUME_MULTIPLIER if volume_multiplier else None,
+            "trade_mult_ok": trade_count_multiplier >= STRENGTH_MIN_TRADE_COUNT_MULTIPLIER if trade_count_multiplier else None,
+            "imbalance_ok": imbalance_ratio > STRENGTH_MIN_IMBALANCE_RATIO if imbalance_ratio else False,
+            "excursion_ok": abs(price_excursion_pct) >= STRENGTH_MIN_EXCURSION_PCT if price_excursion_pct else False,
+            "used_fallback": is_strength_fallback and not is_strength_with_multipliers,
+        }
+        return result
+
+    # Check LOW_ACTIVITY criteria
+    is_low_activity = (
+        (volume is not None and volume >= LOW_ACTIVITY_MIN_VOLUME) or
+        (trade_count is not None and trade_count >= LOW_ACTIVITY_MIN_TRADES)
+    )
+
+    if is_low_activity:
+        result["move_type"] = "low_activity"
+        return result
+
+    # Default to inactive if very minimal activity
+    result["move_type"] = "inactive"
+    return result
 
 
 def get_market_regime(target_date: date) -> Dict[str, Any]:
@@ -122,12 +277,17 @@ class ClassifiedTrade:
     headline_type: Optional[str] = None
     prefilter_reason: Optional[str] = None   # Why filtered before AI classification
     postfilter_reason: Optional[str] = None  # Why filtered after AI (IMMINENT but didn't trade)
+    fn_exclusion_reason: Optional[str] = None  # Why not counted as FN (spread/latency/market_cap)
 
     # Ticker metadata
     industry: Optional[str] = None
     sector: Optional[str] = None
     market_cap_millions: Optional[float] = None
     price: Optional[float] = None
+
+    # FN eligibility data
+    spread_pct: Optional[float] = None       # Spread as % of ask price
+    latency_seconds: Optional[float] = None  # Time from publication to reception
 
     # === ALL CONFLUENCE FEATURES FOR ML (captured from signal/recall records) ===
     # Core confluence scoring
@@ -198,14 +358,52 @@ class ClassifiedTrade:
     source: str = ""  # "signal", "recall", "alpaca"
     record_id: Optional[str] = None
 
+    # === TICK SIMULATION RESULTS (for FN verification) ===
+    # These fields are populated when SIMULATE_FN_WITH_TICK_DATA is True
+    sim_would_have_traded: Optional[bool] = None  # False if stopped out before any TP
+    sim_total_pnl_pct: Optional[float] = None     # Total realized + unrealized P&L
+    sim_realized_pnl_pct: Optional[float] = None  # Realized from take profits
+    sim_position_remaining_pct: Optional[int] = None  # % position still held at end
+    sim_stopped_out: Optional[bool] = None        # True if hit stop-loss
+    sim_stop_type: Optional[str] = None           # "soft" or "hard"
+    sim_stop_pnl_pct: Optional[float] = None      # P&L at stop (if stopped out)
+    sim_stop_elapsed_seconds: Optional[float] = None  # Seconds from entry to stop
+    sim_stop_timestamp: Optional[str] = None      # ISO timestamp of stop
+    sim_max_pnl_pct: Optional[float] = None       # Peak P&L during simulation
+    sim_max_pnl_elapsed_seconds: Optional[float] = None  # Seconds from entry to peak
+    sim_min_pnl_pct: Optional[float] = None       # Worst drawdown during simulation
+    sim_tp_count: Optional[int] = None            # Number of take profit events
+    sim_quote_count: Optional[int] = None         # Number of quotes processed
+    sim_entry_timestamp: Optional[str] = None     # ISO timestamp of entry
+
+    # FN outcome classification (for analysis)
+    fn_outcome: Optional[str] = None  # "profitable", "stopped_out_loss", "stopped_out_profit"
+
+    # Simple hold comparison (10 min hold with -5% hard stop only, no TPs)
+    sim_simple_hold_pnl_pct: Optional[float] = None
+
+    # Move progression tracking (when key price levels were crossed)
+    sim_move_progression: Optional[Dict[str, Any]] = None
+
 
 def get_alpaca_client():
     """Get Alpaca trading client if available."""
     try:
         from alpaca.trading.client import TradingClient
 
-        api_key = os.getenv("ALPACA_PAPER_API_KEY") or os.getenv("ALPACA_API_KEY")
-        secret_key = os.getenv("ALPACA_PAPER_SECRET_KEY") or os.getenv("ALPACA_SECRET_KEY")
+        # Support multiple env var naming conventions
+        api_key = (
+            os.getenv("ALPACA_KEY_PAPER") or
+            os.getenv("ALPACA_PAPER_API_KEY") or
+            os.getenv("ALPACA_API_KEY") or
+            os.getenv("ALPACA_KEY")
+        )
+        secret_key = (
+            os.getenv("ALPACA_SECRET_PAPER") or
+            os.getenv("ALPACA_PAPER_SECRET_KEY") or
+            os.getenv("ALPACA_SECRET_KEY") or
+            os.getenv("ALPACA_SECRET")
+        )
         paper = os.getenv("PAPER_TRADING", "true").lower() == "true"
 
         if api_key and secret_key:
@@ -391,11 +589,24 @@ class TradeClassificationJob:
             if ticker in meta:
                 meta = meta[ticker]
 
+        # Extract spread_pct from entry_nbbo (for signal records)
+        spread_pct = None
+        if record.get("spread_at_fill") is not None:
+            spread_pct = record.get("spread_at_fill")
+        else:
+            entry_nbbo = record.get("entry_nbbo", {})
+            if entry_nbbo:
+                spread = entry_nbbo.get("spread")
+                ask = entry_nbbo.get("ask")
+                if spread is not None and ask and ask > 0:
+                    spread_pct = (spread / ask) * 100
+
         return {
             "industry": meta.get("industry"),
             "sector": meta.get("sector"),
             "market_cap_millions": meta.get("market_cap_millions"),
             "price": meta.get("price"),
+            "spread_pct": spread_pct,
         }
 
     def extract_confluence_features(self, record: Dict) -> Dict:
@@ -704,7 +915,7 @@ class TradeClassificationJob:
 
         return classified
 
-    def classify_recall_records(
+    async def classify_recall_records(
         self,
         recall_records: List[Dict],
         traded_tickers: set,
@@ -713,7 +924,14 @@ class TradeClassificationJob:
         """
         Classify missed opportunities (FN) and correctly ignored (TN).
 
-        Uses recall records which track peak price movements.
+        FN criteria (must meet ALL):
+        1. Peak >= 10% at any point in 10 min window
+        2. MAE <= 10% (with 1.25s soft stop, brief spikes recover)
+        3. Spread < 10% of ask price
+        4. Latency <= 10 seconds (article received within 10s of publication)
+        5. Market cap <= $300M (small caps only)
+
+        Note: Headline quality is subjective and reviewed manually.
         """
         classified = []
 
@@ -757,36 +975,192 @@ class TradeClassificationJob:
                     # This is not a prefilter - it's the AI result
                     pass
 
-            # Determine if this was IMMINENT (would have traded if not filtered)
-            # Check case-insensitively since classification can be "IMMINENT" or "imminent"
-            is_imminent = (
-                (classification and classification.upper() == "IMMINENT") or
-                (filter_reason and "imminent" in filter_reason.lower())
+            # === Extract FN eligibility data ===
+            # Get spread from initial NBBO
+            initial_nbbo = record.get("initial_nbbo", {})
+            spread = initial_nbbo.get("spread")
+            ask_price = initial_nbbo.get("ask")
+            spread_pct = None
+            if spread is not None and ask_price and ask_price > 0:
+                spread_pct = (spread / ask_price) * 100
+
+            # Get latency from volume_stats or direct field
+            latency_seconds = None
+            volume_stats = record.get("volume_stats", {})
+            if volume_stats and ticker in volume_stats:
+                latency_seconds = volume_stats[ticker].get("pub_to_recv_seconds")
+            if latency_seconds is None:
+                # Try to calculate from timestamps
+                published_at = record.get("published_at")
+                received_at = record.get("received_at")
+                if published_at and received_at:
+                    try:
+                        from datetime import datetime
+                        pub_dt = datetime.fromisoformat(published_at.replace("Z", "+00:00"))
+                        recv_dt = datetime.fromisoformat(received_at.replace("Z", "+00:00"))
+                        latency_seconds = (recv_dt - pub_dt).total_seconds()
+                    except Exception:
+                        pass
+
+            # Get market cap from metadata
+            meta = self.extract_metadata(record, ticker)
+            # Remove spread_pct from meta - we compute it separately for recall records from initial_nbbo
+            meta.pop("spread_pct", None)
+            market_cap = meta.get("market_cap_millions")
+
+            # === Check FN eligibility ===
+            fn_exclusion_reasons = []
+
+            # Rule 1: Peak must be >= 10%
+            has_sufficient_peak = peak_pct is not None and peak_pct >= MIN_PEAK_FOR_FN_PCT
+            if not has_sufficient_peak:
+                fn_exclusion_reasons.append(f"peak={peak_pct:.1f}%<{MIN_PEAK_FOR_FN_PCT}%" if peak_pct else "no_peak_data")
+
+            # Rule 2: MAE must be <= threshold (would not have stopped out)
+            would_not_stop_out = mae_pct is None or abs(mae_pct) <= MAX_MAE_FOR_FN_PCT
+            if not would_not_stop_out:
+                fn_exclusion_reasons.append(f"mae={abs(mae_pct):.1f}%>{MAX_MAE_FOR_FN_PCT}%")
+
+            # Rule 3: Spread must be < 10%
+            has_good_spread = spread_pct is not None and spread_pct < MAX_SPREAD_PCT
+            if spread_pct is not None and spread_pct >= MAX_SPREAD_PCT:
+                fn_exclusion_reasons.append(f"spread={spread_pct:.1f}%>={MAX_SPREAD_PCT}%")
+            elif spread_pct is None:
+                fn_exclusion_reasons.append("no_spread_data")
+
+            # Rule 4: Latency must be <= 10 seconds
+            has_good_latency = latency_seconds is not None and latency_seconds <= MAX_LATENCY_SECONDS
+            if latency_seconds is not None and latency_seconds > MAX_LATENCY_SECONDS:
+                fn_exclusion_reasons.append(f"latency={latency_seconds:.1f}s>{MAX_LATENCY_SECONDS}s")
+            elif latency_seconds is None:
+                # Don't exclude for missing latency - assume it's fine if we received it
+                has_good_latency = True
+
+            # Rule 5: Market cap must be <= $300M
+            has_small_cap = market_cap is not None and market_cap <= MAX_MARKET_CAP_MILLIONS
+            if market_cap is not None and market_cap > MAX_MARKET_CAP_MILLIONS:
+                fn_exclusion_reasons.append(f"mktcap=${market_cap:.0f}M>${MAX_MARKET_CAP_MILLIONS}M")
+            elif market_cap is None:
+                # Don't exclude for missing market cap - assume it's small
+                has_small_cap = True
+
+            # Rule 6: Price must be >= $0.15
+            stock_price = meta.get("price") or ask_price
+            has_valid_price = stock_price is not None and stock_price >= MIN_STOCK_PRICE
+            if stock_price is not None and stock_price < MIN_STOCK_PRICE:
+                fn_exclusion_reasons.append(f"price=${stock_price:.2f}<${MIN_STOCK_PRICE}")
+            elif stock_price is None:
+                # Don't exclude for missing price
+                has_valid_price = True
+
+            # Determine initial eligibility (before tick simulation)
+            is_eligible_fn = (
+                has_sufficient_peak and
+                would_not_stop_out and
+                has_good_spread and
+                has_good_latency and
+                has_small_cap and
+                has_valid_price
             )
 
-            # Would it have been profitable?
-            # MAE is stored as negative (e.g., -10.2% means 10.2% drawdown)
-            # So we check abs(mae) or compare -mae <= threshold
-            would_be_profitable = (
-                peak_pct is not None and
-                peak_pct >= MIN_PEAK_FOR_FN_PCT and
-                (mae_pct is None or abs(mae_pct) <= MAX_MAE_FOR_FN_PCT)
-            )
+            # === TICK SIMULATION for FN verification ===
+            sim_result: Optional[SimulationResult] = None
+            fn_outcome: Optional[str] = None
 
-            # Classify
-            if is_imminent and would_be_profitable:
+            if is_eligible_fn and SIMULATE_FN_WITH_TICK_DATA:
+                # Get received time for simulation (entry is received + 3s, NOT publication + 3s)
+                received_at = record.get("received_at")
+                if received_at:
+                    try:
+                        from datetime import datetime
+                        if isinstance(received_at, str):
+                            recv_dt = datetime.fromisoformat(received_at.replace("Z", "+00:00"))
+                        else:
+                            recv_dt = received_at
+
+                        # Run tick simulation (entry at received + 3 seconds)
+                        sim_result = await simulate_trade(
+                            ticker=ticker,
+                            received_time=recv_dt,
+                            entry_price_hint=ask_price,
+                        )
+
+                        if sim_result:
+                            # Classify the outcome
+                            if sim_result.would_have_traded and sim_result.total_pnl_pct > 0:
+                                fn_outcome = "profitable"
+                                logger.debug(
+                                    f"FN verified: {ticker} sim_pnl={sim_result.total_pnl_pct:.1f}% "
+                                    f"realized={sim_result.realized_pnl_pct:.1f}% "
+                                    f"tp_events={len(sim_result.tp_events)}"
+                                )
+                            elif sim_result.stopped_out:
+                                if sim_result.total_pnl_pct > 0:
+                                    fn_outcome = "stopped_out_profit"  # Hit TP then stopped at raised stop
+                                else:
+                                    fn_outcome = "stopped_out_loss"
+                                logger.debug(
+                                    f"FN stopped out: {ticker} sim_pnl={sim_result.total_pnl_pct:.1f}% "
+                                    f"stop_type={sim_result.stop_type} max={sim_result.max_pnl_pct:.1f}%"
+                                )
+                            else:
+                                fn_outcome = "unprofitable"
+                                logger.debug(f"FN unprofitable: {ticker} sim_pnl={sim_result.total_pnl_pct:.1f}%")
+
+                            # All simulated candidates stay as FN for analysis
+                            # (user wants to see stopped-out trades to tune parameters)
+                        else:
+                            # No quote data available - fall back to MAE proxy
+                            fn_outcome = "no_data"
+                            logger.debug(f"No quote data for {ticker}, using MAE proxy")
+                    except Exception as e:
+                        fn_outcome = "sim_error"
+                        logger.warning(f"Simulation failed for {ticker}: {e}")
+
+            if is_eligible_fn:
                 category = "false_negative"
+                fn_exclusion_reason = None
             else:
                 category = "true_negative"
+                fn_exclusion_reason = "; ".join(fn_exclusion_reasons) if fn_exclusion_reasons else None
 
-            # Determine postfilter reason for IMMINENT articles that didn't trade
-            # If it was IMMINENT and not traded, there should be a postfilter reason
+            # Determine effective postfilter reason
             effective_postfilter = postfilter_reason
-            if is_imminent and not record.get("is_traded", False) and not postfilter_reason:
+            if classification and classification.upper() == "IMMINENT" and not postfilter_reason:
                 effective_postfilter = "unknown (historical)"
 
-            meta = self.extract_metadata(record, ticker)
             features = self.extract_confluence_features(record)
+
+            # Build simulation fields if we have results
+            sim_fields = {}
+            if sim_result:
+                # Calculate stop P&L if stopped out
+                stop_pnl = None
+                if sim_result.stopped_out and sim_result.stop_price and sim_result.entry_price:
+                    stop_pnl = round(((sim_result.stop_price - sim_result.entry_price) / sim_result.entry_price) * 100, 2)
+
+                sim_fields = {
+                    "sim_would_have_traded": sim_result.would_have_traded,
+                    "sim_total_pnl_pct": sim_result.total_pnl_pct,
+                    "sim_realized_pnl_pct": sim_result.realized_pnl_pct,
+                    "sim_position_remaining_pct": sim_result.position_remaining_pct,
+                    "sim_stopped_out": sim_result.stopped_out,
+                    "sim_stop_type": sim_result.stop_type,
+                    "sim_stop_pnl_pct": stop_pnl,
+                    "sim_stop_elapsed_seconds": sim_result.stop_elapsed_seconds,
+                    "sim_stop_timestamp": sim_result.stop_triggered_at.isoformat() if sim_result.stop_triggered_at else None,
+                    "sim_max_pnl_pct": sim_result.max_pnl_pct,
+                    "sim_max_pnl_elapsed_seconds": sim_result.max_pnl_elapsed_seconds,
+                    "sim_min_pnl_pct": sim_result.min_pnl_pct,
+                    "sim_tp_count": len(sim_result.tp_events),
+                    "sim_quote_count": sim_result.trade_count,
+                    "sim_entry_timestamp": sim_result.entry_time.isoformat() if sim_result.entry_time else None,
+                    "sim_simple_hold_pnl_pct": sim_result.simple_hold_pnl_pct,
+                    "sim_move_progression": sim_result.move_progression,
+                    "fn_outcome": fn_outcome,
+                }
+            elif fn_outcome:
+                sim_fields = {"fn_outcome": fn_outcome}
 
             classified.append(ClassifiedTrade(
                 ticker=ticker,
@@ -799,16 +1173,35 @@ class TradeClassificationJob:
                 headline_type=record.get("headline_type"),
                 prefilter_reason=prefilter_reason,
                 postfilter_reason=effective_postfilter,
+                fn_exclusion_reason=fn_exclusion_reason,
+                spread_pct=spread_pct,
+                latency_seconds=latency_seconds,
                 source="recall",
                 record_id=record.get("article_id"),
                 **meta,
                 **features,
+                **sim_fields,
             ))
 
         return classified
 
     def trade_to_dict(self, trade: ClassifiedTrade, category: str) -> Dict[str, Any]:
         """Convert a ClassifiedTrade to a dict with properly nested ML features."""
+        # Derive move_type from confluence stats with exact thresholds
+        # Use volume_ratio as volume_multiplier, surge fields for trade_count_multiplier
+        # Falls back to binary flags when multipliers unavailable
+        move_type_result = derive_move_type(
+            volume=trade.confluence_volume,
+            trade_count=trade.confluence_trade_count,
+            imbalance_ratio=trade.confluence_imbalance_ratio,
+            price_excursion_pct=trade.confluence_price_excursion_pct,
+            volume_multiplier=trade.volume_ratio or trade.surge_volume_multiplier,
+            trade_count_multiplier=trade.surge_trade_count_multiplier,
+            has_volume_surge=trade.confluence_has_volume_surge,
+            has_buying_pressure=trade.confluence_has_buying_pressure,
+            has_price_excursion=trade.confluence_has_price_excursion,
+        )
+
         # Base fields for all categories
         base = {
             "ticker": trade.ticker,
@@ -818,6 +1211,9 @@ class TradeClassificationJob:
             "sector": trade.sector,
             "market_cap_millions": trade.market_cap_millions,
             "price": trade.price,
+            "spread_pct": trade.spread_pct,  # Added to all categories for analysis
+            "move_type": move_type_result["move_type"],  # surge/strength/low_activity/inactive
+            "move_type_details": move_type_result["move_type_details"],  # Threshold checks
         }
 
         # === NESTED CONFLUENCE STATS (0-2 second window) ===
@@ -898,26 +1294,83 @@ class TradeClassificationJob:
             })
 
         elif category == "false_negative":
-            # Missed winners - show peak, MAE, filter reason + nested ML features
+            # Missed winners - show peak, MAE, latency + simulation results + nested ML features
+            # (spread_pct and move_type already in base for all categories)
             base.update({
                 "peak_pct": trade.peak_pct,
                 "mae_pct": trade.mae_pct,
-                "postfilter_reason": trade.postfilter_reason or "unknown (historical)",
+                "latency_seconds": trade.latency_seconds,
+                "prefilter_reason": trade.prefilter_reason,
+                "postfilter_reason": trade.postfilter_reason,
+                "fn_outcome": trade.fn_outcome,  # "profitable", "stopped_out_loss", "stopped_out_profit", etc.
                 "confluence_stats": confluence_stats,
             })
 
+            # Include tick simulation results if available
+            if trade.sim_total_pnl_pct is not None:
+                # Format elapsed time as "Xm Ys.XXXs"
+                def format_elapsed(secs):
+                    if secs is None:
+                        return None
+                    mins = int(secs // 60)
+                    s = secs % 60
+                    if mins > 0:
+                        return f"{mins}m {s:.3f}s"
+                    return f"{s:.3f}s"
+
+                base["simulation"] = {
+                    "outcome": trade.fn_outcome,
+                    "would_have_traded": trade.sim_would_have_traded,
+                    "total_pnl_pct": trade.sim_total_pnl_pct,
+                    "realized_pnl_pct": trade.sim_realized_pnl_pct,
+                    "position_remaining_pct": trade.sim_position_remaining_pct,
+                    # Stop details with timing
+                    "stopped_out": trade.sim_stopped_out,
+                    "stop_type": trade.sim_stop_type,
+                    "stop_pnl_pct": trade.sim_stop_pnl_pct,
+                    "stop_elapsed": format_elapsed(trade.sim_stop_elapsed_seconds),
+                    "stop_elapsed_seconds": trade.sim_stop_elapsed_seconds,
+                    "stop_timestamp": trade.sim_stop_timestamp,
+                    # Peak details with timing
+                    "max_pnl_pct": trade.sim_max_pnl_pct,
+                    "max_pnl_elapsed": format_elapsed(trade.sim_max_pnl_elapsed_seconds),
+                    "max_pnl_elapsed_seconds": trade.sim_max_pnl_elapsed_seconds,
+                    "min_pnl_pct": trade.sim_min_pnl_pct,
+                    # Simple hold comparison
+                    "simple_hold_pnl_pct": trade.sim_simple_hold_pnl_pct,
+                    # Move progression - when each price level was first crossed
+                    "move_progression": trade.sim_move_progression,
+                    # Other
+                    "tp_count": trade.sim_tp_count,
+                    "quote_count": trade.sim_quote_count,
+                    "entry_timestamp": trade.sim_entry_timestamp,
+                }
+
         else:  # true_negative
-            # Correctly ignored - show peak, filter reasons + minimal confluence for reference
+            # Correctly ignored - show peak, filter reasons, why not FN
+            # (spread_pct and move_type already in base for all categories)
             base.update({
                 "peak_pct": trade.peak_pct,
                 "mae_pct": trade.mae_pct,
+                "latency_seconds": trade.latency_seconds,
                 "prefilter_reason": trade.prefilter_reason,
                 "postfilter_reason": trade.postfilter_reason,
+                "fn_exclusion_reason": trade.fn_exclusion_reason,
                 "confluence_stats": {
                     "score": trade.confluence_score,
                     "volume": trade.confluence_volume,
                 } if trade.confluence_score is not None else None,
             })
+
+            # Include simulation results if ran (to show why it failed)
+            if trade.sim_total_pnl_pct is not None:
+                base["simulation"] = {
+                    "would_have_traded": trade.sim_would_have_traded,
+                    "total_pnl_pct": trade.sim_total_pnl_pct,
+                    "stopped_out": trade.sim_stopped_out,
+                    "stop_type": trade.sim_stop_type,
+                    "min_pnl_pct": trade.sim_min_pnl_pct,
+                }
 
         return base
 
@@ -930,11 +1383,12 @@ class TradeClassificationJob:
         market_regime: Dict[str, Any] = None,
     ) -> Path:
         """Write JSON file for a category (better for statistical analysis)."""
+        sim_note = ", verified with tick simulation" if SIMULATE_FN_WITH_TICK_DATA else ""
         descriptions = {
             "true_positive": f"Trades we made that were profitable (>= +{WINNER_THRESHOLD_PCT}%)",
             "false_positive": f"Trades we made that lost money (<= {LOSER_THRESHOLD_PCT}%)",
-            "false_negative": f"IMMINENT + {MIN_PEAK_FOR_FN_PCT}%+ peak, <{MAX_MAE_FOR_FN_PCT}% sustained MAE - should have traded (MAE >5% for <0.5s is acceptable)",
-            "true_negative": "Correctly ignored (wouldn't have been profitable, not IMMINENT, or MAE too volatile)",
+            "false_negative": f"Missed winners: {MIN_PEAK_FOR_FN_PCT}%+ peak, price>=${MIN_STOCK_PRICE}, spread<{MAX_SPREAD_PCT}%, latency<={MAX_LATENCY_SECONDS}s, mktcap<=${MAX_MARKET_CAP_MILLIONS}M{sim_note}",
+            "true_negative": f"Correctly ignored (peak<{MIN_PEAK_FOR_FN_PCT}%, stopped out in sim, spread too wide, latency too high, price too low, or large cap)",
         }
 
         # Sort by outcome
@@ -1004,8 +1458,8 @@ class TradeClassificationJob:
             # so they don't appear as false negatives
             traded_tickers = set(record.get("ticker") for record in signal_records if record.get("ticker"))
 
-        # Classify FN/TN from recall records
-        fn_tn_trades = self.classify_recall_records(recall_records, traded_tickers, target_date)
+        # Classify FN/TN from recall records (with tick simulation for FN verification)
+        fn_tn_trades = await self.classify_recall_records(recall_records, traded_tickers, target_date)
 
         # Combine all classified trades
         all_trades = tp_fp_trades + fn_tn_trades
@@ -1264,8 +1718,8 @@ class WeeklyAggregationJob:
         descriptions = {
             "true_positive": f"Trades we made that were profitable (>= +{WINNER_THRESHOLD_PCT}%)",
             "false_positive": f"Trades we made that lost money (<= {LOSER_THRESHOLD_PCT}%)",
-            "false_negative": f"IMMINENT + {MIN_PEAK_FOR_FN_PCT}%+ peak, <{MAX_MAE_FOR_FN_PCT}% sustained MAE - should have traded (MAE >5% for <0.5s is acceptable)",
-            "true_negative": "Correctly ignored (wouldn't have been profitable, not IMMINENT, or MAE too volatile)",
+            "false_negative": f"Missed winners: {MIN_PEAK_FOR_FN_PCT}%+ peak, MAE<={MAX_MAE_FOR_FN_PCT}%, spread<{MAX_SPREAD_PCT}%, latency<={MAX_LATENCY_SECONDS}s, mktcap<=${MAX_MARKET_CAP_MILLIONS}M",
+            "true_negative": "Correctly ignored (peak<10%, MAE too high, spread too wide, latency too high, or large cap)",
         }
         for category, trades in all_trades.items():
             if trades:
@@ -1418,8 +1872,8 @@ class AllTimeAggregationJob:
         descriptions = {
             "true_positive": f"Trades we made that were profitable (>= +{WINNER_THRESHOLD_PCT}%)",
             "false_positive": f"Trades we made that lost money (<= {LOSER_THRESHOLD_PCT}%)",
-            "false_negative": f"IMMINENT + {MIN_PEAK_FOR_FN_PCT}%+ peak, <{MAX_MAE_FOR_FN_PCT}% sustained MAE - should have traded (MAE >5% for <0.5s is acceptable)",
-            "true_negative": "Correctly ignored (wouldn't have been profitable, not IMMINENT, or MAE too volatile)",
+            "false_negative": f"Missed winners: {MIN_PEAK_FOR_FN_PCT}%+ peak, MAE<={MAX_MAE_FOR_FN_PCT}%, spread<{MAX_SPREAD_PCT}%, latency<={MAX_LATENCY_SECONDS}s, mktcap<=${MAX_MARKET_CAP_MILLIONS}M",
+            "true_negative": "Correctly ignored (peak<10%, MAE too high, spread too wide, latency too high, or large cap)",
         }
         json_files = {}
         for category, trades in all_trades.items():

@@ -256,16 +256,16 @@ class FailedTradeStatsEngine:
                     except Exception:
                         pass
                 
-                # Get exchange from Alpaca (instant)
+                # Get exchange from Alpaca (use to_thread to avoid blocking event loop)
                 exchange = None
                 if self.trading_client:
                     try:
-                        asset = self.trading_client.get_asset(record.ticker)
+                        asset = await asyncio.to_thread(self.trading_client.get_asset, record.ticker)
                         if asset:
                             exchange = asset.exchange
                     except Exception:
                         pass
-                
+
                 # Get industry, sector, market_cap from YahooFinance (rate-limited)
                 metadata = await self.yahoo_finance_coordinator.fetch_metadata(record.ticker, timeout=30.0)
                 if metadata:
@@ -451,16 +451,16 @@ class FailedTradeStatsEngine:
                 except Exception:
                     pass
             
-            # Get exchange from Alpaca (instant)
+            # Get exchange from Alpaca (use to_thread to avoid blocking event loop)
             exchange = None
             if self.trading_client:
                 try:
-                    asset = self.trading_client.get_asset(ticker)
+                    asset = await asyncio.to_thread(self.trading_client.get_asset, ticker)
                     if asset:
                         exchange = asset.exchange
                 except Exception:
                     pass
-            
+
             # Get industry, sector, market_cap from YahooFinance (rate-limited)
             metadata = await self.yahoo_finance_coordinator.fetch_metadata(ticker, timeout=30.0)
             if metadata:

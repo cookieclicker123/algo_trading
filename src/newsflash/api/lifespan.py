@@ -14,6 +14,60 @@ from ..utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 
+# Global flag to stop lag monitor
+_lag_monitor_stop = False
+
+
+async def _monitor_event_loop_lag() -> None:
+    """
+    Monitor event loop lag to diagnose WebSocket disconnections.
+
+    If the event loop is blocked (by logging, GC, or other sync operations),
+    this will detect it. High lag correlates with missed WebSocket pongs.
+    """
+    global _lag_monitor_stop
+    _lag_monitor_stop = False
+    loop = asyncio.get_event_loop()
+    consecutive_warnings = 0
+
+    while not _lag_monitor_stop:
+        try:
+            start = loop.time()
+            await asyncio.sleep(0.1)  # Should take ~100ms
+            elapsed_ms = (loop.time() - start) * 1000
+
+            if elapsed_ms > 500:
+                # Severe lag - this WILL cause WebSocket disconnections
+                logger.error(
+                    "🚨 SEVERE event loop lag detected - WebSocket disconnections likely",
+                    expected_ms=100,
+                    actual_ms=round(elapsed_ms),
+                    lag_ms=round(elapsed_ms - 100)
+                )
+                consecutive_warnings += 1
+            elif elapsed_ms > 200:
+                # Warning - event loop is struggling
+                logger.warning(
+                    "⚠️ Event loop lag detected",
+                    expected_ms=100,
+                    actual_ms=round(elapsed_ms),
+                    lag_ms=round(elapsed_ms - 100)
+                )
+                consecutive_warnings += 1
+            else:
+                # Reset counter on good tick
+                if consecutive_warnings > 0:
+                    logger.info(
+                        "✅ Event loop lag recovered",
+                        consecutive_warnings=consecutive_warnings
+                    )
+                consecutive_warnings = 0
+
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.debug(f"Lag monitor error: {e}")
+
 
 async def cleanup_background_tasks() -> None:
     """
@@ -128,8 +182,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         if scheduler:
             await scheduler.start()
             logger.info("MarketHoursScheduler started - managing websocket lifecycle")
-        
+
+        # Start event loop lag monitor to diagnose WebSocket disconnections
+        lag_monitor_task = asyncio.create_task(_monitor_event_loop_lag())
+        logger.info("Event loop lag monitor started")
+
         # Store services, container, statistics engines, scheduler, and cache in app.state
+        app.state.lag_monitor_task = lag_monitor_task
         app.state.services = services
         app.state.container = container
         app.state.recall_engine = recall_engine
@@ -149,7 +208,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     
     # Shutdown
     logger.info("Shutting down NewsFlash API server")
-    
+
+    # Stop lag monitor first
+    global _lag_monitor_stop
+    _lag_monitor_stop = True
+    lag_monitor_task = getattr(app.state, "lag_monitor_task", None)
+    if lag_monitor_task:
+        lag_monitor_task.cancel()
+        try:
+            await lag_monitor_task
+        except asyncio.CancelledError:
+            pass
+        logger.info("Event loop lag monitor stopped")
+
     try:
         # Get services and container from app.state
         services = getattr(app.state, "services", None)

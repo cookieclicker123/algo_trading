@@ -272,6 +272,12 @@ class SignalStatsEngine:
             surge_ask=confluence_metadata.get("surge_ask"),
             surge_bid=confluence_metadata.get("surge_bid"),
             surge_mid=confluence_metadata.get("surge_mid"),
+            # Gap/trap detection (from auto_trade.py two-leg filter)
+            pub_time_ask=confluence_metadata.get("pub_time_ask"),
+            recv_time_ask=confluence_metadata.get("initial_ask"),  # initial_ask = recv_time_ask
+            fill_time_ask=entry_nbbo.get("ask") if entry_nbbo else None,
+            pub_to_recv_pct=confluence_metadata.get("pub_to_recv_pct"),
+            recv_to_fill_pct=confluence_metadata.get("recv_to_fill_pct"),
         )
 
         # Append record immediately (before metadata fetch)
@@ -482,16 +488,16 @@ class SignalStatsEngine:
                     except Exception:
                         pass
                 
-                # Get exchange from Alpaca (instant)
+                # Get exchange from Alpaca (use to_thread to avoid blocking event loop)
                 exchange = None
                 if self.trading_client:
                     try:
-                        asset = self.trading_client.get_asset(record.ticker)
+                        asset = await asyncio.to_thread(self.trading_client.get_asset, record.ticker)
                         if asset:
                             exchange = asset.exchange
                     except Exception:
                         pass
-                
+
                 # Get industry, sector, market_cap from Finnhub (rate-limited, 60/min)
                 metadata = await self.yahoo_finance_coordinator.fetch_metadata(record.ticker, timeout=30.0)
                 if metadata:
@@ -677,16 +683,16 @@ class SignalStatsEngine:
                 except Exception:
                     pass
             
-            # Get exchange from Alpaca (instant)
+            # Get exchange from Alpaca (use to_thread to avoid blocking event loop)
             exchange = None
             if self.trading_client:
                 try:
-                    asset = self.trading_client.get_asset(ticker)
+                    asset = await asyncio.to_thread(self.trading_client.get_asset, ticker)
                     if asset:
                         exchange = asset.exchange
                 except Exception:
                     pass
-            
+
             # Get industry, sector, market_cap from Finnhub (rate-limited, 60/min)
             metadata = await self.yahoo_finance_coordinator.fetch_metadata(ticker, timeout=30.0)
             if metadata:

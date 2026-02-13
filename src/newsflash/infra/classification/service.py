@@ -19,6 +19,7 @@ STATISTICAL IMPACT (January 2026 backtest):
   - + All microstructure filters: +$1,850 profit, 24.5% win rate
   - Improvement: +$5,472 per month
 """
+import html
 import json
 import re
 from pathlib import Path
@@ -294,7 +295,7 @@ Summary: {summary}"""
                 filter_reason = "broker_not_tradeable"  # Default fallback
                 if request_data.article_tickers:
                     # Check first ticker to determine reason (all tickers should have same reason)
-                    reason = self.ticker_validator.get_validation_reason(request_data.article_tickers[0])
+                    reason = await self.ticker_validator.get_validation_reason(request_data.article_tickers[0])
                     if reason:
                         filter_reason = reason
                 
@@ -428,7 +429,7 @@ Summary: {summary}"""
                 (r'\b(declares monthly|monthly distribution|quarterly distribution|quarterly dividend|declares quarterly)\b', 'dividend_routine'),
                 (r'\b(closed-end fund)\b', 'closed_end_fund'),
                 (r'\b(ring.*bell|opening bell|closing bell)\b', 'ring_bell'),
-                (r'\b(share repurchase|repurchase program|letter to shareholders)\b', 'routine_corporate'),
+                (r'\b(letter to shareholders)\b', 'routine_corporate'),
                 # Conference/marketing (no price impact)
                 (r'\b(to present at|will present at|to participate in|annual.*conference|healthcare conference|j\.p\. morgan.*conference|at ces\b|ces 2026)\b', 'conference'),
                 (r'\b(kol event|webinar|webcast|fireside chat|conference call)\b', 'webinar'),
@@ -867,7 +868,9 @@ Summary: {summary}"""
             primary_ticker: Primary ticker for classification
         """
         request_data = infra_event.request_data
-        headline = request_data.article_title
+        # Sanitize headline: decode HTML entities (&#39; → ', &amp; → &, etc.)
+        # This prevents Groq API "invalid syntax (400)" errors from malformed input
+        headline = html.unescape(request_data.article_title or "")
 
         # Check if sector classifier is available
         if not self.sector_classifier:

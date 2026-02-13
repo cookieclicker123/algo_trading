@@ -7,6 +7,7 @@ Pure infrastructure - publishes events, no business logic.
 import os
 import asyncio
 import threading
+import time
 from typing import Optional, Dict, Any, Set
 from datetime import datetime
 from collections import deque
@@ -99,7 +100,14 @@ class AlpacaMarketDataStreamManager:
         self._trade_cache: Dict[str, deque] = {}
         self._trade_cache_lock = threading.Lock()  # Thread-safe (handlers run in WebSocket thread)
         self._max_trades_per_symbol = 1000
-        
+
+        # Quote event throttling - publish at most once per 100ms per symbol
+        # Cache is ALWAYS updated (real-time), events are throttled to reduce event loop load
+        # This prevents event loop saturation at market open while keeping cache fully accurate
+        self._quote_event_throttle_ms = 100  # Publish events at most every 100ms per symbol
+        self._last_quote_publish: Dict[str, float] = {}  # symbol -> timestamp (time.time())
+        self._quote_publish_lock = threading.Lock()
+
         logger.info(
             "AlpacaMarketDataStreamManager initialized",
             paper_trading=paper_trading,
@@ -187,7 +195,9 @@ class AlpacaMarketDataStreamManager:
             self._latest_quote_cache.clear()
         with self._trade_cache_lock:
             self._trade_cache.clear()
-        
+        with self._quote_publish_lock:
+            self._last_quote_publish.clear()
+
         with self._subscription_lock:
             self._subscribed_symbols.clear()
             self._subscription_refcount.clear()
@@ -217,13 +227,13 @@ class AlpacaMarketDataStreamManager:
         Args:
             symbol: Ticker symbol to subscribe to
         """
-        with self._subscription_lock:  # Thread-safe lock
-            # Increment reference count
+        # Check refcount and mark as pending (fast, under lock)
+        needs_subscription = False
+        with self._subscription_lock:
             current_count = self._subscription_refcount.get(symbol, 0)
             self._subscription_refcount[symbol] = current_count + 1
 
             if symbol in self._subscribed_symbols:
-                # Already subscribed to WebSocket, just incremented refcount
                 logger.debug(f"Incremented subscription refcount for {symbol} to {current_count + 1}")
                 return
 
@@ -231,21 +241,35 @@ class AlpacaMarketDataStreamManager:
                 logger.warning(f"Cannot subscribe to {symbol}: stream not started")
                 return
 
+            # Mark that we need to subscribe (will do outside lock)
+            needs_subscription = True
+            self._subscribed_symbols.add(symbol)
+
+        if needs_subscription:
             try:
-                # Subscribe to quotes and trades for this symbol
-                # subscribe_quotes/trades can be called multiple times with different symbols
-                if self.stream:
-                    self.stream.subscribe_quotes(self._handle_quote_update, symbol)
-                    self.stream.subscribe_trades(self._handle_trade_update, symbol)
-
-                self._subscribed_symbols.add(symbol)
-
+                # Run blocking SDK calls in thread pool to avoid blocking event loop
+                # The alpaca-py SDK's subscribe methods do synchronous network I/O
+                await asyncio.to_thread(self._subscribe_symbol_sync, symbol)
                 logger.info(f"✅ Subscribed to {symbol} for real-time quotes and trades (refcount=1)")
 
             except Exception as e:
                 logger.error(f"Failed to subscribe to {symbol}: {e}", exc_info=True)
-                # Rollback refcount on failure
-                self._subscription_refcount[symbol] = current_count
+                # Rollback on failure
+                with self._subscription_lock:
+                    self._subscribed_symbols.discard(symbol)
+                    self._subscription_refcount[symbol] = self._subscription_refcount.get(symbol, 1) - 1
+
+    def _subscribe_symbol_sync(self, symbol: str) -> None:
+        """Synchronous subscription - runs in thread pool to avoid blocking event loop."""
+        if self.stream:
+            self.stream.subscribe_quotes(self._handle_quote_update, symbol)
+            self.stream.subscribe_trades(self._handle_trade_update, symbol)
+
+    def _unsubscribe_symbol_sync(self, symbol: str) -> None:
+        """Synchronous unsubscription - runs in thread pool to avoid blocking event loop."""
+        if self.stream:
+            self.stream.unsubscribe_quotes(symbol)
+            self.stream.unsubscribe_trades(symbol)
 
     async def unsubscribe_symbol(self, symbol: str) -> None:
         """
@@ -257,8 +281,8 @@ class AlpacaMarketDataStreamManager:
         Args:
             symbol: Ticker symbol to unsubscribe from
         """
-        with self._subscription_lock:  # Thread-safe lock
-            # Decrement reference count
+        needs_unsubscription = False
+        with self._subscription_lock:
             current_count = self._subscription_refcount.get(symbol, 0)
             if current_count <= 0:
                 logger.debug(f"Unsubscribe called for {symbol} but refcount already 0")
@@ -267,27 +291,26 @@ class AlpacaMarketDataStreamManager:
             new_count = current_count - 1
             self._subscription_refcount[symbol] = new_count
 
-            # If refcount > 0, other components still need this subscription
             if new_count > 0:
                 logger.debug(f"Decremented subscription refcount for {symbol} to {new_count}")
                 return
 
-            # Refcount is now 0 - actually unsubscribe from WebSocket
+            # Refcount is now 0 - mark for unsubscription
             if symbol not in self._subscribed_symbols:
-                return  # Not subscribed to WebSocket
+                return
 
             if not self.stream:
                 logger.warning(f"Cannot unsubscribe from {symbol}: stream not started")
                 return
 
-            try:
-                # Unsubscribe from quotes and trades
-                if self.stream:
-                    self.stream.unsubscribe_quotes(symbol)
-                    self.stream.unsubscribe_trades(symbol)
+            needs_unsubscription = True
+            self._subscribed_symbols.discard(symbol)
+            self._subscription_refcount.pop(symbol, None)
 
-                self._subscribed_symbols.discard(symbol)
-                self._subscription_refcount.pop(symbol, None)  # Clean up refcount entry
+        if needs_unsubscription:
+            try:
+                # Run blocking SDK calls in thread pool to avoid blocking event loop
+                await asyncio.to_thread(self._unsubscribe_symbol_sync, symbol)
 
                 # Clear cached data for this symbol to free memory
                 with self._quote_cache_lock:
@@ -295,6 +318,8 @@ class AlpacaMarketDataStreamManager:
                     self._latest_quote_cache.pop(symbol, None)
                 with self._trade_cache_lock:
                     self._trade_cache.pop(symbol, None)
+                with self._quote_publish_lock:
+                    self._last_quote_publish.pop(symbol, None)
 
                 logger.info(f"🔌 Unsubscribed from {symbol} quotes and trades (refcount=0)")
 
@@ -388,25 +413,37 @@ class AlpacaMarketDataStreamManager:
             }
             
             # Update cache (thread-safe lock - handlers run in WebSocket thread)
+            # ALWAYS update cache - this is the real-time data source for execution
             with self._quote_cache_lock:
                 # Store in history deque (for volume analysis)
                 if symbol not in self._quote_cache:
                     self._quote_cache[symbol] = deque(maxlen=self._max_trades_per_symbol)
                 self._quote_cache[symbol].append(quote_dict)
-                
+
                 # Also store latest for quick NBBO access
                 self._latest_quote_cache[symbol] = quote_dict
-            
-            # Publish event (thread-safe - schedules on main event loop)
-            self._publish_event_threadsafe(self._publish_quote_event(symbol, bid, ask, spread))
-            
-            logger.info(
-                "✅ WebSocket quote update",
-                symbol=symbol,
-                bid=bid,
-                ask=ask,
-                spread=spread
-            )
+
+            # Throttled event publishing - reduces event loop load during high-volume periods
+            # Cache is real-time, events are sampled at 10Hz max per symbol
+            # This prevents WebSocket disconnections at market open while keeping execution fast
+            should_publish = False
+            current_time = time.time()
+            with self._quote_publish_lock:
+                last_publish = self._last_quote_publish.get(symbol, 0)
+                elapsed_ms = (current_time - last_publish) * 1000
+                if elapsed_ms >= self._quote_event_throttle_ms:
+                    self._last_quote_publish[symbol] = current_time
+                    should_publish = True
+
+            if should_publish:
+                self._publish_event_threadsafe(self._publish_quote_event(symbol, bid, ask, spread))
+                logger.debug(
+                    "WebSocket quote event published",
+                    symbol=symbol,
+                    bid=bid,
+                    ask=ask,
+                    spread=spread
+                )
             
         except Exception as e:
             logger.error(f"Error handling quote update: {e}", exc_info=True)

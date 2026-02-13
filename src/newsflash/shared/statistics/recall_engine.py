@@ -99,7 +99,8 @@ class RecallStatsEngine:
             traded_lock=self._traded_lock,
             monitoring_tasks=self._monitoring_tasks,
             monitoring_lock=self._monitoring_lock,
-            on_surge_detected=self._on_surge_detected
+            on_surge_detected=self._on_surge_detected,
+            on_monitoring_complete=self._on_monitoring_complete
         )
 
         self.price_monitor = PriceMonitor(
@@ -200,6 +201,40 @@ class RecallStatsEngine:
             ticker=ticker
         )
         # DISABLED: await self.trade_trigger.trigger_trade(article, ticker)
+
+    async def _on_monitoring_complete(self, tickers: list[str], article_id: str, was_traded: bool) -> None:
+        """
+        Callback when SurgeMonitor finishes 2-minute monitoring.
+
+        Unsubscribes from WebSocket quotes to reduce event loop load.
+        Position manager maintains its own subscriptions via reference counting,
+        so active positions will continue receiving quotes.
+        """
+        if not self.quote_fetcher:
+            return
+
+        for ticker in tickers:
+            try:
+                await self.quote_fetcher.unsubscribe_symbol(ticker)
+                logger.debug(
+                    "Unsubscribed from ticker after monitoring complete",
+                    ticker=ticker,
+                    article_id=article_id,
+                    was_traded=was_traded
+                )
+            except Exception as e:
+                logger.debug(
+                    "Error unsubscribing from ticker",
+                    ticker=ticker,
+                    error=str(e)
+                )
+
+        logger.info(
+            "Cleaned up WebSocket subscriptions after monitoring",
+            article_id=article_id,
+            tickers=tickers,
+            was_traded=was_traded
+        )
 
     # ==================== Event Handlers ====================
 
@@ -569,6 +604,60 @@ class RecallStatsEngine:
                     error=str(e)
                 )
 
+        # === GAP/TRAP DETECTION: Fetch pub_time_ask for false negative analysis ===
+        # Critical for understanding: did price run away before we could act?
+        pub_time_ask = None
+        recv_time_ask = None
+        pub_to_recv_pct = None
+        pub_to_recv_latency_ms = None
+
+        if primary_ticker and article.published_at and self.market_data_client:
+            try:
+                from alpaca.data.requests import StockQuotesRequest
+                from alpaca.data.enums import DataFeed
+                from datetime import timedelta
+                from ...utils.async_alpaca import run_sync_alpaca_call
+
+                # Get recv_time_ask from initial_nbbo
+                initial_nbbo = initial_nbbos.get(primary_ticker) if primary_ticker else None
+                recv_time_ask = initial_nbbo.get("ask") if initial_nbbo else None
+
+                # Fetch pub_time_ask from historical API (same as auto_trade.py)
+                pub_quotes = await run_sync_alpaca_call(
+                    self.market_data_client.get_stock_quotes,
+                    StockQuotesRequest(
+                        symbol_or_symbols=primary_ticker,
+                        start=article.published_at - timedelta(seconds=1),
+                        end=article.published_at + timedelta(seconds=1),
+                        feed=DataFeed.SIP
+                    )
+                )
+
+                if pub_quotes and pub_quotes.data and primary_ticker in pub_quotes.data:
+                    quotes_list = pub_quotes.data[primary_ticker]
+                    if quotes_list:
+                        pub_time_ask = quotes_list[-1].ask_price
+
+                # Calculate pub_to_recv percentage change
+                if pub_time_ask and recv_time_ask and pub_time_ask > 0:
+                    pub_to_recv_pct = round(((recv_time_ask - pub_time_ask) / pub_time_ask) * 100, 2)
+
+                # Calculate latency
+                if article.published_at and received_at:
+                    pub_to_recv_latency_ms = round((received_at - article.published_at).total_seconds() * 1000, 1)
+
+                logger.debug(
+                    "Gap detection data captured for recall",
+                    article_id=article.id,
+                    ticker=primary_ticker,
+                    pub_time_ask=pub_time_ask,
+                    recv_time_ask=recv_time_ask,
+                    pub_to_recv_pct=pub_to_recv_pct,
+                    pub_to_recv_latency_ms=pub_to_recv_latency_ms
+                )
+            except Exception as e:
+                logger.debug(f"Could not fetch pub_time_ask for recall: {e}")
+
         record = RecallRecord(
             article_id=article.id,
             title=article.title,
@@ -608,10 +697,19 @@ class RecallStatsEngine:
             confluence_large_trade_pct=confluence_data.get("confluence_large_trade_pct"),
             confluence_uptick_count=confluence_data.get("confluence_uptick_count"),
             confluence_downtick_count=confluence_data.get("confluence_downtick_count"),
+            # Gap/trap detection fields - critical for false negative analysis
+            pub_time_ask=pub_time_ask,
+            recv_time_ask=recv_time_ask,
+            pub_to_recv_pct=pub_to_recv_pct,
+            pub_to_recv_latency_ms=pub_to_recv_latency_ms,
         )
 
-        # Append record (fire-and-forget)
-        asyncio.create_task(self.repository.append_recall_record(record, session, received_at))
+        # Append record and apply any pending classifications
+        await self.repository.append_recall_record(record, session, received_at)
+
+        # Apply any pending classifications that arrived before record was created
+        # This fixes the race condition where AI classifies before recall record exists
+        await self.record_manager.apply_pending_updates(article.id, session, received_at)
 
         # If initial surge, update record with surge detection
         if has_surge and surge_ticker:

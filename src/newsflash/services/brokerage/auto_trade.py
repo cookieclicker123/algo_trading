@@ -2,10 +2,10 @@
 Auto-trade service - subscribes to domain events and handles trading logic.
 
 AI-BASED POSITION SIZING (Immediate entry on classification):
-- SMALL: $20 position (weak headline, vague, unknown partner)
-- MODERATE: $30 position (decent headline, some specificity)
-- LARGE: $50 position (strong headline, specific details)
-- MAX: $70 position (transformational headline, >50% of market cap deal)
+- SMALL: $1 position (weak headline, vague, unknown partner) [PROVING MODE]
+- MODERATE: $2 position (decent headline, some specificity) [PROVING MODE]
+- LARGE: $3 position (strong headline, specific details) [PROVING MODE]
+- MAX: $4 position (transformational headline, >50% of market cap deal) [PROVING MODE]
 
 The AI determines position size based on:
 1. Headline concreteness (specific $ amounts, named parties, definitive terms)
@@ -17,7 +17,7 @@ Confluence scoring is still collected for statistical research but does NOT gate
 Trades execute IMMEDIATELY on AI classification to capture the move before volume arrives.
 
 Stop loss: 5% below actual entry price - caps max loss per trade.
-Chase filter: 7% max ask change from reception.
+Price movement filter: 3% max ask change per leg (pub→recv, recv→fill).
 
 Pure functions for trade processing logic, with minimal service class for event subscriptions.
 """
@@ -36,6 +36,7 @@ from ...domain.classification.models import ClassificationResult, Classification
 from ...domain.websocket.models import Article
 from ...services.storage import StorageQueryService
 from ...shared.statistics.volume_analyzer import analyze_volume_around_event
+from ...utils.async_alpaca import run_sync_alpaca_call
 from .trade_builder import build_trade_request_from_article
 
 try:
@@ -200,10 +201,10 @@ def get_cooldown_remaining(ticker: str) -> Optional[float]:
 # REDUCED 10x from normal sizes while testing/validating filters
 # Paper shadow trades use 50x these amounts for meaningful stats
 POSITION_SIZES_USD = {
-    ConvictionLevel.MINIMUM: Decimal("20.00"),        # AI: SMALL - weak/vague headline
-    ConvictionLevel.STANDARD: Decimal("30.00"),       # AI: MODERATE - decent specificity
-    ConvictionLevel.HIGH: Decimal("50.00"),           # AI: LARGE - strong, specific headline
-    ConvictionLevel.VERY_HIGH: Decimal("70.00"),      # AI: MAX - transformational (>50% mkt cap)
+    ConvictionLevel.MINIMUM: Decimal("1.00"),         # AI: SMALL - weak/vague headline (proving mode)
+    ConvictionLevel.STANDARD: Decimal("2.00"),        # AI: MODERATE - decent specificity (proving mode)
+    ConvictionLevel.HIGH: Decimal("3.00"),            # AI: LARGE - strong, specific headline (proving mode)
+    ConvictionLevel.VERY_HIGH: Decimal("4.00"),       # AI: MAX - transformational (proving mode)
 }
 
 # Map AI position size strings to ConvictionLevel
@@ -219,9 +220,43 @@ PAPER_SHADOW_MULTIPLIER = 50  # Paper trades at 50x live size
 
 # Thresholds for 2-second observation window (publication-anchored)
 OBSERVATION_WINDOW_SECONDS = 2.0      # 2-second window after article publication
-PRICE_EXCURSION_THRESHOLD_PCT = 0.01  # 1% price move = +1 point
-VOLUME_SURGE_THRESHOLD = 2000         # 2000+ shares in 2s = volume surge (+1 point)
-BUYING_PRESSURE_THRESHOLD = 0.80      # 80% buying pressure = +1 point
+
+# ============================================================
+# IMPROVED CONFLUENCE CRITERIA (v2 - scales with price)
+# ============================================================
+# Old criteria were naive (2000 shares doesn't scale with stock price).
+# New criteria use dollar volume and trade count for robustness.
+#
+# FULL CONFLUENCE (4-5 criteria): 1.0x multiplier
+# PARTIAL CONFLUENCE (2-3 criteria): 0.75x multiplier
+# NO VOLUME (0-1 criteria): 0.5x multiplier (early entry, await confirmation)
+# NEGATIVE (selling pressure): SKIP
+
+# Criterion 1: Dollar volume (scales with stock price)
+DOLLAR_VOLUME_THRESHOLD = 2500        # $2,500 in 2s = meaningful activity
+
+# Criterion 2: Trade count (activity indicator)
+TRADE_COUNT_THRESHOLD = 5             # 5+ trades = real activity, not one big order
+
+# Criterion 3: Imbalance ratio (buy pressure)
+IMBALANCE_RATIO_THRESHOLD = 0.5       # ≥0.5 means ≥60% buy-sided (more lenient than 80%)
+
+# Criterion 4: Price excursion from recv_ask (what we'd pay)
+PRICE_EXCURSION_THRESHOLD_PCT = 0.01  # 1% move from reception ask
+
+# Criterion 5: First trade latency (fast reaction = informed traders)
+FIRST_TRADE_LATENCY_THRESHOLD_MS = 1500  # First trade within 1.5s of publication
+
+# Legacy thresholds (kept for compatibility)
+VOLUME_SURGE_THRESHOLD = 2000         # Legacy: 2000 shares
+BUYING_PRESSURE_THRESHOLD = 0.80      # Legacy: 80% buying pressure
+
+# Microstructure multipliers applied to AI base size
+CONFLUENCE_MULTIPLIERS = {
+    "full": 1.0,       # 4-5 criteria met → full AI size
+    "partial": 0.75,   # 2-3 criteria met → 75% of AI size
+    "no_volume": 0.5,  # 0-1 criteria met → 50% (await confirmation)
+}
 
 # ============================================================
 # CONFLUENCE METRICS (For statistical analysis only - NOT used for gating)
@@ -642,12 +677,16 @@ async def check_confluence_signals(
         trades_start = publication_time
         trades_end = publication_time + timedelta(seconds=OBSERVATION_WINDOW_SECONDS)
 
-        trades = market_data_client.get_stock_trades(StockTradesRequest(
-            symbol_or_symbols=ticker,
-            start=trades_start,
-            end=trades_end,
-            feed=DataFeed.SIP
-        ))
+        # Use async wrapper to avoid blocking event loop
+        trades = await run_sync_alpaca_call(
+            market_data_client.get_stock_trades,
+            StockTradesRequest(
+                symbol_or_symbols=ticker,
+                start=trades_start,
+                end=trades_end,
+                feed=DataFeed.SIP
+            )
+        )
 
         if trades and trades.data and ticker in trades.data:
             trade_list = trades.data[ticker]
@@ -750,24 +789,92 @@ async def check_confluence_signals(
                 metadata["trade_count"] = trade_count
 
                 # ============================================================
-                # CRITERION 1: Volume surge (2000+ shares in 2s)
+                # IMPROVED CONFLUENCE CRITERIA v2 (scales with price)
                 # ============================================================
-                has_volume_surge = total_volume >= VOLUME_SURGE_THRESHOLD
-                metadata["confluence_has_volume_surge"] = has_volume_surge
-                metadata["volume_surge"] = has_volume_surge  # Legacy
+                # Classify each trade as buy/sell using tick rule first
+                buy_volume = 0
+                sell_volume = 0
+                prev_price_for_tick = None
 
-                if has_volume_surge:
+                for t in trade_list:
+                    if prev_price_for_tick is not None:
+                        if t.price > prev_price_for_tick:
+                            buy_volume += t.size
+                        elif t.price < prev_price_for_tick:
+                            sell_volume += t.size
+                        else:
+                            buy_volume += t.size / 2
+                            sell_volume += t.size / 2
+                    else:
+                        buy_volume += t.size
+                    prev_price_for_tick = t.price
+
+                buying_pressure = buy_volume / total_volume if total_volume > 0 else 0
+                imbalance_ratio = (buy_volume - sell_volume) / (buy_volume + sell_volume) if (buy_volume + sell_volume) > 0 else 0
+
+                # Store buying pressure metrics
+                metadata["confluence_buy_volume"] = int(buy_volume)
+                metadata["confluence_sell_volume"] = int(sell_volume)
+                metadata["confluence_buying_pressure_pct"] = round(buying_pressure * 100, 1)
+                metadata["confluence_imbalance_ratio"] = round(imbalance_ratio, 3)
+
+                # ============================================================
+                # CRITERION 1: Dollar volume (scales with stock price)
+                # ============================================================
+                has_dollar_volume = dollar_volume >= DOLLAR_VOLUME_THRESHOLD
+                metadata["confluence_has_dollar_volume"] = has_dollar_volume
+
+                if has_dollar_volume:
                     confluence_score += 1
                     logger.info(
-                        f"📈 VOLUME SURGE: +1 point ({total_volume} shares in 2s)",
+                        f"📈 DOLLAR VOLUME: +1 point (${dollar_volume:,.0f} in 2s)",
                         ticker=ticker,
-                        volume=total_volume,
-                        threshold=VOLUME_SURGE_THRESHOLD
+                        dollar_volume=f"${dollar_volume:,.0f}",
+                        threshold=f"${DOLLAR_VOLUME_THRESHOLD:,}"
                     )
 
                 # ============================================================
-                # CRITERION 2: Price excursion >1%
+                # CRITERION 2: Trade count (activity indicator)
                 # ============================================================
+                has_trade_activity = trade_count >= TRADE_COUNT_THRESHOLD
+                metadata["confluence_has_trade_activity"] = has_trade_activity
+
+                if has_trade_activity:
+                    confluence_score += 1
+                    logger.info(
+                        f"📈 TRADE ACTIVITY: +1 point ({trade_count} trades in 2s)",
+                        ticker=ticker,
+                        trade_count=trade_count,
+                        threshold=TRADE_COUNT_THRESHOLD
+                    )
+
+                # ============================================================
+                # CRITERION 3: Imbalance ratio (buying pressure)
+                # ============================================================
+                has_buy_pressure = imbalance_ratio >= IMBALANCE_RATIO_THRESHOLD
+                metadata["confluence_has_buying_pressure"] = has_buy_pressure
+                metadata["has_buying_pressure"] = has_buy_pressure  # Legacy
+
+                if has_buy_pressure:
+                    confluence_score += 1
+                    logger.info(
+                        f"📈 BUY PRESSURE: +1 point (imbalance {imbalance_ratio:.2f}, {buying_pressure*100:.0f}% buy)",
+                        ticker=ticker,
+                        imbalance_ratio=round(imbalance_ratio, 2),
+                        buying_pressure_pct=round(buying_pressure * 100, 1)
+                    )
+                elif imbalance_ratio < -0.3:
+                    # Negative signal: significant selling pressure
+                    metadata["confluence_has_selling_pressure"] = True
+                    logger.warning(
+                        f"⚠️ SELLING PRESSURE: imbalance {imbalance_ratio:.2f} ({buying_pressure*100:.0f}% buy)",
+                        ticker=ticker
+                    )
+
+                # ============================================================
+                # CRITERION 4: Price excursion from recv_ask (what we'd pay)
+                # ============================================================
+                # Use excursion calculated from max_price vs first_price (conservative)
                 has_price_excursion = max_move_pct >= PRICE_EXCURSION_THRESHOLD_PCT
                 metadata["confluence_has_price_excursion"] = has_price_excursion
                 metadata["has_price_excursion"] = has_price_excursion  # Legacy
@@ -781,38 +888,39 @@ async def check_confluence_signals(
                     )
 
                 # ============================================================
-                # CRITERION 3: Buying pressure >80% (tick rule)
+                # CRITERION 5: First trade latency (fast reaction = informed)
                 # ============================================================
-                # Classify each trade as buy/sell using tick rule:
-                # price > prev_price → buy, price < prev_price → sell, same → split
-                buy_volume = 0
-                sell_volume = 0
-                prev_price = None
+                has_fast_reaction = (first_trade_latency_ms is not None and
+                                     first_trade_latency_ms <= FIRST_TRADE_LATENCY_THRESHOLD_MS)
+                metadata["confluence_has_fast_reaction"] = has_fast_reaction
 
-                for t in trade_list:
-                    if prev_price is not None:
-                        if t.price > prev_price:
-                            buy_volume += t.size
-                        elif t.price < prev_price:
-                            sell_volume += t.size
-                        else:
-                            # Same price - split evenly
-                            buy_volume += t.size / 2
-                            sell_volume += t.size / 2
-                    else:
-                        # First trade - classify as buy (conservative for uptick bias)
-                        buy_volume += t.size
-                    prev_price = t.price
+                if has_fast_reaction:
+                    confluence_score += 1
+                    logger.info(
+                        f"📈 FAST REACTION: +1 point (first trade at {first_trade_latency_ms:.0f}ms)",
+                        ticker=ticker,
+                        first_trade_latency_ms=round(first_trade_latency_ms, 0),
+                        threshold_ms=FIRST_TRADE_LATENCY_THRESHOLD_MS
+                    )
 
-                buying_pressure = buy_volume / total_volume if total_volume > 0 else 0
-                # Imbalance ratio: (buy - sell) / (buy + sell), range -1 to +1
-                imbalance_ratio = (buy_volume - sell_volume) / (buy_volume + sell_volume) if (buy_volume + sell_volume) > 0 else 0
+                # ============================================================
+                # DETERMINE CONFLUENCE LEVEL
+                # ============================================================
+                # 4-5 criteria = full, 2-3 = partial, 0-1 = no_volume
+                if confluence_score >= 4:
+                    confluence_level = "full"
+                elif confluence_score >= 2:
+                    confluence_level = "partial"
+                else:
+                    confluence_level = "no_volume"
 
-                # Store buying pressure metrics with confluence_ prefix
-                metadata["confluence_buy_volume"] = int(buy_volume)
-                metadata["confluence_sell_volume"] = int(sell_volume)
-                metadata["confluence_buying_pressure_pct"] = round(buying_pressure * 100, 1)
-                metadata["confluence_imbalance_ratio"] = round(imbalance_ratio, 3)
+                metadata["confluence_level"] = confluence_level
+                metadata["confluence_multiplier"] = CONFLUENCE_MULTIPLIERS[confluence_level]
+
+                # Legacy compatibility
+                has_volume_surge = total_volume >= VOLUME_SURGE_THRESHOLD
+                metadata["confluence_has_volume_surge"] = has_volume_surge
+                metadata["volume_surge"] = has_volume_surge
 
                 # Legacy fields
                 metadata["buying_pressure_pct"] = metadata["confluence_buying_pressure_pct"]
@@ -1066,30 +1174,40 @@ def build_trade_request_for_article(
     current_price: Optional[float] = None,
     ticker: Optional[str] = None,
     conviction: ConvictionLevel = ConvictionLevel.STANDARD,
+    confluence_multiplier: float = 1.0,
 ) -> Optional[TradeRequest]:
     """
     Build a trade request from an article with conviction-based position sizing.
 
-    Position sizes based on conviction level:
-    - MINIMUM: $200 (surge trade)
-    - STANDARD: $300 (1 criterion met)
-    - HIGH: $500 (2 criteria met)
-    - VERY_HIGH: $700 (all 3 criteria met)
+    Position sizes: AI_BASE × CONFLUENCE_MULTIPLIER
+
+    AI Base (headline quality - your edge):
+    - MAX: $4 base (transformational)
+    - LARGE: $3 base (strong, specific)
+    - MODERATE: $2 base (decent)
+    - SMALL: $1 base (weak)
+
+    Confluence Multiplier (microstructure confirmation):
+    - full (4-5 criteria): 1.0x
+    - partial (2-3 criteria): 0.75x
+    - no_volume (0-1 criteria): 0.5x
 
     Args:
         article: Domain Article model
-        current_price: Current ask price for buying (if None, will use amount_usd and let executor calculate)
-        ticker: Specific ticker to trade (if None, uses first ticker from article)
-        conviction: Conviction level for position sizing
+        current_price: Current ask price for buying
+        ticker: Specific ticker to trade
+        conviction: AI-determined conviction level
+        confluence_multiplier: Microstructure confirmation multiplier (0.5-1.0)
 
     Returns:
-        Domain TradeRequest model with shares set (if price provided) or amount_usd, or None if invalid
+        Domain TradeRequest model or None if invalid
     """
     import math
     import os
 
-    # Use conviction-based position sizing
-    TRADE_SIZE_USD = POSITION_SIZES_USD.get(conviction, POSITION_SIZES_USD[ConvictionLevel.STANDARD])
+    # Use conviction-based position sizing with confluence multiplier
+    BASE_SIZE_USD = POSITION_SIZES_USD.get(conviction, POSITION_SIZES_USD[ConvictionLevel.STANDARD])
+    TRADE_SIZE_USD = Decimal(str(float(BASE_SIZE_USD) * confluence_multiplier))
 
     # Risk reduction: If we skipped a headline for this ticker recently, cap position
     # The first headline already moved the stock - we're entering as "second wave" exit liquidity
@@ -1125,11 +1243,14 @@ def build_trade_request_for_article(
             return None
 
         logger.info(
-            f"💰 AUTO-TRADE: Building ${TRADE_SIZE_USD} trade ({conviction.value})",
+            f"💰 AUTO-TRADE: Building ${TRADE_SIZE_USD:.2f} trade (${BASE_SIZE_USD} base × {confluence_multiplier}x)",
             article_id=article.id,
             shares=shares,
             current_price=current_price,
             total_notional=float(shares * Decimal(str(current_price))),
+            base_size_usd=float(BASE_SIZE_USD),
+            confluence_multiplier=confluence_multiplier,
+            final_size_usd=float(TRADE_SIZE_USD),
             conviction=conviction.value
         )
         
@@ -1343,47 +1464,123 @@ async def process_imminent_article(
             return
 
         # ============================================================
-        # 🚀 AI-BASED POSITION SIZING: Immediate entry on classification
+        # 🚀 AI + CONFLUENCE GATING: Require STRENGTH or SURGE to trade
         # ============================================================
         # Position size determined by AI based on headline quality.
-        # NO 2-second confluence delay - trades execute immediately.
-        # Rationale: Headlines are harder to manipulate than microstructure.
-        # The "gap and trap" pattern exploits confluence scoring, not headline quality.
+        # REINSTATED: 2-second confluence check gates trades on market activity.
+        # Rationale: AI determines WHAT to trade, confluence confirms activity.
+        # STRENGTH = at least 1 criterion met + 0.5% excursion (any direction)
+        # SURGE = full surge criteria (5% move, 80% buying pressure, volume spike)
 
         # Map AI position size to conviction level
         ai_position_size = event_position_size or "MODERATE"  # Default to MODERATE if not specified
-        conviction = AI_SIZE_TO_CONVICTION.get(ai_position_size.upper(), ConvictionLevel.STANDARD)
+        ai_conviction = AI_SIZE_TO_CONVICTION.get(ai_position_size.upper(), ConvictionLevel.STANDARD)
 
         logger.info(
-            f"🚀 AI POSITION SIZE: {ai_position_size} → {conviction.value}",
+            f"🚀 AI POSITION SIZE: {ai_position_size} → {ai_conviction.value}",
             ticker=ticker,
             ai_position_size=ai_position_size,
-            conviction=conviction.value,
-            position_size=f"${POSITION_SIZES_USD[conviction]}",
+            conviction=ai_conviction.value,
+            position_size=f"${POSITION_SIZES_USD[ai_conviction]}",
             article_id=article_id,
         )
 
-        # Initialize confluence_metadata for stats collection (non-blocking)
-        # We still collect this data for research, but it doesn't gate trades
-        confluence_metadata = {
-            "confluence_checked": False,
-            "ai_position_size": ai_position_size,
-            "initial_ask": None,
-            "initial_bid": None,
-            "initial_spread": None,
-        }
+        # ============================================================
+        # 📊 CONFLUENCE CHECK: 2-second window for STRENGTH verification
+        # ============================================================
+        # Check confluence signals in the 2-second window after publication.
+        # STRENGTH requires: confluence_score >= 1 AND max_excursion >= 0.5%
+        MIN_STRENGTH_EXCURSION_PCT = 0.5  # Minimum price movement to confirm activity
 
-        # Get initial NBBO immediately (for stats and chase filter)
-        if quote_fetcher:
-            try:
-                initial_nbbo = await quote_fetcher.get_nbbo_snapshot(ticker)
-                if initial_nbbo:
-                    confluence_metadata["initial_nbbo_mid"] = initial_nbbo.get("mid")
-                    confluence_metadata["initial_spread"] = initial_nbbo.get("spread")
-                    confluence_metadata["initial_ask"] = initial_nbbo.get("ask")
-                    confluence_metadata["initial_bid"] = initial_nbbo.get("bid")
-            except Exception as e:
-                logger.debug(f"Could not get initial NBBO: {e}")
+        confluence_conviction, confluence_metadata = await check_confluence_signals(
+            market_data_client=market_data_client,
+            quote_fetcher=quote_fetcher,
+            ticker=ticker,
+            publication_time=published_at,
+        )
+
+        # Add AI position size to metadata for logging
+        confluence_metadata["ai_position_size"] = ai_position_size
+
+        # Get confluence score and excursion for gating decision
+        confluence_score = confluence_metadata.get("confluence_score", 0)
+        max_excursion_pct = confluence_metadata.get("confluence_price_excursion_pct", 0.0)
+
+        # STRENGTH check: score >= 1 AND excursion >= 0.5%
+        has_strength = confluence_score >= 1 and max_excursion_pct >= MIN_STRENGTH_EXCURSION_PCT
+
+        if has_strength:
+            # STRENGTH confirmed - use AI conviction for position sizing
+            conviction = ai_conviction
+            logger.info(
+                f"✅ STRENGTH CONFIRMED: Confluence score {confluence_score}, excursion {max_excursion_pct:.2f}%",
+                ticker=ticker,
+                confluence_score=confluence_score,
+                max_excursion_pct=max_excursion_pct,
+                min_required_excursion=MIN_STRENGTH_EXCURSION_PCT,
+                conviction=conviction.value,
+                article_id=article_id
+            )
+        elif confluence_score >= 1:
+            # Score >= 1 but excursion too low - no strength
+            logger.info(
+                f"⏭️ NO STRENGTH: Score {confluence_score} but excursion {max_excursion_pct:.2f}% < {MIN_STRENGTH_EXCURSION_PCT}% required",
+                ticker=ticker,
+                confluence_score=confluence_score,
+                max_excursion_pct=max_excursion_pct,
+                reason="Activity detected but price movement insufficient"
+            )
+            # Fall through to surge check
+            has_strength = False
+
+        # If no STRENGTH, check for SURGE (8-second window with strict criteria)
+        is_surge_trade = False
+        if not has_strength:
+            logger.info(
+                f"🔍 CHECKING SURGE: No STRENGTH found (score={confluence_score}, excursion={max_excursion_pct:.2f}%)",
+                ticker=ticker,
+                article_id=article_id
+            )
+
+            # Get initial ask for surge monitoring
+            initial_ask_at_pub = confluence_metadata.get("initial_ask")
+
+            surge_result = await monitor_for_last_chance_surge(
+                market_data_client=market_data_client,
+                quote_fetcher=quote_fetcher,
+                ticker=ticker,
+                publication_time=published_at,
+                initial_nbbo_mid=confluence_metadata.get("initial_nbbo_mid"),
+                article_id=article_id,
+                initial_ask_at_publication=initial_ask_at_pub,
+            )
+
+            if surge_result:
+                # SURGE found - use STANDARD conviction (surge trades are higher risk)
+                is_surge_trade = True
+                conviction = ConvictionLevel.STANDARD
+                surge_timing = surge_result.get("surge_timing_seconds", 0)
+                logger.info(
+                    f"🚀 SURGE CONFIRMED: All criteria met in {surge_timing:.1f}s",
+                    ticker=ticker,
+                    surge_timing_seconds=surge_timing,
+                    conviction=conviction.value,
+                    article_id=article_id
+                )
+                # Update metadata with surge info
+                confluence_metadata.update(surge_result)
+            else:
+                # Neither STRENGTH nor SURGE - SKIP
+                logger.info(
+                    f"⏭️ AUTO-TRADE SKIPPED: No STRENGTH or SURGE detected",
+                    ticker=ticker,
+                    confluence_score=confluence_score,
+                    max_excursion_pct=max_excursion_pct,
+                    reason="AI classified IMMINENT but market shows no activity confirmation",
+                    article_id=article_id
+                )
+                await _record_postfilter_skip(article_id, f"postfilter_no_strength_or_surge:score={confluence_score},excursion={max_excursion_pct:.1f}%")
+                return
 
         # ============================================================
         # 🛡️ SAFETY FILTERS: Market cap and biotech price checks
@@ -1432,11 +1629,13 @@ async def process_imminent_article(
         # ============================================================
         # 📊 SPREAD FILTER: Reject wide spreads (>10% of mid)
         # ============================================================
-        # Wide spreads cause massive slippage and are manipulation targets.
+        # 🎯 WIDE SPREAD TRAP FILTER
+        # ============================================================
+        # Wide spreads cause instant losses. If bid-ask spread is 5%, you're
+        # already down 5% the moment you buy at ask and would sell at bid.
         # IINN lesson: 35% spread = untradeable.
-        # IINN lesson: 35% spread = untradeable. This should never happen.
-        # Any spread > 10% of mid price is a hard skip regardless of other factors.
-        MAX_SPREAD_PCT = 10.0  # Absolute maximum spread as % of mid price
+        # Tightened from 10% to 3% - even 3% spread means instant -3% on entry.
+        MAX_SPREAD_PCT = 5.0  # Maximum spread as % of mid price (premarket often 3-5%)
         initial_spread = confluence_metadata.get("initial_spread")
         initial_ask = confluence_metadata.get("initial_ask")
         initial_bid = confluence_metadata.get("initial_bid", 0)
@@ -1451,10 +1650,10 @@ async def process_imminent_article(
             if initial_mid > 0:
                 spread_pct_of_mid = (initial_spread / initial_mid) * 100
 
-                # HARD STOP: Spread > 10% = untradeable, period.
+                # HARD STOP: Spread > 3% = instant loss territory
                 if spread_pct_of_mid > MAX_SPREAD_PCT:
                     logger.info(
-                        "⏭️ AUTO-TRADE SKIPPED: Spread too wide (>10% of mid) - untradeable",
+                        "⏭️ AUTO-TRADE SKIPPED: Spread too wide (>3% of mid) - instant loss trap",
                         ticker=ticker,
                         spread_pct_of_mid=round(spread_pct_of_mid, 2),
                         max_allowed=MAX_SPREAD_PCT,
@@ -1497,12 +1696,27 @@ async def process_imminent_article(
         )
 
         # Build trade request with conviction-based position sizing
+        # Position = AI_BASE × CONFLUENCE_MULTIPLIER
         current_price = None  # Executor will fetch current price
+        confluence_multiplier = confluence_metadata.get("confluence_multiplier", 1.0)
+        confluence_level = confluence_metadata.get("confluence_level", "partial")
+
+        logger.info(
+            f"💰 POSITION SIZING: AI {ai_position_size} × {confluence_level} ({confluence_multiplier}x)",
+            ticker=ticker,
+            ai_position_size=ai_position_size,
+            confluence_level=confluence_level,
+            confluence_multiplier=confluence_multiplier,
+            confluence_score=confluence_metadata.get("confluence_score", 0),
+            article_id=article_id
+        )
+
         trade_request = build_trade_request_for_article(
             minimal_article,
             current_price=current_price,
             ticker=ticker,
-            conviction=conviction
+            conviction=conviction,
+            confluence_multiplier=confluence_multiplier
         )
 
         if not trade_request:
@@ -1516,12 +1730,16 @@ async def process_imminent_article(
                 trades_start = published_at
                 trades_end = datetime.now(timezone.utc)
 
-                trades = market_data_client.get_stock_trades(StockTradesRequest(
-                    symbol_or_symbols=trade_request.ticker,
-                    start=trades_start,
-                    end=trades_end,
-                    feed=DataFeed.SIP
-                ))
+                # Use async wrapper to avoid blocking event loop
+                trades = await run_sync_alpaca_call(
+                    market_data_client.get_stock_trades,
+                    StockTradesRequest(
+                        symbol_or_symbols=trade_request.ticker,
+                        start=trades_start,
+                        end=trades_end,
+                        feed=DataFeed.SIP
+                    )
+                )
 
                 total_vol = 0
                 if trades and trades.data and trade_request.ticker in trades.data:
@@ -1549,50 +1767,277 @@ async def process_imminent_article(
                 pass
 
         # ============================================================
-        # 🛡️ CHASE FILTER: Don't enter if ask moved >7% from reception
+        # 📊 PRE-ENTRY SPREAD CHECK: Final spread verification before trade
         # ============================================================
-        # Data shows ALL winners entered within 6% of reception ask.
-        # Entries at 7%+ above reception ask are tail entries (exit liquidity).
-        # NOTE: AI-based flow doesn't use surge trading - trades execute immediately
-        # on classification. The surge bypass logic is kept for future reference.
-        MAX_CHASE_PCT = 7.0
-        initial_ask = confluence_metadata.get("initial_ask")
-        is_surge_trade = False  # AI-based flow doesn't use surge trading
-        if is_surge_trade:
-            logger.info(
-                "✅ CHASE FILTER BYPASSED: Surge trade (strict criteria already met)",
-                ticker=ticker,
-                article_id=article_id
-            )
-        elif quote_fetcher and initial_ask and initial_ask > 0:
+        # CRITICAL: Check spread at FILL TIME, not just at reception.
+        # APUS disaster: Reception spread was 6%, but by fill time it was 10.27%.
+        # This check prevents entering trades with wide spreads that developed during SURGE monitoring.
+        MAX_FILL_SPREAD_PCT = 5.0  # Never enter on spread >5% at any check point
+
+        pre_entry_nbbo = None
+        if quote_fetcher:
             try:
                 pre_entry_nbbo = await quote_fetcher.get_nbbo_snapshot(ticker)
                 if pre_entry_nbbo:
+                    current_bid = pre_entry_nbbo.get("bid", 0)
                     current_ask = pre_entry_nbbo.get("ask", 0)
-                    if current_ask and current_ask > 0:
-                        chase_pct = ((current_ask - initial_ask) / initial_ask) * 100
-                        if chase_pct > MAX_CHASE_PCT:
+                    if current_bid and current_ask and current_ask > current_bid:
+                        current_spread = current_ask - current_bid
+                        current_mid = (current_ask + current_bid) / 2
+                        fill_spread_pct = (current_spread / current_mid) * 100 if current_mid > 0 else 0
+
+                        if fill_spread_pct > MAX_FILL_SPREAD_PCT:
                             logger.info(
-                                "⏭️ AUTO-TRADE SKIPPED: Chasing tail - ask moved >7% from reception",
+                                "⏭️ AUTO-TRADE SKIPPED: Spread widened beyond threshold at fill time",
                                 ticker=ticker,
-                                initial_ask=initial_ask,
+                                fill_spread_pct=round(fill_spread_pct, 2),
+                                max_allowed=MAX_FILL_SPREAD_PCT,
+                                current_bid=current_bid,
                                 current_ask=current_ask,
-                                chase_pct=round(chase_pct, 1),
-                                max_allowed=MAX_CHASE_PCT,
+                                current_spread=round(current_spread, 4),
                                 article_id=article_id,
-                                reason="Winners enter <6.5% above recv ask. 7%+ = exit liquidity."
+                                reason="Spread at fill time exceeds 10% threshold - APUS protection"
                             )
-                            await _record_postfilter_skip(article_id, f"postfilter_chase:{chase_pct:.0f}%")
+                            await _record_postfilter_skip(article_id, f"postfilter_fill_spread_too_wide:{fill_spread_pct:.1f}%")
                             return
-                        logger.debug(
-                            "✅ CHASE CHECK PASSED",
+
+                        logger.info(
+                            "✅ FILL-TIME SPREAD CHECK PASSED",
                             ticker=ticker,
-                            chase_pct=round(chase_pct, 1),
-                            initial_ask=initial_ask,
-                            current_ask=current_ask
+                            fill_spread_pct=round(fill_spread_pct, 2),
+                            max_allowed=MAX_FILL_SPREAD_PCT,
                         )
             except Exception as e:
-                logger.debug(f"Chase check failed (proceeding anyway): {e}")
+                logger.warning(f"Fill-time spread check failed: {e} - proceeding with caution")
+
+        # ============================================================
+        # 🏃 TWO-LEG PRICE MOVEMENT FILTER: Prevent front-run / pumped entries
+        # ============================================================
+        # VRME lesson: Ask moved from $1.15 (pub) to $1.33 (recv) = 15.6% BEFORE we even saw it.
+        # This means the move already happened - we're entering as exit liquidity.
+        #
+        # Two-leg filter:
+        # 1. pub → recv: Max 3% ask change (if already moved, we're late)
+        # 2. recv → fill: Max 3% ask change (if moving during our checks, too volatile)
+        #
+        # This catches both front-running (pub→recv) and chase scenarios (recv→fill).
+        MAX_ASK_CHANGE_PER_LEG_PCT = 3.0
+        initial_ask = confluence_metadata.get("initial_ask")  # Ask at reception/confluence time
+
+        # LEG 1: Publication → Reception price change
+        # Fetch historical quote at publication time to detect pre-reception movement
+        pub_time_ask = None
+        if market_data_client and published_at:
+            try:
+                from alpaca.data.requests import StockQuotesRequest
+
+                # Get quote at publication time (1-second window)
+                # Use async wrapper to avoid blocking event loop
+                pub_quotes = await run_sync_alpaca_call(
+                    market_data_client.get_stock_quotes,
+                    StockQuotesRequest(
+                        symbol_or_symbols=ticker,
+                        start=published_at - timedelta(seconds=1),
+                        end=published_at + timedelta(seconds=1),
+                        feed=DataFeed.SIP
+                    )
+                )
+
+                if pub_quotes and pub_quotes.data and ticker in pub_quotes.data:
+                    quotes_list = pub_quotes.data[ticker]
+                    if quotes_list:
+                        # Get the quote closest to publication time
+                        pub_time_ask = quotes_list[-1].ask_price if quotes_list else None
+                        logger.debug(
+                            "Fetched publication-time ask",
+                            ticker=ticker,
+                            pub_time_ask=pub_time_ask,
+                            quotes_count=len(quotes_list)
+                        )
+            except Exception as e:
+                logger.debug(f"Could not fetch publication-time quote: {e}")
+
+        # Check pub → recv change if we have both prices
+        if pub_time_ask and initial_ask and pub_time_ask > 0:
+            pub_to_recv_pct = ((initial_ask - pub_time_ask) / pub_time_ask) * 100
+
+            if pub_to_recv_pct > MAX_ASK_CHANGE_PER_LEG_PCT:
+                logger.info(
+                    "⏭️ AUTO-TRADE SKIPPED: Ask moved too much between publication and reception",
+                    ticker=ticker,
+                    pub_time_ask=round(pub_time_ask, 4),
+                    recv_time_ask=round(initial_ask, 4),
+                    pub_to_recv_pct=round(pub_to_recv_pct, 2),
+                    max_allowed=MAX_ASK_CHANGE_PER_LEG_PCT,
+                    article_id=article_id,
+                    reason="Front-running detected: move happened BEFORE we received the article"
+                )
+                await _record_postfilter_skip(article_id, f"postfilter_pub_to_recv:{pub_to_recv_pct:.1f}%")
+                return
+
+            logger.info(
+                "✅ PUB→RECV CHECK PASSED",
+                ticker=ticker,
+                pub_time_ask=round(pub_time_ask, 4),
+                recv_time_ask=round(initial_ask, 4),
+                pub_to_recv_pct=round(pub_to_recv_pct, 2),
+                max_allowed=MAX_ASK_CHANGE_PER_LEG_PCT
+            )
+
+            # Store pub_time_ask in metadata for statistics
+            confluence_metadata["pub_time_ask"] = pub_time_ask
+            confluence_metadata["pub_to_recv_pct"] = round(pub_to_recv_pct, 2)
+
+        # LEG 2: Reception → Fill price change
+        # Check if ask moved too much since reception (chase/volatility filter)
+        # NO EXCEPTIONS - even surge trades must pass this check
+        # "under no conditions is anything that has run away from us allowed to fill"
+        if pre_entry_nbbo and initial_ask and initial_ask > 0:
+            # Use already-fetched NBBO for chase check
+            current_ask = pre_entry_nbbo.get("ask", 0)
+            if current_ask and current_ask > 0:
+                recv_to_fill_pct = ((current_ask - initial_ask) / initial_ask) * 100
+
+                if recv_to_fill_pct > MAX_ASK_CHANGE_PER_LEG_PCT:
+                    logger.info(
+                        "⏭️ AUTO-TRADE SKIPPED: Ask moved too much between reception and fill",
+                        ticker=ticker,
+                        recv_time_ask=round(initial_ask, 4),
+                        fill_time_ask=round(current_ask, 4),
+                        recv_to_fill_pct=round(recv_to_fill_pct, 2),
+                        max_allowed=MAX_ASK_CHANGE_PER_LEG_PCT,
+                        article_id=article_id,
+                        reason="Price too volatile during our checks - likely pump in progress"
+                    )
+                    await _record_postfilter_skip(article_id, f"postfilter_recv_to_fill:{recv_to_fill_pct:.1f}%")
+                    return
+
+                logger.info(
+                    "✅ RECV→FILL CHECK PASSED",
+                    ticker=ticker,
+                    recv_time_ask=round(initial_ask, 4),
+                    fill_time_ask=round(current_ask, 4),
+                    recv_to_fill_pct=round(recv_to_fill_pct, 2),
+                    max_allowed=MAX_ASK_CHANGE_PER_LEG_PCT
+                )
+
+                # Store recv_to_fill_pct in metadata for statistics
+                confluence_metadata["recv_to_fill_pct"] = round(recv_to_fill_pct, 2)
+
+        # ============================================================
+        # 🎯 PUMP-AND-DUMP FILTER: Entry ask vs first trade price
+        # ============================================================
+        # EPOW lesson: Ask stayed at $1.00 while trades ran from $0.88 → $0.99
+        # We entered at $1.00 (the ask) which was 13.5% above the first trade.
+        # This is classic pump-and-dump: trades create "confluence", we pay the inflated ask.
+        #
+        # Filter: Entry ask cannot be >5% above the first trade in confluence window.
+        # If trades started at $0.88 and ask is $1.00, that's a 13.6% premium = SKIP.
+        MAX_ASK_VS_FIRST_TRADE_PCT = 3.0  # Consistent with other 3% thresholds
+        confluence_first_price = confluence_metadata.get("confluence_first_price")
+        fill_ask = pre_entry_nbbo.get("ask") if pre_entry_nbbo else None
+
+        if confluence_first_price and fill_ask and confluence_first_price > 0:
+            ask_vs_first_trade_pct = ((fill_ask - confluence_first_price) / confluence_first_price) * 100
+
+            if ask_vs_first_trade_pct > MAX_ASK_VS_FIRST_TRADE_PCT:
+                logger.info(
+                    "⏭️ AUTO-TRADE SKIPPED: Entry ask too far above first trade (pump-and-dump pattern)",
+                    ticker=ticker,
+                    confluence_first_price=round(confluence_first_price, 4),
+                    fill_ask=round(fill_ask, 4),
+                    ask_vs_first_trade_pct=round(ask_vs_first_trade_pct, 2),
+                    max_allowed=MAX_ASK_VS_FIRST_TRADE_PCT,
+                    article_id=article_id,
+                    reason="Trades ran up but ask stayed high - we'd be paying the pump premium"
+                )
+                await _record_postfilter_skip(article_id, f"postfilter_pump_and_dump:{ask_vs_first_trade_pct:.1f}%")
+                return
+
+            logger.info(
+                "✅ PUMP-AND-DUMP CHECK PASSED",
+                ticker=ticker,
+                confluence_first_price=round(confluence_first_price, 4),
+                fill_ask=round(fill_ask, 4),
+                ask_vs_first_trade_pct=round(ask_vs_first_trade_pct, 2),
+                max_allowed=MAX_ASK_VS_FIRST_TRADE_PCT
+            )
+
+            # Store for statistics
+            confluence_metadata["ask_vs_first_trade_pct"] = round(ask_vs_first_trade_pct, 2)
+
+        # ============================================================
+        # 🎯 MOMENTUM EXHAUSTION FILTER
+        # ============================================================
+        # If trades already ran X% within confluence window, you're entering at TOP.
+        # The move already happened. You're buying the peak.
+        # Example: First trade $0.90, max trade $1.00 = 11% run. Momentum exhausted.
+        MAX_CONFLUENCE_RUNUP_PCT = 5.0  # If trades already ran 5% in confluence, we're late
+        confluence_max_price = confluence_metadata.get("confluence_max_price")
+
+        if confluence_first_price and confluence_max_price and confluence_first_price > 0:
+            confluence_runup_pct = ((confluence_max_price - confluence_first_price) / confluence_first_price) * 100
+
+            if confluence_runup_pct > MAX_CONFLUENCE_RUNUP_PCT:
+                logger.info(
+                    "⏭️ AUTO-TRADE SKIPPED: Momentum exhausted (trades already ran >8%)",
+                    ticker=ticker,
+                    confluence_first_price=round(confluence_first_price, 4),
+                    confluence_max_price=round(confluence_max_price, 4),
+                    confluence_runup_pct=round(confluence_runup_pct, 2),
+                    max_allowed=MAX_CONFLUENCE_RUNUP_PCT,
+                    article_id=article_id,
+                    reason="Move already happened in confluence window - entering at the top"
+                )
+                await _record_postfilter_skip(article_id, f"postfilter_momentum_exhausted:{confluence_runup_pct:.1f}%")
+                return
+
+            logger.info(
+                "✅ MOMENTUM CHECK PASSED",
+                ticker=ticker,
+                confluence_first_price=round(confluence_first_price, 4),
+                confluence_max_price=round(confluence_max_price, 4),
+                confluence_runup_pct=round(confluence_runup_pct, 2),
+                max_allowed=MAX_CONFLUENCE_RUNUP_PCT
+            )
+
+            # Store for statistics
+            confluence_metadata["confluence_runup_pct"] = round(confluence_runup_pct, 2)
+
+        # ============================================================
+        # 🎯 LATE ENTRY FILTER
+        # ============================================================
+        # If we're trying to trade >10 seconds after publication, we're late.
+        # The fast money already got in. We'd be exit liquidity for early buyers.
+        # Note: This is time from publication to NOW, not to first trade.
+        MAX_ENTRY_DELAY_SECONDS = 10.0
+        now_utc = datetime.now(timezone.utc)
+        pub_time_utc = published_at.replace(tzinfo=timezone.utc) if published_at.tzinfo is None else published_at
+        entry_delay_seconds = (now_utc - pub_time_utc).total_seconds()
+
+        if entry_delay_seconds > MAX_ENTRY_DELAY_SECONDS:
+            logger.info(
+                "⏭️ AUTO-TRADE SKIPPED: Too late (>10s since publication)",
+                ticker=ticker,
+                entry_delay_seconds=round(entry_delay_seconds, 2),
+                max_allowed_seconds=MAX_ENTRY_DELAY_SECONDS,
+                published_at=pub_time_utc.isoformat(),
+                now=now_utc.isoformat(),
+                article_id=article_id,
+                reason="Late to the party - early buyers ready to dump on you"
+            )
+            await _record_postfilter_skip(article_id, f"postfilter_late_entry:{entry_delay_seconds:.1f}s")
+            return
+
+        logger.info(
+            "✅ ENTRY TIMING CHECK PASSED",
+            ticker=ticker,
+            entry_delay_seconds=round(entry_delay_seconds, 2),
+            max_allowed_seconds=MAX_ENTRY_DELAY_SECONDS
+        )
+
+        # Store for statistics
+        confluence_metadata["entry_delay_seconds"] = round(entry_delay_seconds, 2)
 
         # Publish trade request with conviction metadata
         logger.info(

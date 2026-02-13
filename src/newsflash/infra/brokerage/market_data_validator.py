@@ -13,6 +13,7 @@ from alpaca.data.requests import StockLatestQuoteRequest, StockTradesRequest
 from alpaca.data.enums import DataFeed
 
 from ...utils.logging_config import get_logger
+from ...utils.async_alpaca import run_sync_alpaca_call
 
 logger = get_logger(__name__)
 
@@ -119,8 +120,11 @@ class MarketDataValidator:
                 end=end_time,
                 feed=DataFeed.SIP
             )
-            
-            trades = self.market_data_client.get_stock_trades(request)
+
+            # Use async wrapper to avoid blocking event loop
+            trades = await run_sync_alpaca_call(
+                self.market_data_client.get_stock_trades, request
+            )
             
             if trades and trades.data and ticker in trades.data:
                 # Any data at all means there was news-driven activity
@@ -151,7 +155,10 @@ class MarketDataValidator:
             try:
                 logger.debug("MarketDataValidator: Fetching price from Alpaca", ticker=ticker)
                 request = StockLatestQuoteRequest(symbol_or_symbols=[ticker])
-                quotes = self.market_data_client.get_stock_latest_quote(request)
+                # Use async wrapper to avoid blocking event loop
+                quotes = await run_sync_alpaca_call(
+                    self.market_data_client.get_stock_latest_quote, request
+                )
                 
                 if quotes and ticker in quotes:
                     quote = quotes[ticker]

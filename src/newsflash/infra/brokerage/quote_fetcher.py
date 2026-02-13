@@ -9,6 +9,7 @@ from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockLatestQuoteRequest
 
 from ...utils.logging_config import get_logger
+from ...utils.async_alpaca import run_sync_alpaca_call
 from ...shared.event_bus import AsyncEventBus
 from .events import QuoteReceivedEvent
 from .infrastructure_models import InfrastructureQuoteData
@@ -75,7 +76,10 @@ class AlpacaQuoteFetcher:
             # Falls back to IEX if SIP unavailable (for testing/development)
             try:
                 request = StockLatestQuoteRequest(symbol_or_symbols=[symbol], feed="sip")
-                quotes = self.market_data_client.get_stock_latest_quote(request)
+                # Use async wrapper to avoid blocking event loop
+                quotes = await run_sync_alpaca_call(
+                    self.market_data_client.get_stock_latest_quote, request
+                )
             except Exception as sip_error:
                 # Fall back to IEX if SIP fails (no subscription or error)
                 logger.debug(
@@ -84,7 +88,10 @@ class AlpacaQuoteFetcher:
                     error=str(sip_error)
                 )
                 request = StockLatestQuoteRequest(symbol_or_symbols=[symbol], feed="iex")
-                quotes = self.market_data_client.get_stock_latest_quote(request)
+                # Use async wrapper to avoid blocking event loop
+                quotes = await run_sync_alpaca_call(
+                    self.market_data_client.get_stock_latest_quote, request
+                )
             
             if quotes and symbol in quotes:
                 quote = quotes[symbol]
@@ -152,7 +159,10 @@ class AlpacaQuoteFetcher:
             sip_feed_used = False
             try:
                 request = StockLatestQuoteRequest(symbol_or_symbols=[symbol], feed="sip")
-                quotes = self.market_data_client.get_stock_latest_quote(request)
+                # Use async wrapper to avoid blocking event loop
+                quotes = await run_sync_alpaca_call(
+                    self.market_data_client.get_stock_latest_quote, request
+                )
                 sip_feed_used = True
             except Exception as sip_error:
                 # Fall back to IEX if SIP fails (no subscription or error)
@@ -171,7 +181,10 @@ class AlpacaQuoteFetcher:
                         error=error_msg
                     )
                 request = StockLatestQuoteRequest(symbol_or_symbols=[symbol], feed="iex")
-                quotes = self.market_data_client.get_stock_latest_quote(request)
+                # Use async wrapper to avoid blocking event loop
+                quotes = await run_sync_alpaca_call(
+                    self.market_data_client.get_stock_latest_quote, request
+                )
             
             # Detailed logging for failure diagnosis
             if not quotes:

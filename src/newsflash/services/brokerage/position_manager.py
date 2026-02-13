@@ -59,9 +59,10 @@ STOP_LOSS_PCT = 0.05  # 5% below actual entry price
 # Grace period for first 5 seconds after entry
 # Rationale: First 5 seconds are chaotic with brief spikes that recover instantly
 # (e.g., SMTK went -7% at 1.8s then +37% at 2.0s - recovered in 0.2s)
+# (e.g., KIDZ had 1.046s breach at -7.4% but recovered to +40% - 0.5s was too tight)
 # After 5 seconds, if stop is breached, it's a real crash - exit immediately
 ENTRY_GRACE_PERIOD_SECONDS = 5.0  # First 5 seconds: use confirmation
-STOP_LOSS_CONFIRMATION_SECONDS = 0.5  # During grace period: wait 0.5s to confirm (brief spikes recover faster)
+STOP_LOSS_CONFIRMATION_SECONDS = 1.25  # During grace period: wait 1.25s to confirm (KIDZ max breach was 1.046s)
 
 # Breakeven stop configuration - protects gains after reaching +5%
 # Once price stays at +5% for 0.5 seconds, stop moves from -5% to breakeven (0%)
@@ -430,7 +431,7 @@ class PositionManager:
 
             # 🛑 STOP LOSS CHECK with grace period logic
             # Uses effective_stop_price (breakeven if activated, otherwise -5%)
-            # First 5 seconds: Use 0.5s confirmation (volatility is extreme, brief spikes recover)
+            # First 5 seconds: Use 1.25s confirmation (volatility is extreme, brief spikes recover)
             # After 5 seconds: Exit immediately (if still crashing, it's real)
             effective_stop = position.effective_stop_price
             if effective_stop and not position.stop_loss_triggered:

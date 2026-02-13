@@ -73,6 +73,16 @@ M&A
    "Announces Merger Agreement" → TRADE
    "To Be Acquired for $X Per Share" → TRADE
 
+SHARE REPURCHASE (Bullish signal)
+├─ Share repurchase/buyback announcements = TRADE
+├─ Company buying back shares = confidence in undervaluation
+├─ Reduces float, increases EPS = bullish
+├─ Board authorization for repurchase = bullish
+└─ Examples:
+   "Announces Share Repurchase Program" → TRADE
+   "Board Authorizes $10M Stock Buyback" → TRADE
+   "Announces Repurchase of Up To 1M Shares" → TRADE
+
 ANALYST ACTIONS
 ├─ Price target raised, Upgraded to Buy
 ├─ Initiates coverage with Buy rating
@@ -80,12 +90,26 @@ ANALYST ACTIONS
    "Raises Price Target to $50" → TRADE
 
 OTHER STRONG SIGNALS
-├─ Patent granted/issued
 ├─ Publication in peer-reviewed journal
 ├─ Data presentation (actual results, not announcement)
 └─ Examples:
    "Announces Publication In Oncogene" → TRADE
    "Presents Data Showing Efficacy" → TRADE
+
+PATENT HEADLINES - NUANCED (Require specificity)
+├─ TRADE: Patent + specific drug/mechanism + commercial implication
+├─ TRADE: Patent that protects specific revenue-generating product
+├─ SKIP: Vague patent without named drug, compound, or therapeutic area
+├─ SKIP: "Patent granted" without context about what it enables
+├─ Key difference: Specific patents (drug name, mechanism) = tradeable
+├─ Vague patents (no product context) = usually pump attempts
+└─ Examples:
+   "Patent Granted For Novel CAR-T Manufacturing Process" → TRADE (specific)
+   "Receives Patent For [DrugName] Formulation" → TRADE (named drug)
+   "Patent Issued Covering mRNA Delivery Technology" → TRADE (specific mechanism)
+   "Announces Patent Grant" → SKIP (no context)
+   "Receives Patent For Compositions And Methods" → SKIP (vague)
+   "Patent Granted For Treatment Methods" → SKIP (no specifics)
 
 MARKET EXPANSION INTO TRENDING AREAS (High potential)
 ├─ Addressable market expansion into hot therapeutic areas
@@ -142,6 +166,20 @@ ADMINISTRATIVE
    "Reports Inducement Grants Under Nasdaq Listing Rule" → SKIP
    "Announces Board Decision to Initiate Wind-Down" → SKIP
 
+FDA MEETINGS (Procedural - NOT approvals or milestones)
+├─ "Type A Meeting", "Type B Meeting", "Type C Meeting" = FDA consultation meetings
+├─ "Meeting Scheduled", "Meeting Granted", "Meeting Requested" = procedural only
+├─ "Pre-IND Meeting", "End-of-Phase Meeting" = routine regulatory touchpoints
+├─ These are ROUTINE administrative events, NOT regulatory decisions
+├─ A meeting is NOT an approval, NOT a breakthrough designation, NOT a milestone
+├─ The market does not react to scheduled meetings - only to outcomes/results
+└─ Examples:
+   "FDA Type C Meeting Scheduled for Drug Candidate" → SKIP (just a meeting)
+   "Company Requests Type B Meeting With FDA" → SKIP (procedural)
+   "FDA Grants Type A Meeting" → SKIP (administrative)
+   "Pre-IND Meeting Scheduled" → SKIP (early stage, just planning)
+   "End-of-Phase 2 Meeting With FDA" → SKIP (routine regulatory process)
+
 FUTURE ANNOUNCEMENTS
 ├─ "To announce", "Will release", "To report"
 ├─ "To host conference call to report results"
@@ -168,6 +206,8 @@ WEAK CLINICAL DATA (Looks like news but isn't material)
 ├─ Phase 1 or Phase 2a (exploratory, too early for material impact)
 ├─ Vague "positive results" without specific numbers or endpoints
 ├─ Combinations with already-approved drugs (semaglutide, etc.) - crowded space
+├─ "In vitro" / "in vivo" = PRECLINICAL, not human trials, years from revenue
+├─ "Potential" / "may" / "could" = speculative language, not proven
 └─ Examples:
    "Reports Positive Phase 2a Extension Interim Study Results" → SKIP (early + extension + interim)
    "Positive 52-Week Safety Data from License Partner" → SKIP (safety + partner)
@@ -175,6 +215,10 @@ WEAK CLINICAL DATA (Looks like news but isn't material)
    "Long-Term Safety and Tolerability Data" → SKIP (monitoring, not efficacy)
    "License Partner Ascletis Reports Phase 3 Data" → SKIP (partner's trial)
    "Interim Analysis Shows Encouraging Trends" → SKIP (interim + no numbers)
+   "Reports Successful Results in Vitro" → SKIP (preclinical test tube, not human trials)
+   "In Vitro Study Shows Anti-Inflammatory Potential" → SKIP (preclinical + "potential")
+   "Small Molecules Show Potential for Disease" → SKIP (speculative "potential" language)
+   "In Vivo Results Demonstrate Efficacy" → SKIP (animal studies, not human trials)
 
 LINE EXTENSIONS / LABEL EXPANSIONS (Drug already approved - incremental value)
 ├─ Drug approved for one indication, now testing for new body parts or populations
@@ -380,5 +424,8 @@ RED FLAGS - These weaken any clinical headline:
 - "License partner" = their drug, not yours
 - "Open-label" = no placebo, weaker evidence
 - "Phase 2a" = exploratory, too early
+- "In vitro" = test tube, preclinical, NOT human trials (ALWAYS SKIP)
+- "In vivo" = animal studies, still preclinical (ALWAYS SKIP)
+- "Potential" / "may" / "could" = speculative, not proven results
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

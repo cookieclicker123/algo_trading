@@ -139,6 +139,9 @@ class MetadataCache:
         Set permanent metadata for a ticker.
 
         Only stores: sector, industry, exchange
+
+        IMPORTANT: Only sets fields if they don't already exist.
+        This prevents Yahoo Finance from overwriting correct FMP data.
         """
         ticker = ticker.upper()
         permanent_data = {
@@ -151,10 +154,18 @@ class MetadataCache:
 
         async with self._permanent_lock:
             existing = self._permanent.get(ticker, {})
-            existing.update(permanent_data)
-            self._permanent[ticker] = existing
 
-        logger.debug("Cached permanent metadata", ticker=ticker, fields=list(permanent_data.keys()))
+            # Only set fields that don't already exist (preserve FMP data)
+            fields_set = []
+            for key, value in permanent_data.items():
+                if not existing.get(key):
+                    existing[key] = value
+                    fields_set.append(key)
+
+            if fields_set:
+                self._permanent[ticker] = existing
+                logger.debug("Cached permanent metadata", ticker=ticker, fields=fields_set)
+            # else: all fields already exist, skip silently
 
     async def set_daily(self, ticker: str, data: Dict[str, Any]) -> None:
         """

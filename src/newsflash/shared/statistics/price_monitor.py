@@ -20,6 +20,7 @@ except ImportError:
     DataFeed = None
 
 from ...utils.logging_config import get_logger
+from ...utils.async_alpaca import run_sync_alpaca_call
 
 logger = get_logger(__name__)
 
@@ -245,7 +246,10 @@ class PriceMonitor:
                 end=monitoring_end,
                 feed=DataFeed.SIP
             )
-            bars_response = self.market_data_client.get_stock_bars(bars_request)
+            # Use async wrapper to avoid blocking event loop
+            bars_response = await run_sync_alpaca_call(
+                self.market_data_client.get_stock_bars, bars_request
+            )
 
             if not bars_response or not bars_response.data or ticker not in bars_response.data:
                 return None
@@ -312,7 +316,10 @@ class PriceMonitor:
                 end=end,
                 feed=DataFeed.SIP
             )
-            trades_response = self.market_data_client.get_stock_trades(trades_request)
+            # Use async wrapper to avoid blocking event loop
+            trades_response = await run_sync_alpaca_call(
+                self.market_data_client.get_stock_trades, trades_request
+            )
 
             if not trades_response or not trades_response.data or ticker not in trades_response.data:
                 return None
@@ -420,7 +427,10 @@ class PriceMonitor:
                 end=minute_end,
                 feed=DataFeed.SIP
             )
-            trades_response = self.market_data_client.get_stock_trades(trades_request)
+            # Use async wrapper to avoid blocking event loop
+            trades_response = await run_sync_alpaca_call(
+                self.market_data_client.get_stock_trades, trades_request
+            )
 
             if not trades_response or not trades_response.data or ticker not in trades_response.data:
                 return None

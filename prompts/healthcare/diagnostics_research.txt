@@ -40,6 +40,14 @@ FDA/REGULATORY
    "Receives FDA Clearance For Diagnostic Test" → TRADE
    "Obtains CLIA Waiver For Point-of-Care Test" → TRADE
 
+SHARE REPURCHASE (Bullish signal)
+├─ Share repurchase/buyback announcements = TRADE
+├─ Company buying back shares = confidence in undervaluation
+├─ Reduces float, increases EPS = bullish
+└─ Examples:
+   "Announces Share Repurchase Program" → TRADE
+   "Board Authorizes Stock Buyback" → TRADE
+
 ═══════════════════════════════════════════════════════════════════════════════
 SKIP SIGNALS
 ═══════════════════════════════════════════════════════════════════════════════

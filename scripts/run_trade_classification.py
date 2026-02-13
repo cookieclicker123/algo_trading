@@ -13,6 +13,9 @@ import sys
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+from dotenv import load_dotenv
+load_dotenv()
+
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from newsflash.jobs.trade_classification import TradeClassificationJob

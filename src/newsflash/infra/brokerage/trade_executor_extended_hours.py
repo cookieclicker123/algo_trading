@@ -570,7 +570,7 @@ class AlpacaExtendedHoursTradeExecutor:
                             f"Chase attempt {attempt}: Could not get bid price, skipping",
                             ticker=trade_request.ticker
                         )
-                        await asyncio.sleep(interval_ms / 1000)
+                        await asyncio.sleep(CHASE_INTERVAL_MS / 1000)
                         continue
 
                     # Check price floor - abort if bid falls below min acceptable price
@@ -639,11 +639,11 @@ class AlpacaExtendedHoursTradeExecutor:
                             "result": "submission_failed",
                             "error": str(order_error)
                         })
-                        await asyncio.sleep(interval_ms / 1000)
+                        await asyncio.sleep(CHASE_INTERVAL_MS / 1000)
                         continue
 
                     # Wait for fill (500ms)
-                    await asyncio.sleep(interval_ms / 1000)
+                    await asyncio.sleep(CHASE_INTERVAL_MS / 1000)
 
                     # Check if filled
                     try:

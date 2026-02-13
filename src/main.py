@@ -22,10 +22,59 @@ logger = get_logger(__name__)
 
 class NewsFlashStandalone:
     """Standalone news polling application."""
-    
+
     def __init__(self):
         self.services = None
         self.shutdown_event = asyncio.Event()
+        self._lag_monitor_task = None
+
+    async def _monitor_event_loop_lag(self):
+        """
+        Monitor event loop lag to diagnose WebSocket disconnections.
+
+        If the event loop is blocked (by logging, GC, or other sync operations),
+        this will detect it. High lag correlates with missed WebSocket pongs.
+        """
+        loop = asyncio.get_event_loop()
+        consecutive_warnings = 0
+
+        while not self.shutdown_event.is_set():
+            try:
+                start = loop.time()
+                await asyncio.sleep(0.1)  # Should take ~100ms
+                elapsed_ms = (loop.time() - start) * 1000
+
+                if elapsed_ms > 500:
+                    # Severe lag - this WILL cause WebSocket disconnections
+                    logger.error(
+                        "🚨 SEVERE event loop lag detected - WebSocket disconnections likely",
+                        expected_ms=100,
+                        actual_ms=round(elapsed_ms),
+                        lag_ms=round(elapsed_ms - 100)
+                    )
+                    consecutive_warnings += 1
+                elif elapsed_ms > 200:
+                    # Warning - event loop is struggling
+                    logger.warning(
+                        "⚠️ Event loop lag detected",
+                        expected_ms=100,
+                        actual_ms=round(elapsed_ms),
+                        lag_ms=round(elapsed_ms - 100)
+                    )
+                    consecutive_warnings += 1
+                else:
+                    # Reset counter on good tick
+                    if consecutive_warnings > 0:
+                        logger.info(
+                            "✅ Event loop lag recovered",
+                            consecutive_warnings=consecutive_warnings
+                        )
+                    consecutive_warnings = 0
+
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.debug(f"Lag monitor error: {e}")
     
     async def start(self):
         """Start the standalone polling system."""
@@ -59,7 +108,11 @@ class NewsFlashStandalone:
             
             # Start all services
             await start_services(self.services)
-            
+
+            # Start event loop lag monitor (diagnoses WebSocket disconnections)
+            self._lag_monitor_task = asyncio.create_task(self._monitor_event_loop_lag())
+            logger.info("Event loop lag monitor started")
+
             # Wait for shutdown signal
             await self.shutdown_event.wait()
                 
@@ -67,6 +120,15 @@ class NewsFlashStandalone:
             logger.error("Error in standalone system", error=str(e))
             raise
         finally:
+            # Stop lag monitor first
+            if self._lag_monitor_task:
+                self._lag_monitor_task.cancel()
+                try:
+                    await self._lag_monitor_task
+                except asyncio.CancelledError:
+                    pass
+                logger.info("Event loop lag monitor stopped")
+
             # Stop scheduler first
             if hasattr(self, 'scheduler') and self.scheduler:
                 try:

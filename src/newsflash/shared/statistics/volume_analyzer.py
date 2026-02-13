@@ -24,6 +24,7 @@ from alpaca.data.enums import DataFeed
 import yfinance as yf
 
 from ...utils.logging_config import get_logger
+from ...utils.async_alpaca import run_sync_alpaca_call
 
 if TYPE_CHECKING:
     from ...infra.brokerage.stream_manager import AlpacaMarketDataStreamManager
@@ -314,9 +315,11 @@ def _fetch_trades_in_window(
 ) -> Optional[Dict[str, Any]]:
     """
     Fetch all trades in a time window and aggregate volume + order flow.
-    
+
     Uses high-precision tick data to separate Buy volume from Sell volume.
     REST API implementation (fallback when WebSocket cache unavailable).
+
+    NOTE: This is a SYNC function. Callers should use asyncio.to_thread() to avoid blocking.
     """
     try:
         # Ensure UTC
@@ -324,7 +327,7 @@ def _fetch_trades_in_window(
             window_start = window_start.replace(tzinfo=timezone.utc)
         if window_end.tzinfo is None:
             window_end = window_end.replace(tzinfo=timezone.utc)
-        
+
         # 1. Fetch trades for the window
         trade_request = StockTradesRequest(
             symbol_or_symbols=[symbol],
@@ -788,7 +791,8 @@ async def _get_stats_at_time(
     else:
         # Get minute bar for this minute
         minute_start = target_time.replace(second=0, microsecond=0)
-        bar_data = _fetch_minute_bar(client, symbol, minute_start)
+        # Use to_thread to avoid blocking event loop
+        bar_data = await asyncio.to_thread(_fetch_minute_bar, client, symbol, minute_start)
     
     # Get quote at Publication time (Widen window for dead stocks)
     # Search up to 5 minutes back to find the last valid Ask price before news
@@ -803,7 +807,8 @@ async def _get_stats_at_time(
             end=end_lookup,
             feed=DataFeed.SIP
         )
-        quotes = client.get_stock_quotes(request)
+        # Use to_thread to avoid blocking event loop
+        quotes = await asyncio.to_thread(client.get_stock_quotes, request)
         if symbol in quotes.data and quotes[symbol]:
             closest_quote = list(quotes[symbol])[-1] # Take the most recent quote before/at target
             quote_data = {

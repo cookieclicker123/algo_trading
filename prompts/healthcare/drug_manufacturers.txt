@@ -41,6 +41,14 @@ PARTNERSHIPS (9% of winners)
    "Signs Licensing Agreement" → TRADE
    "Enters Distribution Partnership" → TRADE
 
+SHARE REPURCHASE (Bullish signal)
+├─ Share repurchase/buyback announcements = TRADE
+├─ Company buying back shares = confidence in undervaluation
+├─ Reduces float, increases EPS = bullish
+└─ Examples:
+   "Announces Share Repurchase Program" → TRADE
+   "Board Authorizes Stock Buyback" → TRADE
+
 ═══════════════════════════════════════════════════════════════════════════════
 SKIP SIGNALS
 ═══════════════════════════════════════════════════════════════════════════════
@@ -67,6 +75,18 @@ CONFERENCES
 ├─ Any future presentation
 └─ Examples:
    "To Present at the 44th Annual J.P. Morgan Healthcare Conference" → SKIP
+
+FDA MEETINGS (Procedural - NOT approvals or milestones)
+├─ "Type A Meeting", "Type B Meeting", "Type C Meeting" = FDA consultation meetings
+├─ "Meeting Scheduled", "Meeting Granted", "Meeting Requested" = procedural only
+├─ These are ROUTINE administrative events, NOT regulatory decisions
+├─ A meeting is NOT an approval, NOT a breakthrough designation, NOT a milestone
+├─ The market does not react to scheduled meetings - only to outcomes
+└─ Examples:
+   "FDA Type C Meeting Scheduled for Drug Candidate" → SKIP (just a meeting)
+   "Company Requests Type B Meeting With FDA" → SKIP (procedural)
+   "FDA Grants Type A Meeting" → SKIP (administrative)
+   "Pre-IND Meeting Scheduled" → SKIP (early stage, just planning)
 
 ADMINISTRATIVE
 ├─ Inducement grants, Nasdaq compliance

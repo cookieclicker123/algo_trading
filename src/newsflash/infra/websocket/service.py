@@ -301,6 +301,7 @@ class BenzingaWebSocketMicroservice:
                 ping_interval=self.ping_interval,
                 ping_timeout=self.ping_timeout,
                 close_timeout=10,
+                max_size=10 * 1024 * 1024,  # 10MB - handle large news bursts from Benzinga
             ) as ws:
                 self.websocket = ws
 

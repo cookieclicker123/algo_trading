@@ -67,7 +67,8 @@ class SurgeMonitor:
         traded_lock: asyncio.Lock,
         monitoring_tasks: Dict[str, asyncio.Task],
         monitoring_lock: asyncio.Lock,
-        on_surge_detected: Callable[[Any, str], Awaitable[None]]
+        on_surge_detected: Callable[[Any, str], Awaitable[None]],
+        on_monitoring_complete: Optional[Callable[[list[str], str, bool], Awaitable[None]]] = None
     ):
         """
         Initialize surge monitor.
@@ -82,6 +83,7 @@ class SurgeMonitor:
             monitoring_tasks: Shared dict of monitoring tasks
             monitoring_lock: Lock protecting monitoring_tasks dict
             on_surge_detected: Callback when surge is detected (article, ticker)
+            on_monitoring_complete: Callback when monitoring finishes (tickers, article_id, was_traded)
         """
         self.market_data_client = market_data_client
         self.quote_fetcher = quote_fetcher
@@ -92,6 +94,7 @@ class SurgeMonitor:
         self._monitoring_tasks = monitoring_tasks
         self._monitoring_lock = monitoring_lock
         self._on_surge_detected = on_surge_detected
+        self._on_monitoring_complete = on_monitoring_complete
 
     async def monitor_for_surge(
         self,
@@ -179,8 +182,8 @@ class SurgeMonitor:
                 # Wait for next cycle
                 await self._wait_for_next_cycle(window_start, cycle_duration)
 
-            # Monitoring completed
-            await self._finalize_monitoring(article.id, session, received_at, max_cycles)
+            # Monitoring completed - clean up subscriptions
+            await self._finalize_monitoring(article.id, tradable_tickers, session, received_at, max_cycles)
 
         except asyncio.CancelledError:
             logger.debug("SurgeMonitor: Task cancelled", article_id=article.id)
@@ -333,11 +336,12 @@ class SurgeMonitor:
     async def _finalize_monitoring(
         self,
         article_id: str,
+        tickers: list[str],
         session: str,
         received_at: datetime,
         max_cycles: int
     ) -> None:
-        """Finalize monitoring - update record if no surge was detected."""
+        """Finalize monitoring - update record and clean up subscriptions."""
         async with self._traded_lock:
             was_traded = article_id in self._traded_articles
 
@@ -359,3 +363,16 @@ class SurgeMonitor:
 
         async with self._monitoring_lock:
             self._monitoring_tasks.pop(article_id, None)
+
+        # Clean up WebSocket subscriptions to reduce event loop load
+        # Position manager maintains its own subscriptions via reference counting,
+        # so this won't affect active positions
+        if self._on_monitoring_complete:
+            try:
+                await self._on_monitoring_complete(tickers, article_id, was_traded)
+            except Exception as e:
+                logger.debug(
+                    "SurgeMonitor: Error in monitoring complete callback",
+                    article_id=article_id,
+                    error=str(e)
+                )

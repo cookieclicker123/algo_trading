@@ -45,6 +45,14 @@ M&A/STRATEGIC (Notable catalyst)
    "Acquired Subsidiary For $X" → TRADE
    "Acquires Virtual Care Platform" → TRADE
 
+SHARE REPURCHASE (Bullish signal)
+├─ Share repurchase/buyback announcements = TRADE
+├─ Company buying back shares = confidence in undervaluation
+├─ Reduces float, increases EPS = bullish
+└─ Examples:
+   "Announces Share Repurchase Program" → TRADE
+   "Board Authorizes Stock Buyback" → TRADE
+
 ═══════════════════════════════════════════════════════════════════════════════
 SKIP SIGNALS
 ═══════════════════════════════════════════════════════════════════════════════
@@ -74,10 +82,8 @@ CONFERENCES
    "To Attend JP Morgan 2026 Annual Healthcare Conference" → SKIP
 
 ADMINISTRATIVE
-├─ Share repurchase programs announced
 ├─ Results announcement dates
 └─ Examples:
-   "Announces Share Repurchase Program" → SKIP
    "To announce fourth quarter results on February" → SKIP
 
 ROUTINE
@@ -260,6 +266,5 @@ DECISION RULES
 3. Tech partnerships (Palantir, etc.) = strong signal
 4. Earnings = always SKIP
 5. Conference attendance = always SKIP
-6. Share repurchase announcements = SKIP
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

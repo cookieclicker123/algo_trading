@@ -11,6 +11,7 @@ from alpaca.data.historical import StockHistoricalDataClient
 from dotenv import load_dotenv
 
 from ...utils.logging_config import get_logger
+from ...utils.async_alpaca import configure_alpaca_client_pool
 from ...shared.event_bus import AsyncEventBus
 from .events import ConnectionStatusChangedEvent
 
@@ -96,7 +97,14 @@ class AlpacaConnectionManager:
             api_key=api_key,
             secret_key=api_secret
         )
-        
+
+        # Configure connection pools to prevent "Connection pool is full" errors
+        # Default pool size is 10, we increase to 50 for concurrent requests
+        configure_alpaca_client_pool(self.trading_client)
+        configure_alpaca_client_pool(self.market_data_client)
+        if self.paper_shadow_client:
+            configure_alpaca_client_pool(self.paper_shadow_client)
+
         # Initialize WebSocket stream manager (optional - graceful degradation)
         # Try SIP first (requires Algo Trader Plus subscription), fall back to IEX
         self.stream_manager: Optional[AlpacaMarketDataStreamManager] = None

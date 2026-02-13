@@ -68,6 +68,14 @@ CLINICAL RESULTS
 └─ Examples:
    "Announces Completion Of First In Human Clinical Study" → TRADE
 
+SHARE REPURCHASE (Bullish signal)
+├─ Share repurchase/buyback announcements = TRADE
+├─ Company buying back shares = confidence in undervaluation
+├─ Reduces float, increases EPS = bullish
+└─ Examples:
+   "Announces Share Repurchase Program" → TRADE
+   "Board Authorizes Stock Buyback" → TRADE
+
 ═══════════════════════════════════════════════════════════════════════════════
 SKIP SIGNALS
 ═══════════════════════════════════════════════════════════════════════════════

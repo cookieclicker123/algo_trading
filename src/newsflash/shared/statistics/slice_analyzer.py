@@ -287,7 +287,7 @@ def build_confluence_window(
         window.final_ask_depth = final_nbbo.get("ask_size")
 
         # Spread compression
-        if window.initial_spread and window.initial_spread > 0:
+        if window.initial_spread and window.initial_spread > 0 and window.final_spread is not None:
             window.spread_compression_pct = ((window.initial_spread - window.final_spread) / window.initial_spread) * 100
 
     # Quote update count (not available from trade data, would need quote stream)

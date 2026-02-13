@@ -100,6 +100,68 @@ class RecordManager:
         """Register where a record was created for later updates."""
         self._record_locations[article_id] = (session, received_at)
 
+    async def apply_pending_updates(self, article_id: str, session: str, received_at: datetime) -> None:
+        """
+        Apply any pending classifications/filter_reasons that arrived before the record was created.
+
+        This fixes the race condition where classification event arrives before recall record exists.
+        Call this AFTER the record has been appended to the repository.
+        """
+        # Apply any pending classification for this article
+        pending_classification = None
+        async with self._classification_lock:
+            pending_classification = self._pending_classifications.get(article_id)
+
+        if pending_classification:
+            try:
+                updated = await self.repository.update_recall_record(
+                    article_id=article_id,
+                    updates={"ai_classification": pending_classification},
+                    session=session,
+                    date=received_at
+                )
+                if updated:
+                    async with self._classification_lock:
+                        self._pending_classifications.pop(article_id, None)
+                    logger.info(
+                        "RecordManager: Applied pending classification after record creation",
+                        article_id=article_id,
+                        classification=pending_classification
+                    )
+            except Exception as e:
+                logger.warning(
+                    "RecordManager: Failed to apply pending classification",
+                    article_id=article_id,
+                    error=str(e)
+                )
+
+        # Also apply any pending filter_reason
+        pending_filter_reason = None
+        async with self._filter_reasons_lock:
+            pending_filter_reason = self._pending_filter_reasons.get(article_id)
+
+        if pending_filter_reason:
+            try:
+                updated = await self.repository.update_recall_record(
+                    article_id=article_id,
+                    updates={"filter_reason": pending_filter_reason},
+                    session=session,
+                    date=received_at
+                )
+                if updated:
+                    async with self._filter_reasons_lock:
+                        self._pending_filter_reasons.pop(article_id, None)
+                    logger.debug(
+                        "RecordManager: Applied pending filter_reason after record creation",
+                        article_id=article_id
+                    )
+            except Exception as e:
+                logger.warning(
+                    "RecordManager: Failed to apply pending filter_reason",
+                    article_id=article_id,
+                    error=str(e)
+                )
+
     def get_record_location(self, article_id: str) -> Optional[tuple[str, datetime]]:
         """Get registered record location."""
         return self._record_locations.get(article_id)
@@ -207,11 +269,11 @@ class RecordManager:
         except Exception:
             pass
 
-        # Get exchange from trading client
+        # Get exchange from trading client (use to_thread to avoid blocking event loop)
         exchange = None
         if self.trading_client:
             try:
-                asset = self.trading_client.get_asset(ticker)
+                asset = await asyncio.to_thread(self.trading_client.get_asset, ticker)
                 if asset:
                     exchange = asset.exchange
             except Exception:

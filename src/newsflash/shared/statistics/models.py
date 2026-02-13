@@ -276,6 +276,16 @@ class RecallRecord(BaseModel):
     confluence_uptick_count: Optional[int] = Field(None, description="Number of uptick trades")
     confluence_downtick_count: Optional[int] = Field(None, description="Number of downtick trades")
 
+    # === GAP/TRAP DETECTION: Price at publication vs reception ===
+    # Critical for false negative analysis: did price run away before we could act?
+    pub_time_ask: Optional[float] = Field(None, description="Ask price at PUBLICATION time (from historical API)")
+    recv_time_ask: Optional[float] = Field(None, description="Ask price at RECEPTION time (when we first saw it)")
+    fill_time_ask: Optional[float] = Field(None, description="Ask price at FILL/CHECK time (when we made decision)")
+    pub_to_recv_pct: Optional[float] = Field(None, description="% ask change from publication to reception (front-running detection)")
+    recv_to_fill_pct: Optional[float] = Field(None, description="% ask change from reception to fill (chase/volatility detection)")
+    # Latency context
+    pub_to_recv_latency_ms: Optional[float] = Field(None, description="Milliseconds from publication to reception")
+
     # === STRUCTURED CONFLUENCE WINDOW (comprehensive micro-trajectory) ===
     # This replaces the flat confluence_ fields above for ML analysis
     # Contains sub-slices, pressure consistency, timing, and baseline ratios
@@ -361,7 +371,17 @@ class RecallSessionFile(BaseModel):
             "articles_traded": 0,
             "missed_opportunities": 0,
             "filter_breakdown": {},
-            "ticker_breakdown": {}
+            "ticker_breakdown": {},
+            # Large trade pattern analysis (pump-and-dump detection)
+            "large_trade_stats": {
+                "total_with_data": 0,
+                "avg_large_trade_pct": 0.0,
+                "avg_max_single_trade": 0.0,
+                "avg_trade_count": 0.0,
+                # Breakdown by outcome (moved_1_percent True/False)
+                "movers": {"count": 0, "avg_large_trade_pct": 0.0, "avg_max_single_trade": 0.0},
+                "non_movers": {"count": 0, "avg_large_trade_pct": 0.0, "avg_max_single_trade": 0.0}
+            }
         },
         description="Summary statistics updated in real-time"
     )
@@ -475,6 +495,15 @@ class SignalRecord(BaseModel):
     surge_ask: Optional[float] = Field(None, description="Ask price at surge detection")
     surge_bid: Optional[float] = Field(None, description="Bid price at surge detection")
     surge_mid: Optional[float] = Field(None, description="Mid price at surge detection")
+
+    # === GAP/TRAP DETECTION: Price at publication vs reception ===
+    # Critical for analyzing whether we entered at the right time
+    pub_time_ask: Optional[float] = Field(None, description="Ask price at PUBLICATION time (from historical API)")
+    recv_time_ask: Optional[float] = Field(None, description="Ask price at RECEPTION time (when we first saw it)")
+    fill_time_ask: Optional[float] = Field(None, description="Ask price at FILL time (actual entry price context)")
+    pub_to_recv_pct: Optional[float] = Field(None, description="% ask change from publication to reception (front-running detection)")
+    recv_to_fill_pct: Optional[float] = Field(None, description="% ask change from reception to fill (chase/volatility detection)")
+    pub_to_recv_latency_ms: Optional[float] = Field(None, description="Milliseconds from publication to reception")
 
     # === STRUCTURED CONFLUENCE WINDOW (comprehensive micro-trajectory) ===
     # Contains sub-slices, pressure consistency, timing, and baseline ratios

@@ -3,8 +3,15 @@ Ticker validator - validates tickers are tradeable on NASDAQ/NYSE/AMEX.
 
 Pure infrastructure - uses Alpaca API to fetch tradeable tickers.
 Operational state (cache) - necessary for system operation, not business state.
+
+Performance optimization:
+- Loads from file cache on startup (instant)
+- Only calls Alpaca API for background refresh (hourly)
+- Saves to file after each refresh for next startup
 """
 import asyncio
+import json
+from pathlib import Path
 from typing import Set, Optional, List
 from datetime import datetime
 
@@ -13,8 +20,12 @@ from alpaca.trading.requests import GetAssetsRequest
 from alpaca.trading.enums import AssetStatus, AssetClass
 
 from ...utils.logging_config import get_logger
+from ...utils.async_alpaca import run_sync_alpaca_call
 
 logger = get_logger(__name__)
+
+# File cache for tradeable tickers (avoids 8000+ asset fetch on startup)
+CACHE_FILE = Path("data/cache/alpaca_tradeable_tickers.json")
 
 
 class TickerValidator:
@@ -51,26 +62,42 @@ class TickerValidator:
     async def start(self) -> None:
         """
         Start ticker validator and begin periodic refresh.
-        
+
         Idempotent: Safe to call multiple times.
+
+        Startup strategy:
+        1. Try loading from file cache (instant, no API call)
+        2. If file cache exists, use it and refresh in background
+        3. If no file cache, fetch from Alpaca (blocking first time only)
         """
         if self._is_running:
             logger.debug("TickerValidator already running")
             return
-        
+
         self._is_running = True
 
-        # Initial load (BLOCKING - wait for cache before accepting articles)
-        # This ensures no articles are missed due to empty cache at startup
-        logger.info("TickerValidator: Loading tradeable tickers cache (blocking)...")
-        await self._refresh_tradeable_tickers()
-        logger.info(
-            "TickerValidator: Cache loaded successfully",
-            cache_size=len(self._tradeable_tickers)
-        )
+        # Try loading from file cache first (instant startup)
+        loaded_from_file = await self._load_from_file_cache()
 
-        # Start background refresh task (every hour)
-        self._refresh_task = asyncio.create_task(self._periodic_refresh())
+        if loaded_from_file:
+            logger.info(
+                "TickerValidator: Loaded from file cache (instant startup)",
+                cache_size=len(self._tradeable_tickers)
+            )
+            # Start background refresh to update cache
+            self._refresh_task = asyncio.create_task(self._periodic_refresh())
+        else:
+            # No file cache - must fetch from Alpaca (blocking first time)
+            logger.info("TickerValidator: No file cache, fetching from Alpaca (first-time setup)...")
+            await self._refresh_tradeable_tickers()
+            logger.info(
+                "TickerValidator: Cache loaded from Alpaca",
+                cache_size=len(self._tradeable_tickers)
+            )
+            # Save to file for next startup
+            await self._save_to_file_cache()
+            # Start background refresh task (every hour)
+            self._refresh_task = asyncio.create_task(self._periodic_refresh())
 
         logger.info("TickerValidator started - cache ready, hourly refresh scheduled")
     
@@ -93,7 +120,67 @@ class TickerValidator:
                 pass
         
         logger.info("TickerValidator stopped")
-    
+
+    async def _load_from_file_cache(self) -> bool:
+        """
+        Load tradeable tickers from file cache.
+
+        Returns:
+            True if loaded successfully, False if no cache or error
+        """
+        try:
+            if not CACHE_FILE.exists():
+                logger.debug("TickerValidator: No file cache found")
+                return False
+
+            with open(CACHE_FILE, 'r') as f:
+                data = json.load(f)
+
+            tickers = set(data.get("tickers", []))
+            if not tickers:
+                logger.warning("TickerValidator: File cache is empty")
+                return False
+
+            self._tradeable_tickers = tickers
+            self._last_update = datetime.fromisoformat(data.get("updated_at", ""))
+
+            logger.info(
+                "TickerValidator: Loaded from file cache",
+                count=len(tickers),
+                updated_at=data.get("updated_at")
+            )
+            return True
+
+        except Exception as e:
+            logger.warning(f"TickerValidator: Failed to load file cache: {e}")
+            return False
+
+    async def _save_to_file_cache(self) -> None:
+        """
+        Save tradeable tickers to file cache for fast startup.
+        """
+        try:
+            # Ensure directory exists
+            CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+            data = {
+                "tickers": sorted(list(self._tradeable_tickers)),
+                "updated_at": datetime.now().isoformat(),
+                "count": len(self._tradeable_tickers)
+            }
+
+            with open(CACHE_FILE, 'w') as f:
+                json.dump(data, f, indent=2)
+
+            logger.info(
+                "TickerValidator: Saved to file cache",
+                count=len(self._tradeable_tickers),
+                path=str(CACHE_FILE)
+            )
+
+        except Exception as e:
+            logger.warning(f"TickerValidator: Failed to save file cache: {e}")
+
     async def _periodic_refresh(self) -> None:
         """
         Background task: refresh ticker cache every hour.
@@ -104,10 +191,12 @@ class TickerValidator:
             try:
                 # Wait 1 hour before refresh
                 await asyncio.sleep(3600)  # 3600 seconds = 1 hour
-                
+
                 if self._is_running:
                     await self._refresh_tradeable_tickers()
-            
+                    # Save to file after successful refresh
+                    await self._save_to_file_cache()
+
             except asyncio.CancelledError:
                 break
             except Exception as e:
@@ -132,7 +221,10 @@ class TickerValidator:
                 status=AssetStatus.ACTIVE,
                 asset_class=AssetClass.US_EQUITY
             )
-            assets = self.trading_client.get_all_assets(filter=filter_request)
+            # Use async wrapper to avoid blocking event loop (fetches 8000+ assets)
+            assets = await run_sync_alpaca_call(
+                self.trading_client.get_all_assets, filter=filter_request
+            )
             
             # Filter for NASDAQ, NYSE, and AMEX exchanges and extract tradeable ticker symbols
             tradeable_tickers = {
@@ -261,15 +353,15 @@ class TickerValidator:
         tickers_upper = {t.upper() for t in tickers}
         return bool(tickers_upper & self._tradeable_tickers)  # Set intersection
     
-    def get_validation_reason(self, ticker: str) -> Optional[str]:
+    async def get_validation_reason(self, ticker: str) -> Optional[str]:
         """
         Get detailed reason why a ticker is not tradeable.
-        
+
         Distinguishes between:
         - 'invalid_exchange': Exchange is not NASDAQ/NYSE/AMEX
         - 'broker_not_tradeable': Exchange is valid but ticker not tradeable on broker
         - None: Ticker is tradeable (should not be called if tradeable)
-        
+
         Args:
             ticker: Ticker symbol to check
             
@@ -291,7 +383,10 @@ class TickerValidator:
         
         # Ticker not in cache - check exchange to determine reason
         try:
-            asset = self.trading_client.get_asset(ticker)
+            # Use async wrapper to avoid blocking event loop
+            asset = await run_sync_alpaca_call(
+                self.trading_client.get_asset, ticker
+            )
             if asset and asset.exchange:
                 exchange = asset.exchange
                 
