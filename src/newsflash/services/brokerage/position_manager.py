@@ -33,7 +33,7 @@ Falls back to 500ms polling if WebSocket unavailable.
 """
 import asyncio
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Optional, List, Any, Callable
 from enum import Enum
 
@@ -41,6 +41,7 @@ from ...utils.logging_config import get_logger
 from ...shared.event_bus import AsyncEventBus
 from ...domain.brokerage.models import TradeRequest
 from ...domain.brokerage.models import TradeAction, TradeInstrument
+from ...utils.brokerage.session_detector import seconds_until_extended_hours_end
 
 logger = get_logger(__name__)
 
@@ -97,6 +98,12 @@ FLOOR_RULE_MULTIPLIER = 0.25  # Fallback: 25% of last exit level
 EARLY_EXIT_MINUTES = 5.0  # Check after 5 minutes of holding
 EARLY_EXIT_PROFIT_PCT = 0.10  # Exit if profit >= 10%
 
+# Overnight risk configuration - force exit before extended hours close
+# Rationale: If still holding at 8 PM ET (post-market close), stuck until 4 AM ET next day.
+# Overnight gap risk is unacceptable - force exit 10 minutes before session end.
+FORCE_EXIT_MINUTES_BEFORE_SESSION_END = 10.0  # Force exit 10 min before close
+FORCE_EXIT_ENABLED = True  # Can disable for testing
+
 
 @dataclass
 class Position:
@@ -136,6 +143,14 @@ class Position:
     # Current price tracking (updated by monitor)
     last_price: Optional[float] = None
     last_price_time: Optional[datetime] = None
+
+    # === SCALE-IN MONITORING (for no_volume entries) ===
+    # When entering at 0.5x due to no_volume, monitor for confirmation to add more
+    awaiting_confirmation: bool = False  # True if we entered small and await volume
+    target_full_shares: float = 0.0  # Full position size if confirmed
+    confirmation_deadline: Optional[datetime] = None  # When to stop waiting (30s)
+    confirmation_received: bool = False  # True once volume/activity confirmed
+    scale_in_triggered: bool = False  # True once scale-in order sent
 
     def __post_init__(self):
         self.shares_remaining = self.shares
@@ -264,8 +279,16 @@ class PositionManager:
         article_id: str,
         conviction: ConvictionLevel = ConvictionLevel.STANDARD,
         initial_nbbo_mid: Optional[float] = None,
+        awaiting_confirmation: bool = False,
+        target_full_shares: float = 0.0,
     ) -> Position:
-        """Add a new position to track."""
+        """
+        Add a new position to track.
+
+        Args:
+            awaiting_confirmation: True if this is a partial entry awaiting volume confirmation
+            target_full_shares: Full position size to scale into if confirmed
+        """
         async with self._lock:
             position = Position(
                 ticker=ticker,
@@ -277,22 +300,41 @@ class PositionManager:
                 initial_nbbo_mid=initial_nbbo_mid,
             )
 
+            # Scale-in tracking for no_volume entries
+            if awaiting_confirmation and target_full_shares > shares:
+                position.awaiting_confirmation = True
+                position.target_full_shares = target_full_shares
+                # 30 second deadline to receive confirmation
+                position.confirmation_deadline = datetime.now() + timedelta(seconds=30)
+
             self._positions[ticker] = position
 
             # Subscribe to WebSocket quotes for this symbol
             if self.stream_manager:
                 await self.stream_manager.subscribe_symbol(ticker)
 
-            logger.info(
-                "Position added (tiered exits + immediate stop loss)",
-                ticker=ticker,
-                entry_price=entry_price,
-                shares=shares,
-                cost_basis=position.total_cost_basis,
-                conviction=conviction.value,
-                stop_loss_price=position.stop_loss_price,
-                first_tier=f"+{TIERED_EXIT_THRESHOLDS[0][0]*100:.0f}%",
-            )
+            if awaiting_confirmation:
+                logger.info(
+                    "📊 Position added (AWAITING CONFIRMATION for scale-in)",
+                    ticker=ticker,
+                    entry_price=entry_price,
+                    initial_shares=shares,
+                    target_shares=target_full_shares,
+                    shares_to_add=target_full_shares - shares,
+                    deadline_seconds=30,
+                    conviction=conviction.value,
+                )
+            else:
+                logger.info(
+                    "Position added (tiered exits + immediate stop loss)",
+                    ticker=ticker,
+                    entry_price=entry_price,
+                    shares=shares,
+                    cost_basis=position.total_cost_basis,
+                    conviction=conviction.value,
+                    stop_loss_price=position.stop_loss_price,
+                    first_tier=f"+{TIERED_EXIT_THRESHOLDS[0][0]*100:.0f}%",
+                )
 
             return position
 
@@ -338,6 +380,52 @@ class PositionManager:
                 return True
             return False
 
+    async def update_scale_in(self, ticker: str, fill_price: float, shares_added: int) -> bool:
+        """
+        Update an existing position with scale-in shares.
+
+        Called when a scale-in buy order fills. Updates:
+        - shares: Original + added
+        - shares_remaining: Original + added
+        - total_cost_basis: Weighted average (not recalculated, just added value)
+
+        Returns True if position was updated, False if position not found.
+        """
+        async with self._lock:
+            if ticker not in self._positions:
+                logger.warning(
+                    "Scale-in update failed: Position not found",
+                    ticker=ticker,
+                    shares_added=shares_added,
+                )
+                return False
+
+            position = self._positions[ticker]
+            old_shares = position.shares
+            old_cost_basis = position.total_cost_basis
+
+            # Update position with new shares
+            position.shares += shares_added
+            position.shares_remaining += shares_added
+            position.total_cost_basis += fill_price * shares_added
+
+            # Calculate new average entry for tracking
+            new_avg_entry = position.total_cost_basis / position.shares if position.shares > 0 else position.entry_price
+
+            logger.info(
+                f"📈 SCALE-IN FILLED: Added {shares_added} shares at ${fill_price:.2f}",
+                ticker=ticker,
+                old_shares=old_shares,
+                new_shares=int(position.shares),
+                old_cost_basis=round(old_cost_basis, 2),
+                new_cost_basis=round(position.total_cost_basis, 2),
+                original_entry=position.entry_price,
+                scale_in_price=fill_price,
+                weighted_avg_entry=round(new_avg_entry, 2),
+            )
+
+            return True
+
     async def _handle_quote_event(self, event_type: str, event_data: dict) -> None:
         """Handle QuoteReceived event from WebSocket stream."""
         try:
@@ -362,8 +450,196 @@ class PositionManager:
             # Check exit conditions
             await self._check_position_exit(symbol, bid_price)
 
+            # Check scale-in confirmation (non-blocking, fire-and-forget)
+            await self._check_scale_in_confirmation(symbol, bid_price)
+
         except Exception as e:
             logger.error(f"Error handling quote event: {e}", exc_info=True)
+
+    async def _check_scale_in_confirmation(self, ticker: str, current_price: float) -> None:
+        """
+        Check if a no_volume position should scale in based on post-entry confirmation.
+
+        Confirmation criteria (non-blocking, fire-and-forget):
+        - Position is awaiting confirmation (entered at 0.5x due to no_volume)
+        - At least 5 seconds have passed since entry (give market time to react)
+        - Price is still above entry (demand confirmed)
+        - Within 30 second deadline
+
+        If confirmed, publishes a scale-in buy order (fire-and-forget) to add remaining shares.
+        """
+        async with self._lock:
+            if ticker not in self._positions:
+                return
+
+            position = self._positions[ticker]
+
+            # Skip if not awaiting confirmation or already triggered
+            if not position.awaiting_confirmation or position.scale_in_triggered:
+                return
+
+            now = datetime.now()
+
+            # Check if deadline passed - no scale-in, stay at partial position
+            if position.confirmation_deadline and now > position.confirmation_deadline:
+                position.awaiting_confirmation = False  # Stop checking
+                logger.info(
+                    "📊 SCALE-IN TIMEOUT: No confirmation within 30s, staying at partial position",
+                    ticker=ticker,
+                    entry_price=position.entry_price,
+                    current_shares=position.shares,
+                    target_shares=position.target_full_shares,
+                )
+                return
+
+            # Need at least 5 seconds of price action to confirm
+            seconds_since_entry = (now - position.entry_time).total_seconds()
+            if seconds_since_entry < 5.0:
+                return
+
+            # Confirmation criteria: price still above entry (demand is real)
+            if current_price <= position.entry_price:
+                # Price dropped below entry - not confirming yet, keep watching
+                return
+
+            # CONFIRMED! Price held above entry for 5+ seconds
+            position.confirmation_received = True
+            position.scale_in_triggered = True  # Prevent duplicate orders
+            position.awaiting_confirmation = False
+
+            # Calculate shares to add
+            shares_to_add = int(position.target_full_shares - position.shares)
+            if shares_to_add <= 0:
+                return
+
+            profit_pct = (current_price - position.entry_price) / position.entry_price
+
+            logger.info(
+                f"✅ SCALE-IN CONFIRMED: Price held +{profit_pct*100:.1f}% for {seconds_since_entry:.1f}s - adding {shares_to_add} shares",
+                ticker=ticker,
+                entry_price=position.entry_price,
+                current_price=current_price,
+                current_shares=int(position.shares),
+                adding_shares=shares_to_add,
+                new_total_shares=int(position.target_full_shares),
+                seconds_since_entry=round(seconds_since_entry, 1),
+            )
+
+            # Fire-and-forget scale-in order (non-blocking)
+            asyncio.create_task(self._execute_scale_in(position, shares_to_add, current_price))
+
+    async def _execute_scale_in(self, position: Position, shares_to_add: int, current_price: float) -> None:
+        """Execute scale-in buy order (fire-and-forget, non-blocking)."""
+        try:
+            # Build scale-in trade request
+            trade_request = TradeRequest(
+                ticker=position.ticker,
+                action=TradeAction.BUY,
+                shares=shares_to_add,
+                amount_usd=None,
+                leverage=None,
+                article_id=position.article_id,
+                instrument=TradeInstrument.STOCK,
+            )
+
+            # Publish trade request event
+            from ...domain.brokerage.events import TradeRequestDomainEvent
+
+            scale_in_event = TradeRequestDomainEvent(
+                trade_request=trade_request,
+                article_id=position.article_id,
+                requested_at=datetime.now(),
+                metadata={
+                    "scale_in": True,
+                    "original_entry_price": position.entry_price,
+                    "original_shares": position.shares,
+                    "scale_in_shares": shares_to_add,
+                    "scale_in_price": current_price,
+                    "conviction": position.conviction.value,
+                }
+            )
+
+            await self.event_bus.publish("Domain.TradeRequested", scale_in_event.model_dump())
+
+            logger.info(
+                f"📈 SCALE-IN ORDER PUBLISHED: Adding {shares_to_add} shares",
+                ticker=position.ticker,
+                article_id=position.article_id,
+                shares_to_add=shares_to_add,
+                estimated_price=current_price,
+                estimated_cost=round(shares_to_add * current_price, 2),
+            )
+
+            # Update position tracking (will be fully updated when fill comes back)
+            async with self._lock:
+                position.target_full_shares = position.shares + shares_to_add  # Reflect intent
+
+        except Exception as e:
+            logger.error(f"Error executing scale-in for {position.ticker}: {e}", exc_info=True)
+
+    async def _check_force_exit_session_end(self) -> None:
+        """
+        OVERNIGHT RISK: Force exit all positions before extended hours session ends.
+
+        If still holding at 8 PM ET (post-market close), you're stuck until 4 AM ET next day.
+        This method forces exits 10 minutes before session end to avoid overnight gap risk.
+        """
+        seconds_remaining, session = seconds_until_extended_hours_end()
+
+        # Not in extended hours or session end isn't imminent
+        if session == "closed" or seconds_remaining <= 0:
+            return
+
+        minutes_remaining = seconds_remaining / 60.0
+
+        # Check if we're within the force exit window
+        if minutes_remaining > FORCE_EXIT_MINUTES_BEFORE_SESSION_END:
+            return
+
+        # We're within X minutes of session end - force exit all positions
+        async with self._lock:
+            positions_to_exit = list(self._positions.items())
+
+        if not positions_to_exit:
+            return
+
+        logger.warning(
+            "🚨 OVERNIGHT RISK: Force exiting all positions before session end",
+            session=session,
+            minutes_until_close=round(minutes_remaining, 1),
+            positions_count=len(positions_to_exit),
+            tickers=[t for t, _ in positions_to_exit],
+            reason=f"Extended hours ({session}) ends in {minutes_remaining:.1f} min - avoiding overnight gap risk",
+        )
+
+        for ticker, position in positions_to_exit:
+            exit_key = f"{ticker}_session_end_exit"
+            if exit_key in self._exits_in_progress:
+                continue  # Already exiting
+
+            self._exits_in_progress.add(exit_key)
+
+            # Get current price for exit
+            current_price = position.last_price or position.entry_price
+            profit_pct = (current_price - position.entry_price) / position.entry_price
+
+            logger.warning(
+                "🌙 FORCE EXIT: Exiting position before session close",
+                ticker=ticker,
+                shares=position.shares_remaining,
+                entry_price=position.entry_price,
+                current_price=current_price,
+                profit_pct=round(profit_pct * 100, 2),
+                session_ends_in_min=round(minutes_remaining, 1),
+            )
+
+            asyncio.create_task(self._execute_exit_async(
+                position=position,
+                shares=position.shares_remaining,
+                profit_pct=profit_pct,
+                exit_reason=f"session_end_{session}",
+                exit_key=exit_key,
+            ))
 
     async def _check_position_exit(self, ticker: str, current_price: float) -> None:
         """Check and execute exit for a single position (tiered exits + stop loss)."""
@@ -730,6 +1006,10 @@ class PositionManager:
             pnl_from_exit = (estimated_exit_price - position.entry_price) * shares
             position.realized_pnl += pnl_from_exit
 
+            # Record P&L for daily circuit breaker tracking (lazy import to avoid circular)
+            from .auto_trade import record_trade_pnl
+            record_trade_pnl(position.ticker, pnl_from_exit)
+
         logger.info(
             f"Exit trade request published: {exit_reason}",
             ticker=position.ticker,
@@ -745,6 +1025,10 @@ class PositionManager:
 
     async def _check_all_positions(self) -> None:
         """Check all positions for exit conditions (fallback polling)."""
+        # OVERNIGHT RISK CHECK: Force exit all positions before session end
+        if FORCE_EXIT_ENABLED:
+            await self._check_force_exit_session_end()
+
         async with self._lock:
             positions_to_check = list(self._positions.items())
 
@@ -780,6 +1064,9 @@ class PositionManager:
 
                 # Check exit conditions with valid price
                 await self._check_position_exit(ticker, current_price)
+
+                # Check scale-in confirmation (for no_volume entries awaiting confirmation)
+                await self._check_scale_in_confirmation(ticker, current_price)
 
             except Exception as e:
                 logger.error(f"Error checking position {ticker}: {e}", exc_info=True)

@@ -283,43 +283,90 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
             action = trade_request.get("action", "")
             ticker = trade_request.get("ticker")
 
-            # Track BUY trades (entries) - add position
+            # Track BUY trades (entries) - add position or update for scale-in
             if action.upper() == "BUY" and event_data.get("success"):
                 fill_price = event_data.get("fill_price")
                 shares = event_data.get("shares")
                 article_id = trade_request.get("article_id")
 
-                # Extract conviction from event metadata (set by auto_trade.py)
+                # Extract metadata
                 metadata = event_data.get("metadata", {})
-                conviction_str = metadata.get("conviction", "standard")
-                try:
-                    conviction = ConvictionLevel(conviction_str)
-                except ValueError:
-                    conviction = ConvictionLevel.STANDARD
 
-                # Extract initial_nbbo_mid for analytics/logging
-                initial_nbbo_mid = metadata.get("initial_nbbo_mid")
+                # Check if this is a scale-in fill (adding to existing position)
+                is_scale_in = metadata.get("scale_in", False)
 
-                if ticker and fill_price and shares:
-                    # Register active position for duplicate guard
-                    register_active_position(ticker)
-
-                    await position_manager.add_position(
+                if is_scale_in and ticker and fill_price and shares:
+                    # Scale-in fill: Update existing position, don't create new one
+                    updated = await position_manager.update_scale_in(
                         ticker=ticker,
-                        entry_price=fill_price,
-                        shares=shares,
-                        article_id=article_id or "",
-                        conviction=conviction,
-                        initial_nbbo_mid=initial_nbbo_mid,
+                        fill_price=fill_price,
+                        shares_added=int(shares),
                     )
-                    logger.info(
-                        "Position added from TradeExecuted event (stop loss + let winners run)",
-                        ticker=ticker,
-                        entry_price=fill_price,
-                        shares=shares,
-                        conviction=conviction.value,
-                        stop_loss_price=fill_price * 0.95 if fill_price else None
-                    )
+                    if updated:
+                        logger.info(
+                            "📈 Scale-in fill processed - position updated",
+                            ticker=ticker,
+                            fill_price=fill_price,
+                            shares_added=int(shares),
+                        )
+                    else:
+                        logger.warning(
+                            "Scale-in fill but no position found - creating new position",
+                            ticker=ticker,
+                            fill_price=fill_price,
+                            shares=shares,
+                        )
+                        # Fall through to create new position
+                        is_scale_in = False
+
+                if not is_scale_in:
+                    # Regular entry: Create new position
+                    conviction_str = metadata.get("conviction", "standard")
+                    try:
+                        conviction = ConvictionLevel(conviction_str)
+                    except ValueError:
+                        conviction = ConvictionLevel.STANDARD
+
+                    # Extract initial_nbbo_mid for analytics/logging
+                    initial_nbbo_mid = metadata.get("initial_nbbo_mid")
+
+                    # Extract scale-in parameters for no_volume entries
+                    awaiting_confirmation = metadata.get("awaiting_confirmation", False)
+                    target_full_shares = metadata.get("target_full_shares", 0.0)
+
+                    if ticker and fill_price and shares:
+                        # Register active position for duplicate guard
+                        register_active_position(ticker)
+
+                        await position_manager.add_position(
+                            ticker=ticker,
+                            entry_price=fill_price,
+                            shares=shares,
+                            article_id=article_id or "",
+                            conviction=conviction,
+                            initial_nbbo_mid=initial_nbbo_mid,
+                            awaiting_confirmation=awaiting_confirmation,
+                            target_full_shares=target_full_shares,
+                        )
+                        if awaiting_confirmation:
+                            logger.info(
+                                "📊 Position added (AWAITING SCALE-IN CONFIRMATION)",
+                                ticker=ticker,
+                                entry_price=fill_price,
+                                shares=shares,
+                                target_full_shares=target_full_shares,
+                                scale_in_shares=target_full_shares - shares,
+                                conviction=conviction.value,
+                            )
+                        else:
+                            logger.info(
+                                "Position added from TradeExecuted event (stop loss + let winners run)",
+                                ticker=ticker,
+                                entry_price=fill_price,
+                                shares=shares,
+                                conviction=conviction.value,
+                                stop_loss_price=fill_price * 0.95 if fill_price else None
+                            )
 
             # Track SELL trades (exits) - unregister position and start cooldown
             elif action.upper() == "SELL" and event_data.get("success") and ticker:

@@ -94,9 +94,52 @@ class TradeAnalytics:
     # Spread/slippage
     spread_at_fill_pct: Optional[float] = None
     slippage_vs_mid_pct: Optional[float] = None
+    slippage_from_decision_pct: Optional[float] = None  # TRUE slippage: fill vs decision price
+
+    # Order book depth
+    decision_bid_size: Optional[int] = None
+    decision_ask_size: Optional[int] = None
+    order_vs_depth_ratio: Optional[float] = None  # >1 means order exceeds displayed liquidity
 
     # Exit quality classification
     exit_quality: Optional[str] = None  # optimal, good, late, very_late, too_early
+
+    # Filter checkpoint values (for hit rate analysis)
+    filter_values: Optional[Dict[str, Any]] = None
+    filters_checked: Optional[Dict[str, bool]] = None
+
+
+@dataclass
+class RecallAnalytics:
+    """Analytics for a missed opportunity (false negative)."""
+    article_id: str
+    ticker: str
+    date: str
+    session: str
+    headline: Optional[str] = None
+    headline_type: Optional[str] = None
+
+    # Why we skipped
+    skip_reason: Optional[str] = None
+    skip_filter: Optional[str] = None
+
+    # What we missed
+    price_at_skip: Optional[float] = None
+    max_price_after: Optional[float] = None
+    potential_gain_pct: Optional[float] = None
+    potential_gain_usd: Optional[float] = None  # Based on typical position size
+
+    # Market conditions at skip
+    spread_at_skip_pct: Optional[float] = None
+    decision_ask_size: Optional[int] = None
+
+    # Ticker metadata
+    sector: Optional[str] = None
+    industry: Optional[str] = None
+
+    # Filter checkpoint values (for FN/TN analysis)
+    filter_values: Optional[Dict[str, Any]] = None
+    filters_checked: Optional[Dict[str, bool]] = None
 
 
 @dataclass
@@ -108,28 +151,60 @@ class DailyAnalyticsReport:
     # Market regime
     market_regime: MarketRegime
 
-    # Trade summary
-    total_trades: int
-    profitable_trades: int
-    losing_trades: int
-    win_rate_pct: float
-    total_pnl_usd: float
-    avg_pnl_per_trade_usd: float
+    # === CONFUSION MATRIX SUMMARY ===
+    # TP: Traded, made money | FP: Traded, lost money
+    # TN: Skipped, would have lost | FN: Skipped, would have made money
+    true_positives: int = 0  # Profitable trades
+    false_positives: int = 0  # Losing trades
+    false_negatives: int = 0  # Missed opportunities (from recall data)
+    # TN not tracked (would require simulating all skipped trades)
+
+    # Trade summary (TP + FP)
+    total_trades: int = 0
+    profitable_trades: int = 0
+    losing_trades: int = 0
+    win_rate_pct: float = 0.0
+    total_pnl_usd: float = 0.0
+    avg_pnl_per_trade_usd: float = 0.0
 
     # Peak analysis
-    avg_peak_profit_pct: float
-    avg_exit_profit_pct: float
-    avg_money_left_on_table_pct: float
+    avg_peak_profit_pct: float = 0.0
+    avg_exit_profit_pct: float = 0.0
+    avg_money_left_on_table_pct: float = 0.0
+
+    # Slippage analysis (new)
+    avg_slippage_from_decision_pct: float = 0.0
+    max_slippage_from_decision_pct: float = 0.0
+
+    # Depth analysis (new)
+    avg_order_vs_depth_ratio: float = 0.0
+    avg_decision_ask_size: float = 0.0
+    pct_orders_exceed_depth: float = 0.0
+
+    # === FILTER HIT RATE ANALYSIS ===
+    # Compare filter value distributions between TP/FP to identify discriminating filters
+    filter_analysis: Dict[str, Dict[str, Any]] = None
+    # Structure: {
+    #   "spread_pct": {"tp_avg": 1.2, "tp_max": 3.0, "fp_avg": 2.8, "fp_max": 4.5, "discriminates": True},
+    #   "pub_to_recv_pct": {...},
+    #   ...
+    # }
+
+    # Missed opportunity summary (FN)
+    total_missed_opportunities: int = 0
+    avg_missed_gain_pct: float = 0.0
+    total_missed_gain_usd: float = 0.0
 
     # Breakdown by segment
-    by_industry: Dict[str, Dict[str, Any]]
-    by_sector: Dict[str, Dict[str, Any]]
-    by_market_cap_bucket: Dict[str, Dict[str, Any]]
-    by_headline_type: Dict[str, Dict[str, Any]]
-    by_session: Dict[str, Dict[str, Any]]
+    by_industry: Dict[str, Dict[str, Any]] = None
+    by_sector: Dict[str, Dict[str, Any]] = None
+    by_market_cap_bucket: Dict[str, Dict[str, Any]] = None
+    by_headline_type: Dict[str, Dict[str, Any]] = None
+    by_session: Dict[str, Dict[str, Any]] = None
 
-    # Individual trades
-    trades: List[TradeAnalytics]
+    # Individual data
+    trades: List[TradeAnalytics] = None
+    missed_opportunities: List[RecallAnalytics] = None
 
 
 class DailyAnalyticsJob:
@@ -242,6 +317,69 @@ class DailyAnalyticsJob:
 
         return records
 
+    def load_recall_records(self, target_date: date) -> List[Dict[str, Any]]:
+        """Load all recall records (missed opportunities / false negatives) for a specific date."""
+        records = []
+
+        # Recall files are organized by year/month/week_N/day/session/session.json
+        year = target_date.year
+        month = target_date.month
+        day = target_date.day
+        week = target_date.isocalendar()[1]
+
+        recall_path = Path("tmp/statistics/recall")
+        base_path = recall_path / str(year) / f"{month:02d}" / f"week_{week}" / f"{day:02d}"
+
+        for session in ["premarket", "market_hours", "postmarket"]:
+            session_file = base_path / session / f"{session}.json"
+            if session_file.exists():
+                try:
+                    with open(session_file) as f:
+                        data = json.load(f)
+                    if "records" in data:
+                        for record in data["records"]:
+                            record["_session"] = session
+                        records.extend(data["records"])
+                except Exception as e:
+                    logger.error(f"Error loading recall file {session_file}: {e}")
+
+        return records
+
+    def process_recall_record(self, record: Dict[str, Any]) -> RecallAnalytics:
+        """Convert a recall record to RecallAnalytics."""
+        meta = record.get("ticker_metadata", {}) or {}
+
+        # Calculate potential gain
+        price_at_skip = record.get("price_at_classification") or record.get("recv_time_ask")
+        max_price = record.get("max_price_1min") or record.get("max_price_5min")
+        potential_gain_pct = None
+        potential_gain_usd = None
+
+        if price_at_skip and max_price and price_at_skip > 0:
+            potential_gain_pct = ((max_price - price_at_skip) / price_at_skip) * 100
+            # Estimate USD gain based on $500 position (typical)
+            shares_estimate = int(500 / price_at_skip) if price_at_skip > 0 else 0
+            potential_gain_usd = (max_price - price_at_skip) * shares_estimate
+
+        return RecallAnalytics(
+            article_id=record.get("article_id", ""),
+            ticker=record.get("ticker", ""),
+            date=record.get("recorded_at", "")[:10] if record.get("recorded_at") else "",
+            session=record.get("_session", ""),
+            headline=record.get("headline"),
+            headline_type=record.get("headline_type"),
+            skip_reason=record.get("skip_reason") or record.get("reason"),
+            skip_filter=record.get("skip_filter") or record.get("filter_name"),
+            price_at_skip=price_at_skip,
+            max_price_after=max_price,
+            potential_gain_pct=round(potential_gain_pct, 2) if potential_gain_pct else None,
+            potential_gain_usd=round(potential_gain_usd, 2) if potential_gain_usd else None,
+            spread_at_skip_pct=record.get("spread_at_classification"),
+            decision_ask_size=record.get("decision_ask_size"),
+            sector=meta.get("sector"),
+            industry=meta.get("industry"),
+        )
+
     def process_record(self, record: Dict[str, Any]) -> TradeAnalytics:
         """Convert a signal record to TradeAnalytics."""
         meta = record.get("ticker_metadata", {}) or {}
@@ -319,6 +457,10 @@ class DailyAnalyticsJob:
             confluence_price_excursion_pct=record.get("confluence_price_excursion_pct"),
             spread_at_fill_pct=record.get("spread_at_fill"),
             slippage_vs_mid_pct=record.get("slippage_vs_mid"),
+            slippage_from_decision_pct=record.get("slippage_from_decision"),
+            decision_bid_size=record.get("decision_bid_size"),
+            decision_ask_size=record.get("decision_ask_size"),
+            order_vs_depth_ratio=record.get("order_vs_depth_ratio"),
             exit_quality=exit_quality,
         )
 
@@ -348,6 +490,11 @@ class DailyAnalyticsJob:
         peaks = [t.peak_profit_pct for t in completed if t.peak_profit_pct is not None]
         money_left = [t.money_left_on_table_pct for t in completed if t.money_left_on_table_pct is not None]
 
+        # New metrics: slippage and depth
+        slippage_from_decision = [t.slippage_from_decision_pct for t in trades if t.slippage_from_decision_pct is not None]
+        order_vs_depth = [t.order_vs_depth_ratio for t in trades if t.order_vs_depth_ratio is not None]
+        decision_ask_sizes = [t.decision_ask_size for t in trades if t.decision_ask_size is not None]
+
         winners = len([p for p in profits if p > 0])
 
         return {
@@ -359,7 +506,82 @@ class DailyAnalyticsJob:
             "avg_profit_pct": round(sum(profits) / len(profits), 2) if profits else None,
             "avg_peak_pct": round(sum(peaks) / len(peaks), 2) if peaks else None,
             "avg_money_left_pct": round(sum(money_left) / len(money_left), 2) if money_left else None,
+            # Slippage analysis
+            "avg_slippage_from_decision_pct": round(sum(slippage_from_decision) / len(slippage_from_decision), 3) if slippage_from_decision else None,
+            "max_slippage_from_decision_pct": round(max(slippage_from_decision), 3) if slippage_from_decision else None,
+            # Depth analysis
+            "avg_order_vs_depth_ratio": round(sum(order_vs_depth) / len(order_vs_depth), 2) if order_vs_depth else None,
+            "avg_decision_ask_size": round(sum(decision_ask_sizes) / len(decision_ask_sizes), 0) if decision_ask_sizes else None,
+            "pct_orders_exceed_depth": round(len([r for r in order_vs_depth if r > 1]) / len(order_vs_depth) * 100, 1) if order_vs_depth else None,
         }
+
+    def calculate_filter_analysis(self, records: List[Dict[str, Any]], winners: List[str], losers: List[str]) -> Dict[str, Dict[str, Any]]:
+        """
+        Calculate filter hit rate analysis comparing TP vs FP distributions.
+
+        This identifies which filters discriminate between profitable and losing trades.
+        A filter "discriminates" if the TP distribution differs significantly from FP.
+
+        Args:
+            records: Raw signal records with filter_values
+            winners: List of trade_ids that were profitable
+            losers: List of trade_ids that were losers
+
+        Returns:
+            Dict of filter_name -> {tp_avg, tp_max, fp_avg, fp_max, discriminates, p_value_approx}
+        """
+        filter_analysis = {}
+
+        # Common filter names to analyze
+        filter_names = [
+            "spread_pct", "fill_spread_pct", "pub_to_recv_pct", "recv_to_fill_pct",
+            "ask_vs_first_trade_pct", "confluence_runup_pct", "entry_delay_seconds",
+            "confluence_score", "max_excursion_pct", "imbalance_ratio",
+            "buying_pressure_pct", "dollar_volume", "trade_count", "first_trade_latency_ms"
+        ]
+
+        for filter_name in filter_names:
+            tp_values = []
+            fp_values = []
+
+            for record in records:
+                filter_values = record.get("filter_values") or {}
+                trade_id = record.get("trade_id")
+                val = filter_values.get(filter_name)
+
+                if val is not None:
+                    if trade_id in winners:
+                        tp_values.append(val)
+                    elif trade_id in losers:
+                        fp_values.append(val)
+
+            if tp_values or fp_values:
+                tp_avg = sum(tp_values) / len(tp_values) if tp_values else None
+                tp_max = max(tp_values) if tp_values else None
+                tp_min = min(tp_values) if tp_values else None
+                fp_avg = sum(fp_values) / len(fp_values) if fp_values else None
+                fp_max = max(fp_values) if fp_values else None
+                fp_min = min(fp_values) if fp_values else None
+
+                # Simple discrimination check: means differ by >20%
+                discriminates = False
+                if tp_avg is not None and fp_avg is not None and tp_avg != 0:
+                    pct_diff = abs(tp_avg - fp_avg) / abs(tp_avg) * 100
+                    discriminates = pct_diff > 20
+
+                filter_analysis[filter_name] = {
+                    "tp_count": len(tp_values),
+                    "tp_avg": round(tp_avg, 3) if tp_avg is not None else None,
+                    "tp_max": round(tp_max, 3) if tp_max is not None else None,
+                    "tp_min": round(tp_min, 3) if tp_min is not None else None,
+                    "fp_count": len(fp_values),
+                    "fp_avg": round(fp_avg, 3) if fp_avg is not None else None,
+                    "fp_max": round(fp_max, 3) if fp_max is not None else None,
+                    "fp_min": round(fp_min, 3) if fp_min is not None else None,
+                    "discriminates": discriminates,
+                }
+
+        return filter_analysis
 
     async def run(self, target_date: Optional[date] = None) -> Optional[DailyAnalyticsReport]:
         """
@@ -412,26 +634,66 @@ class DailyAnalyticsJob:
             by_headline_type[t.headline_type or "unknown"].append(t)
             by_session[t.session or "unknown"].append(t)
 
+        # Load recall records (missed opportunities / false negatives)
+        recall_records = self.load_recall_records(target_date)
+        missed_opportunities = [self.process_recall_record(r) for r in recall_records]
+
+        # Calculate new metrics: slippage and depth
+        slippage_vals = [t.slippage_from_decision_pct for t in trades if t.slippage_from_decision_pct is not None]
+        order_vs_depth_vals = [t.order_vs_depth_ratio for t in trades if t.order_vs_depth_ratio is not None]
+        decision_ask_sizes = [t.decision_ask_size for t in trades if t.decision_ask_size is not None]
+
+        # Missed opportunity stats
+        missed_gains = [m.potential_gain_pct for m in missed_opportunities if m.potential_gain_pct is not None and m.potential_gain_pct > 0]
+        missed_usd = [m.potential_gain_usd for m in missed_opportunities if m.potential_gain_usd is not None and m.potential_gain_usd > 0]
+
+        # Calculate filter hit rate analysis (TP vs FP comparison)
+        winner_ids = [t.trade_id for t in completed_trades if t.profit_loss_pct is not None and t.profit_loss_pct > 0]
+        loser_ids = [t.trade_id for t in completed_trades if t.profit_loss_pct is not None and t.profit_loss_pct <= 0]
+        filter_analysis = self.calculate_filter_analysis(records, winner_ids, loser_ids)
+
         # Create report
         report = DailyAnalyticsReport(
             date=target_date.isoformat(),
             generated_at=datetime.now(UK_TZ).isoformat(),
             market_regime=market_regime,
+            # Confusion matrix
+            true_positives=winners,
+            false_positives=len(completed_trades) - winners,
+            false_negatives=len(missed_gains),  # Opportunities with positive gain
+            # Trade summary
             total_trades=len(trades),
             profitable_trades=winners,
             losing_trades=len(completed_trades) - winners,
             win_rate_pct=round((winners / len(completed_trades) * 100) if completed_trades else 0, 1),
             total_pnl_usd=round(sum(pnl_usd), 2) if pnl_usd else 0,
             avg_pnl_per_trade_usd=round(sum(pnl_usd) / len(pnl_usd), 2) if pnl_usd else 0,
+            # Peak analysis
             avg_peak_profit_pct=round(sum(peaks) / len(peaks), 2) if peaks else 0,
             avg_exit_profit_pct=round(sum(profits) / len(profits), 2) if profits else 0,
             avg_money_left_on_table_pct=round(sum(money_left) / len(money_left), 2) if money_left else 0,
+            # Slippage analysis
+            avg_slippage_from_decision_pct=round(sum(slippage_vals) / len(slippage_vals), 3) if slippage_vals else 0,
+            max_slippage_from_decision_pct=round(max(slippage_vals), 3) if slippage_vals else 0,
+            # Depth analysis
+            avg_order_vs_depth_ratio=round(sum(order_vs_depth_vals) / len(order_vs_depth_vals), 2) if order_vs_depth_vals else 0,
+            avg_decision_ask_size=round(sum(decision_ask_sizes) / len(decision_ask_sizes), 0) if decision_ask_sizes else 0,
+            pct_orders_exceed_depth=round(len([r for r in order_vs_depth_vals if r > 1]) / len(order_vs_depth_vals) * 100, 1) if order_vs_depth_vals else 0,
+            # Missed opportunities
+            total_missed_opportunities=len(missed_opportunities),
+            avg_missed_gain_pct=round(sum(missed_gains) / len(missed_gains), 2) if missed_gains else 0,
+            total_missed_gain_usd=round(sum(missed_usd), 2) if missed_usd else 0,
+            # Filter analysis (TP vs FP comparison)
+            filter_analysis=filter_analysis,
+            # Breakdowns
             by_industry={k: self.calculate_segment_stats(v) for k, v in by_industry.items()},
             by_sector={k: self.calculate_segment_stats(v) for k, v in by_sector.items()},
             by_market_cap_bucket={k: self.calculate_segment_stats(v) for k, v in by_market_cap.items()},
             by_headline_type={k: self.calculate_segment_stats(v) for k, v in by_headline_type.items()},
             by_session={k: self.calculate_segment_stats(v) for k, v in by_session.items()},
+            # Individual data
             trades=trades,
+            missed_opportunities=missed_opportunities,
         )
 
         # Save to JSON
@@ -442,6 +704,12 @@ class DailyAnalyticsJob:
             "date": report.date,
             "generated_at": report.generated_at,
             "market_regime": asdict(report.market_regime),
+            "confusion_matrix": {
+                "true_positives": report.true_positives,
+                "false_positives": report.false_positives,
+                "false_negatives": report.false_negatives,
+                "precision_pct": round(report.true_positives / (report.true_positives + report.false_positives) * 100, 1) if (report.true_positives + report.false_positives) > 0 else 0,
+            },
             "summary": {
                 "total_trades": report.total_trades,
                 "profitable_trades": report.profitable_trades,
@@ -453,12 +721,28 @@ class DailyAnalyticsJob:
                 "avg_exit_profit_pct": report.avg_exit_profit_pct,
                 "avg_money_left_on_table_pct": report.avg_money_left_on_table_pct,
             },
+            "slippage_analysis": {
+                "avg_slippage_from_decision_pct": report.avg_slippage_from_decision_pct,
+                "max_slippage_from_decision_pct": report.max_slippage_from_decision_pct,
+            },
+            "depth_analysis": {
+                "avg_order_vs_depth_ratio": report.avg_order_vs_depth_ratio,
+                "avg_decision_ask_size": report.avg_decision_ask_size,
+                "pct_orders_exceed_depth": report.pct_orders_exceed_depth,
+            },
+            "missed_opportunities": {
+                "total_count": report.total_missed_opportunities,
+                "with_positive_gain": report.false_negatives,
+                "avg_missed_gain_pct": report.avg_missed_gain_pct,
+                "total_missed_gain_usd": report.total_missed_gain_usd,
+            },
             "by_industry": report.by_industry,
             "by_sector": report.by_sector,
             "by_market_cap_bucket": report.by_market_cap_bucket,
             "by_headline_type": report.by_headline_type,
             "by_session": report.by_session,
             "trades": [asdict(t) for t in report.trades],
+            "recall_records": [asdict(m) for m in report.missed_opportunities] if report.missed_opportunities else [],
         }
 
         with open(output_file, "w") as f:
@@ -471,6 +755,8 @@ class DailyAnalyticsJob:
             total_trades=report.total_trades,
             win_rate=f"{report.win_rate_pct}%",
             total_pnl=f"${report.total_pnl_usd}",
+            missed_opportunities=report.total_missed_opportunities,
+            avg_slippage=f"{report.avg_slippage_from_decision_pct}%",
             market_regime=market_regime.regime,
         )
 

@@ -349,7 +349,20 @@ class RecallRecord(BaseModel):
         None,
         description="When monitoring completed (after 2 minutes or surge detected)"
     )
-    
+
+    # === FILTER CHECKPOINT VALUES (for hit rate analysis) ===
+    # These capture the actual values at each filter checkpoint for FN/TN analysis.
+    # Enables comparison with TP/FP to identify what distinguishes good from bad trades.
+    filter_values: Optional[Dict[str, Any]] = Field(
+        None,
+        description="All filter checkpoint values: spread_pct, pub_to_recv_pct, recv_to_fill_pct, ask_vs_first_trade_pct, confluence_runup_pct, entry_delay_s, market_cap_m, etc."
+    )
+    # Which filters would have passed if we had proceeded (for FN analysis)
+    filters_checked: Optional[Dict[str, bool]] = Field(
+        None,
+        description="Filter name -> would_pass (True/False). Shows which filters the trade would have passed."
+    )
+
     model_config = {"frozen": False}  # Allow updates for price_check_10min and monitoring fields
 
 
@@ -533,9 +546,16 @@ class SignalRecord(BaseModel):
     spread_compression_30s: Optional[float] = Field(None, description="Spread compression % in first 30s")
 
     # Fill quality metrics
-    slippage_vs_mid: Optional[float] = Field(None, description="Slippage %: (fill - mid) / mid * 100")
-    slippage_vs_ask: Optional[float] = Field(None, description="Slippage %: (fill - ask) / ask * 100")
+    slippage_from_decision: Optional[float] = Field(None, description="TRUE SLIPPAGE %: (fill_price - decision_ask) / decision_ask * 100. The most important metric - how much more you paid vs when you decided to trade.")
+    slippage_vs_mid: Optional[float] = Field(None, description="Slippage vs fill-time mid %: (fill - mid) / mid * 100")
+    slippage_vs_ask: Optional[float] = Field(None, description="Slippage vs fill-time ask %: (fill - ask) / ask * 100")
     fill_speed_ms: Optional[float] = Field(None, description="Milliseconds from order to fill")
+    chase_attempts: Optional[int] = Field(None, description="Number of chase attempts before fill")
+
+    # Order book depth at decision time (for liquidity analysis)
+    decision_bid_size: Optional[int] = Field(None, description="Bid size (depth) at top of book when trade decision made")
+    decision_ask_size: Optional[int] = Field(None, description="Ask size (depth) at top of book when trade decision made")
+    order_vs_depth_ratio: Optional[float] = Field(None, description="Your order size / ask_size - >1 means you'll move the market")
 
     # Volume windows (collected async)
     volume_1min: Optional[int] = Field(None, description="Volume in first 1 minute after news")
@@ -568,9 +588,22 @@ class SignalRecord(BaseModel):
     enrichment_completed: bool = Field(False, description="Whether async enrichment finished")
     enrichment_completed_at: Optional[datetime] = Field(None, description="When enrichment finished")
     
+    # === FILTER CHECKPOINT VALUES (for hit rate analysis) ===
+    # These capture the actual values at each filter checkpoint, regardless of pass/fail.
+    # Enables comparison of distributions between TP/FP to identify discriminating filters.
+    filter_values: Optional[Dict[str, Any]] = Field(
+        None,
+        description="All filter checkpoint values: spread_pct, pub_to_recv_pct, recv_to_fill_pct, ask_vs_first_trade_pct, confluence_runup_pct, entry_delay_s, market_cap_m, etc."
+    )
+    # Which filters were checked and their pass/fail status
+    filters_checked: Optional[Dict[str, bool]] = Field(
+        None,
+        description="Filter name -> passed (True/False). All filters that were evaluated."
+    )
+
     # Tracking metadata
     recorded_at: datetime = Field(default_factory=datetime.now, description="When record was created")
-    
+
     model_config = {"frozen": False}  # Allow updates for exit data
 
 

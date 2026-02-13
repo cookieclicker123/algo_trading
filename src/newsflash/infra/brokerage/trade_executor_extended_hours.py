@@ -371,11 +371,9 @@ class AlpacaExtendedHoursTradeExecutor:
                         slippage_so_far=f"{((limit_price - initial_ask) / initial_ask * 100):.2f}%" if limit_price > initial_ask else "0%",
                     )
 
-                    # Cancel any previous order before placing new one
-                    if current_order_id:
-                        await self._cancel_order_safely(current_order_id)
-                        current_order_id = None
-
+                    # PARALLEL ORDER SUBMISSION: Minimize gap when replacing orders
+                    # Old approach: cancel → wait → submit (200-500ms gap with no order on book)
+                    # New approach: start cancel → minimal wait → submit (reduces gap to ~50ms)
                     order_data = LimitOrderRequest(
                         symbol=trade_request.ticker,
                         qty=quantity,
@@ -385,23 +383,71 @@ class AlpacaExtendedHoursTradeExecutor:
                         extended_hours=True
                     )
 
-                    try:
-                        order = self.trading_client.submit_order(order_data=order_data)
-                        current_order_id = order.id
-                    except Exception as order_error:
-                        logger.error(
-                            f"Chase attempt {attempt}: Order submission failed",
-                            ticker=trade_request.ticker,
-                            error=str(order_error)
-                        )
-                        chase_attempts.append({
-                            "attempt": attempt,
-                            "limit_price": limit_price,
-                            "result": "submission_failed",
-                            "error": str(order_error)
-                        })
-                        await asyncio.sleep(interval_ms / 1000)
-                        continue
+                    if current_order_id:
+                        # Start cancel in background (don't await full completion)
+                        cancel_task = asyncio.create_task(self._cancel_order_fire_and_forget(current_order_id))
+                        # Brief wait for cancel to propagate to exchange (~50ms usually enough)
+                        await asyncio.sleep(0.05)
+                        current_order_id = None
+
+                        try:
+                            order = self.trading_client.submit_order(order_data=order_data)
+                            current_order_id = order.id
+                        except Exception as order_error:
+                            # Likely buying power still tied up - wait for cancel to complete and retry
+                            if "buying power" in str(order_error).lower() or "insufficient" in str(order_error).lower():
+                                await cancel_task  # Ensure cancel completes
+                                await asyncio.sleep(0.1)  # Extra buffer for buying power release
+                                try:
+                                    order = self.trading_client.submit_order(order_data=order_data)
+                                    current_order_id = order.id
+                                except Exception as retry_error:
+                                    logger.error(
+                                        f"Chase attempt {attempt}: Order submission failed after cancel",
+                                        ticker=trade_request.ticker,
+                                        error=str(retry_error)
+                                    )
+                                    chase_attempts.append({
+                                        "attempt": attempt,
+                                        "limit_price": limit_price,
+                                        "result": "submission_failed",
+                                        "error": str(retry_error)
+                                    })
+                                    await asyncio.sleep(interval_ms / 1000)
+                                    continue
+                            else:
+                                logger.error(
+                                    f"Chase attempt {attempt}: Order submission failed",
+                                    ticker=trade_request.ticker,
+                                    error=str(order_error)
+                                )
+                                chase_attempts.append({
+                                    "attempt": attempt,
+                                    "limit_price": limit_price,
+                                    "result": "submission_failed",
+                                    "error": str(order_error)
+                                })
+                                await asyncio.sleep(interval_ms / 1000)
+                                continue
+                    else:
+                        # First attempt - no previous order to cancel
+                        try:
+                            order = self.trading_client.submit_order(order_data=order_data)
+                            current_order_id = order.id
+                        except Exception as order_error:
+                            logger.error(
+                                f"Chase attempt {attempt}: Order submission failed",
+                                ticker=trade_request.ticker,
+                                error=str(order_error)
+                            )
+                            chase_attempts.append({
+                                "attempt": attempt,
+                                "limit_price": limit_price,
+                                "result": "submission_failed",
+                                "error": str(order_error)
+                            })
+                            await asyncio.sleep(interval_ms / 1000)
+                            continue
 
                     # Wait for fill (500ms)
                     attempt_start = time.time()
@@ -610,11 +656,7 @@ class AlpacaExtendedHoursTradeExecutor:
                         slippage_so_far=f"{((initial_bid - limit_price) / initial_bid * 100):.2f}%" if limit_price < initial_bid else "0%",
                     )
 
-                    # Cancel any previous order before placing new one
-                    if current_order_id:
-                        await self._cancel_order_safely(current_order_id)
-                        current_order_id = None
-
+                    # PARALLEL ORDER SUBMISSION: Minimize gap when replacing orders
                     order_data = LimitOrderRequest(
                         symbol=trade_request.ticker,
                         qty=quantity,
@@ -624,23 +666,71 @@ class AlpacaExtendedHoursTradeExecutor:
                         extended_hours=True
                     )
 
-                    try:
-                        order = self.trading_client.submit_order(order_data=order_data)
-                        current_order_id = order.id
-                    except Exception as order_error:
-                        logger.error(
-                            f"Chase attempt {attempt}: Order submission failed",
-                            ticker=trade_request.ticker,
-                            error=str(order_error)
-                        )
-                        chase_attempts.append({
-                            "attempt": attempt,
-                            "limit_price": limit_price,
-                            "result": "submission_failed",
-                            "error": str(order_error)
-                        })
-                        await asyncio.sleep(CHASE_INTERVAL_MS / 1000)
-                        continue
+                    if current_order_id:
+                        # Start cancel in background (don't await full completion)
+                        cancel_task = asyncio.create_task(self._cancel_order_fire_and_forget(current_order_id))
+                        # Brief wait for cancel to propagate (~50ms)
+                        await asyncio.sleep(0.05)
+                        current_order_id = None
+
+                        try:
+                            order = self.trading_client.submit_order(order_data=order_data)
+                            current_order_id = order.id
+                        except Exception as order_error:
+                            # Likely shares still held by previous order - wait for cancel and retry
+                            if "insufficient" in str(order_error).lower() or "qty" in str(order_error).lower():
+                                await cancel_task  # Ensure cancel completes
+                                await asyncio.sleep(0.1)  # Extra buffer for shares release
+                                try:
+                                    order = self.trading_client.submit_order(order_data=order_data)
+                                    current_order_id = order.id
+                                except Exception as retry_error:
+                                    logger.error(
+                                        f"Chase attempt {attempt}: Order submission failed after cancel",
+                                        ticker=trade_request.ticker,
+                                        error=str(retry_error)
+                                    )
+                                    chase_attempts.append({
+                                        "attempt": attempt,
+                                        "limit_price": limit_price,
+                                        "result": "submission_failed",
+                                        "error": str(retry_error)
+                                    })
+                                    await asyncio.sleep(CHASE_INTERVAL_MS / 1000)
+                                    continue
+                            else:
+                                logger.error(
+                                    f"Chase attempt {attempt}: Order submission failed",
+                                    ticker=trade_request.ticker,
+                                    error=str(order_error)
+                                )
+                                chase_attempts.append({
+                                    "attempt": attempt,
+                                    "limit_price": limit_price,
+                                    "result": "submission_failed",
+                                    "error": str(order_error)
+                                })
+                                await asyncio.sleep(CHASE_INTERVAL_MS / 1000)
+                                continue
+                    else:
+                        # First attempt - no previous order to cancel
+                        try:
+                            order = self.trading_client.submit_order(order_data=order_data)
+                            current_order_id = order.id
+                        except Exception as order_error:
+                            logger.error(
+                                f"Chase attempt {attempt}: Order submission failed",
+                                ticker=trade_request.ticker,
+                                error=str(order_error)
+                            )
+                            chase_attempts.append({
+                                "attempt": attempt,
+                                "limit_price": limit_price,
+                                "result": "submission_failed",
+                                "error": str(order_error)
+                            })
+                            await asyncio.sleep(CHASE_INTERVAL_MS / 1000)
+                            continue
 
                     # Wait for fill (500ms)
                     await asyncio.sleep(CHASE_INTERVAL_MS / 1000)
@@ -1083,7 +1173,7 @@ class AlpacaExtendedHoursTradeExecutor:
     async def _cancel_order_safely(self, order_id: str) -> None:
         """
         Cancel an order safely, handling cases where it may already be filled/cancelled.
-        
+
         Args:
             order_id: Order ID to cancel
         """
@@ -1102,6 +1192,28 @@ class AlpacaExtendedHoursTradeExecutor:
             # Order might not exist or already be cancelled - log but don't fail
             logger.warning(
                 "Failed to cancel order (may already be filled/cancelled)",
+                order_id=order_id,
+                error=str(e)
+            )
+
+    async def _cancel_order_fire_and_forget(self, order_id: str) -> None:
+        """
+        Cancel an order quickly without checking status first.
+
+        Used for parallel order submission - we fire the cancel and immediately
+        try to submit a new order, minimizing the gap with no order on book.
+
+        Args:
+            order_id: Order ID to cancel
+        """
+        try:
+            # Skip status check - just fire cancel directly (faster)
+            self.trading_client.cancel_order_by_id(order_id)
+            logger.debug("Fire-and-forget cancel sent", order_id=order_id)
+        except Exception as e:
+            # Order might already be filled/cancelled - that's fine
+            logger.debug(
+                "Fire-and-forget cancel returned error (may be filled)",
                 order_id=order_id,
                 error=str(e)
             )

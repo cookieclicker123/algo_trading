@@ -278,6 +278,18 @@ class SignalStatsEngine:
             fill_time_ask=entry_nbbo.get("ask") if entry_nbbo else None,
             pub_to_recv_pct=confluence_metadata.get("pub_to_recv_pct"),
             recv_to_fill_pct=confluence_metadata.get("recv_to_fill_pct"),
+            # TRUE SLIPPAGE: fill price vs decision price (the metric that matters most)
+            slippage_from_decision=self._calculate_slippage_from_decision(
+                entry_price=entry_price,
+                decision_ask=confluence_metadata.get("initial_ask")
+            ),
+            # Order book depth at decision time (for liquidity analysis)
+            decision_bid_size=confluence_metadata.get("initial_bid_size"),
+            decision_ask_size=confluence_metadata.get("initial_ask_size"),
+            order_vs_depth_ratio=self._calculate_order_vs_depth_ratio(
+                order_shares=entry_shares,
+                ask_size=confluence_metadata.get("initial_ask_size")
+            ),
         )
 
         # Append record immediately (before metadata fetch)
@@ -459,7 +471,60 @@ class SignalStatsEngine:
                 error=str(e),
                 exc_info=True
             )
-    
+
+    def _calculate_slippage_from_decision(
+        self,
+        entry_price: Optional[float],
+        decision_ask: Optional[float]
+    ) -> Optional[float]:
+        """
+        Calculate TRUE slippage: how much more you paid vs the ask when you decided to trade.
+
+        This is THE most important slippage metric for strategy calibration.
+        - Positive value = you paid MORE than the decision-time ask (slipped)
+        - Negative value = you paid LESS than the decision-time ask (improvement)
+        - Zero = perfect execution at decision price
+
+        Formula: (fill_price - decision_ask) / decision_ask * 100
+
+        Args:
+            entry_price: Actual fill price
+            decision_ask: Ask price when trade decision was made (recv_time_ask)
+
+        Returns:
+            Slippage percentage, or None if inputs are invalid
+        """
+        if not entry_price or not decision_ask or decision_ask <= 0:
+            return None
+
+        slippage_pct = ((entry_price - decision_ask) / decision_ask) * 100
+        return round(slippage_pct, 3)
+
+    def _calculate_order_vs_depth_ratio(
+        self,
+        order_shares: Optional[int],
+        ask_size: Optional[int]
+    ) -> Optional[float]:
+        """
+        Calculate how your order size compares to displayed liquidity.
+
+        - Ratio < 1: Your order fits within top-of-book liquidity
+        - Ratio = 1: Your order exactly matches displayed depth
+        - Ratio > 1: Your order exceeds displayed depth (will move market)
+
+        Args:
+            order_shares: Number of shares in your order
+            ask_size: Displayed ask size at top of book
+
+        Returns:
+            Ratio of order size to ask depth, or None if invalid
+        """
+        if not order_shares or not ask_size or ask_size <= 0:
+            return None
+
+        ratio = order_shares / ask_size
+        return round(ratio, 2)
+
     async def _fetch_and_update_metadata(
         self,
         record: SignalRecord,

@@ -110,7 +110,7 @@ def get_market_session_from_timestamp(timestamp: datetime) -> Tuple[str, bool]:
 def seconds_until_next_premarket() -> float:
     """
     Calculate seconds until next premarket opening.
-    
+
     Returns:
         Seconds until next premarket, or None if unable to calculate
     """
@@ -123,4 +123,39 @@ def seconds_until_next_premarket() -> float:
     except Exception as e:
         logger.error("Failed to calculate seconds until next premarket", error=str(e))
         return 0.0
+
+
+def seconds_until_extended_hours_end() -> Tuple[float, str]:
+    """
+    Calculate seconds until current extended hours session ends.
+
+    OVERNIGHT RISK: Positions must be exited before extended hours close,
+    otherwise they're stuck until next session (overnight gap risk).
+
+    Returns:
+        Tuple of (seconds_remaining, session_name)
+        - Premarket ends at 9:30 AM ET (market open)
+        - Postmarket ends at 8:00 PM ET (market close)
+        - Returns (0.0, "closed") if market closed or regular hours
+    """
+    et_tz = pytz.timezone("US/Eastern")
+    now_et = datetime.now(et_tz)
+
+    market_open = now_et.replace(hour=9, minute=30, second=0, microsecond=0)
+    market_close = now_et.replace(hour=16, minute=0, second=0, microsecond=0)
+    premarket_start = now_et.replace(hour=4, minute=0, second=0, microsecond=0)
+    postmarket_end = now_et.replace(hour=20, minute=0, second=0, microsecond=0)
+
+    # Premarket: 4 AM - 9:30 AM ET
+    if premarket_start <= now_et < market_open:
+        delta = (market_open - now_et).total_seconds()
+        return max(0.0, delta), "premarket"
+
+    # Postmarket: 4 PM - 8 PM ET
+    if market_close <= now_et < postmarket_end:
+        delta = (postmarket_end - now_et).total_seconds()
+        return max(0.0, delta), "postmarket"
+
+    # Regular hours or closed - no extended hours end to worry about
+    return 0.0, "closed"
 

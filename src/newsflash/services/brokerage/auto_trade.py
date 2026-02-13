@@ -22,7 +22,7 @@ Price movement filter: 3% max ask change per leg (pub→recv, recv→fill).
 Pure functions for trade processing logic, with minimal service class for event subscriptions.
 """
 from decimal import Decimal
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date
 from typing import Optional
 
 from ...utils.logging_config import get_logger
@@ -99,6 +99,120 @@ async def _record_postfilter_skip(article_id: str, reason: str) -> None:
             await _recall_engine.record_postfilter_skip(article_id, reason)
         except Exception as e:
             logger.debug(f"Failed to record postfilter skip: {e}")
+
+
+# ============================================================
+# DAILY P&L CIRCUIT BREAKER
+# ============================================================
+# Shuts down trading for the day if losses exceed threshold.
+# Protects against systematic failures (bad data, broken filters).
+# Threshold should be scaled with position sizes.
+
+DAILY_MAX_LOSS_USD = 5.00  # Shut down after $5 loss (scale up as positions increase)
+DAILY_MAX_LOSS_ENABLED = True  # Set to False to disable circuit breaker
+
+_daily_pnl_usd: float = 0.0  # Running P&L for the day
+_daily_pnl_trades: list = []  # List of (ticker, pnl) for logging
+_daily_pnl_date: Optional[date] = None  # Date of current tracking period
+_circuit_breaker_triggered: bool = False  # True if we've hit the limit
+_circuit_breaker_trigger_time: Optional[datetime] = None
+
+
+def _reset_daily_pnl_if_new_day() -> None:
+    """Reset daily P&L tracking if it's a new trading day."""
+    global _daily_pnl_usd, _daily_pnl_trades, _daily_pnl_date, _circuit_breaker_triggered, _circuit_breaker_trigger_time
+
+    today = date.today()
+    if _daily_pnl_date != today:
+        if _daily_pnl_date is not None:
+            logger.info(
+                f"📊 DAILY P&L RESET: New trading day",
+                previous_date=_daily_pnl_date.isoformat() if _daily_pnl_date else None,
+                previous_pnl=f"${_daily_pnl_usd:.2f}",
+                previous_trades=len(_daily_pnl_trades),
+                circuit_breaker_was_triggered=_circuit_breaker_triggered,
+            )
+        _daily_pnl_usd = 0.0
+        _daily_pnl_trades = []
+        _daily_pnl_date = today
+        _circuit_breaker_triggered = False
+        _circuit_breaker_trigger_time = None
+
+
+def record_trade_pnl(ticker: str, pnl_usd: float) -> None:
+    """
+    Record P&L from a closed trade.
+
+    Called when a trade exits (from position_manager or exit handler).
+    Checks if circuit breaker should be triggered.
+    """
+    global _daily_pnl_usd, _daily_pnl_trades, _circuit_breaker_triggered, _circuit_breaker_trigger_time
+
+    _reset_daily_pnl_if_new_day()
+
+    _daily_pnl_usd += pnl_usd
+    _daily_pnl_trades.append((ticker, pnl_usd, datetime.now()))
+
+    logger.info(
+        f"📊 DAILY P&L UPDATE: {'+' if pnl_usd >= 0 else ''}{pnl_usd:.2f}",
+        ticker=ticker,
+        trade_pnl=f"${pnl_usd:.2f}",
+        daily_pnl=f"${_daily_pnl_usd:.2f}",
+        daily_trades=len(_daily_pnl_trades),
+        max_loss_threshold=f"-${DAILY_MAX_LOSS_USD:.2f}",
+    )
+
+    # Check circuit breaker
+    if DAILY_MAX_LOSS_ENABLED and not _circuit_breaker_triggered:
+        if _daily_pnl_usd <= -DAILY_MAX_LOSS_USD:
+            _circuit_breaker_triggered = True
+            _circuit_breaker_trigger_time = datetime.now()
+
+            # Build trade history for logging
+            trade_history = "\n".join([
+                f"  {i+1}. {t[0]}: ${t[1]:+.2f} at {t[2].strftime('%H:%M:%S')}"
+                for i, t in enumerate(_daily_pnl_trades)
+            ])
+
+            logger.error(
+                f"🚨🚨🚨 CIRCUIT BREAKER TRIGGERED: Daily loss exceeded ${DAILY_MAX_LOSS_USD:.2f} 🚨🚨🚨\n"
+                f"═══════════════════════════════════════════════════════════════\n"
+                f"SYSTEM SHUTDOWN - NO NEW TRADES WILL BE EXECUTED\n"
+                f"═══════════════════════════════════════════════════════════════\n"
+                f"Daily P&L: ${_daily_pnl_usd:.2f}\n"
+                f"Threshold: -${DAILY_MAX_LOSS_USD:.2f}\n"
+                f"Trades today: {len(_daily_pnl_trades)}\n"
+                f"Trade history:\n{trade_history}\n"
+                f"═══════════════════════════════════════════════════════════════\n"
+                f"To resume trading:\n"
+                f"  1. Restart the system (resets for new day), OR\n"
+                f"  2. Increase DAILY_MAX_LOSS_USD threshold, OR\n"
+                f"  3. Set DAILY_MAX_LOSS_ENABLED = False\n"
+                f"═══════════════════════════════════════════════════════════════",
+                daily_pnl=f"${_daily_pnl_usd:.2f}",
+                threshold=f"-${DAILY_MAX_LOSS_USD:.2f}",
+                trades_today=len(_daily_pnl_trades),
+            )
+
+
+def is_circuit_breaker_triggered() -> bool:
+    """Check if the daily loss circuit breaker has been triggered."""
+    _reset_daily_pnl_if_new_day()
+    return _circuit_breaker_triggered
+
+
+def get_daily_pnl_status() -> dict:
+    """Get current daily P&L status for monitoring/display."""
+    _reset_daily_pnl_if_new_day()
+    return {
+        "daily_pnl_usd": _daily_pnl_usd,
+        "daily_trades": len(_daily_pnl_trades),
+        "max_loss_threshold": DAILY_MAX_LOSS_USD,
+        "circuit_breaker_enabled": DAILY_MAX_LOSS_ENABLED,
+        "circuit_breaker_triggered": _circuit_breaker_triggered,
+        "circuit_breaker_trigger_time": _circuit_breaker_trigger_time.isoformat() if _circuit_breaker_trigger_time else None,
+        "remaining_before_shutoff": max(0, DAILY_MAX_LOSS_USD + _daily_pnl_usd) if not _circuit_breaker_triggered else 0,
+    }
 
 
 def register_skipped_ticker(ticker: str) -> None:
@@ -266,9 +380,8 @@ CONFLUENCE_MULTIPLIERS = {
 # Data shows: headlines are harder to manipulate than microstructure (gap & trap).
 LAST_CHANCE_WINDOW_SECONDS = 8        # Total window for surge monitoring
 LAST_CHANCE_POLL_INTERVAL = 0.1       # Check every 100ms (WebSocket data is instant)
-SURGE_PRICE_ACTION_PCT = 5.0          # 5% price move required for surge
+SURGE_PRICE_ACTION_PCT = 2.0          # 2% POSITIVE price move required for surge (consistent with 5% runup filter)
 SURGE_BUYING_PRESSURE = 0.80          # 80% buying pressure required for surge
-FAST_SURGE_THRESHOLD_SECONDS = 3.0    # If surge found within 3s → STANDARD sizing, else MINIMUM
 SURGE_VOLUME_MULTIPLIER = 3.0         # Volume must be 3x prior 10min average
 SURGE_TRADE_COUNT_MULTIPLIER = 3.0    # Trade count must be 3x prior 10min average
 MIN_ABSOLUTE_VOLUME = 2000            # Absolute minimum volume (even if prior is 0)
@@ -634,6 +747,9 @@ async def check_confluence_signals(
             metadata["initial_spread"] = initial_nbbo.get("spread")
             metadata["initial_ask"] = initial_nbbo.get("ask")
             metadata["initial_bid"] = initial_nbbo.get("bid")
+            # Order book depth at decision time (for liquidity analysis)
+            metadata["initial_bid_size"] = initial_nbbo.get("bid_size")
+            metadata["initial_ask_size"] = initial_nbbo.get("ask_size")
 
         # Wait until 2 seconds have passed since publication
         if time_since_publication < OBSERVATION_WINDOW_SECONDS:
@@ -1097,10 +1213,20 @@ def should_process_classification(result: ClassificationResult, enabled: bool) -
     Returns:
         True if should process, False otherwise
     """
+    # Check circuit breaker FIRST - this is critical safety
+    if is_circuit_breaker_triggered():
+        logger.warning(
+            f"🚨 AUTO-TRADE BLOCKED: Circuit breaker triggered (daily loss exceeded ${DAILY_MAX_LOSS_USD:.2f})",
+            article_id=result.article_id,
+            daily_pnl=f"${_daily_pnl_usd:.2f}",
+            message="System shutdown due to daily loss limit. No new trades until tomorrow or manual reset."
+        )
+        return False
+
     if not enabled:
         logger.info(f"⏭️ AUTO-TRADE SKIPPED: Auto-trading disabled", article_id=result.article_id)
         return False
-    
+
     if result.classification != ClassificationCategory.IMMINENT:
         logger.debug(
             "AutoTradeService: Skipping non-IMMINENT classification",
@@ -1108,7 +1234,7 @@ def should_process_classification(result: ClassificationResult, enabled: bool) -
             classification=result.classification.value
         )
         return False
-    
+
     return True
 
 
@@ -1331,6 +1457,19 @@ async def publish_trade_request(
         if "initial_nbbo_mid" in confluence_metadata:
             metadata["initial_nbbo_mid"] = confluence_metadata["initial_nbbo_mid"]
 
+        # Scale-in tracking for no_volume entries (0.5x initial position)
+        # If we entered at half size, track full target for scale-in on confirmation
+        confluence_level = confluence_metadata.get("confluence_level", "full")
+        confluence_multiplier = confluence_metadata.get("confluence_multiplier", 1.0)
+        if confluence_level == "no_volume" and confluence_multiplier < 1.0:
+            # Calculate full shares (without the 0.5x multiplier)
+            current_shares = trade_request.shares if trade_request.shares else 0
+            if current_shares > 0 and confluence_multiplier > 0:
+                full_shares = int(current_shares / confluence_multiplier)
+                metadata["awaiting_confirmation"] = True
+                metadata["target_full_shares"] = full_shares
+                metadata["scale_in_shares"] = full_shares - int(current_shares)
+
     domain_trade_event = TradeRequestDomainEvent(
         trade_request=trade_request,
         article_id=article_id,
@@ -1470,19 +1609,23 @@ async def process_imminent_article(
         # REINSTATED: 2-second confluence check gates trades on market activity.
         # Rationale: AI determines WHAT to trade, confluence confirms activity.
         # STRENGTH = at least 1 criterion met + 0.5% excursion (any direction)
-        # SURGE = full surge criteria (5% move, 80% buying pressure, volume spike)
+        # SURGE = full surge criteria (2%+ positive move, 80% buying pressure, volume spike)
 
-        # Map AI position size to conviction level
-        ai_position_size = event_position_size or "MODERATE"  # Default to MODERATE if not specified
-        ai_conviction = AI_SIZE_TO_CONVICTION.get(ai_position_size.upper(), ConvictionLevel.STANDARD)
+        # BASE SIZE: Always $4 (VERY_HIGH)
+        # Rationale: AI should only trade strong headlines. If a weak headline slips through,
+        # that's a false positive to be fixed in prompt refinement, not a sizing decision.
+        # Position size = $4 base × confluence_multiplier (0.5-1.0)
+        ai_position_size = event_position_size or "MAX"  # Log what AI sent, but always use MAX
+        ai_conviction = ConvictionLevel.VERY_HIGH  # Always $4 base
 
         logger.info(
-            f"🚀 AI POSITION SIZE: {ai_position_size} → {ai_conviction.value}",
+            f"🚀 BASE SIZE: $4 (AI sent: {ai_position_size})",
             ticker=ticker,
             ai_position_size=ai_position_size,
             conviction=ai_conviction.value,
             position_size=f"${POSITION_SIZES_USD[ai_conviction]}",
             article_id=article_id,
+            note="Base always $4, modified by confluence multiplier only"
         )
 
         # ============================================================
@@ -1556,9 +1699,11 @@ async def process_imminent_article(
             )
 
             if surge_result:
-                # SURGE found - use STANDARD conviction (surge trades are higher risk)
+                # SURGE found - use same sizing logic as STRENGTH trades
+                # Same $4 base, same confluence multiplier, same safety filters
+                # Rationale: If safety filters pass, ticker hasn't run away
                 is_surge_trade = True
-                conviction = ConvictionLevel.STANDARD
+                conviction = ai_conviction  # Use AI conviction, not STANDARD override
                 surge_timing = surge_result.get("surge_timing_seconds", 0)
                 logger.info(
                     f"🚀 SURGE CONFIRMED: All criteria met in {surge_timing:.1f}s",
@@ -1666,6 +1811,27 @@ async def process_imminent_article(
                     )
                     await _record_postfilter_skip(article_id, f"postfilter_spread_too_wide:{spread_pct_of_mid:.0f}%")
                     return
+
+        # ============================================================
+        # 🎯 SELLING PRESSURE FILTER: Block heavy selling
+        # ============================================================
+        # If imbalance ratio is strongly negative, there's more selling than buying.
+        # This is a red flag - someone knows something we don't.
+        SELLING_PRESSURE_THRESHOLD = -0.3  # More than 65% selling = block
+        confluence_imbalance = confluence_metadata.get("confluence_imbalance_ratio")
+        if confluence_imbalance is not None and confluence_imbalance < SELLING_PRESSURE_THRESHOLD:
+            buying_pct = ((confluence_imbalance + 1) / 2) * 100  # Convert to buying %
+            logger.info(
+                "⏭️ AUTO-TRADE SKIPPED: Heavy selling pressure detected",
+                ticker=ticker,
+                imbalance_ratio=round(confluence_imbalance, 3),
+                buying_pressure_pct=round(buying_pct, 1),
+                threshold=SELLING_PRESSURE_THRESHOLD,
+                article_id=article_id,
+                reason="Imbalance strongly negative - more sellers than buyers, someone knows something"
+            )
+            await _record_postfilter_skip(article_id, f"postfilter_selling_pressure:{confluence_imbalance:.2f}")
+            return
 
         logger.info(
             "✅ SAFETY FILTERS PASSED - Proceeding to trade",
@@ -1825,14 +1991,50 @@ async def process_imminent_article(
         initial_ask = confluence_metadata.get("initial_ask")  # Ask at reception/confluence time
 
         # LEG 1: Publication → Reception price change
-        # Fetch historical quote at publication time to detect pre-reception movement
+        # Try WebSocket cache first (instant), fall back to REST API (100-300ms)
         pub_time_ask = None
-        if market_data_client and published_at:
+        pub_quote_source = None
+
+        # FAST PATH: Try WebSocket cache first
+        stream_manager = getattr(quote_fetcher, 'stream_manager', None) if quote_fetcher else None
+        if stream_manager and published_at:
+            try:
+                cached_quotes = await stream_manager.get_recent_quotes(ticker, max_quotes=500)
+                if cached_quotes:
+                    # Find quote closest to publication time
+                    pub_time_utc = published_at.replace(tzinfo=timezone.utc) if published_at.tzinfo is None else published_at
+                    best_quote = None
+                    best_delta = float('inf')
+
+                    for quote in cached_quotes:
+                        quote_ts = quote.get("timestamp")
+                        if quote_ts:
+                            if quote_ts.tzinfo is None:
+                                quote_ts = quote_ts.replace(tzinfo=timezone.utc)
+                            delta = abs((quote_ts - pub_time_utc).total_seconds())
+                            # Only consider quotes within 2 seconds of publication
+                            if delta < 2.0 and delta < best_delta:
+                                best_delta = delta
+                                best_quote = quote
+
+                    if best_quote and best_quote.get("ask"):
+                        pub_time_ask = best_quote["ask"]
+                        pub_quote_source = "websocket_cache"
+                        logger.debug(
+                            "Got publication-time ask from WebSocket cache (FAST)",
+                            ticker=ticker,
+                            pub_time_ask=pub_time_ask,
+                            delta_seconds=round(best_delta, 3)
+                        )
+            except Exception as e:
+                logger.debug(f"WebSocket cache lookup failed: {e}")
+
+        # SLOW PATH: Fall back to REST API if cache miss
+        if not pub_time_ask and market_data_client and published_at:
             try:
                 from alpaca.data.requests import StockQuotesRequest
 
                 # Get quote at publication time (1-second window)
-                # Use async wrapper to avoid blocking event loop
                 pub_quotes = await run_sync_alpaca_call(
                     market_data_client.get_stock_quotes,
                     StockQuotesRequest(
@@ -1846,16 +2048,16 @@ async def process_imminent_article(
                 if pub_quotes and pub_quotes.data and ticker in pub_quotes.data:
                     quotes_list = pub_quotes.data[ticker]
                     if quotes_list:
-                        # Get the quote closest to publication time
                         pub_time_ask = quotes_list[-1].ask_price if quotes_list else None
+                        pub_quote_source = "rest_api"
                         logger.debug(
-                            "Fetched publication-time ask",
+                            "Fetched publication-time ask from REST API (SLOW)",
                             ticker=ticker,
                             pub_time_ask=pub_time_ask,
                             quotes_count=len(quotes_list)
                         )
             except Exception as e:
-                logger.debug(f"Could not fetch publication-time quote: {e}")
+                logger.debug(f"REST API quote fetch failed: {e}")
 
         # Check pub → recv change if we have both prices
         if pub_time_ask and initial_ask and pub_time_ask > 0:
@@ -2038,6 +2240,44 @@ async def process_imminent_article(
 
         # Store for statistics
         confluence_metadata["entry_delay_seconds"] = round(entry_delay_seconds, 2)
+
+        # ============================================================
+        # 📊 FILTER CHECKPOINT VALUES (for hit rate analysis)
+        # ============================================================
+        # Capture all filter values for TP/FP comparison
+        filter_values = {
+            "spread_pct": confluence_metadata.get("initial_spread_pct"),
+            "fill_spread_pct": confluence_metadata.get("fill_spread_pct"),
+            "pub_to_recv_pct": confluence_metadata.get("pub_to_recv_pct"),
+            "recv_to_fill_pct": confluence_metadata.get("recv_to_fill_pct"),
+            "ask_vs_first_trade_pct": confluence_metadata.get("ask_vs_first_trade_pct"),
+            "confluence_runup_pct": confluence_metadata.get("confluence_runup_pct"),
+            "entry_delay_seconds": round(entry_delay_seconds, 2),
+            "confluence_score": confluence_metadata.get("confluence_score"),
+            "max_excursion_pct": confluence_metadata.get("confluence_price_excursion_pct"),
+            "imbalance_ratio": confluence_metadata.get("confluence_imbalance_ratio"),
+            "buying_pressure_pct": confluence_metadata.get("confluence_buying_pressure_pct"),
+            "dollar_volume": confluence_metadata.get("confluence_dollar_volume"),
+            "trade_count": confluence_metadata.get("confluence_trade_count"),
+            "first_trade_latency_ms": confluence_metadata.get("confluence_first_trade_latency_ms"),
+        }
+        # All filters passed for executed trades
+        filters_checked = {
+            "circuit_breaker": True,
+            "duplicate_position": True,
+            "cooldown": True,
+            "strength_or_surge": True,
+            "market_cap": True,
+            "biotech_price": True,
+            "spread": True,
+            "pub_to_recv": True,
+            "recv_to_fill": True,
+            "pump_and_dump": True,
+            "momentum_exhaustion": True,
+            "late_entry": True,
+        }
+        confluence_metadata["filter_values"] = filter_values
+        confluence_metadata["filters_checked"] = filters_checked
 
         # Publish trade request with conviction metadata
         logger.info(

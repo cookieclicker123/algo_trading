@@ -169,56 +169,56 @@ class TestEndToEndSignalWorkflow:
             return mock_metadata
         
         signal_engine.finnhub_coordinator.fetch_metadata = mock_fetch_metadata
-            
-            # Step 1: Publish trade executed event
-            await signal_engine.event_bus.publish(
-                DomainEventType.TRADE_EXECUTED,
-                event.model_dump()
-            )
-            
-            # Wait for initial record creation
-            await asyncio.sleep(0.3)
-            
-            # Step 2: Verify record was created
-            file_path = repository._get_session_file_path("signal", "premarket", executed_at)
-            assert file_path.exists(), "Signal file should exist"
-            
-            async with aiofiles.open(file_path, 'r') as f:
-                content = await f.read()
-                assert content.strip(), "File should have content"
-                data = json.loads(content)
-                
-                assert len(data["records"]) == 1
-                record = data["records"][0]
-                assert record["trade_id"] == "order_integration_123"
-                assert record["ticker"] == "AAPL"
-                assert record["article_id"] == "integration-test-article-123"
-                assert record["entry_price"] == 175.50
-                assert record["entry_shares"] == 10
-                assert record["entry_amount_usd"] == 1755.00
-                assert record["entry_nbbo"]["spread"] == 0.04
-                assert data["summary"]["total_trades"] == 1
-            
-            # Step 3: Wait for metadata update
-            await asyncio.sleep(0.5)  # Give metadata fetch time to complete
-            
-            # Step 4: Verify record was updated with metadata
-            async with aiofiles.open(file_path, 'r') as f:
-                content = await f.read()
-                data = json.loads(content)
-                
-                record = data["records"][0]
-                assert record["ticker_metadata"] is not None
-                assert record["ticker_metadata"]["industry"] == "Consumer Electronics"
-                assert record["ticker_metadata"]["sector"] == "Technology"
-                assert record["ticker_metadata"]["market_cap_millions"] == 2800000.0
-                assert record["ticker_metadata"]["price"] == 175.50
-                assert record["ticker_metadata"]["exchange"] == "NASDAQ"
-                
-                # Verify summary includes industry/sector breakdown
-                assert data["summary"]["industry_breakdown"].get("Consumer Electronics", 0) >= 1
-                assert data["summary"]["sector_breakdown"].get("Technology", 0) >= 1
-        
+
+        # Step 1: Publish trade executed event
+        await signal_engine.event_bus.publish(
+            DomainEventType.TRADE_EXECUTED,
+            event.model_dump()
+        )
+
+        # Wait for initial record creation
+        await asyncio.sleep(0.3)
+
+        # Step 2: Verify record was created
+        file_path = repository._get_session_file_path("signal", "premarket", executed_at)
+        assert file_path.exists(), "Signal file should exist"
+
+        async with aiofiles.open(file_path, 'r') as f:
+            content = await f.read()
+            assert content.strip(), "File should have content"
+            data = json.loads(content)
+
+            assert len(data["records"]) == 1
+            record = data["records"][0]
+            assert record["trade_id"] == "order_integration_123"
+            assert record["ticker"] == "AAPL"
+            assert record["article_id"] == "integration-test-article-123"
+            assert record["entry_price"] == 175.50
+            assert record["entry_shares"] == 10
+            assert record["entry_amount_usd"] == 1755.00
+            assert record["entry_nbbo"]["spread"] == 0.04
+            assert data["summary"]["total_trades"] == 1
+
+        # Step 3: Wait for metadata update
+        await asyncio.sleep(0.5)  # Give metadata fetch time to complete
+
+        # Step 4: Verify record was updated with metadata
+        async with aiofiles.open(file_path, 'r') as f:
+            content = await f.read()
+            data = json.loads(content)
+
+            record = data["records"][0]
+            assert record["ticker_metadata"] is not None
+            assert record["ticker_metadata"]["industry"] == "Consumer Electronics"
+            assert record["ticker_metadata"]["sector"] == "Technology"
+            assert record["ticker_metadata"]["market_cap_millions"] == 2800000.0
+            assert record["ticker_metadata"]["price"] == 175.50
+            assert record["ticker_metadata"]["exchange"] == "NASDAQ"
+
+            # Verify summary includes industry/sector breakdown
+            assert data["summary"]["industry_breakdown"].get("Consumer Electronics", 0) >= 1
+            assert data["summary"]["sector_breakdown"].get("Technology", 0) >= 1
+
         await signal_engine.stop()
     
     @pytest.mark.asyncio

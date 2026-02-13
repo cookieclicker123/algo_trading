@@ -560,13 +560,13 @@ class TestMetadataFetching:
             DomainEventType.TRADE_EXECUTED,
             event.model_dump()
         )
-            
-            # Wait for processing
-            await asyncio.sleep(0.3)
-            
-            # Verify record was still created (even if metadata fetch failed)
-            file_path = repository._get_session_file_path("signal", "premarket", event.executed_at)
-            assert file_path.exists()
+
+        # Wait for processing
+        await asyncio.sleep(0.3)
+
+        # Verify record was still created (even if metadata fetch failed)
+        file_path = repository._get_session_file_path("signal", "premarket", event.executed_at)
+        assert file_path.exists()
 
 
 class TestErrorHandling:
