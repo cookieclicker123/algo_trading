@@ -1854,7 +1854,7 @@ async def process_imminent_article(
         ticker_industry = None  # Track industry for statistics
         if metadata_cache:
             try:
-                ticker_metadata = await metadata_cache.get_permanent(ticker)
+                ticker_metadata = await metadata_cache.get(ticker)
                 if ticker_metadata:
                     # Extract sector and industry for tracking
                     ticker_sector = ticker_metadata.get("sector")
@@ -1889,7 +1889,8 @@ async def process_imminent_article(
                     # Filter 1b: Biotech price filter - only trade $30+ biotechs
                     # Data shows: $30+ biotechs move 100-300%, sub-$5 biotechs only 5-18%
                     # Sub-$30 biotechs have weak catalysts (IND, early phase, offerings) and high failure rate
-                    ticker_price = ticker_metadata.get("price", 0)
+                    # Use initial_ask from NBBO (fetched during confluence check) as price proxy
+                    ticker_price = confluence_metadata.get("initial_ask") or 0
                     if ticker_industry == "Biotechnology" and ticker_price < MIN_BIOTECH_PRICE:
                         logger.info(
                             "⏭️ AUTO-TRADE SKIPPED: Biotech below $30 price threshold",
@@ -2451,7 +2452,7 @@ async def process_imminent_article(
         # ============================================================
         # Capture all filter values for TP/FP comparison
         # Extract hour for time-of-day analysis
-        hour = received_at.hour if received_at else None
+        hour = now_utc.hour if now_utc else None
 
         filter_values = {
             "spread_pct": confluence_metadata.get("initial_spread_pct"),
