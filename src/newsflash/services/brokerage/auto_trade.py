@@ -1625,6 +1625,7 @@ async def process_imminent_article(
             return
 
         article_id = classification_result.article_id
+        processing_start = datetime.now(timezone.utc)
 
         # Use event data directly - NO STORAGE FETCH NEEDED
         # This eliminates the 2-minute delay caused by waiting for storage
@@ -2495,13 +2496,27 @@ async def process_imminent_article(
         confluence_metadata["filter_values"] = filter_values
         confluence_metadata["filters_checked"] = filters_checked
 
+        # ============================================================
+        # ⏱️ LATENCY METRICS (observational - for future optimization)
+        # ============================================================
+        decision_time = datetime.now(timezone.utc)
+        pub_to_reception_ms = (processing_start - pub_time_utc).total_seconds() * 1000
+        reception_to_decision_ms = (decision_time - processing_start).total_seconds() * 1000
+        pub_to_decision_ms = (decision_time - pub_time_utc).total_seconds() * 1000
+        confluence_metadata["pub_to_reception_ms"] = round(pub_to_reception_ms, 1)
+        confluence_metadata["reception_to_decision_ms"] = round(reception_to_decision_ms, 1)
+        confluence_metadata["pub_to_decision_ms"] = round(pub_to_decision_ms, 1)
+
         # Publish trade request with conviction metadata
         logger.info(
             "🚀 AUTO-TRADING: Publishing trade request domain event",
             ticker=trade_request.ticker,
             article_id=article_id,
             conviction=conviction.value,
-            position_size=f"${POSITION_SIZES_USD[conviction]}"
+            position_size=f"${POSITION_SIZES_USD[conviction]}",
+            pub_to_reception_ms=round(pub_to_reception_ms, 1),
+            reception_to_decision_ms=round(reception_to_decision_ms, 1),
+            pub_to_decision_ms=round(pub_to_decision_ms, 1),
         )
 
         await publish_trade_request(
