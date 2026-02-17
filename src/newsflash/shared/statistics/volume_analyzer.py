@@ -21,8 +21,6 @@ from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockBarsRequest, StockQuotesRequest, StockTradesRequest
 from alpaca.data.timeframe import TimeFrame
 from alpaca.data.enums import DataFeed
-import yfinance as yf
-
 from ...utils.logging_config import get_logger
 from ...utils.async_alpaca import run_sync_alpaca_call
 
@@ -53,7 +51,7 @@ class VolumeStats:
     sell_volume: Optional[int] = None
     imbalance_ratio: Optional[float] = None
     max_price: Optional[float] = None  # Highest price hit in window
-    
+
     # Shadow Tracking
     total_dollar_volume: Optional[float] = None
     block_trade_pct: Optional[float] = None
@@ -61,7 +59,15 @@ class VolumeStats:
     first_trade_ts: Optional[datetime] = None
     max_trade_gap: Optional[float] = None  # Liveness Metric: Max seconds between trades
     tape_quality_score: Optional[float] = None  # New Metric: 0-100 Score
-    
+
+    # Volume Distribution Analysis (manipulation detection)
+    quote_churn_per_second: Optional[float] = None
+    single_trade_dominance_pct: Optional[float] = None
+    remaining_flow_imbalance: Optional[float] = None
+    remaining_trade_count: Optional[int] = None
+    remaining_sell_pct: Optional[float] = None
+    volume_distribution_class: Optional[str] = None
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return asdict(self)
@@ -111,6 +117,14 @@ class VolumeSurgeAnalysis:
     max_trade_gap: Optional[float] = None  # Liveness Metric
     tape_quality_score: Optional[float] = None  # 0-100 Score
     float_shares: Optional[int] = None  # From YFinance
+
+    # 6. VOLUME DISTRIBUTION ANALYSIS (Manipulation Detection)
+    quote_churn_per_second: Optional[float] = None  # Quote updates/sec (high = possible spoofing)
+    single_trade_dominance_pct: Optional[float] = None  # Largest trade as % of total volume
+    remaining_flow_imbalance: Optional[float] = None  # Imbalance excluding largest trade
+    remaining_trade_count: Optional[int] = None  # Trade count excluding largest
+    remaining_sell_pct: Optional[float] = None  # % of remaining trades that are sells
+    volume_distribution_class: Optional[str] = None  # ORGANIC/INSTITUTIONAL/SUSPICIOUS/DISTRIBUTION
     
     # EARLY MOMENTUM (1-second window - matches auto_trade.py conviction check)
     # These fields track the first 1 second after article publication for conviction-based sizing
@@ -137,23 +151,6 @@ class VolumeSurgeAnalysis:
 
 
 
-def _get_float_shares(symbol: str) -> Optional[int]:
-    """
-    Fetch shares outstanding from YFinance.
-    Note: This is a synchronous blocking call (~500ms-1s).
-    """
-    try:
-        # Suppress yfinance logging spam if possible, or just call
-        ticker = yf.Ticker(symbol)
-        # accessing .info triggers the request
-        info = ticker.info
-        # Prefer floatShares, fallback to sharesOutstanding
-        return info.get("floatShares") or info.get("sharesOutstanding")
-    except Exception as e:
-        logger.warning(f"⚠️ Failed to fetch float for {symbol}: {e}")
-        return None
-
-
 def _calculate_tape_quality(
     trade_list: List[Any],
     buy_vol: int,
@@ -168,27 +165,133 @@ def _calculate_tape_quality(
     """
     if not trade_list:
         return 0.0
-    
+
     # 1. Conviction Score (Imbalance)
     # 0.8 imbalance -> 1.0 score. 0.0 imbalance -> 0.0 score.
     conviction_score = abs(imbalance) * 100
-    
+
     # 2. Institutional Presence (Block Trade %)
     # 50% blocks -> 100 score. 0% -> 0 score.
     # We cap at 50% being "Perfect" (don't need 100% blocks)
     inst_score = min(block_pct * 2, 100.0)
-    
+
     # 3. Participation Consistency (Trade Count per Second)
     # We want valid density, not 1 trade then silence.
     # But simple logic for now: If we have > 10 trades, good.
     density_score = min(len(trade_list) * 5, 100.0)
-    
+
     # Weighted Average
     # Conviction is King (50%)
     # Institutions (30%)
     # Density (20%)
     total_score = (conviction_score * 0.5) + (inst_score * 0.3) + (density_score * 0.2)
     return round(total_score, 1)
+
+
+def _analyze_volume_distribution(
+    trade_list: List[Any],
+    total_volume: int,
+    trade_classifications: List[Dict[str, Any]]
+) -> Dict[str, Any]:
+    """
+    Analyze volume distribution for manipulation detection.
+
+    Classifications:
+    - ORGANIC (low risk): Many participants, no single trade dominance
+    - INSTITUTIONAL (medium): Large buy + retail also buying
+    - SUSPICIOUS (high): Single trade dominates >50% of volume
+    - DISTRIBUTION (very high): Large "buy" + retail selling (classic pump)
+
+    Args:
+        trade_list: List of trade objects with .size attribute
+        total_volume: Total volume across all trades
+        trade_classifications: List of dicts with {"size": int, "is_buy": bool} for each trade
+
+    Returns:
+        Dict with distribution metrics and classification
+    """
+    result = {
+        "single_trade_dominance_pct": None,
+        "remaining_flow_imbalance": None,
+        "remaining_trade_count": None,
+        "remaining_sell_pct": None,
+        "volume_distribution_class": None,
+    }
+
+    if not trade_list or total_volume == 0 or not trade_classifications:
+        return result
+
+    # Find the largest single trade
+    if not trade_classifications:
+        return result
+
+    largest_trade = max(trade_classifications, key=lambda x: x["size"])
+    largest_size = largest_trade["size"]
+    largest_is_buy = largest_trade["is_buy"]
+
+    # Calculate dominance percentage
+    dominance_pct = round((largest_size / total_volume) * 100, 1)
+    result["single_trade_dominance_pct"] = dominance_pct
+
+    # Analyze remaining trades (excluding the largest)
+    remaining = [t for t in trade_classifications if t != largest_trade]
+    result["remaining_trade_count"] = len(remaining)
+
+    if remaining:
+        # Calculate buy/sell volumes excluding largest trade
+        remaining_buy = sum(t["size"] for t in remaining if t["is_buy"])
+        remaining_sell = sum(t["size"] for t in remaining if not t["is_buy"])
+        remaining_total = remaining_buy + remaining_sell
+
+        # Flow imbalance: -1 (all sells) to +1 (all buys)
+        if remaining_total > 0:
+            result["remaining_flow_imbalance"] = round(
+                (remaining_buy - remaining_sell) / remaining_total, 3
+            )
+            # Percentage of remaining trades that are sells
+            remaining_sell_count = sum(1 for t in remaining if not t["is_buy"])
+            result["remaining_sell_pct"] = round(
+                (remaining_sell_count / len(remaining)) * 100, 1
+            )
+    else:
+        # Only one trade - everything is in the largest
+        result["remaining_flow_imbalance"] = 0.0
+        result["remaining_sell_pct"] = 0.0
+
+    # === CLASSIFICATION LOGIC (nuanced thresholds) ===
+    # These thresholds are for data collection - we'll tune them later
+
+    # SUSPICIOUS: Single trade >= 50% (always suspicious regardless of flow)
+    # This is the strongest signal - one entity moved half the volume
+    if dominance_pct >= 50.0:
+        result["volume_distribution_class"] = "SUSPICIOUS"
+
+    # DISTRIBUTION: Single trade >= 30% AND remaining trades mostly selling (>50%)
+    # Classic pump pattern: whale "buys" to mark price up, retail sells into it
+    elif dominance_pct >= 30.0 and (result["remaining_sell_pct"] or 0) >= 50.0:
+        result["volume_distribution_class"] = "DISTRIBUTION"
+
+    # INSTITUTIONAL: Single trade >= 30% AND remaining is buying (<40% sells)
+    # Legitimate: big institutional buy followed by retail following
+    elif dominance_pct >= 30.0 and (result["remaining_sell_pct"] or 0) < 40.0:
+        result["volume_distribution_class"] = "INSTITUTIONAL"
+
+    # ORGANIC: No dominance AND multiple participants (5+ trades)
+    # This is genuine distributed demand
+    elif dominance_pct < 30.0 and result["remaining_trade_count"] >= 5:
+        result["volume_distribution_class"] = "ORGANIC"
+
+    # Edge case: Low dominance but few trades (2-4 trades)
+    # Could be organic or just low liquidity - classify as ORGANIC but borderline
+    elif dominance_pct < 30.0:
+        result["volume_distribution_class"] = "ORGANIC"
+
+    # Fallback: 30-50% dominance with neutral flow (40-50% sells)
+    # Could be institutional or distribution - call it INSTITUTIONAL as safer default
+    else:
+        result["volume_distribution_class"] = "INSTITUTIONAL"
+
+    return result
 
 
 async def _fetch_trades_in_window_async(
@@ -402,35 +505,38 @@ def _aggregate_trades_data(
         trade_count = 0
         buy_vol = 0
         sell_vol = 0
-        
+
         # Block participation tracking ($10k+)
         block_volume = 0
-        
+
         # Tape Rhythm tracking (Splitting 4s into 2s chunks)
         mid_time = window_start + (window_end - window_start) / 2
         trades_first_half = 0
         trades_second_half = 0
-        
+
         prices = [t.price for t in trade_list]
         max_p = max(prices) if prices else 0
         min_p = min(prices) if prices else 0
         range_p = round(max_p - min_p, 4)
-        
+
         # Latency to first trade
         first_trade_ts = trade_list[0].timestamp if trade_list else None
-        
+
         quote_idx = 0
         prev_price = None
-        
+
         # Liveness Tracking (Max Gap)
         # Note: We track last_trade_ts but initialize it to first_trade_ts for inter-trade gaps
         # We DO NOT count start latency (0 -> first trade) as a gap, per user request (latency != fakeout)
         last_trade_ts = first_trade_ts
         max_trade_gap = 0.0
-        
+
+        # Volume Distribution Analysis: track each trade's classification
+        trade_classifications: List[Dict[str, Any]] = []
+
         # User Feedback: "I don't mind if the first trade takes time... extend the window"
         # So we skip start_gap penalty.
-        
+
         for t in trade_list:
             size = t.size
             price = t.price
@@ -455,37 +561,64 @@ def _aggregate_trades_data(
             while quote_idx < len(quote_list) and quote_list[quote_idx].timestamp <= t.timestamp:
                 active_quote = quote_list[quote_idx]
                 quote_idx += 1
-            
+
+            # Classify trade as buy or sell (for volume distribution analysis)
+            is_buy = None  # Will be set to True/False/None (None = split)
+
             # If we found a quote, use Lee-Ready (Quote Test)
             if active_quote and active_quote.bid_price and active_quote.ask_price:
                 mid = (float(active_quote.bid_price) + float(active_quote.ask_price)) / 2
                 if price > mid:
                     buy_vol += size
+                    is_buy = True
                 elif price < mid:
                     sell_vol += size
+                    is_buy = False
                 else:
                     # Mid-point tie: Fallback to Tick Test
                     if prev_price is not None:
-                        if price > prev_price: buy_vol += size
-                        elif price < prev_price: sell_vol += size
+                        if price > prev_price:
+                            buy_vol += size
+                            is_buy = True
+                        elif price < prev_price:
+                            sell_vol += size
+                            is_buy = False
                         else:
                             buy_vol += size / 2
                             sell_vol += size / 2
+                            is_buy = None  # Ambiguous
                     else:
                         buy_vol += size / 2
                         sell_vol += size / 2
+                        is_buy = None  # Ambiguous
             else:
                 # No quote found or dead premarket: Use Tick Test
                 if prev_price is not None:
-                    if price > prev_price: buy_vol += size
-                    elif price < prev_price: sell_vol += size
+                    if price > prev_price:
+                        buy_vol += size
+                        is_buy = True
+                    elif price < prev_price:
+                        sell_vol += size
+                        is_buy = False
                     else:
                         buy_vol += size / 2
                         sell_vol += size / 2
+                        is_buy = None  # Ambiguous
                 else:
                     # First trade with no quote: Split
                     buy_vol += size / 2
                     sell_vol += size / 2
+                    is_buy = None  # Ambiguous
+
+            # Track classification for volume distribution analysis
+            # For ambiguous trades (is_buy=None), classify based on majority heuristic
+            # If price >= mid: likely buy. This is for dominance analysis only.
+            if is_buy is None:
+                # Ambiguous case: classify as buy (conservative for distribution detection)
+                # In pump scenarios, the manipulator's trades often hit mid
+                trade_classifications.append({"size": size, "is_buy": True})
+            else:
+                trade_classifications.append({"size": size, "is_buy": is_buy})
             
             # Liveness: Update Gap
             current_gap = (t.timestamp - last_trade_ts).total_seconds()
@@ -519,15 +652,27 @@ def _aggregate_trades_data(
             
         # Calculate Tape Quality
         tape_quality = _calculate_tape_quality(trade_list, buy_vol, sell_vol, imbalance, block_pct)
-            
+
         window_seconds = (window_end - window_start).total_seconds()
-        
+
+        # Calculate Quote Churn (quote updates per second - potential spoofing indicator)
+        quote_churn_per_second = None
+        if window_seconds > 0:
+            quote_churn_per_second = round(len(quote_list) / window_seconds, 1)
+
+        # Volume Distribution Analysis (manipulation detection)
+        vol_dist = _analyze_volume_distribution(
+            trade_list=trade_list,
+            total_volume=int(total_volume),
+            trade_classifications=trade_classifications
+        )
+
         # Normalization factor (e.g. if window is 3s, multiplier is 20x to reach a minute)
         norm_factor = 60 / window_seconds if window_seconds > 0 else 0
-        
+
         normalized_minute_volume = total_volume * norm_factor
         normalized_minute_range = range_p * norm_factor
-        
+
         return {
             "raw_volume": int(total_volume),
             "trade_count": int(trade_count),
@@ -544,7 +689,14 @@ def _aggregate_trades_data(
             "block_trade_pct": block_pct,
             "tape_acceleration_pct": tape_accel,
             "first_trade_ts": first_trade_ts,
-            "max_trade_gap": round(max_trade_gap, 2)
+            "max_trade_gap": round(max_trade_gap, 2),
+            # Volume Distribution Analysis (manipulation detection)
+            "quote_churn_per_second": quote_churn_per_second,
+            "single_trade_dominance_pct": vol_dist.get("single_trade_dominance_pct"),
+            "remaining_flow_imbalance": vol_dist.get("remaining_flow_imbalance"),
+            "remaining_trade_count": vol_dist.get("remaining_trade_count"),
+            "remaining_sell_pct": vol_dist.get("remaining_sell_pct"),
+            "volume_distribution_class": vol_dist.get("volume_distribution_class"),
         }
     except Exception as e:
         logger.debug(f"Error aggregating trades for {symbol} in window: {e}")
@@ -851,9 +1003,16 @@ async def _get_stats_at_time(
         tape_acceleration_pct=bar_data.get("tape_acceleration_pct") if bar_data else None,
         first_trade_ts=bar_data.get("first_trade_ts") if bar_data else None,
         max_trade_gap=bar_data.get("max_trade_gap") if bar_data else None,
-        tape_quality_score=bar_data.get("tape_quality_score") if bar_data else None
+        tape_quality_score=bar_data.get("tape_quality_score") if bar_data else None,
+        # Volume Distribution Analysis (manipulation detection)
+        quote_churn_per_second=bar_data.get("quote_churn_per_second") if bar_data else None,
+        single_trade_dominance_pct=bar_data.get("single_trade_dominance_pct") if bar_data else None,
+        remaining_flow_imbalance=bar_data.get("remaining_flow_imbalance") if bar_data else None,
+        remaining_trade_count=bar_data.get("remaining_trade_count") if bar_data else None,
+        remaining_sell_pct=bar_data.get("remaining_sell_pct") if bar_data else None,
+        volume_distribution_class=bar_data.get("volume_distribution_class") if bar_data else None,
     )
-    
+
     return stats
 
 
@@ -1033,7 +1192,8 @@ async def analyze_volume_around_event(
     received_at: datetime = None,
     reference_nbbo: Optional[Dict[str, Any]] = None,
     sector: Optional[str] = None,
-    stream_manager: Optional[Any] = None  # AlpacaMarketDataStreamManager (optional for WebSocket cache)
+    stream_manager: Optional[Any] = None,  # AlpacaMarketDataStreamManager (optional for WebSocket cache)
+    float_shares: Optional[int] = None  # Pre-cached float shares (from MetadataCache)
 ) -> VolumeSurgeAnalysis:
     """
     Analyze volume/order flow with FAST POLLING (0.5s) to detect surges early.
@@ -1051,18 +1211,11 @@ async def analyze_volume_around_event(
         received_at_utc = received_at.replace(tzinfo=timezone.utc)
         real_window_seconds = (received_at_utc - event_time).total_seconds()
 
-    # 2. Fetch Float Data and Prior History in PARALLEL (non-blocking)
-    # Both are independent I/O operations - fetch concurrently to reduce latency
-    float_shares_task = asyncio.create_task(asyncio.to_thread(_get_float_shares, symbol))
-    prior_history_task = asyncio.create_task(asyncio.to_thread(_fetch_prior_history_stats, client, symbol, event_time, lookback_minutes=10))
-    
-    # Wait for both to complete (they run in parallel)
-    float_shares, prior_history = await asyncio.gather(float_shares_task, prior_history_task, return_exceptions=True)
-    
-    # Handle exceptions gracefully
-    if isinstance(float_shares, Exception):
-        float_shares = None
-    if isinstance(prior_history, Exception):
+    # 2. Fetch Prior History (non-blocking)
+    # float_shares is now passed in by callers from MetadataCache (no more yfinance calls here)
+    try:
+        prior_history = await asyncio.to_thread(_fetch_prior_history_stats, client, symbol, event_time, lookback_minutes=10)
+    except Exception:
         prior_history = None
     
     # Shadow Spread Logic (calculated once)
@@ -1380,6 +1533,13 @@ async def analyze_volume_around_event(
         max_trade_gap=stats_now.max_trade_gap if stats_now else None,
         tape_quality_score=metrics.get("tape_quality_score"),
         float_shares=float_shares,
+        # Volume Distribution Analysis (manipulation detection)
+        quote_churn_per_second=stats_now.quote_churn_per_second if stats_now else None,
+        single_trade_dominance_pct=stats_now.single_trade_dominance_pct if stats_now else None,
+        remaining_flow_imbalance=stats_now.remaining_flow_imbalance if stats_now else None,
+        remaining_trade_count=stats_now.remaining_trade_count if stats_now else None,
+        remaining_sell_pct=stats_now.remaining_sell_pct if stats_now else None,
+        volume_distribution_class=stats_now.volume_distribution_class if stats_now else None,
         error=None
     )
 def format_volume_stats_for_notification(analysis: VolumeSurgeAnalysis) -> List[str]:

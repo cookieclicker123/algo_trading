@@ -332,23 +332,27 @@ class YahooFinanceCoordinator:
             if not info:
                 return None
             
-            # Extract the 3 fields we need
+            # Extract fields we need
             industry = info.get("industry")
             sector = info.get("sector")
             market_cap = info.get("marketCap")
-            
+            float_shares = info.get("floatShares")
+
             # Convert market cap to millions
             market_cap_millions = None
             if market_cap is not None:
                 market_cap_millions = market_cap / 1_000_000
-            
+
             # Only return if we got at least one field
-            if industry or sector or market_cap_millions:
-                return {
+            if industry or sector or market_cap_millions or float_shares:
+                result = {
                     "industry": industry,
                     "sector": sector,
                     "market_cap_millions": market_cap_millions
                 }
+                if float_shares is not None:
+                    result["float_shares"] = int(float_shares)
+                return result
             
             return None
             

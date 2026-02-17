@@ -1,5 +1,5 @@
 {
-  "date": "2026-02-13",
+  "date": "2026-02-17",
   "data": {
     "ORCL": {
       "market_cap_millions": 459538.399232
@@ -16239,6 +16239,18 @@
     },
     "CBL": {
       "market_cap_millions": 1125.039616
+    },
+    "CGEN": {
+      "market_cap_millions": 155.319376
+    },
+    "APC": {
+      "market_cap_millions": 1460.0
+    },
+    "EIC": {
+      "market_cap_millions": 269.386304
+    },
+    "CLW": {
+      "market_cap_millions": 267.006704
     }
   }
 }

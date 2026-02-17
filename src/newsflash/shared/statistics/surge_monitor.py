@@ -68,7 +68,8 @@ class SurgeMonitor:
         monitoring_tasks: Dict[str, asyncio.Task],
         monitoring_lock: asyncio.Lock,
         on_surge_detected: Callable[[Any, str], Awaitable[None]],
-        on_monitoring_complete: Optional[Callable[[list[str], str, bool], Awaitable[None]]] = None
+        on_monitoring_complete: Optional[Callable[[list[str], str, bool], Awaitable[None]]] = None,
+        metadata_cache: Optional[Any] = None  # MetadataCache for cached float shares
     ):
         """
         Initialize surge monitor.
@@ -95,6 +96,7 @@ class SurgeMonitor:
         self._monitoring_lock = monitoring_lock
         self._on_surge_detected = on_surge_detected
         self._on_monitoring_complete = on_monitoring_complete
+        self._metadata_cache = metadata_cache
 
     async def monitor_for_surge(
         self,
@@ -248,6 +250,14 @@ class SurgeMonitor:
                 except (asyncio.TimeoutError, Exception):
                     pass
 
+                # Get cached float_shares (instant, ~0ms)
+                cached_float = None
+                if self._metadata_cache:
+                    try:
+                        cached_float = await self._metadata_cache.get_float(ticker)
+                    except Exception:
+                        pass
+
                 # Analyze 4-second window
                 volume_analysis = await analyze_volume_around_event(
                     client=self.market_data_client,
@@ -256,7 +266,8 @@ class SurgeMonitor:
                     received_at=window_start,
                     reference_nbbo=initial_nbbos.get(ticker),
                     sector=ticker_sector,
-                    stream_manager=self.quote_fetcher.stream_manager if self.quote_fetcher else None
+                    stream_manager=self.quote_fetcher.stream_manager if self.quote_fetcher else None,
+                    float_shares=cached_float
                 )
                 return (ticker, volume_analysis)
             except Exception as e:

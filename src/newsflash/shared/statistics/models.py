@@ -294,6 +294,33 @@ class RecallRecord(BaseModel):
         description="Surge window volume as % of float: (surge_volume / float_shares) * 100"
     )
 
+    # === VOLUME DISTRIBUTION ANALYSIS (Manipulation Detection) ===
+    # Tracks whether volume came from many participants (organic) or few (suspicious)
+    single_trade_dominance_pct: Optional[float] = Field(
+        None,
+        description="Largest single trade as % of total confluence volume. >50% = suspicious, >30% = notable"
+    )
+    remaining_flow_imbalance: Optional[float] = Field(
+        None,
+        description="Buy/sell imbalance EXCLUDING the largest trade. Range -1 to +1. Negative = selling pressure"
+    )
+    remaining_trade_count: Optional[int] = Field(
+        None,
+        description="Number of trades excluding the largest one"
+    )
+    remaining_sell_pct: Optional[float] = Field(
+        None,
+        description="% of remaining trades that are sells. >60% with large buy = distribution pattern"
+    )
+    volume_distribution_class: Optional[str] = Field(
+        None,
+        description="Classification: ORGANIC (low risk), INSTITUTIONAL (medium), SUSPICIOUS (high), DISTRIBUTION (very high)"
+    )
+    quote_churn_per_second: Optional[float] = Field(
+        None,
+        description="Quote updates per second in confluence window. High churn (>50/s) may indicate spoofing"
+    )
+
     # === GAP/TRAP DETECTION: Price at publication vs reception ===
     # Critical for false negative analysis: did price run away before we could act?
     pub_time_ask: Optional[float] = Field(None, description="Ask price at PUBLICATION time (from historical API)")
@@ -600,6 +627,35 @@ class SignalRecord(BaseModel):
     volume_1min_float_pct: Optional[float] = Field(
         None,
         description="First minute volume as % of float: (volume_1min / float_shares) * 100"
+    )
+
+    # === VOLUME DISTRIBUTION ANALYSIS (Manipulation Detection) ===
+    # Tracks whether volume came from many participants (organic) or few (suspicious)
+    # Key insight: real demand = many traders; manipulation = one large trade + distribution
+    single_trade_dominance_pct: Optional[float] = Field(
+        None,
+        description="Largest single trade as % of total confluence volume. >50% = suspicious, >30% = notable"
+    )
+    remaining_flow_imbalance: Optional[float] = Field(
+        None,
+        description="Buy/sell imbalance EXCLUDING the largest trade. Range -1 to +1. Negative = selling pressure"
+    )
+    remaining_trade_count: Optional[int] = Field(
+        None,
+        description="Number of trades excluding the largest one"
+    )
+    remaining_sell_pct: Optional[float] = Field(
+        None,
+        description="% of remaining trades that are sells. >60% with large buy = distribution pattern"
+    )
+    volume_distribution_class: Optional[str] = Field(
+        None,
+        description="Classification: ORGANIC (low risk), INSTITUTIONAL (medium), SUSPICIOUS (high), DISTRIBUTION (very high)"
+    )
+    # Quote activity analysis
+    quote_churn_per_second: Optional[float] = Field(
+        None,
+        description="Quote updates per second in confluence window. High churn (>50/s) may indicate spoofing"
     )
 
     # Headline

@@ -141285,5 +141285,25 @@
   "CBL": {
     "industry": "REIT - Retail",
     "sector": "Real Estate"
+  },
+  "CGEN": {
+    "industry": "Biotechnology",
+    "sector": "Healthcare"
+  },
+  "APC": {
+    "industry": "Oil & Gas Refining & Marketing",
+    "sector": "Energy"
+  },
+  "EICA": {
+    "industry": "Asset Management",
+    "sector": "Financial Services"
+  },
+  "EIC": {
+    "industry": "Asset Management",
+    "sector": "Financial Services"
+  },
+  "CLW": {
+    "industry": "Paper & Paper Products",
+    "sector": "Basic Materials"
   }
 }

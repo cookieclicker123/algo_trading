@@ -959,6 +959,77 @@ async def check_confluence_signals(
                 metadata["confluence_imbalance_ratio"] = round(imbalance_ratio, 3)
 
                 # ============================================================
+                # VOLUME DISTRIBUTION ANALYSIS (Manipulation Detection)
+                # ============================================================
+                # Build trade classifications for distribution analysis
+                trade_classifications = []
+                prev_price_for_class = None
+                for t in trade_list:
+                    is_buy = None
+                    if prev_price_for_class is not None:
+                        if t.price > prev_price_for_class:
+                            is_buy = True
+                        elif t.price < prev_price_for_class:
+                            is_buy = False
+                        else:
+                            is_buy = True  # Tie: assume buy (conservative for distribution detection)
+                    else:
+                        is_buy = True  # First trade: assume buy
+                    trade_classifications.append({"size": t.size, "is_buy": is_buy})
+                    prev_price_for_class = t.price
+
+                # Analyze distribution
+                if trade_classifications and total_volume > 0:
+                    # Find largest trade
+                    largest_trade = max(trade_classifications, key=lambda x: x["size"])
+                    largest_size = largest_trade["size"]
+
+                    # Single trade dominance percentage
+                    single_trade_dominance_pct = round((largest_size / total_volume) * 100, 1)
+                    metadata["single_trade_dominance_pct"] = single_trade_dominance_pct
+
+                    # Analyze remaining trades (excluding largest)
+                    remaining = [t for t in trade_classifications if t != largest_trade]
+                    metadata["remaining_trade_count"] = len(remaining)
+
+                    if remaining:
+                        remaining_buy = sum(t["size"] for t in remaining if t["is_buy"])
+                        remaining_sell = sum(t["size"] for t in remaining if not t["is_buy"])
+                        remaining_total = remaining_buy + remaining_sell
+
+                        if remaining_total > 0:
+                            metadata["remaining_flow_imbalance"] = round(
+                                (remaining_buy - remaining_sell) / remaining_total, 3
+                            )
+                            remaining_sell_count = sum(1 for t in remaining if not t["is_buy"])
+                            metadata["remaining_sell_pct"] = round(
+                                (remaining_sell_count / len(remaining)) * 100, 1
+                            )
+                        else:
+                            metadata["remaining_flow_imbalance"] = 0.0
+                            metadata["remaining_sell_pct"] = 0.0
+                    else:
+                        metadata["remaining_flow_imbalance"] = 0.0
+                        metadata["remaining_sell_pct"] = 0.0
+
+                    # Classification logic
+                    remaining_sell_pct = metadata.get("remaining_sell_pct", 0)
+                    remaining_trade_count = metadata.get("remaining_trade_count", 0)
+
+                    if single_trade_dominance_pct >= 50.0:
+                        metadata["volume_distribution_class"] = "SUSPICIOUS"
+                    elif single_trade_dominance_pct >= 30.0 and remaining_sell_pct >= 50.0:
+                        metadata["volume_distribution_class"] = "DISTRIBUTION"
+                    elif single_trade_dominance_pct >= 30.0 and remaining_sell_pct < 40.0:
+                        metadata["volume_distribution_class"] = "INSTITUTIONAL"
+                    elif single_trade_dominance_pct < 30.0 and remaining_trade_count >= 5:
+                        metadata["volume_distribution_class"] = "ORGANIC"
+                    elif single_trade_dominance_pct < 30.0:
+                        metadata["volume_distribution_class"] = "ORGANIC"
+                    else:
+                        metadata["volume_distribution_class"] = "INSTITUTIONAL"
+
+                # ============================================================
                 # CRITERION 1: Dollar volume (scales with stock price)
                 # ============================================================
                 has_dollar_volume = dollar_volume >= DOLLAR_VOLUME_THRESHOLD

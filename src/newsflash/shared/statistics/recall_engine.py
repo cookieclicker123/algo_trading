@@ -102,7 +102,8 @@ class RecallStatsEngine:
             monitoring_tasks=self._monitoring_tasks,
             monitoring_lock=self._monitoring_lock,
             on_surge_detected=self._on_surge_detected,
-            on_monitoring_complete=self._on_monitoring_complete
+            on_monitoring_complete=self._on_monitoring_complete,
+            metadata_cache=metadata_cache
         )
 
         self.price_monitor = PriceMonitor(
@@ -525,6 +526,14 @@ class RecallStatsEngine:
 
         async def analyze_ticker(ticker: str):
             try:
+                # Get cached float_shares (instant, ~0ms) instead of calling yfinance
+                cached_float = None
+                if self.metadata_cache:
+                    try:
+                        cached_float = await self.metadata_cache.get_float(ticker)
+                    except Exception:
+                        pass
+
                 analysis = await analyze_volume_around_event(
                     client=self.market_data_client,
                     symbol=ticker,
@@ -532,7 +541,8 @@ class RecallStatsEngine:
                     received_at=received_at,
                     reference_nbbo=initial_nbbos.get(ticker),
                     stream_manager=self.quote_fetcher.stream_manager if self.quote_fetcher else None,
-                    sector=sector_by_ticker.get(ticker)
+                    sector=sector_by_ticker.get(ticker),
+                    float_shares=cached_float
                 )
                 return (ticker, analysis.to_dict() if analysis else {"error": "No analysis"})
             except Exception as e:
@@ -722,6 +732,12 @@ class RecallStatsEngine:
             confluence_large_trade_pct=confluence_data.get("confluence_large_trade_pct"),
             confluence_uptick_count=confluence_data.get("confluence_uptick_count"),
             confluence_downtick_count=confluence_data.get("confluence_downtick_count"),
+            # === VOLUME DISTRIBUTION ANALYSIS (Manipulation Detection) ===
+            single_trade_dominance_pct=confluence_data.get("single_trade_dominance_pct"),
+            remaining_flow_imbalance=confluence_data.get("remaining_flow_imbalance"),
+            remaining_trade_count=confluence_data.get("remaining_trade_count"),
+            remaining_sell_pct=confluence_data.get("remaining_sell_pct"),
+            volume_distribution_class=confluence_data.get("volume_distribution_class"),
             # Float-normalized volume (Phase 1: Data Collection)
             float_shares=float_shares,
             confluence_volume_float_pct=confluence_volume_float_pct,

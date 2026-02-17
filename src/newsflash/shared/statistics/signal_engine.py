@@ -294,6 +294,12 @@ class SignalStatsEngine:
                 order_shares=entry_shares,
                 ask_size=confluence_metadata.get("initial_ask_size")
             ),
+            # === VOLUME DISTRIBUTION ANALYSIS (Manipulation Detection) ===
+            single_trade_dominance_pct=confluence_metadata.get("single_trade_dominance_pct"),
+            remaining_flow_imbalance=confluence_metadata.get("remaining_flow_imbalance"),
+            remaining_trade_count=confluence_metadata.get("remaining_trade_count"),
+            remaining_sell_pct=confluence_metadata.get("remaining_sell_pct"),
+            volume_distribution_class=confluence_metadata.get("volume_distribution_class"),
         )
 
         # Append record immediately (before metadata fetch)
