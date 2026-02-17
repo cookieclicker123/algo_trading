@@ -141305,5 +141305,9 @@
   "CLW": {
     "industry": "Paper & Paper Products",
     "sector": "Basic Materials"
+  },
+  "CHCT": {
+    "industry": "REIT - Healthcare Facilities",
+    "sector": "Real Estate"
   }
 }
