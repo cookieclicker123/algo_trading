@@ -411,6 +411,11 @@ SURGE_TRADE_COUNT_MULTIPLIER = 3.0    # Trade count must be 3x prior 10min avera
 MIN_ABSOLUTE_VOLUME = 2000            # Absolute minimum volume (even if prior is 0)
 MIN_ABSOLUTE_TRADES = 20              # Absolute minimum trades (even if prior is 0)
 
+# Late entry monitoring: extended window after initial STRENGTH/SURGE checks fail
+LATE_ENTRY_MAX_SECONDS = 30.0         # Max seconds from publication for late entry
+LATE_ENTRY_POLL_INTERVAL = 1.0        # Check every 1s (WebSocket data is instant)
+LATE_STRENGTH_MIN_TRADES = 5          # Min trades to confirm real activity
+
 
 async def monitor_for_last_chance_surge(
     market_data_client: Optional["StockHistoricalDataClient"],
@@ -677,6 +682,194 @@ async def monitor_for_last_chance_surge(
         volume_threshold=int(volume_threshold),
         trades_threshold=int(trades_threshold),
         criteria=f"{int(volume_threshold)}+ vol, {int(trades_threshold)}+ trades, 5% price, 80% buy pressure"
+    )
+    return None
+
+
+async def monitor_for_late_entry(
+    quote_fetcher,
+    ticker: str,
+    publication_time: datetime,
+    initial_ask_at_publication: Optional[float],
+    article_id: str,
+) -> Optional[dict]:
+    """
+    Monitor for late STRENGTH or SURGE up to 30 seconds from publication.
+
+    Called when both the 2-second STRENGTH check and 8-second SURGE check fail.
+    Polls WebSocket trade data every 1 second, looking for either:
+    - STRENGTH: price excursion >= 0.5% AND trade count >= 5
+    - SURGE: all 4 criteria (volume, trades, price >= 2%, pressure >= 80%)
+
+    Args:
+        quote_fetcher: Quote fetcher with stream_manager for WebSocket data
+        ticker: Stock ticker to monitor
+        publication_time: When the article was published
+        initial_ask_at_publication: Ask price at publication time
+        article_id: Article ID for logging
+
+    Returns:
+        Dict with late entry metadata if signal found, None otherwise
+    """
+    import asyncio
+
+    stream_manager = getattr(quote_fetcher, 'stream_manager', None) if quote_fetcher else None
+    if not stream_manager:
+        return None
+
+    initial_ask = initial_ask_at_publication
+    if not initial_ask:
+        return None
+
+    pub_time_utc = publication_time
+    if pub_time_utc.tzinfo is None:
+        pub_time_utc = pub_time_utc.replace(tzinfo=timezone.utc)
+
+    # Calculate how much time remains until 30s from publication
+    now_utc = datetime.now(timezone.utc)
+    elapsed = (now_utc - pub_time_utc).total_seconds()
+    remaining = LATE_ENTRY_MAX_SECONDS - elapsed
+
+    if remaining <= 0:
+        return None
+
+    num_checks = int(remaining / LATE_ENTRY_POLL_INTERVAL)
+    if num_checks <= 0:
+        return None
+
+    logger.info(
+        "🔍 LATE ENTRY: Starting extended monitoring",
+        ticker=ticker,
+        article_id=article_id,
+        seconds_elapsed=round(elapsed, 1),
+        remaining_seconds=round(remaining, 1),
+        num_checks=num_checks,
+    )
+
+    for check_num in range(num_checks):
+        try:
+            await asyncio.sleep(LATE_ENTRY_POLL_INTERVAL)
+
+            trades = await stream_manager.get_recent_trades(ticker, max_trades=1000)
+            if not trades:
+                continue
+
+            # Filter trades to those after publication time
+            window_trades = []
+            for trade in trades:
+                trade_ts = trade.get("timestamp")
+                if trade_ts:
+                    if isinstance(trade_ts, str):
+                        try:
+                            trade_ts = datetime.fromisoformat(trade_ts.replace('Z', '+00:00'))
+                        except:
+                            continue
+                    if trade_ts.tzinfo is None:
+                        trade_ts = trade_ts.replace(tzinfo=timezone.utc)
+                    if trade_ts >= pub_time_utc:
+                        window_trades.append(trade)
+
+            if not window_trades:
+                continue
+
+            # Calculate metrics
+            total_volume = sum(t.get("size", 0) for t in window_trades)
+            trade_count = len(window_trades)
+            max_price = max((t.get("price", 0) for t in window_trades), default=0)
+
+            price_excursion_pct = 0.0
+            if initial_ask and max_price > 0:
+                price_excursion_pct = ((max_price - initial_ask) / initial_ask) * 100
+
+            # Classify trades as buy/sell using tick rule
+            buy_volume = 0
+            sell_volume = 0
+            prev_price = initial_ask
+
+            for trade in sorted(window_trades, key=lambda t: t.get("timestamp", datetime.min)):
+                price = trade.get("price", 0)
+                size = trade.get("size", 0)
+                if price > prev_price:
+                    buy_volume += size
+                elif price < prev_price:
+                    sell_volume += size
+                else:
+                    buy_volume += size // 2
+                    sell_volume += size - (size // 2)
+                prev_price = price
+
+            buying_pressure = buy_volume / total_volume if total_volume > 0 else 0.0
+
+            seconds_elapsed = (datetime.now(timezone.utc) - pub_time_utc).total_seconds()
+
+            # Check STRENGTH: excursion >= 0.5% AND trades >= 5
+            has_strength = (
+                price_excursion_pct >= 0.5
+                and trade_count >= LATE_STRENGTH_MIN_TRADES
+            )
+
+            # Check SURGE: all 4 criteria
+            has_surge = (
+                total_volume >= MIN_ABSOLUTE_VOLUME
+                and trade_count >= MIN_ABSOLUTE_TRADES
+                and price_excursion_pct >= SURGE_PRICE_ACTION_PCT
+                and buying_pressure >= SURGE_BUYING_PRESSURE
+            )
+
+            if has_strength or has_surge:
+                entry_type = "late_surge" if has_surge else "late_strength"
+                current_nbbo = await quote_fetcher.get_nbbo_snapshot(ticker) if quote_fetcher else None
+
+                logger.info(
+                    f"🚀 LATE ENTRY FOUND: {entry_type.upper()} at {seconds_elapsed:.1f}s",
+                    ticker=ticker,
+                    article_id=article_id,
+                    entry_type=entry_type,
+                    seconds_elapsed=round(seconds_elapsed, 1),
+                    check_number=check_num + 1,
+                    volume=total_volume,
+                    trade_count=trade_count,
+                    price_excursion_pct=round(price_excursion_pct, 2),
+                    buying_pressure_pct=round(buying_pressure * 100, 1),
+                )
+
+                imbalance_ratio = (buying_pressure * 2) - 1
+
+                return {
+                    "late_entry_type": entry_type,
+                    "late_entry_seconds_elapsed": round(seconds_elapsed, 1),
+                    "late_entry_check_number": check_num + 1,
+                    "late_entry_volume": total_volume,
+                    "late_entry_trade_count": trade_count,
+                    "late_entry_price_excursion_pct": round(price_excursion_pct, 2),
+                    "late_entry_buying_pressure_pct": round(buying_pressure * 100, 1),
+                    "late_entry_imbalance_ratio": round(imbalance_ratio, 3),
+                    "late_entry_buy_volume": buy_volume,
+                    "late_entry_sell_volume": sell_volume,
+                    "surge_nbbo": current_nbbo,
+                    "surge_nbbo_mid": current_nbbo.get("mid") if current_nbbo else None,
+                }
+
+            # Log progress periodically
+            if check_num % 5 == 4:
+                logger.debug(
+                    f"LATE ENTRY check #{check_num + 1}: no signal yet",
+                    ticker=ticker,
+                    volume=total_volume,
+                    trade_count=trade_count,
+                    price_excursion_pct=round(price_excursion_pct, 2),
+                    seconds_elapsed=round(seconds_elapsed, 1),
+                )
+
+        except Exception as e:
+            logger.debug(f"Error in late entry check #{check_num + 1}: {e}")
+            continue
+
+    logger.info(
+        "⏭️ LATE ENTRY: No signal in extended window",
+        ticker=ticker,
+        article_id=article_id,
+        total_seconds=round(LATE_ENTRY_MAX_SECONDS, 0),
     )
     return None
 
@@ -1794,6 +1987,7 @@ async def process_imminent_article(
 
         # If no STRENGTH, check for SURGE (8-second window with strict criteria)
         is_surge_trade = False
+        is_late_trade = False
         if not has_strength:
             logger.info(
                 f"🔍 CHECKING SURGE: No STRENGTH found (score={confluence_score}, excursion={max_excursion_pct:.2f}%)",
@@ -1831,17 +2025,41 @@ async def process_imminent_article(
                 # Update metadata with surge info
                 confluence_metadata.update(surge_result)
             else:
-                # Neither STRENGTH nor SURGE - SKIP
-                logger.info(
-                    f"⏭️ AUTO-TRADE SKIPPED: No STRENGTH or SURGE detected",
+                # Neither STRENGTH nor SURGE in initial windows - try late entry (up to 30s)
+                late_result = await monitor_for_late_entry(
+                    quote_fetcher=quote_fetcher,
                     ticker=ticker,
-                    confluence_score=confluence_score,
-                    max_excursion_pct=max_excursion_pct,
-                    reason="AI classified IMMINENT but market shows no activity confirmation",
-                    article_id=article_id
+                    publication_time=published_at,
+                    initial_ask_at_publication=initial_ask_at_pub,
+                    article_id=article_id,
                 )
-                await _record_postfilter_skip(article_id, f"postfilter_no_strength_or_surge:score={confluence_score},excursion={max_excursion_pct:.1f}%")
-                return
+
+                if late_result:
+                    is_late_trade = True
+                    conviction = ai_conviction
+                    late_type = late_result.get("late_entry_type", "late_strength")
+                    late_secs = late_result.get("late_entry_seconds_elapsed", 0)
+                    logger.info(
+                        f"🚀 LATE ENTRY CONFIRMED: {late_type.upper()} at {late_secs:.1f}s",
+                        ticker=ticker,
+                        late_entry_type=late_type,
+                        seconds_elapsed=late_secs,
+                        conviction=conviction.value,
+                        article_id=article_id
+                    )
+                    confluence_metadata.update(late_result)
+                else:
+                    # No STRENGTH, SURGE, or late entry - SKIP
+                    logger.info(
+                        f"⏭️ AUTO-TRADE SKIPPED: No STRENGTH, SURGE, or late entry detected",
+                        ticker=ticker,
+                        confluence_score=confluence_score,
+                        max_excursion_pct=max_excursion_pct,
+                        reason="AI classified IMMINENT but no activity confirmation within 30s",
+                        article_id=article_id
+                    )
+                    await _record_postfilter_skip(article_id, f"postfilter_no_strength_or_surge_or_late:score={confluence_score},excursion={max_excursion_pct:.1f}%")
+                    return
 
         # ============================================================
         # 🛡️ SAFETY FILTERS: Market cap and biotech price checks
@@ -1908,14 +2126,14 @@ async def process_imminent_article(
                 logger.debug(f"Could not check market cap/biotech filter: {e}")
 
         # ============================================================
-        # 📊 SPREAD FILTER: Reject wide spreads (>10% of mid)
+        # 📊 SPREAD FILTER: Reject wide spreads (>5% of mid)
         # ============================================================
         # 🎯 WIDE SPREAD TRAP FILTER
         # ============================================================
         # Wide spreads cause instant losses. If bid-ask spread is 5%, you're
         # already down 5% the moment you buy at ask and would sell at bid.
         # IINN lesson: 35% spread = untradeable.
-        # Tightened from 10% to 3% - even 3% spread means instant -3% on entry.
+        # Tightened to 5% - even 5% spread means instant -5% on entry.
         MAX_SPREAD_PCT = 5.0  # Maximum spread as % of mid price (premarket often 3-5%)
         initial_spread = confluence_metadata.get("initial_spread")
         initial_ask = confluence_metadata.get("initial_ask")
@@ -1934,7 +2152,7 @@ async def process_imminent_article(
                 # HARD STOP: Spread > 3% = instant loss territory
                 if spread_pct_of_mid > MAX_SPREAD_PCT:
                     logger.info(
-                        "⏭️ AUTO-TRADE SKIPPED: Spread too wide (>3% of mid) - instant loss trap",
+                        "⏭️ AUTO-TRADE SKIPPED: Spread too wide (>5% of mid) - instant loss trap",
                         ticker=ticker,
                         spread_pct_of_mid=round(spread_pct_of_mid, 2),
                         max_allowed=MAX_SPREAD_PCT,
@@ -2098,7 +2316,7 @@ async def process_imminent_article(
                                 current_ask=current_ask,
                                 current_spread=round(current_spread, 4),
                                 article_id=article_id,
-                                reason="Spread at fill time exceeds 10% threshold - APUS protection"
+                                reason="Spread at fill time exceeds 5% threshold - APUS protection"
                             )
                             await _record_postfilter_skip(article_id, f"postfilter_fill_spread_too_wide:{fill_spread_pct:.1f}%")
                             return
@@ -2416,20 +2634,21 @@ async def process_imminent_article(
         # ============================================================
         # 🎯 LATE ENTRY FILTER
         # ============================================================
-        # If we're trying to trade >10 seconds after publication, we're late.
-        # The fast money already got in. We'd be exit liquidity for early buyers.
-        # Note: This is time from publication to NOW, not to first trade.
-        MAX_ENTRY_DELAY_SECONDS = 10.0
+        # If we're trying to trade too late after publication, skip.
+        # For late trades (confirmed via monitor_for_late_entry), allow up to 35s.
+        # For normal trades, max 10s from publication.
+        max_entry_delay = 35.0 if is_late_trade else 10.0
         now_utc = datetime.now(timezone.utc)
         pub_time_utc = published_at.replace(tzinfo=timezone.utc) if published_at.tzinfo is None else published_at
         entry_delay_seconds = (now_utc - pub_time_utc).total_seconds()
 
-        if entry_delay_seconds > MAX_ENTRY_DELAY_SECONDS:
+        if entry_delay_seconds > max_entry_delay:
             logger.info(
-                "⏭️ AUTO-TRADE SKIPPED: Too late (>10s since publication)",
+                f"⏭️ AUTO-TRADE SKIPPED: Too late (>{max_entry_delay:.0f}s since publication)",
                 ticker=ticker,
                 entry_delay_seconds=round(entry_delay_seconds, 2),
-                max_allowed_seconds=MAX_ENTRY_DELAY_SECONDS,
+                max_allowed_seconds=max_entry_delay,
+                is_late_trade=is_late_trade,
                 published_at=pub_time_utc.isoformat(),
                 now=now_utc.isoformat(),
                 article_id=article_id,
@@ -2442,11 +2661,22 @@ async def process_imminent_article(
             "✅ ENTRY TIMING CHECK PASSED",
             ticker=ticker,
             entry_delay_seconds=round(entry_delay_seconds, 2),
-            max_allowed_seconds=MAX_ENTRY_DELAY_SECONDS
+            max_allowed_seconds=max_entry_delay,
+            is_late_trade=is_late_trade,
         )
 
         # Store for statistics
         confluence_metadata["entry_delay_seconds"] = round(entry_delay_seconds, 2)
+
+        # Determine entry timing classification
+        if is_late_trade:
+            entry_timing = confluence_metadata.get("late_entry_type", "late_strength")
+        elif is_surge_trade:
+            entry_timing = "early_surge"
+        else:
+            entry_timing = "early_strength"
+        confluence_metadata["entry_timing"] = entry_timing
+        confluence_metadata["is_late_trade"] = is_late_trade
 
         # ============================================================
         # 📊 FILTER CHECKPOINT VALUES (for hit rate analysis)
@@ -2471,6 +2701,8 @@ async def process_imminent_article(
             "dollar_volume": confluence_metadata.get("confluence_dollar_volume"),
             "trade_count": confluence_metadata.get("confluence_trade_count"),
             "first_trade_latency_ms": confluence_metadata.get("confluence_first_trade_latency_ms"),
+            "entry_timing": entry_timing,
+            "is_late_trade": is_late_trade,
             "hour": hour,
             "sector": confluence_metadata.get("sector"),
             "industry": confluence_metadata.get("industry"),

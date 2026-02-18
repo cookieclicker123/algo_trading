@@ -662,6 +662,10 @@ class SignalRecord(BaseModel):
     headline: Optional[str] = Field(None, description="Article headline/title")
     headline_type: Optional[str] = Field(None, description="Catalyst type: contract, fda, partnership, earnings, etc.")
 
+    # Entry timing classification
+    entry_timing: Optional[str] = Field(None, description="Entry type: early_strength, early_surge, late_strength, late_surge")
+    is_late_trade: Optional[bool] = Field(None, description="Whether trade entered via late monitoring (>10s from publication)")
+
     # Timing
     time_of_day: Optional[str] = Field(None, description="HH:MM format")
     hour: Optional[int] = Field(None, description="Hour of day (0-23 ET) for time-of-day win rate analysis")

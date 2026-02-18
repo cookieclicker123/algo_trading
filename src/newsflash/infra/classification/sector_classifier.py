@@ -178,6 +178,41 @@ SECTOR_INDUSTRY_MAP: Dict[str, Dict[str, str]] = {
     },
 }
 
+# Aliases for yfinance industry names that differ from our SECTOR_INDUSTRY_MAP keys.
+# yfinance sometimes uses " - " separators or different naming conventions.
+# Maps yfinance name → our canonical name.
+INDUSTRY_ALIASES: Dict[str, str] = {
+    # Healthcare
+    "Medical - Devices": "Medical Devices",
+    "Medical - Instruments & Supplies": "Medical Instruments & Supplies",
+    "Medical - Care Facilities": "Medical Care Facilities",
+    "Medical - Distribution": "Medical Devices",
+    "Medical - Diagnostics & Research": "Diagnostics & Research",
+    "Medical - Healthcare Plans": "Medical Care Facilities",
+    "Medical - Pharmaceuticals": "Drug Manufacturers - Specialty & Generic",
+    # Financial Services
+    "Financial - Data & Stock Exchanges": "Financial Data & Stock Exchanges",
+    "Financial - Conglomerates": "Financial Conglomerates",
+    "Financial - Credit Services": "Credit Services",
+    "Financial - Mortgages": "Mortgage Finance",
+    "Insurance - Reinsurance": "Insurance - Diversified",
+    "Asset Management - Global": "Asset Management",
+    "Asset Management - Income": "Asset Management",
+    "Asset Management - Leveraged": "Asset Management",
+    "Asset Management - Cryptocurrency": "Asset Management",
+    "Capital Markets - Independent": "Capital Markets",
+    "Capital Markets - Institutional": "Capital Markets",
+    # Consumer Cyclical
+    "Auto - Parts": "Auto Parts",
+    "Auto - Manufacturers": "Auto Manufacturers",
+    "Auto - Dealerships": "Auto & Truck Dealerships",
+    "Auto - Recreational Vehicles": "Recreational Vehicles",
+    # Industrials
+    "Industrial - Distribution": "Industrial Distribution",
+    "Industrial - Machinery": "Specialty Industrial Machinery",
+    "Industrial - Pollution & Treatment Controls": "Pollution & Treatment Controls",
+}
+
 # Set of all supported sectors
 SUPPORTED_SECTORS = set(SECTOR_INDUSTRY_MAP.keys())
 
@@ -333,6 +368,8 @@ class SectorClassifier:
             return "NOT_SUPPORTED_SECTOR", sector, None, latency_ms, None
 
         # Step 3: Check if supported industry within sector
+        # Normalize yfinance industry names to our canonical names
+        industry = INDUSTRY_ALIASES.get(industry, industry)
         industry_map = SECTOR_INDUSTRY_MAP.get(sector, {})
         if industry not in industry_map:
             latency_ms = (datetime.now() - start_time).total_seconds() * 1000

@@ -1,5 +1,5 @@
 {
-  "date": "2026-02-17",
+  "date": "2026-02-18",
   "data": {
     "ORCL": {
       "market_cap_millions": 459538.399232
@@ -16255,6 +16255,34 @@
     "CHCT": {
       "market_cap_millions": 513.055072,
       "float_shares": 25229213
+    },
+    "SMXWW": {
+      "float_shares": 34625
+    },
+    "LBTYA": {
+      "market_cap_millions": 3818.879488,
+      "float_shares": 273259145
+    },
+    "LBTYB": {
+      "market_cap_millions": 4502.735872,
+      "float_shares": 273259145
+    },
+    "QTI": {
+      "market_cap_millions": 67.681784,
+      "float_shares": 7332468
+    },
+    "INFQ": {
+      "market_cap_millions": 2705.251072
+    },
+    "WSBCO": {
+      "float_shares": 92765717
+    },
+    "BCTXL": {
+      "float_shares": 1684344
+    },
+    "BTG": {
+      "market_cap_millions": 7188.42112,
+      "float_shares": 1256944855
     }
   }
 }

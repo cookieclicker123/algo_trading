@@ -115574,7 +115574,9 @@
     "sector": "Energy"
   },
   "SMXWW": {
-    "exchange": "NASDAQ"
+    "exchange": "NASDAQ",
+    "industry": "",
+    "sector": ""
   },
   "SMYIX": {
     "exchange": "NASDAQ",
@@ -141309,5 +141311,33 @@
   "CHCT": {
     "industry": "REIT - Healthcare Facilities",
     "sector": "Real Estate"
+  },
+  "LBTYA": {
+    "industry": "Telecom Services",
+    "sector": "Communication Services"
+  },
+  "LBTYB": {
+    "industry": "Telecom Services",
+    "sector": "Communication Services"
+  },
+  "QTI": {
+    "industry": "Medical Devices",
+    "sector": "Healthcare"
+  },
+  "INFQ": {
+    "industry": "Software - Infrastructure",
+    "sector": "Technology"
+  },
+  "WSBCO": {
+    "industry": "Banks - Regional",
+    "sector": "Financial Services"
+  },
+  "BCTXL": {
+    "industry": "",
+    "sector": ""
+  },
+  "BTG": {
+    "industry": "Gold",
+    "sector": "Basic Materials"
   }
 }
