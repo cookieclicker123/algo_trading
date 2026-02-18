@@ -158,9 +158,11 @@ def derive_move_type(
         price_excursion_pct is not None and abs(price_excursion_pct) >= STRENGTH_MIN_EXCURSION_PCT
     )
 
-    # Fallback: has_buying_pressure AND has_price_excursion AND positive imbalance
+    # Fallback when multipliers unavailable (dormant stocks with no prior volume):
+    # Accept volume surge OR buying pressure, combined with price excursion and positive imbalance.
+    # OLB pattern: 25K shares, 127 trades, 4.76% excursion, 66.7% buying — clearly strength, not low_activity.
     is_strength_fallback = (
-        has_buying_pressure is True and
+        (has_buying_pressure is True or has_volume_surge is True) and
         has_price_excursion is True and
         imbalance_ratio is not None and imbalance_ratio > STRENGTH_MIN_IMBALANCE_RATIO
     )
