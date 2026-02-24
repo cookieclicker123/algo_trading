@@ -200,7 +200,21 @@ class NotifyExitTradeUseCase:
             # Only notify for exit trades (SELL)
             if not trade_request.is_sell():
                 return
-            
+
+            # Skip notification for manual exits (Telegram handler already replied directly)
+            trade_request_dict = trade_result.trade_request
+            exit_metadata = trade_request_dict.get("metadata", {})
+            exit_reason = exit_metadata.get("exit_reason") if exit_metadata else None
+            if exit_reason == "manual_exit":
+                logger.info(
+                    "NOTIFY EXIT TRADE: Skipping notification for manual exit (Telegram handler sent it)",
+                    ticker=ticker,
+                )
+                # Still clean up entry trade tracking
+                if ticker in self._entry_trades:
+                    del self._entry_trades[ticker]
+                return
+
             logger.info(
                 "🎯 NOTIFY EXIT TRADE: Orchestrating exit notification request",
                 ticker=ticker,

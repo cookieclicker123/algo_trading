@@ -549,7 +549,10 @@ class BrokerageService:
             )
             
             # Execute the exit trade using the same smart exit system
-            result = await self.execute_trade(trade_request)
+            result = await self.execute_trade(
+                trade_request,
+                metadata={"exit_reason": "manual_exit"}
+            )
             
             # Add position info to result
             result["position_info"] = {
