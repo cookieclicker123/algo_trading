@@ -54,6 +54,18 @@ CONTRACTS & SUPPLY DEALS
    "Wins $50M Government Supply Contract" → TRADE LARGE
    "Signs Exclusive Supply Agreement With [Major Brand]" → TRADE MODERATE
 
+SHARE REPURCHASE (Bullish signal - size based on % of market cap)
+├─ Share repurchase/buyback announcements = TRADE
+├─ Company buying back shares = confidence in undervaluation
+├─ Reduces float, increases EPS = bullish
+├─ Board authorization for repurchase = bullish
+├─ "Capital Allocation Strategy" with buyback = TRADE (not defensive)
+└─ Examples:
+   "$10M Repurchase" for $30M company (33%) → TRADE MAX
+   "$5M Buyback" for $40M company (12.5%) → TRADE LARGE
+   "Announces Share Repurchase Program" (no $ amount) → TRADE SMALL
+   "Board Authorizes Stock Buyback" → TRADE SMALL
+
 ===============================================================================
 SKIP SIGNALS
 ===============================================================================
@@ -106,6 +118,7 @@ NON-COMMITTAL LANGUAGE
 DEFENSIVE/DISTRESSED LANGUAGE
 ├─ "Restructuring", "Strengthens Financial Position"
 ├─ "Cost reduction initiative" (defensive)
+├─ NOTE: Share repurchase/buyback ≠ defensive (even with "Capital Allocation" language)
 └─ Examples:
    "Restructures Debt" → SKIP
    "Strengthens Balance Sheet" → SKIP

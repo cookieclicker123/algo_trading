@@ -78,12 +78,11 @@ ANALYST UPGRADES (SECONDARY)
    "Maintains Buy, Raises Price Target" -> TRADE
    "Initiates Coverage With Buy Rating" -> TRADE
 
-===============================================================================
-
 SHARE REPURCHASE (Bullish signal - size based on % of market cap)
 ├─ Share repurchase/buyback announcements = TRADE
 ├─ Company buying back shares = confidence in undervaluation
 ├─ Reduces float, increases EPS = bullish for price
+├─ NOTE: "Capital Allocation Strategy" with share repurchase = TRADE (not defensive)
 ├─ SIZE BY MARKET CAP PERCENTAGE (context provided):
 │   - >25% of market cap = TRADE MAX (transformational)
 │   - 10-25% of market cap = TRADE LARGE
@@ -158,6 +157,7 @@ DEFENSIVE/DISTRESSED LANGUAGE (Often bad news disguised as good)
 ├─ "Strengthens Financial Position" = defensive language
 ├─ "Improves Financial Flexibility" = euphemism for distress
 ├─ These phrases often mean: "we were in trouble, now less so"
+├─ NOTE: Share repurchase/buyback ≠ defensive (even with "Capital Allocation" language)
 └─ Examples:
    "Restructures Debt Through Bank Financing" → SKIP
    "Strengthens Financial Position Through Agreement" → SKIP
@@ -293,7 +293,8 @@ DECISION RULES
 5. Significant discoveries/resource updates = TRADE
 6. Key permit approvals = TRADE
 7. Analyst upgrades = TRADE (but weaker signal)
-8. Earnings = always SKIP
-9. Plain offerings without project context = SKIP
+8. Share repurchase/buyback programs = always TRADE (never defensive)
+9. Earnings = always SKIP
+10. Plain offerings without project context = SKIP
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

@@ -46,12 +46,11 @@ PRODUCT LAUNCHES
    "Launches Next-Gen Mass Spectrometer" -> TRADE
    "Announces Breakthrough In Detection Technology" -> TRADE
 
-===============================================================================
-
 SHARE REPURCHASE (Bullish signal - size based on % of market cap)
 ├─ Share repurchase/buyback announcements = TRADE
 ├─ Company buying back shares = confidence in undervaluation
 ├─ Reduces float, increases EPS = bullish for price
+├─ NOTE: "Capital Allocation Strategy" with share repurchase = TRADE (not defensive)
 ├─ SIZE BY MARKET CAP PERCENTAGE (context provided):
 │   - >25% of market cap = TRADE MAX (transformational)
 │   - 10-25% of market cap = TRADE LARGE
@@ -125,6 +124,7 @@ DEFENSIVE/DISTRESSED LANGUAGE (Often bad news disguised as good)
 ├─ "Strengthens Financial Position" = defensive language
 ├─ "Improves Financial Flexibility" = euphemism for distress
 ├─ These phrases often mean: "we were in trouble, now less so"
+├─ NOTE: Share repurchase/buyback ≠ defensive (even with "Capital Allocation" language)
 └─ Examples:
    "Restructures Debt Through Bank Financing" → SKIP
    "Strengthens Financial Position Through Agreement" → SKIP
@@ -256,8 +256,9 @@ DECISION RULES
 1. Government/NIH contracts = strongest TRADE signal
 2. Pharma partnerships = TRADE
 3. Defense contracts = TRADE
-4. Earnings = always SKIP
-5. Research publications = usually SKIP
-6. Conference attendance = always SKIP
+4. Share repurchase/buyback programs = always TRADE (never defensive)
+5. Earnings = always SKIP
+6. Research publications = usually SKIP
+7. Conference attendance = always SKIP
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

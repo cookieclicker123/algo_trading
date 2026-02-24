@@ -208,8 +208,6 @@ M&A (Strongest single catalyst for target company)
 
 ===============================================================================
 OTHER TRADE SIGNALS
-===============================================================================
-
 SHARE REPURCHASE (Bullish signal)
 ├─ Share repurchase/buyback = confidence in undervaluation
 ├─ Reduces float, increases EPS = bullish
@@ -342,6 +340,7 @@ LETTER OF INTENT — NUANCED (50+ winners in backtest)
 
 DEFENSIVE/DISTRESSED LANGUAGE
 ├─ "Restructuring", "Strengthens Financial Position"
+├─ NOTE: Share repurchase/buyback ≠ defensive (even with "Capital Allocation" language)
 └─ SKIP (bad news disguised as good)
 
 CASH OUTFLOWS
@@ -415,6 +414,7 @@ ALWAYS TRADE:
 - Phase 3 met primary endpoint
 - Fast Track / Breakthrough Therapy designation
 - Major pharma partnership with named company
+- Share repurchase/buyback programs = always TRADE (never defensive)
 
 ALWAYS SKIP:
 - Earnings / financial results

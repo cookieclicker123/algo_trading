@@ -57,6 +57,7 @@ SHARE REPURCHASE (Bullish signal)
 ├─ Share repurchase/buyback announcements = TRADE
 ├─ Company buying back shares = confidence in undervaluation
 ├─ Reduces float, increases EPS = bullish
+├─ NOTE: "Capital Allocation Strategy" with share repurchase = TRADE (not defensive)
 └─ Examples:
    "Announces Share Repurchase Program" → TRADE
    "Board Authorizes Stock Buyback" → TRADE
@@ -144,6 +145,7 @@ LETTER OF INTENT (LOI) - NUANCED (50+ winners in backtest)
 DEFENSIVE/DISTRESSED LANGUAGE (Often bad news disguised as good)
 ├─ "Restructuring" (debt, financing) = company in trouble
 ├─ "Strengthens Financial Position" = defensive language
+├─ NOTE: Share repurchase/buyback ≠ defensive (even with "Capital Allocation" language)
 └─ Examples:
    "Restructures Debt Through Bank Financing" → SKIP
    "Strengthens Financial Position" → SKIP
@@ -263,10 +265,11 @@ DECISION RULES
 ═══════════════════════════════════════════════════════════════════════════════
 
 1. M&A/Strategic review = strongest signal
-2. Law firm names = IMMEDIATE SKIP (very common trap)
-3. Earnings = always SKIP
-4. Executive appointments = SKIP (common in losers)
-5. Geographic expansion = TRADE
-6. Financial position reaffirmation = can be strong
+2. Share repurchase/buyback programs = always TRADE (never defensive)
+3. Law firm names = IMMEDIATE SKIP (very common trap)
+4. Earnings = always SKIP
+5. Executive appointments = SKIP (common in losers)
+6. Geographic expansion = TRADE
+7. Financial position reaffirmation = can be strong
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

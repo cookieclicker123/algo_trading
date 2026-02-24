@@ -6209,6 +6209,7 @@
     "QMCO",
     "QMID",
     "QMOM",
+    "QNC",
     "QNCX",
     "QNRX",
     "QNST",
@@ -8460,6 +8461,6 @@
     "ZYBT",
     "ZYME"
   ],
-  "updated_at": "2026-02-24T12:56:51.456101",
-  "count": 8459
+  "updated_at": "2026-02-24T16:56:17.799107",
+  "count": 8460
 }

@@ -59,12 +59,11 @@ PERMITS & REGULATORY APPROVALS (STRONG SIGNAL)
    "Receives EPA Approval For Clean Energy Project" -> TRADE
    "Lithium Project Receives Key Regulatory Milestone" -> TRADE
 
-===============================================================================
-
 SHARE REPURCHASE (Bullish signal - size based on % of market cap)
 ├─ Share repurchase/buyback announcements = TRADE
 ├─ Company buying back shares = confidence in undervaluation
 ├─ Reduces float, increases EPS = bullish for price
+├─ NOTE: "Capital Allocation Strategy" with share repurchase = TRADE (not defensive)
 ├─ SIZE BY MARKET CAP PERCENTAGE (context provided):
 │   - >25% of market cap = TRADE MAX (transformational)
 │   - 10-25% of market cap = TRADE LARGE
@@ -140,6 +139,7 @@ DEFENSIVE/DISTRESSED LANGUAGE (Often bad news disguised as good)
 ├─ "Strengthens Financial Position" = defensive language
 ├─ "Improves Financial Flexibility" = euphemism for distress
 ├─ These phrases often mean: "we were in trouble, now less so"
+├─ NOTE: Share repurchase/buyback ≠ defensive (even with "Capital Allocation" language)
 └─ Examples:
    "Restructures Debt Through Bank Financing" → SKIP
    "Strengthens Financial Position Through Agreement" → SKIP
@@ -272,8 +272,9 @@ DECISION RULES
 2. Utility contracts = TRADE
 3. Automaker partnerships = TRADE
 4. Permits/regulatory approvals = TRADE (esp. for energy/lithium/battery projects)
-5. Earnings = always SKIP
-6. Policy commentary = always SKIP
-7. Conference attendance = always SKIP
+5. Share repurchase/buyback programs = always TRADE (never defensive)
+6. Earnings = always SKIP
+7. Policy commentary = always SKIP
+8. Conference attendance = always SKIP
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

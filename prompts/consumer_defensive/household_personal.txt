@@ -57,12 +57,11 @@ M&A ACTIVITY
    "To Be Acquired By Consumer Giant" -> TRADE
    "Receives Strategic Investment" -> TRADE
 
-===============================================================================
-
 SHARE REPURCHASE (Bullish signal - size based on % of market cap)
 ├─ Share repurchase/buyback announcements = TRADE
 ├─ Company buying back shares = confidence in undervaluation
 ├─ Reduces float, increases EPS = bullish for price
+├─ NOTE: "Capital Allocation Strategy" with share repurchase = TRADE (not defensive)
 ├─ SIZE BY MARKET CAP PERCENTAGE (context provided):
 │   - >25% of market cap = TRADE MAX (transformational)
 │   - 10-25% of market cap = TRADE LARGE
@@ -129,6 +128,7 @@ DEFENSIVE/DISTRESSED LANGUAGE (Often bad news disguised as good)
 ├─ "Strengthens Financial Position" = defensive language
 ├─ "Improves Financial Flexibility" = euphemism for distress
 ├─ These phrases often mean: "we were in trouble, now less so"
+├─ NOTE: Share repurchase/buyback ≠ defensive (even with "Capital Allocation" language)
 └─ Examples:
    "Restructures Debt Through Bank Financing" → SKIP
    "Strengthens Financial Position Through Agreement" → SKIP
@@ -262,7 +262,8 @@ DECISION RULES
 3. Major retail distribution agreements = TRADE
 4. Celebrity/influencer partnerships = TRADE
 5. Clinical study results = TRADE
-6. Earnings = always SKIP
-7. Generic marketing = SKIP
+6. Share repurchase/buyback programs = always TRADE (never defensive)
+7. Earnings = always SKIP
+8. Generic marketing = SKIP
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

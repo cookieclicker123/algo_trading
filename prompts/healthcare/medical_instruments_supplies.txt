@@ -72,6 +72,7 @@ SHARE REPURCHASE (Bullish signal)
 ├─ Share repurchase/buyback announcements = TRADE
 ├─ Company buying back shares = confidence in undervaluation
 ├─ Reduces float, increases EPS = bullish
+├─ NOTE: "Capital Allocation Strategy" with share repurchase = TRADE (not defensive)
 └─ Examples:
    "Announces Share Repurchase Program" → TRADE
    "Board Authorizes Stock Buyback" → TRADE
@@ -170,6 +171,7 @@ LETTER OF INTENT (LOI) - NUANCED (50+ winners in backtest)
 DEFENSIVE/DISTRESSED LANGUAGE (Often bad news disguised as good)
 ├─ "Restructuring" (debt, financing) = company in trouble
 ├─ "Strengthens Financial Position" = defensive language
+├─ NOTE: Share repurchase/buyback ≠ defensive (even with "Capital Allocation" language)
 └─ Examples:
    "Restructures Debt Through Bank Financing" → SKIP
    "Strengthens Financial Position" → SKIP
@@ -292,9 +294,10 @@ DECISION RULES
 2. Product launches with brand names = strong
 3. WHO/international approvals = strong
 4. USPTO patent issuance = strong (IP protection for small caps)
-5. "Submits" = SKIP, wait for approval
-6. Foundation/awareness partnerships = SKIP (non-commercial)
-7. Earnings = always SKIP
-8. Conference attendance = always SKIP
+5. Share repurchase/buyback programs = always TRADE (never defensive)
+6. "Submits" = SKIP, wait for approval
+7. Foundation/awareness partnerships = SKIP (non-commercial)
+8. Earnings = always SKIP
+9. Conference attendance = always SKIP
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

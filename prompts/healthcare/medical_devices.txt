@@ -55,6 +55,7 @@ SHARE REPURCHASE (Bullish signal)
 ├─ Share repurchase/buyback announcements = TRADE
 ├─ Company buying back shares = confidence in undervaluation
 ├─ Reduces float, increases EPS = bullish
+├─ NOTE: "Capital Allocation Strategy" with share repurchase = TRADE (not defensive)
 └─ Examples:
    "Announces Share Repurchase Program" → TRADE
    "Board Authorizes Stock Buyback" → TRADE
@@ -147,6 +148,7 @@ LETTER OF INTENT (LOI) - NUANCED (50+ winners in backtest)
 DEFENSIVE/DISTRESSED LANGUAGE (Often bad news disguised as good)
 ├─ "Restructuring" (debt, financing) = company in trouble
 ├─ "Strengthens Financial Position" = defensive language
+├─ NOTE: Share repurchase/buyback ≠ defensive (even with "Capital Allocation" language)
 └─ Examples:
    "Restructures Debt Through Bank Financing" → SKIP
    "Strengthens Financial Position" → SKIP
@@ -268,9 +270,10 @@ DECISION RULES
 1. FDA 510(k) clearance is the key regulatory pathway - strong TRADE signal
 2. CE Mark = European approval, often precedes FDA, still strong signal
 3. M&A activity is common - merger announcements are strong TRADE
-4. "To announce results" = SKIP, wait for actual results
-5. Conference attendance = always SKIP
-6. "Launches" WITHOUT FDA/CE Mark = SKIP (marketing, not catalyst)
-7. AI platforms, virtual clinics, digital solutions = SKIP (no regulatory barrier = no moat)
+4. Share repurchase/buyback programs = always TRADE (never defensive)
+5. "To announce results" = SKIP, wait for actual results
+6. Conference attendance = always SKIP
+7. "Launches" WITHOUT FDA/CE Mark = SKIP (marketing, not catalyst)
+8. AI platforms, virtual clinics, digital solutions = SKIP (no regulatory barrier = no moat)
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)
