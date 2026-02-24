@@ -2481,46 +2481,46 @@ async def process_imminent_article(
                 confluence_metadata["recv_to_fill_pct"] = round(recv_to_fill_pct, 2)
 
         # ============================================================
-        # 🎯 PUMP-AND-DUMP FILTER: Entry ask vs first trade price
+        # 🎯 PUMP-AND-DUMP FILTER: Entry ask vs confluence VWAP
         # ============================================================
-        # EPOW lesson: Ask stayed at $1.00 while trades ran from $0.88 → $0.99
-        # We entered at $1.00 (the ask) which was 13.5% above the first trade.
+        # EPOW lesson: Ask stayed at $1.00 while trades averaged ~$0.94 (VWAP).
+        # We entered at $1.00 paying a 6.4% premium over actual trading activity.
         # This is classic pump-and-dump: trades create "confluence", we pay the inflated ask.
         #
-        # Filter: Entry ask cannot be >5% above the first trade in confluence window.
-        # If trades started at $0.88 and ask is $1.00, that's a 13.6% premium = SKIP.
-        MAX_ASK_VS_FIRST_TRADE_PCT = 3.0  # Consistent with other 3% thresholds
-        confluence_first_price = confluence_metadata.get("confluence_first_price")
+        # Uses VWAP (not first_price) because first_price can be a stale pre-news tick
+        # (e.g. GFAI $0.44 stale → VWAP $0.49 → ask $0.503 = 2.6% premium, not 14.3%).
+        MAX_ASK_VS_VWAP_PCT = 5.0  # Entry ask >5% above VWAP = paying pump premium
+        confluence_vwap = confluence_metadata.get("confluence_vwap")
         fill_ask = pre_entry_nbbo.get("ask") if pre_entry_nbbo else None
 
-        if confluence_first_price and fill_ask and confluence_first_price > 0:
-            ask_vs_first_trade_pct = ((fill_ask - confluence_first_price) / confluence_first_price) * 100
+        if confluence_vwap and fill_ask and confluence_vwap > 0:
+            ask_vs_vwap_pct = ((fill_ask - confluence_vwap) / confluence_vwap) * 100
 
-            if ask_vs_first_trade_pct > MAX_ASK_VS_FIRST_TRADE_PCT:
+            if ask_vs_vwap_pct > MAX_ASK_VS_VWAP_PCT:
                 logger.info(
-                    "⏭️ AUTO-TRADE SKIPPED: Entry ask too far above first trade (pump-and-dump pattern)",
+                    "⏭️ AUTO-TRADE SKIPPED: Entry ask too far above VWAP (pump-and-dump pattern)",
                     ticker=ticker,
-                    confluence_first_price=round(confluence_first_price, 4),
+                    confluence_vwap=round(confluence_vwap, 4),
                     fill_ask=round(fill_ask, 4),
-                    ask_vs_first_trade_pct=round(ask_vs_first_trade_pct, 2),
-                    max_allowed=MAX_ASK_VS_FIRST_TRADE_PCT,
+                    ask_vs_vwap_pct=round(ask_vs_vwap_pct, 2),
+                    max_allowed=MAX_ASK_VS_VWAP_PCT,
                     article_id=article_id,
-                    reason="Trades ran up but ask stayed high - we'd be paying the pump premium"
+                    reason="Entry ask is above average trading price - paying the pump premium"
                 )
-                await _record_postfilter_skip(article_id, f"postfilter_pump_and_dump:{ask_vs_first_trade_pct:.1f}%")
+                await _record_postfilter_skip(article_id, f"postfilter_pump_and_dump:{ask_vs_vwap_pct:.1f}%")
                 return
 
             logger.info(
                 "✅ PUMP-AND-DUMP CHECK PASSED",
                 ticker=ticker,
-                confluence_first_price=round(confluence_first_price, 4),
+                confluence_vwap=round(confluence_vwap, 4),
                 fill_ask=round(fill_ask, 4),
-                ask_vs_first_trade_pct=round(ask_vs_first_trade_pct, 2),
-                max_allowed=MAX_ASK_VS_FIRST_TRADE_PCT
+                ask_vs_vwap_pct=round(ask_vs_vwap_pct, 2),
+                max_allowed=MAX_ASK_VS_VWAP_PCT
             )
 
             # Store for statistics
-            confluence_metadata["ask_vs_first_trade_pct"] = round(ask_vs_first_trade_pct, 2)
+            confluence_metadata["ask_vs_vwap_pct"] = round(ask_vs_vwap_pct, 2)
 
         # ============================================================
         # 🎯 PRE-NEWS RUNUP FILTER
@@ -2596,25 +2596,27 @@ async def process_imminent_article(
         # ============================================================
         # 🎯 MOMENTUM EXHAUSTION FILTER
         # ============================================================
-        # If trades already ran X% within confluence window, you're entering at TOP.
-        # The move already happened. You're buying the peak.
-        # Example: First trade $0.90, max trade $1.00 = 11% run. Momentum exhausted.
-        MAX_CONFLUENCE_RUNUP_PCT = 5.0  # If trades already ran 5% in confluence, we're late
+        # If the max trade price in confluence is X% above our actual entry price (initial_ask),
+        # the move already happened. We'd be buying at the peak.
+        # Uses initial_ask (NBBO ask at reception) as base — NOT first_trade_price which
+        # can be a stale pre-news tick (e.g. GFAI $0.44 stale → $0.50 real = false 13.6% runup).
+        MAX_CONFLUENCE_RUNUP_PCT = 5.0  # If max price ran 5% above our entry price, we're late
         confluence_max_price = confluence_metadata.get("confluence_max_price")
+        entry_reference_price = confluence_metadata.get("initial_ask") or confluence_first_price
 
-        if confluence_first_price and confluence_max_price and confluence_first_price > 0:
-            confluence_runup_pct = ((confluence_max_price - confluence_first_price) / confluence_first_price) * 100
+        if entry_reference_price and confluence_max_price and entry_reference_price > 0:
+            confluence_runup_pct = ((confluence_max_price - entry_reference_price) / entry_reference_price) * 100
 
             if confluence_runup_pct > MAX_CONFLUENCE_RUNUP_PCT:
                 logger.info(
-                    "⏭️ AUTO-TRADE SKIPPED: Momentum exhausted (trades already ran >5%)",
+                    "⏭️ AUTO-TRADE SKIPPED: Momentum exhausted (max price >5% above entry)",
                     ticker=ticker,
-                    confluence_first_price=round(confluence_first_price, 4),
+                    entry_reference_price=round(entry_reference_price, 4),
                     confluence_max_price=round(confluence_max_price, 4),
                     confluence_runup_pct=round(confluence_runup_pct, 2),
                     max_allowed=MAX_CONFLUENCE_RUNUP_PCT,
                     article_id=article_id,
-                    reason="Move already happened in confluence window - entering at the top"
+                    reason="Max confluence price is above our entry price - entering at the top"
                 )
                 await _record_postfilter_skip(article_id, f"postfilter_momentum_exhausted:{confluence_runup_pct:.1f}%")
                 return
@@ -2622,7 +2624,7 @@ async def process_imminent_article(
             logger.info(
                 "✅ MOMENTUM CHECK PASSED",
                 ticker=ticker,
-                confluence_first_price=round(confluence_first_price, 4),
+                entry_reference_price=round(entry_reference_price, 4),
                 confluence_max_price=round(confluence_max_price, 4),
                 confluence_runup_pct=round(confluence_runup_pct, 2),
                 max_allowed=MAX_CONFLUENCE_RUNUP_PCT
