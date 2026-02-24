@@ -271,17 +271,17 @@ def build_confluence_window(
 
     # Spread/liquidity from NBBO
     if initial_nbbo:
-        bid = initial_nbbo.get("bid", 0)
-        ask = initial_nbbo.get("ask", 0)
-        if ask > 0:
+        bid = initial_nbbo.get("bid") or 0
+        ask = initial_nbbo.get("ask") or 0
+        if ask > 0 and bid >= 0:
             window.initial_spread = ((ask - bid) / ask) * 100
         window.initial_bid_depth = initial_nbbo.get("bid_size")
         window.initial_ask_depth = initial_nbbo.get("ask_size")
 
     if final_nbbo:
-        bid = final_nbbo.get("bid", 0)
-        ask = final_nbbo.get("ask", 0)
-        if ask > 0:
+        bid = final_nbbo.get("bid") or 0
+        ask = final_nbbo.get("ask") or 0
+        if ask > 0 and bid >= 0:
             window.final_spread = ((ask - bid) / ask) * 100
         window.final_bid_depth = final_nbbo.get("bid_size")
         window.final_ask_depth = final_nbbo.get("ask_size")
