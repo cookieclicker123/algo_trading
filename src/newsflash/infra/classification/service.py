@@ -442,8 +442,9 @@ Summary: {summary}"""
                 (r'\bnon binding\b', 'non_binding'),
                 # NOTE: LOI (Letter of Intent) removed from prefilter - sent to AI for nuanced classification
                 # Acquisition LOIs with named targets are winning patterns, vague LOIs are losers
-                # "Enters Into" without specifics = meaningless corporate speak
-                (r'\benters into\b(?!.*(agreement|contract|deal).*\$)', 'enters_into_vague'),
+                # NOTE: "enters_into_vague" removed - too aggressive, blocks legitimate
+                # distribution agreements with named counterparties (JFBR false negative).
+                # LLM prompts already handle vague vs specific "enters into" language.
 
                 # ============================================================
                 # DEFENSIVE/DISTRESSED LANGUAGE (Feb 2026 backtest: 100% losers)
@@ -518,9 +519,11 @@ Summary: {summary}"""
                         await self._publish_skipped_event(infra_event, f"market_cap_too_high:{round(market_cap)}M")
                         return
 
-                    # Minimum market cap filter: < $2M = too small, heavily manipulated
+                    # Minimum market cap filter: < $1.5M = too small, heavily manipulated
+                    # Lowered from $2M to $1.5M - borderline stocks like FRGT ($1.86M) with
+                    # legitimate named agreements were being unfairly blocked.
                     # EXCEPTION: Transformational headlines (large $ relative to company) bypass this
-                    MIN_MARKET_CAP_MILLIONS = 2
+                    MIN_MARKET_CAP_MILLIONS = 1.5
 
                     if market_cap and market_cap < MIN_MARKET_CAP_MILLIONS:
                         # Check for transformational headline exception

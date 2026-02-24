@@ -1,5 +1,5 @@
 {
-  "date": "2026-02-18",
+  "date": "2026-02-24",
   "data": {
     "ORCL": {
       "market_cap_millions": 459538.399232
@@ -5180,7 +5180,8 @@
       "market_cap_millions": 3850.971392
     },
     "CCIX": {
-      "market_cap_millions": 389.355744
+      "market_cap_millions": 389.355744,
+      "float_shares": 18737471
     },
     "CGC": {
       "market_cap_millions": 440.495264
@@ -8504,7 +8505,8 @@
       "market_cap_millions": 739.70688
     },
     "HRMY": {
-      "market_cap_millions": 2123.001856
+      "market_cap_millions": 1547.614208,
+      "float_shares": 50657725
     },
     "BRNS": {
       "market_cap_millions": 29.602006
@@ -11696,7 +11698,7 @@
       "market_cap_millions": 32566.165504
     },
     "ATCX": {
-      "market_cap_millions": 34.482376
+      "market_cap_millions": 30.534396
     },
     "GCLWW": {
       "market_cap_millions": 0.6435
@@ -16283,6 +16285,38 @@
     "BTG": {
       "market_cap_millions": 7188.42112,
       "float_shares": 1256944855
+    },
+    "BTI": {
+      "market_cap_millions": 127725.060096,
+      "float_shares": 2042108072
+    },
+    "INVE": {
+      "market_cap_millions": 76.489128,
+      "float_shares": 19199960
+    },
+    "VTS": {
+      "market_cap_millions": 873.250624,
+      "float_shares": 28319927
+    },
+    "BCML": {
+      "market_cap_millions": 326.170048,
+      "float_shares": 10126883
+    },
+    "AIDX": {
+      "market_cap_millions": 246.778
+    },
+    "WDI": {
+      "market_cap_millions": 734.959168
+    },
+    "PMO": {
+      "market_cap_millions": 299.942816
+    },
+    "MRAI": {
+      "market_cap_millions": 10.913439,
+      "float_shares": 13502571
+    },
+    "ROC": {
+      "market_cap_millions": 95.514752
     }
   }
 }

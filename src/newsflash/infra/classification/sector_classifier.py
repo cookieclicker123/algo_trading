@@ -8,7 +8,7 @@ Speed is critical - classify as fast as possible for immediate entry.
 
 Supported sectors:
 - Healthcare (7 industries)
-- Technology (11 industries)
+- Technology (12 industries)
 - Industrials (14 industry groupings)
 - Consumer Cyclical (6 industry groupings)
 - Financial Services (3 industry groupings)
@@ -46,7 +46,9 @@ SECTOR_INDUSTRY_MAP: Dict[str, Dict[str, str]] = {
     },
 
     # =========================================================================
-    # TECHNOLOGY (11 industries)
+    # TECHNOLOGY (12 industries)
+    # FMP classifies 97% of Electronic Gaming tickers under Technology,
+    # not Communication Services. Support it in both sectors.
     # =========================================================================
     "Technology": {
         "Software - Application": "software_application.txt",
@@ -60,6 +62,7 @@ SECTOR_INDUSTRY_MAP: Dict[str, Dict[str, str]] = {
         "Consumer Electronics": "consumer_electronics.txt",
         "Semiconductor Equipment & Materials": "semiconductor_equipment.txt",
         "Scientific & Technical Instruments": "scientific_instruments.txt",
+        "Electronic Gaming & Multimedia": "electronic_gaming_multimedia.txt",
     },
 
     # =========================================================================
@@ -178,23 +181,34 @@ SECTOR_INDUSTRY_MAP: Dict[str, Dict[str, str]] = {
     },
 }
 
-# Aliases for yfinance industry names that differ from our SECTOR_INDUSTRY_MAP keys.
-# yfinance sometimes uses " - " separators or different naming conventions.
-# Maps yfinance name → our canonical name.
+# Aliases for FMP/yfinance industry names that differ from our SECTOR_INDUSTRY_MAP keys.
+# FMP uses "Category - Subcategory" dash format. yfinance uses yet another format.
+# This dict maps external names → our canonical SECTOR_INDUSTRY_MAP keys.
+# Comprehensive audit performed against all recall data unsupported_industry blocks.
 INDUSTRY_ALIASES: Dict[str, str] = {
-    # Healthcare
+    # =========================================================================
+    # HEALTHCARE
+    # =========================================================================
     "Medical - Devices": "Medical Devices",
     "Medical - Instruments & Supplies": "Medical Instruments & Supplies",
     "Medical - Care Facilities": "Medical Care Facilities",
     "Medical - Distribution": "Medical Devices",
+    "Medical Distribution": "Medical Devices",
     "Medical - Diagnostics & Research": "Diagnostics & Research",
     "Medical - Healthcare Plans": "Medical Care Facilities",
+    "Medical - Healthcare Information Services": "Health Information Services",
     "Medical - Pharmaceuticals": "Drug Manufacturers - Specialty & Generic",
-    # Financial Services
+    "Medical - Equipment & Services": "Medical Instruments & Supplies",
+    "Drug Manufacturers - General": "Drug Manufacturers - Specialty & Generic",
+    "Health Care": "Medical Care Facilities",
+    # =========================================================================
+    # FINANCIAL SERVICES
+    # =========================================================================
     "Financial - Data & Stock Exchanges": "Financial Data & Stock Exchanges",
     "Financial - Conglomerates": "Financial Conglomerates",
     "Financial - Credit Services": "Credit Services",
     "Financial - Mortgages": "Mortgage Finance",
+    "Financial - Capital Markets": "Capital Markets",
     "Insurance - Reinsurance": "Insurance - Diversified",
     "Asset Management - Global": "Asset Management",
     "Asset Management - Income": "Asset Management",
@@ -202,15 +216,37 @@ INDUSTRY_ALIASES: Dict[str, str] = {
     "Asset Management - Cryptocurrency": "Asset Management",
     "Capital Markets - Independent": "Capital Markets",
     "Capital Markets - Institutional": "Capital Markets",
-    # Consumer Cyclical
+    # =========================================================================
+    # CONSUMER CYCLICAL
+    # =========================================================================
     "Auto - Parts": "Auto Parts",
     "Auto - Manufacturers": "Auto Manufacturers",
     "Auto - Dealerships": "Auto & Truck Dealerships",
     "Auto - Recreational Vehicles": "Recreational Vehicles",
-    # Industrials
+    "Apparel - Footwear & Accessories": "Footwear & Accessories",
+    "Apparel - Manufacturers": "Apparel Manufacturing",
+    "Apparel - Retail": "Apparel Retail",
+    "Gambling, Resorts & Casinos": "Gambling",
+    "Home Improvement": "Home Improvement Retail",
+    "Personal Products & Services": "Personal Services",
+    # =========================================================================
+    # INDUSTRIALS
+    # =========================================================================
     "Industrial - Distribution": "Industrial Distribution",
     "Industrial - Machinery": "Specialty Industrial Machinery",
     "Industrial - Pollution & Treatment Controls": "Pollution & Treatment Controls",
+    "Manufacturing - Metal Fabrication": "Metal Fabrication",
+    "Airlines, Airports & Air Services": "Airlines",
+    "Airports & Air Services": "Airlines",
+    "Agricultural - Machinery": "Farm & Heavy Construction Machinery",
+    # =========================================================================
+    # BASIC MATERIALS
+    # =========================================================================
+    "Chemicals - Specialty": "Specialty Chemicals",
+    # =========================================================================
+    # TECHNOLOGY
+    # =========================================================================
+    "Hardware, Equipment & Parts": "Computer Hardware",
 }
 
 # Set of all supported sectors
@@ -368,9 +404,10 @@ class SectorClassifier:
             return "NOT_SUPPORTED_SECTOR", sector, None, latency_ms, None
 
         # Step 3: Check if supported industry within sector
-        # Normalize yfinance industry names to our canonical names
+        # Normalize FMP/yfinance industry names to our canonical names
         industry = INDUSTRY_ALIASES.get(industry, industry)
         industry_map = SECTOR_INDUSTRY_MAP.get(sector, {})
+
         if industry not in industry_map:
             latency_ms = (datetime.now() - start_time).total_seconds() * 1000
             logger.info(

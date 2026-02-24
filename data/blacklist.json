@@ -1,0 +1,21 @@
+{
+  "OSS": {
+    "consecutive_fps": 0,
+    "permanent": false,
+    "created_at": "2026-02-19T13:02:14.438388",
+    "last_fp_date": "2026-02-19",
+    "last_win_date": "2026-02-19T13:49:27.775459"
+  },
+  "FJET": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-02-20T13:10:10.677148",
+    "last_fp_date": "2026-02-20"
+  },
+  "VWAV": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-02-24T13:35:03.281884",
+    "last_fp_date": "2026-02-24"
+  }
+}

@@ -107,6 +107,9 @@ class RecordManager:
         self._pending_classifications: Dict[str, str] = {}
         self._classification_lock = asyncio.Lock()
 
+        self._pending_postfilter_reasons: Dict[str, str] = {}
+        self._postfilter_reasons_lock = asyncio.Lock()
+
         # Record locations cache (article_id -> (session, date))
         self._record_locations: Dict[str, tuple[str, datetime]] = {}
 
@@ -175,6 +178,34 @@ class RecordManager:
             except Exception as e:
                 logger.warning(
                     "RecordManager: Failed to apply pending filter_reason",
+                    article_id=article_id,
+                    error=str(e)
+                )
+
+        # Also apply any pending postfilter_reason
+        pending_postfilter_reason = None
+        async with self._postfilter_reasons_lock:
+            pending_postfilter_reason = self._pending_postfilter_reasons.get(article_id)
+
+        if pending_postfilter_reason:
+            try:
+                updated = await self.repository.update_recall_record(
+                    article_id=article_id,
+                    updates={"postfilter_reason": pending_postfilter_reason},
+                    session=session,
+                    date=received_at
+                )
+                if updated:
+                    async with self._postfilter_reasons_lock:
+                        self._pending_postfilter_reasons.pop(article_id, None)
+                    logger.info(
+                        "RecordManager: Applied pending postfilter_reason after record creation",
+                        article_id=article_id,
+                        postfilter_reason=pending_postfilter_reason
+                    )
+            except Exception as e:
+                logger.warning(
+                    "RecordManager: Failed to apply pending postfilter_reason",
                     article_id=article_id,
                     error=str(e)
                 )
@@ -437,8 +468,11 @@ class RecordManager:
         """
         record_loc = self._record_locations.get(article_id)
         if not record_loc:
-            logger.debug(
-                "RecordManager: No record location for postfilter update",
+            # Record not created yet — queue for later application
+            async with self._postfilter_reasons_lock:
+                self._pending_postfilter_reasons[article_id] = postfilter_reason
+            logger.info(
+                "RecordManager: Queued postfilter reason (record not yet created)",
                 article_id=article_id,
                 postfilter_reason=postfilter_reason
             )

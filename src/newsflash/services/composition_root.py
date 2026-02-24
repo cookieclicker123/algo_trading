@@ -423,6 +423,10 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
     await position_manager.start()
     logger.info("PositionManager created and started (5% stop loss, let winners run)")
     
+    # Give position_manager access to exit_trade_use_case so it can cancel
+    # scheduled 10-min exits when position exits early (stop loss, breakeven, etc.)
+    position_manager.exit_trade_use_case = exit_trade_use_case
+
     # Update trade handlers with exit_trade_use_case and position_manager
     if trade_handler:
         trade_handler.exit_trade_use_case = exit_trade_use_case

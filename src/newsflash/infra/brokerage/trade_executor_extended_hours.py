@@ -1346,24 +1346,7 @@ class AlpacaExtendedHoursTradeExecutor:
                 "mid": nbbo.get("mid")
             }
 
-        # FAST PATH: Send Telegram notification immediately (fire-and-forget)
-        # This bypasses the event bus layers for minimal latency
-        if self.fast_notifier and result.get("success") and trade_request.action.upper() == "BUY":
-            self.fast_notifier.notify_trade_executed(
-                ticker=trade_request.ticker,
-                action=trade_request.action.upper(),
-                shares=result.get("shares", 0),
-                fill_price=result.get("fill_price", 0),
-                total_cost=result.get("total_cost", 0),
-                session=result.get("session", "unknown"),
-                order_type=result.get("order_type", "LIMIT"),
-                spread_info=spread_info,
-                article_title=None,  # Not available at this layer
-                publication_time=None,  # Not available at this layer
-            )
-            logger.info("FastTradeNotifier: Triggered immediate notification", ticker=trade_request.ticker)
-
-        # STANDARD PATH: Publish event for stats/logging (continues in parallel)
+        # Publish event for stats/logging/notifications (single notification path)
         event = TradeExecutedEvent(
             trade_request=infra_trade_request,
             success=result["success"],

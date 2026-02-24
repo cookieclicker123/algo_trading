@@ -21688,7 +21688,7 @@
   },
   "CCIX": {
     "exchange": "NASDAQ",
-    "industry": null,
+    "industry": "Shell Companies",
     "sector": "Financial Services"
   },
   "CCIXU": {
@@ -60688,7 +60688,9 @@
     "sector": "Financial Services"
   },
   "HRMY": {
-    "exchange": "NASDAQ"
+    "exchange": "NASDAQ",
+    "industry": "Biotechnology",
+    "sector": "Healthcare"
   },
   "HRNNF": {
     "exchange": "OTC",
@@ -141339,5 +141341,37 @@
   "BTG": {
     "industry": "Gold",
     "sector": "Basic Materials"
+  },
+  "BTI": {
+    "industry": "Tobacco",
+    "sector": "Consumer Defensive"
+  },
+  "INVE": {
+    "industry": "Building Products & Equipment",
+    "sector": "Industrials"
+  },
+  "VTS": {
+    "industry": "Oil & Gas E&P",
+    "sector": "Energy"
+  },
+  "BCML": {
+    "industry": "Banks - Regional",
+    "sector": "Financial Services"
+  },
+  "AIDX": {
+    "industry": "Medical Devices",
+    "sector": "Healthcare"
+  },
+  "WDI": {
+    "industry": "Asset Management",
+    "sector": "Financial Services"
+  },
+  "PMO": {
+    "industry": "Asset Management",
+    "sector": "Financial Services"
+  },
+  "MRAI": {
+    "industry": "Healthcare Plans",
+    "sector": "Healthcare"
   }
 }

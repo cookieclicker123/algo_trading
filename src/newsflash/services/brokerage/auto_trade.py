@@ -2066,8 +2066,8 @@ async def process_imminent_article(
         # ============================================================
         # These filters prevent trading manipulated or low-quality stocks.
 
-        # Filter 1: Market cap check (minimum $2M to avoid manipulated stocks)
-        MIN_MARKET_CAP_MILLIONS = 2.0  # $2M minimum
+        # Filter 1: Market cap check (minimum $1.5M to avoid manipulated stocks)
+        MIN_MARKET_CAP_MILLIONS = 1.5  # $1.5M minimum (lowered from $2M)
         MIN_BIOTECH_PRICE = 30.0  # Biotechs must be $30+ (data shows sub-$30 biotechs have poor risk/reward)
         ticker_sector = None  # Track sector for statistics
         ticker_industry = None  # Track industry for statistics
@@ -2096,7 +2096,7 @@ async def process_imminent_article(
                     market_cap_millions = ticker_metadata.get("market_cap_millions", 0)
                     if market_cap_millions and market_cap_millions < MIN_MARKET_CAP_MILLIONS:
                         logger.info(
-                            "⏭️ AUTO-TRADE SKIPPED: Market cap below $2M threshold",
+                            "⏭️ AUTO-TRADE SKIPPED: Market cap below $1.5M threshold",
                             ticker=ticker,
                             market_cap_millions=round(market_cap_millions, 2),
                             min_required=MIN_MARKET_CAP_MILLIONS,
@@ -2607,7 +2607,7 @@ async def process_imminent_article(
 
             if confluence_runup_pct > MAX_CONFLUENCE_RUNUP_PCT:
                 logger.info(
-                    "⏭️ AUTO-TRADE SKIPPED: Momentum exhausted (trades already ran >8%)",
+                    "⏭️ AUTO-TRADE SKIPPED: Momentum exhausted (trades already ran >5%)",
                     ticker=ticker,
                     confluence_first_price=round(confluence_first_price, 4),
                     confluence_max_price=round(confluence_max_price, 4),

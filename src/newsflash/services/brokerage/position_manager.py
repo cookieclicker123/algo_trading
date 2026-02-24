@@ -248,6 +248,7 @@ class PositionManager:
         self.quote_fetcher = quote_fetcher
         self.stream_manager = stream_manager
         self.fast_notifier = fast_notifier
+        self.exit_trade_use_case = None  # Set after composition_root creates it
         self.poll_interval = poll_interval
         self.enabled = enabled
 
@@ -1001,27 +1002,6 @@ class PositionManager:
             article_id=position.article_id
         )
 
-        # Send fast Telegram notification for stop loss/manual exits (fire-and-forget)
-        if self.fast_notifier:
-            try:
-                # Estimate exit value (actual fill may differ slightly)
-                estimated_exit_price = position.last_price or position.entry_price * (1 + profit_pct)
-                estimated_value = estimated_exit_price * shares
-                pnl_usd = (estimated_exit_price - position.entry_price) * shares
-
-                self.fast_notifier.notify_exit_triggered(
-                    ticker=position.ticker,
-                    exit_reason=exit_reason,
-                    shares=int(shares),
-                    entry_price=position.entry_price,
-                    exit_price=estimated_exit_price,
-                    profit_pct=profit_pct,
-                    pnl_usd=pnl_usd,
-                    stop_loss_price=position.stop_loss_price,
-                )
-            except Exception as e:
-                logger.error(f"FastTradeNotifier exit notification failed: {e}")
-
         # Build sell trade request
         trade_request = TradeRequest(
             ticker=position.ticker,
@@ -1097,6 +1077,10 @@ class PositionManager:
 
         # Remove position if fully exited
         if position.shares_remaining <= 0:
+            # Cancel the scheduled 10-min auto-exit (ExitTradeUseCase) to prevent
+            # a phantom SELL after position is already closed
+            if self.exit_trade_use_case:
+                self.exit_trade_use_case.cancel_scheduled_exit(position.ticker)
             await self.remove_position(position.ticker)
 
     async def _check_all_positions(self) -> None:
