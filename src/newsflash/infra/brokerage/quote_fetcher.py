@@ -238,10 +238,13 @@ class AlpacaQuoteFetcher:
             spread = ask - bid
             mid = (bid + ask) / 2
             
+            spread_pct = round((spread / mid) * 100, 2) if mid > 0 else None
+
             result = {
                 "bid": bid,
                 "ask": ask,
                 "spread": spread,
+                "spread_pct": spread_pct,
                 "mid": mid,
                 "bid_size": bid_size,
                 "ask_size": ask_size,

@@ -95,7 +95,7 @@ SECTOR_INDUSTRY_MAP: Dict[str, Dict[str, str]] = {
     },
 
     # =========================================================================
-    # CONSUMER CYCLICAL (6 industry groupings)
+    # CONSUMER CYCLICAL (7 industry groupings)
     # =========================================================================
     "Consumer Cyclical": {
         "Auto Parts": "auto_parts.txt",
@@ -113,6 +113,7 @@ SECTOR_INDUSTRY_MAP: Dict[str, Dict[str, str]] = {
         "Apparel Manufacturing": "consumer_services.txt",
         "Furnishings, Fixtures & Appliances": "consumer_services.txt",
         "Gambling": "consumer_services.txt",
+        "Grocery Stores": "grocery_stores.txt",
         "Packaging & Containers": "consumer_services.txt",
         "Personal Services": "consumer_services.txt",
         "Lodging": "consumer_services.txt",

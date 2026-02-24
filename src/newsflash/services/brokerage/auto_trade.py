@@ -1961,15 +1961,21 @@ async def process_imminent_article(
         # STRENGTH check: score >= 1 AND excursion >= 0.5%
         has_strength = confluence_score >= 1 and max_excursion_pct >= MIN_STRENGTH_EXCURSION_PCT
 
-        if has_strength:
-            # STRENGTH confirmed - use AI conviction for position sizing
+        # HIGH CONFLUENCE check: score >= 3 alone is sufficient to confirm real activity
+        # Even without 0.5% price excursion, 3+ confluence criteria = strong confirmation
+        HIGH_CONFLUENCE_SCORE = 3
+        has_high_confluence = confluence_score >= HIGH_CONFLUENCE_SCORE
+
+        if has_strength or has_high_confluence:
+            # Activity confirmed - use AI conviction for position sizing
             conviction = ai_conviction
+            entry_reason = "STRENGTH" if has_strength else "HIGH_CONFLUENCE"
             logger.info(
-                f"✅ STRENGTH CONFIRMED: Confluence score {confluence_score}, excursion {max_excursion_pct:.2f}%",
+                f"✅ {entry_reason} CONFIRMED: Confluence score {confluence_score}, excursion {max_excursion_pct:.2f}%",
                 ticker=ticker,
                 confluence_score=confluence_score,
                 max_excursion_pct=max_excursion_pct,
-                min_required_excursion=MIN_STRENGTH_EXCURSION_PCT,
+                entry_reason=entry_reason,
                 conviction=conviction.value,
                 article_id=article_id
             )
@@ -1985,10 +1991,10 @@ async def process_imminent_article(
             # Fall through to surge check
             has_strength = False
 
-        # If no STRENGTH, check for SURGE (8-second window with strict criteria)
+        # If no STRENGTH or HIGH CONFLUENCE, check for SURGE (8-second window with strict criteria)
         is_surge_trade = False
         is_late_trade = False
-        if not has_strength:
+        if not has_strength and not has_high_confluence:
             logger.info(
                 f"🔍 CHECKING SURGE: No STRENGTH found (score={confluence_score}, excursion={max_excursion_pct:.2f}%)",
                 ticker=ticker,
@@ -2062,13 +2068,13 @@ async def process_imminent_article(
                     return
 
         # ============================================================
-        # 🛡️ SAFETY FILTERS: Market cap and biotech price checks
+        # 🛡️ SAFETY FILTERS: Market cap check
         # ============================================================
         # These filters prevent trading manipulated or low-quality stocks.
+        # Biotech price filter removed — momentum exhaustion handles bad cheap biotechs.
 
         # Filter 1: Market cap check (minimum $1.5M to avoid manipulated stocks)
         MIN_MARKET_CAP_MILLIONS = 1.5  # $1.5M minimum (lowered from $2M)
-        MIN_BIOTECH_PRICE = 30.0  # Biotechs must be $30+ (data shows sub-$30 biotechs have poor risk/reward)
         ticker_sector = None  # Track sector for statistics
         ticker_industry = None  # Track industry for statistics
         if metadata_cache:
@@ -2105,23 +2111,6 @@ async def process_imminent_article(
                         await _record_postfilter_skip(article_id, f"postfilter_market_cap:{market_cap_millions:.1f}M")
                         return
 
-                    # Filter 1b: Biotech price filter - only trade $30+ biotechs
-                    # Data shows: $30+ biotechs move 100-300%, sub-$5 biotechs only 5-18%
-                    # Sub-$30 biotechs have weak catalysts (IND, early phase, offerings) and high failure rate
-                    # Use initial_ask from NBBO (fetched during confluence check) as price proxy
-                    ticker_price = confluence_metadata.get("initial_ask") or 0
-                    if ticker_industry == "Biotechnology" and ticker_price < MIN_BIOTECH_PRICE:
-                        logger.info(
-                            "⏭️ AUTO-TRADE SKIPPED: Biotech below $30 price threshold",
-                            ticker=ticker,
-                            industry=ticker_industry,
-                            price=round(ticker_price, 2),
-                            min_biotech_price=MIN_BIOTECH_PRICE,
-                            article_id=article_id,
-                            reason="Only trade quality biotechs ($30+) with real drugs and revenue"
-                        )
-                        await _record_postfilter_skip(article_id, f"postfilter_biotech_price:${ticker_price:.0f}")
-                        return
             except Exception as e:
                 logger.debug(f"Could not check market cap/biotech filter: {e}")
 
@@ -2489,7 +2478,7 @@ async def process_imminent_article(
         #
         # Uses VWAP (not first_price) because first_price can be a stale pre-news tick
         # (e.g. GFAI $0.44 stale → VWAP $0.49 → ask $0.503 = 2.6% premium, not 14.3%).
-        MAX_ASK_VS_VWAP_PCT = 5.0  # Entry ask >5% above VWAP = paying pump premium
+        MAX_ASK_VS_VWAP_PCT = 5.5  # Entry ask >5.5% above VWAP = paying pump premium
         confluence_vwap = confluence_metadata.get("confluence_vwap")
         fill_ask = pre_entry_nbbo.get("ask") if pre_entry_nbbo else None
 
@@ -2675,6 +2664,8 @@ async def process_imminent_article(
             entry_timing = confluence_metadata.get("late_entry_type", "late_strength")
         elif is_surge_trade:
             entry_timing = "early_surge"
+        elif has_high_confluence and not has_strength:
+            entry_timing = "high_confluence"
         else:
             entry_timing = "early_strength"
         confluence_metadata["entry_timing"] = entry_timing
@@ -2718,7 +2709,6 @@ async def process_imminent_article(
             "blacklist": True,
             "strength_or_surge": True,
             "market_cap": True,
-            "biotech_price": True,
             "spread": True,
             "pub_to_recv": True,
             "recv_to_fill": True,

@@ -72,21 +72,22 @@ STOP_LOSS_CONFIRMATION_SECONDS = 1.25  # During grace period: wait 1.25s to conf
 BREAKEVEN_TRIGGER_PCT = 0.05  # Move to breakeven after hitting +5%
 BREAKEVEN_CONFIRMATION_SECONDS = 0.5  # Must stay at +5% for 0.5s to confirm
 
-# Tiered exit configuration - aggressive profit-taking to avoid letting winners reverse
-# Strategy: Take profits early, use fixed floor levels to protect gains
+# Tiered exit configuration - let winners run, capture large moves
+# Strategy: Most winners go past 15%, so hold for bigger gains
+# Previous tiers at 10%/15%/20% left too much on the table (e.g. 18% move → only 4.5% return)
 TIERED_EXIT_THRESHOLDS = [
-    (0.10, 0.50),  # +10%: Exit 50% of position
-    (0.15, 0.50),  # +15%: Exit 50% of remaining (25% of original)
-    (0.20, 1.00),  # +20%: Exit remaining position (25% of original)
+    (0.15, 0.50),  # +15%: Exit 50% of position
+    (0.20, 0.50),  # +20%: Exit 50% of remaining (25% of original)
+    (0.30, 1.00),  # +30%: Exit remaining position (25% of original)
 ]
 
 # Fixed floor levels per tier - NOT a multiplier, but absolute profit % floors
 # After taking profit at a tier, if price drops to floor, exit remaining
 # This protects gains without being too tight (which causes premature exits on volatility)
 TIER_FLOOR_PCT = {
-    0.10: 0.025,  # After +10% exit, floor is +2.5%
     0.15: 0.05,   # After +15% exit, floor is +5%
-    0.20: None,   # After +20%, fully exited - no floor needed
+    0.20: 0.10,   # After +20% exit, floor is +10%
+    0.30: None,   # After +30%, fully exited - no floor needed
 }
 
 # Legacy multiplier kept for compatibility but not used with new tier system
@@ -153,7 +154,7 @@ class Position:
     scale_in_triggered: bool = False  # True once scale-in order sent
 
     # === MOMENTUM TRACKING (Phase 1: Data Collection) ===
-    # After Tier 2 (+15%), track price trajectory for comparison analysis.
+    # After Tier 2 (+20%), track price trajectory for comparison analysis.
     # End-of-day will compare fixed tier exits vs momentum-based trailing.
     momentum_tracking_active: bool = False  # True once Tier 2 triggered
     momentum_tier_2_time: Optional[datetime] = None  # When +15% tier triggered
@@ -897,9 +898,9 @@ class PositionManager:
                             position.next_tier_index += 1
                             position.total_exits_taken += 1
 
-                            # === MOMENTUM TRACKING: Start after Tier 2 (+15%) ===
-                            # Tier 1 is index 1, threshold 0.15 (+15%)
-                            # After triggering tier 1, next_tier_index becomes 2
+                            # === MOMENTUM TRACKING: Start after Tier 2 (+20%) ===
+                            # Tier 2 is index 1, threshold 0.20 (+20%)
+                            # After triggering tier 2, next_tier_index becomes 2
                             if position.next_tier_index == 2 and not position.momentum_tracking_active:
                                 position.momentum_tracking_active = True
                                 position.momentum_tier_2_time = now
@@ -908,7 +909,7 @@ class PositionManager:
                                 position.momentum_peak_price = current_price
                                 position.momentum_peak_time = now
                                 logger.info(
-                                    "📊 MOMENTUM TRACKING: Started after Tier 2 (+15%)",
+                                    "📊 MOMENTUM TRACKING: Started after Tier 2 (+20%)",
                                     ticker=ticker,
                                     tier_2_price=current_price,
                                     profit_pct=f"+{profit_pct*100:.1f}%",

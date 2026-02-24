@@ -342,7 +342,7 @@ Summary: {summary}"""
 
                     if latency_seconds > MAX_WEBSOCKET_LATENCY_SECONDS:
                         logger.info(
-                            "⏭️ CLASSIFY INFRA: Skipping - websocket latency too high (>25s)",
+                            "⏭️ CLASSIFY INFRA: Skipping - websocket latency too high (>10s)",
                             article_id=request_data.article_id,
                             published_at=published_at.isoformat(),
                             latency_seconds=round(latency_seconds, 2),
@@ -505,9 +505,18 @@ Summary: {summary}"""
 
                     # Market cap filter: Only trade small-caps (< $500M)
                     # Captures 93% of winners while filtering 62% of losers
+                    # EXCEPTION: Healthcare Biotechnology and Medical Devices are exempt
+                    # — larger biotechs are more established with real drugs/revenue
                     MAX_MARKET_CAP_MILLIONS = 500
 
-                    if market_cap and market_cap > MAX_MARKET_CAP_MILLIONS:
+                    sector = metadata.get("sector", "")
+                    industry = metadata.get("industry", "")
+                    healthcare_exempt = (
+                        sector == "Healthcare"
+                        and industry in ("Biotechnology", "Medical Devices")
+                    )
+
+                    if market_cap and market_cap > MAX_MARKET_CAP_MILLIONS and not healthcare_exempt:
                         logger.info(
                             "⏭️ MICROSTRUCTURE FILTER: Market cap too high for news-driven trade",
                             article_id=request_data.article_id,

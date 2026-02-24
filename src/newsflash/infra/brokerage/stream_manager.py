@@ -402,10 +402,13 @@ class AlpacaMarketDataStreamManager:
             bid_size = int(quote.bid_size) if hasattr(quote, 'bid_size') and quote.bid_size else None
             ask_size = int(quote.ask_size) if hasattr(quote, 'ask_size') and quote.ask_size else None
             
+            spread_pct = round((spread / mid) * 100, 2) if mid > 0 else None
+
             quote_dict = {
                 "bid": bid,
                 "ask": ask,
                 "spread": spread,
+                "spread_pct": spread_pct,
                 "mid": mid,
                 "bid_size": bid_size,
                 "ask_size": ask_size,
