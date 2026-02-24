@@ -6,426 +6,432 @@ Output TRADE SMALL/MODERATE/LARGE/MAX (with position size) or SKIP.
 INDUSTRY CONTEXT:
 - 1,887 historical winners analyzed, avg move +21.1%
 - Top catalysts: FDA actions (24%), clinical data (21%), offerings (10%), partnerships (8%)
-- High volatility sector - binary outcomes on trial/FDA news
+- KEY INSIGHT: For small-cap biotechs, MODALITY and THERAPEUTIC AREA matter more than trial phase
+- Phase 1 data in hot areas with novel mechanisms can move stocks 10-50%+
+- Phase 2/3 positive data for small biotechs averages +13-80% depending on catalyst
 - NOTE: We do NOT trade earnings announcements
 
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
 TRADE SIGNALS
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
 
 FDA/REGULATORY (Strongest signal - 24% of winners)
 ├─ FDA Approval, FDA Grants, FDA Clears (DRUG approval, not IND)
-├─ Breakthrough Therapy Designation, Fast Track Designation
-├─ Priority Review, Orphan Drug Designation
+├─ Fast Track Designation (strongest designation: +21% in 5 days, +38% in 1 month avg)
+├─ Breakthrough Therapy Designation (+10-30% day 1)
+├─ Priority Review (+5-15% on grant)
+├─ Orphan Drug Designation (+3-10%, stronger in oncology)
 ├─ BLA/NDA Accepted (late-stage, near approval)
-├─ FDA meeting results, Pre-BLA meeting updates
-├─ Regulatory pathway update (positive)
+├─ RMAT (Regenerative Medicine Advanced Therapy) designation
+├─ Accelerated Approval pathway granted
+├─ FDA meeting results with POSITIVE outcome, Pre-BLA meeting updates
 ├─ NOTE: IND Clearance = SKIP (see below) - just permission to start trials, not approval
+├─ NOTE: FDA meetings SCHEDULED = SKIP (see below) - only outcomes matter
 └─ Examples:
-   "FDA Approves XYZ for Cancer Treatment" → TRADE
-   "Receives Breakthrough Therapy Designation" → TRADE
-   "Issues Update On Regulatory Pathway Following Pre-BLA Meeting" → TRADE
+   "FDA Approves XYZ for Cancer Treatment" → TRADE MAX
+   "FDA Grants Fast Track Designation" → TRADE LARGE
+   "Receives Breakthrough Therapy Designation" → TRADE LARGE
+   "FDA Grants Orphan Drug Designation for Oncology Drug" → TRADE MODERATE
+   "BLA Accepted with Priority Review" → TRADE LARGE
    "FDA Clears IND Application" → SKIP (early stage, not approval)
 
-CLINICAL TRIAL RESULTS (21% of winners - BE SELECTIVE)
-├─ Phase 3 topline/final results (NOT interim, NOT Phase 2)
-├─ "Met primary endpoint" / "achieved primary endpoint" (definitive)
-├─ Specific efficacy numbers: "80% response", "50% reduction", "X months survival"
-├─ Pivotal/registrational trial results (FDA submission quality)
-├─ First-in-human with specific promising data
-├─ Durable response data with numbers
-├─ REQUIRES: Specific numbers OR "met primary endpoint" OR "pivotal"
+CLINICAL DATA (21% of winners - MODALITY-AWARE)
+├─ ALWAYS TRADE regardless of phase:
+│   ├─ "Met primary endpoint" / "achieved primary endpoint" (definitive)
+│   ├─ Specific efficacy numbers: "80% response", "50% reduction", "X months survival"
+│   ├─ Pivotal/registrational trial results (FDA submission quality)
+│   ├─ "Statistically significant" improvement with p-value
+│   ├─ "Complete remission" / "complete response" (especially in oncology/autoimmune)
+│   ├─ Head-to-head superiority vs standard of care
+│   └─ Phase 3 topline/final results with any positive framing
+│
+├─ TRADE IF data involves a HOT MODALITY or HOT THERAPEUTIC AREA (Phase 1/2 OK):
+│   ├─ The modality or therapeutic area is listed in HOT MODALITIES or HOT AREAS below
+│   ├─ Results are described as POSITIVE (not just "data available" or "safety update")
+│   ├─ The mechanism is novel (not a me-too generic small molecule)
+│   ├─ Size: TRADE SMALL for Phase 1, TRADE MODERATE for Phase 2
+│   └─ Size: upgrade one level if results include specific numbers
+│
+├─ STILL SKIP even if hot area or hot modality:
+│   ├─ "In vitro" / "in vivo" (preclinical, NOT human trials — ALWAYS SKIP)
+│   ├─ Safety/tolerability only (no efficacy signal)
+│   ├─ Extension/continuation studies (not new data)
+│   ├─ Interim without specific numbers
+│   ├─ "Potential" / "may" / "could" (speculative, not results)
+│   ├─ License partner results (their drug, indirect impact)
+│   └─ Open-label extension studies
+│
 └─ Examples:
-   "Phase 3 Pivotal Trial Meets Primary Endpoint" → TRADE
-   "Topline Data Shows 30% Weight Loss" → TRADE (specific number)
-   "80% Reduction In Tumor Burden" → TRADE (specific number)
-   "Achieves Statistically Significant Improvement p<0.001" → TRADE
-   "Met Primary Endpoint In Registrational Trial" → TRADE
+   "Phase 3 Pivotal Trial Meets Primary Endpoint" → TRADE LARGE
+   "Phase 2b Data Shows 30% Weight Loss" → TRADE LARGE (specific number + hot area)
+   "Phase 1 Results for T-Cell Engager in Prostate Cancer" → TRADE SMALL (hot modality + hot area)
+   "Phase 1 CAR-T Data Shows Complete Remission in Lupus" → TRADE MODERATE (hot modality + complete remission)
+   "Phase 2a Data for Novel PROTAC Degrader in Breast Cancer" → TRADE SMALL (hot modality + hot area)
+   "Phase 1 Radioligand Therapy Shows Tumor Response" → TRADE SMALL (hot modality)
+   "Phase 2 ADC Shows Anti-Tumor Activity in Lung Cancer" → TRADE MODERATE (hot modality + hot area)
+   "Positive Phase 1 Results for Oral GLP-1 Agonist" → TRADE MODERATE (extremely hot area)
+   "Phase 1 Safety Data for Small Molecule" → SKIP (safety only, generic modality)
+   "In Vitro Results for Novel mRNA Platform" → SKIP (preclinical)
+   "Open-Label Extension Study Shows Tolerability" → SKIP (extension + safety)
 
-OFFERINGS/FINANCING → SKIP ALL
-├─ Biotech offerings are almost always DILUTIVE
-├─ Even "at market" offerings signal the company needs cash (weakness)
-├─ We are looking for ONLY the best news - offerings are not catalysts
-├─ SKIP: Prices offering, Closes placement, PIPE, private placement
-├─ SKIP: Securities purchase agreement, gross/net proceeds
-└─ Examples:
-   "Prices $50M Public Offering" → SKIP (dilution)
-   "Announces Underwritten Offering" → SKIP (dilution)
-   "Entered Into Securities Purchase Agreement" → SKIP (dilution)
+═══════════════════════════════════════════════════════════════════════════════
+HOT MODALITIES — Buzzwords that move stocks in 2025-2026
+═══════════════════════════════════════════════════════════════════════════════
 
-PARTNERSHIPS (8% of winners - BIG PHARMA ONLY)
-├─ ONLY trade partnerships with MAJOR PHARMA: Pfizer, AstraZeneca, Novartis, Merck, Lilly, Roche, J&J, AbbVie, Sanofi, GSK, BMS, Amgen, Gilead, Biogen
-├─ Licensing agreement, Collaboration agreement (with major pharma)
-├─ Strategic agreement, Option-to-license (with major pharma)
-├─ Joint development deals (with major pharma)
-├─ SKIP: Partnerships with CROs, consultants, or unknown firms
-├─ SKIP: "IND readiness", "regulatory support", "clinical trial design" partnerships (these are service contracts, not drug deals)
-└─ Examples:
-   "Partners with AstraZeneca on Gene Therapy" → TRADE (major pharma)
-   "Signs Licensing Agreement with Pfizer" → TRADE (major pharma)
-   "Partners with DUCK FLATS Pharma for IND Readiness" → SKIP (consultant, not pharma)
-   "Engages CRO for Clinical Support" → SKIP (service contract)
+These modalities generate outsized investor excitement. Even early-phase (Phase 1/2)
+data moves stocks when the headline mentions these platforms/mechanisms.
 
-M&A
-├─ Merger agreement, To be acquired
-├─ Acquisition announced, Buyout
+TIER 1 — EXTREMELY HOT (trade Phase 1+ if positive):
+├─ GLP-1 / OBESITY DRUGS: "GLP-1", "oral GLP-1", "weight loss", "obesity",
+│   "body weight reduction", "oral weight loss pill", "GLP-1 agonist",
+│   "dual agonist", "GLP-1/GIP", "GLP-1/glucagon"
+│   (Structure Therapeutics +97% on Phase 2b oral GLP-1 data)
+│
+├─ ADCs (Antibody-Drug Conjugates): "antibody-drug conjugate", "ADC",
+│   "next-generation ADC", "novel payload", "linker technology"
+│   (Biggest M&A target modality; Pfizer/Seagen $43B deal)
+│
+├─ RADIOPHARMACEUTICALS: "radioligand therapy", "radiopharmaceutical",
+│   "targeted radionuclide", "alpha-emitter", "theranostic", "actinium-225",
+│   "lutetium", "Pluvicto"
+│   (Gold rush: Aktis $318M IPO, multiple billion-dollar deals)
+│
+└─ CAR-T FOR AUTOIMMUNE: "CAR-T autoimmune", "CAR-T lupus",
+   "CAR-T stiff person", "CD19 CAR-T autoimmune", "cell therapy autoimmune"
+   (Kyverna +30% on Phase 1 SPS data; first approval expected H1 2026)
+
+TIER 2 — VERY HOT (trade Phase 1+ if positive with any specifics):
+├─ BISPECIFIC ANTIBODIES: "bispecific antibody", "bispecific", "T-cell engager",
+│   "dual-targeting antibody", "T-cell redirecting", "CD3 bispecific",
+│   "masked antibody", "PRO-XTEN", "conditionally active"
+│
+├─ IN VIVO GENE EDITING: "in vivo gene editing", "in vivo CRISPR",
+│   "base editing", "prime editing", "one-time cure", "gene correction",
+│   "functional cure"
+│   ("One-and-done cure" narrative extremely powerful with investors)
+│
+├─ PROTACs / MOLECULAR GLUES: "PROTAC", "molecular glue",
+│   "targeted protein degradation", "protein degrader", "undruggable targets",
+│   "STAT6 degrader", "oral degrader"
+│   (Kymera +44.5% on Phase 1b degrader data; first PROTAC approval expected June 2026)
+│
+├─ mRNA ONCOLOGY: "personalized cancer vaccine", "neoantigen",
+│   "individualized neoantigen therapy", "mRNA cancer", "mRNA oncology"
+│
+└─ AI-DISCOVERED DRUGS: "AI-designed molecule", "AI-discovered",
+   "AI drug discovery", "machine learning designed", "generative AI drug"
+
+TIER 3 — HOT (trade Phase 2+ if positive, Phase 1 needs specific numbers):
+├─ CAR-T ONCOLOGY: "CAR-T", "chimeric antigen receptor", "allogeneic CAR-T",
+│   "off-the-shelf CAR-T", "in vivo CAR-T", "circular RNA CAR-T"
+├─ RNAi / siRNA: "RNAi", "siRNA", "gene silencing", "RNA interference",
+│   "GalNAc conjugate"
+├─ GENE THERAPY (ex vivo): "gene therapy", "gene replacement", "AAV vector"
+├─ CRISPR (ex vivo): "CRISPR", "gene editing", "Casgevy"
+└─ XENOTRANSPLANTATION: "pig kidney", "xenotransplant", "gene-edited pig organ"
+
+NOT HOT (require Phase 2b+ with specific numbers to trade):
+├─ Generic small molecules without novel target
+├─ Microbiome / live biotherapeutics (many failed trials, investor skepticism)
+├─ Longevity / anti-aging (limited clinical evidence)
+└─ Standard monoclonal antibodies without novel mechanism
+
+═══════════════════════════════════════════════════════════════════════════════
+HOT THERAPEUTIC AREAS — Diseases that command market premium
+═══════════════════════════════════════════════════════════════════════════════
+
+Headlines targeting these areas get amplified investor reactions.
+Combined with a hot modality = trade even at Phase 1.
+
+TIER 1 — HIGHEST EXCITEMENT:
+├─ OBESITY / METABOLIC: weight loss, GLP-1, oral GLP-1, dual agonist,
+│   triple agonist, amylin, incretin, body weight reduction
+│   (GLP-1 market projected $65B by 2035; Medicare coverage starting mid-2026)
+├─ MASH / NASH / LIVER: MASH, NASH, steatohepatitis, fatty liver,
+│   liver fibrosis, fibrosis resolution, MASH resolution, FGF21, PPAR agonist
+│   ($31.76B market by 2033; GSK paid $1.2B for FGF21 analog; 3 big pharma acquisitions in 2025)
+├─ MAJOR CANCERS: prostate, breast, lung, colorectal, pancreatic, liver,
+│   brain/glioblastoma, ovarian, melanoma, multiple myeloma, leukemia, lymphoma
+│   (Oncology orphan drug designation = +3.78% average)
+└─ AUTOIMMUNE (with cell therapy): lupus, stiff person syndrome, myositis,
+   systemic sclerosis, myasthenia gravis
+   (CAR-T expanding from oncology to autoimmune = massive narrative)
+
+TIER 2 — HIGH EXCITEMENT:
+├─ ALZHEIMER'S / NEURODEGENERATION: Alzheimer's, tau, amyloid, amyloid-beta,
+│   tau aggregation, TREM2, cognitive decline, Parkinson's, ALS, neurodegeneration
+│   (2026 called "year of tau"; J&J bought Intra-Cellular for $14.6B; CNS was #1 M&A category)
+├─ RARE DISEASES: orphan drug, ultra-rare, rare pediatric
+│   (FDA relaxing to single pivotal trial; priority review vouchers worth $150M+)
+├─ SICKLE CELL / BLOOD DISORDERS: sickle cell disease, beta thalassemia,
+│   hemophilia (gene therapy cures approved and expanding)
+└─ CARDIOVASCULAR (novel approaches): PCSK9, ANGPTL3, gene editing for heart disease
+
+TIER 3 — MODERATE EXCITEMENT:
+├─ DERMATOLOGY (novel mechanisms): atopic dermatitis with degraders or biologics
+├─ PSYCHEDELICS: psilocybin, MDMA for PTSD, treatment-resistant depression
+│   (Phase 3 readouts in 2026; FDA head called review a "top priority")
+└─ INFECTIOUS DISEASE: antivirals, biodefense, pandemic preparedness
+
+===============================================================================
+PARTNERSHIPS (8% of winners - NAMED PHARMA + GOVERNMENT)
+===============================================================================
+
+ONLY trade partnerships with MAJOR PHARMA or GOVERNMENT:
+├─ BIG PHARMA: Pfizer, AstraZeneca, Novartis, Merck, Lilly, Roche, J&J,
+│   AbbVie, Sanofi, GSK, BMS, Amgen, Gilead, Biogen, Novo Nordisk, Bayer,
+│   Regeneron, Vertex, Moderna, BioNTech
+├─ BIG TECH (AI/drug discovery): Nvidia, Google (DeepMind/Calico)
+├─ GOVERNMENT: DOD, BARDA, DTRA, NIH (non-dilutive funding + validation)
+│   (Tonix +570% driven partly by $34M DOD contract)
+├─ Licensing agreement, Collaboration agreement, Co-development
+├─ Strategic agreement, Option-to-license, Joint development
+├─ SKIP: CROs, consultants, unknown firms, service contracts
+├─ SKIP: "IND readiness", "regulatory support", "clinical trial design"
 └─ Examples:
-   "Announces Merger Agreement" → TRADE
-   "To Be Acquired for $X Per Share" → TRADE
+   "Licensing Agreement with Pfizer" → TRADE LARGE
+   "$34M DOD Contract for Antiviral" → TRADE LARGE (government + $)
+   "Collaboration with Nvidia for AI Drug Discovery" → TRADE MODERATE
+   "Partners with Unknown Firm for IND Readiness" → SKIP
+
+===============================================================================
+M&A (Strongest single catalyst for target company)
+===============================================================================
+├─ Merger agreement, To be acquired, Buyout, Tender offer
+├─ Definitive agreement to acquire (target = bullish)
+├─ Average acquisition premiums: 60-120% for biotech targets
+├─ Priority Review Voucher sales (worth $150M+)
+└─ Examples:
+   "To Be Acquired for $X Per Share" → TRADE MAX
+   "Announces Merger Agreement" → TRADE MAX
+   "Announces Agreement to Sell Priority Review Voucher for $205M" → TRADE LARGE
+
+===============================================================================
+OTHER TRADE SIGNALS
+===============================================================================
 
 SHARE REPURCHASE (Bullish signal)
-├─ Share repurchase/buyback announcements = TRADE
-├─ Company buying back shares = confidence in undervaluation
+├─ Share repurchase/buyback = confidence in undervaluation
 ├─ Reduces float, increases EPS = bullish
-├─ Board authorization for repurchase = bullish
 └─ Examples:
-   "Announces Share Repurchase Program" → TRADE
-   "Board Authorizes $10M Stock Buyback" → TRADE
-   "Announces Repurchase of Up To 1M Shares" → TRADE
+   "Announces Share Repurchase Program" → TRADE MODERATE
+   "Board Authorizes $10M Stock Buyback" → TRADE MODERATE
 
 ANALYST ACTIONS
 ├─ Price target raised, Upgraded to Buy
-├─ Initiates coverage with Buy rating
-└─ Examples:
-   "Raises Price Target to $50" → TRADE
+└─ "Raises Price Target to $50" → TRADE SMALL
 
-OTHER STRONG SIGNALS
-├─ Publication in peer-reviewed journal
-├─ Data presentation (actual results, not announcement)
-└─ Examples:
-   "Announces Publication In Oncogene" → TRADE
-   "Presents Data Showing Efficacy" → TRADE
-
-PATENT HEADLINES - NUANCED (Require specificity)
+PATENT HEADLINES (Require specificity)
 ├─ TRADE: Patent + specific drug/mechanism + commercial implication
-├─ TRADE: Patent that protects specific revenue-generating product
-├─ SKIP: Vague patent without named drug, compound, or therapeutic area
-├─ SKIP: "Patent granted" without context about what it enables
-├─ Key difference: Specific patents (drug name, mechanism) = tradeable
-├─ Vague patents (no product context) = usually pump attempts
+├─ SKIP: Vague "patent granted" without named drug or mechanism
 └─ Examples:
-   "Patent Granted For Novel CAR-T Manufacturing Process" → TRADE (specific)
-   "Receives Patent For [DrugName] Formulation" → TRADE (named drug)
-   "Patent Issued Covering mRNA Delivery Technology" → TRADE (specific mechanism)
+   "Patent Granted For Novel CAR-T Manufacturing Process" → TRADE SMALL
    "Announces Patent Grant" → SKIP (no context)
-   "Receives Patent For Compositions And Methods" → SKIP (vague)
-   "Patent Granted For Treatment Methods" → SKIP (no specifics)
 
-MARKET EXPANSION INTO TRENDING AREAS (High potential)
-├─ Addressable market expansion into hot therapeutic areas
-├─ GLP-1 (weight loss drugs like Ozempic, Wegovy) = VERY HOT
-├─ Gene therapy, CAR-T, mRNA, AI drug discovery
-├─ Pivoting/targeting trending sectors
-├─ Keywords: "expands addressable market", "focus on GLP-1", "targets [hot area]"
+PUBLICATIONS
+├─ Publication in peer-reviewed journal with actual data
+└─ "Announces Publication In Nature Medicine" → TRADE SMALL
+
+GOVERNMENT CONTRACTS
+├─ DOD, BARDA, DTRA contracts = non-dilutive funding + government validation
+├─ Particularly powerful for micro-caps (Tonix +570% partly on DOD contract)
 └─ Examples:
-   "Expands Addressable Market with Focus on GLP-1 Users" → TRADE (GLP-1 = hot)
-   "Targets GLP-1 Market with New Formulation" → TRADE
-   "Expands into Gene Therapy Applications" → TRADE
-   "Announces mRNA Platform for Oncology" → TRADE
+   "$34M DOD Contract for Biodefense" → TRADE LARGE
+   "Receives BARDA Funding for Pandemic Preparedness" → TRADE MODERATE
 
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
 SKIP SIGNALS
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
 
 EARNINGS (Do NOT trade - too unpredictable)
 ├─ EPS beats/misses, Revenue beats/misses
-├─ Raised/lowered guidance
-├─ Quarterly results, Preliminary results
-├─ ANY earnings-related headline → SKIP
-└─ Examples:
-   "Q4 EPS $0.15 Beats $0.10 Estimate" → SKIP
-   "Raises FY Guidance" → SKIP
-   "Reports Preliminary Q4 Revenue" → SKIP
+├─ Raised/lowered guidance, Quarterly results
+├─ "Financial Results", "Corporate Update and Reports Results"
+└─ ANY earnings-related headline → SKIP
+
+OFFERINGS/FINANCING → SKIP ALL
+├─ Biotech offerings are almost always DILUTIVE
+├─ "Prices offering", "Closes placement", "PIPE", "private placement"
+├─ "Securities purchase agreement", "Registered direct offering"
+├─ "At-the-market offering", "Gross/net proceeds"
+└─ ANY offering/dilution headline → SKIP
 
 CONFERENCES (Most common loser pattern)
 ├─ "To present at", "Will participate in", "To host conference call"
-├─ J.P. Morgan Healthcare Conference, ASCO, investor day
-└─ ANY future presentation announcement → SKIP
+├─ J.P. Morgan, ASCO, ASH, AACR, investor day
+├─ NOTE: If ACTUAL DATA is presented → see Clinical Data section
+└─ ANY future presentation ANNOUNCEMENT → SKIP
 
 LEGAL/LAWSUITS
 ├─ Class action, Securities fraud, Lawsuit
 ├─ Law firm names: Bragar Eagel, Scott+Scott, Kirby McInerney
 └─ ANY legal action → SKIP
 
-SERVICE/CONSULTING PARTNERSHIPS (No material impact)
-├─ Partnerships with CROs, consultants, regulatory advisors
-├─ "IND readiness", "regulatory support", "clinical trial design"
-├─ "Engages", "Retains", "Hires" (service relationships)
-├─ Any partnership NOT with major pharma (Pfizer, Novartis, etc.)
-└─ Examples:
-   "Partners with [Unknown Firm] for IND Readiness" → SKIP
-   "Engages Regulatory Advisor for FDA Strategy" → SKIP
-   "Retains CRO for Clinical Development" → SKIP
+FDA MEETINGS (Procedural - NOT milestones)
+├─ "Type A/B/C Meeting", "Meeting Scheduled/Granted/Requested"
+├─ "Pre-IND Meeting", "End-of-Phase Meeting"
+├─ These are ROUTINE administrative events, NOT decisions
+└─ ANY scheduled meeting → SKIP
 
-ADMINISTRATIVE
-├─ Inducement grants, Nasdaq listing rule
-├─ Board appointments, Executive changes
-├─ Voting rights information
-├─ Wind-down announcements
-└─ Examples:
-   "Reports Inducement Grants Under Nasdaq Listing Rule" → SKIP
-   "Announces Board Decision to Initiate Wind-Down" → SKIP
-
-FDA MEETINGS (Procedural - NOT approvals or milestones)
-├─ "Type A Meeting", "Type B Meeting", "Type C Meeting" = FDA consultation meetings
-├─ "Meeting Scheduled", "Meeting Granted", "Meeting Requested" = procedural only
-├─ "Pre-IND Meeting", "End-of-Phase Meeting" = routine regulatory touchpoints
-├─ These are ROUTINE administrative events, NOT regulatory decisions
-├─ A meeting is NOT an approval, NOT a breakthrough designation, NOT a milestone
-├─ The market does not react to scheduled meetings - only to outcomes/results
-└─ Examples:
-   "FDA Type C Meeting Scheduled for Drug Candidate" → SKIP (just a meeting)
-   "Company Requests Type B Meeting With FDA" → SKIP (procedural)
-   "FDA Grants Type A Meeting" → SKIP (administrative)
-   "Pre-IND Meeting Scheduled" → SKIP (early stage, just planning)
-   "End-of-Phase 2 Meeting With FDA" → SKIP (routine regulatory process)
+IND CLEARANCE/SUBMISSIONS (Early stage)
+├─ IND = just permission to START trials (low bar)
+├─ "FDA Clears IND", "IND Accepted", "IND Application Cleared"
+└─ ANY IND clearance → SKIP
 
 FUTURE ANNOUNCEMENTS
-├─ "To announce", "Will release", "To report"
-├─ "To host conference call to report results"
+├─ "To announce", "Will release", "To report", "Upcoming"
 └─ Wait for ACTUAL results → SKIP
 
-IND CLEARANCE/SUBMISSIONS (Early stage - NOT tradeable)
-├─ IND = Investigational New Drug, just permission to START trials
-├─ IND Clearance/Acceptance = FDA says "you can begin human trials" (low bar)
-├─ This is NOT drug approval - the drug hasn't proven anything yet
-├─ Years away from revenue, high failure rate from this stage
-├─ "FDA Clears IND", "IND Accepted", "IND Application Cleared"
-└─ Examples:
-   "FDA Clearance of IND Application for GTB-5550" → SKIP (just starting trials)
-   "Announces FDA Acceptance of IND for Cancer Drug" → SKIP (early stage)
-   "IND Cleared for Phase 1 Trial" → SKIP (years from approval)
-   "Receives IND Clearance to Begin Human Studies" → SKIP (not material)
+ADMINISTRATIVE
+├─ Inducement grants, Nasdaq listing rule, Board appointments
+├─ Executive changes, Voting rights, Wind-down
+└─ ANY administrative headline → SKIP
+
+SERVICE/CONSULTING PARTNERSHIPS
+├─ CROs, consultants, regulatory advisors
+├─ "IND readiness", "regulatory support", "clinical trial design"
+├─ "Engages", "Retains", "Hires"
+└─ ANY service relationship → SKIP
 
 WEAK CLINICAL DATA (Looks like news but isn't material)
-├─ "Extension study" / "extension trial" - just continuation, not new data
-├─ "Interim data/results/analysis" without specific numbers - too early, can change
-├─ "Long-term safety" / "safety monitoring" / "tolerability" - expected to be fine
-├─ "Open-label" studies (no placebo control = weak evidence)
-├─ "License partner reports/announces" - not your drug, indirect impact
-├─ Phase 1 or Phase 2a (exploratory, too early for material impact)
-├─ Vague "positive results" without specific numbers or endpoints
-├─ Combinations with already-approved drugs (semaglutide, etc.) - crowded space
-├─ "In vitro" / "in vivo" = PRECLINICAL, not human trials, years from revenue
-├─ "Potential" / "may" / "could" = speculative language, not proven
+├─ "Extension study" / "extension trial" (continuation, not new)
+├─ "Interim" without specific numbers (too early, can change)
+├─ "Long-term safety" / "safety monitoring" / "tolerability" alone
+├─ "License partner reports/announces" (their drug, not yours)
+├─ Vague "positive results" with generic small molecule (not a hot modality)
+├─ "In vitro" / "in vivo" = PRECLINICAL (ALWAYS SKIP, even for hot modalities)
+├─ "Potential" / "may" / "could" = speculative, not proven
 └─ Examples:
-   "Reports Positive Phase 2a Extension Interim Study Results" → SKIP (early + extension + interim)
-   "Positive 52-Week Safety Data from License Partner" → SKIP (safety + partner)
-   "Open-Label Phase 2 Study Shows Positive Results" → SKIP (open-label + Phase 2 + vague)
-   "Long-Term Safety and Tolerability Data" → SKIP (monitoring, not efficacy)
-   "License Partner Ascletis Reports Phase 3 Data" → SKIP (partner's trial)
-   "Interim Analysis Shows Encouraging Trends" → SKIP (interim + no numbers)
-   "Reports Successful Results in Vitro" → SKIP (preclinical test tube, not human trials)
-   "In Vitro Study Shows Anti-Inflammatory Potential" → SKIP (preclinical + "potential")
-   "Small Molecules Show Potential for Disease" → SKIP (speculative "potential" language)
-   "In Vivo Results Demonstrate Efficacy" → SKIP (animal studies, not human trials)
+   "Reports Positive Phase 2a Extension Interim Study Results" → SKIP
+   "Positive 52-Week Safety Data from License Partner" → SKIP
+   "Long-Term Safety and Tolerability Data" → SKIP
+   "Reports Successful Results in Vitro" → SKIP (preclinical)
+   "In Vivo Results Demonstrate Efficacy" → SKIP (animal studies)
+   "Small Molecules Show Potential for Disease" → SKIP (speculative)
 
-LINE EXTENSIONS / LABEL EXPANSIONS (Drug already approved - incremental value)
-├─ Drug approved for one indication, now testing for new body parts or populations
-├─ "Extremities", "Trunk", "Neck", "Torso", "Limbs" = body part expansion
-├─ "Supplemental NDA (sNDA)" = adding to existing approval
-├─ "Label expansion" = same drug, slightly broader use
-├─ "Additional indication" for EXISTING approved drug = incremental
-├─ The drug already exists and generates revenue - this is just expansion
-├─ Market often doesn't react strongly - already priced in, not transformational
-├─ EXCEPTION: New indication in MUCH larger market (e.g., rare disease → mass market)
+LINE EXTENSIONS / LABEL EXPANSIONS (Incremental)
+├─ Drug already approved, testing for new body parts or populations
+├─ "sNDA", "Label expansion", "Additional indication" for EXISTING drug
+├─ EXCEPTION: New indication in MUCH larger market (rare disease → mass market)
 └─ Examples:
-   "Phase 3 Results for Ameluz on Extremities, Neck, and Trunk" → SKIP (body part expansion)
-   "Announces Label Expansion for Drug X" → SKIP (incremental)
-   "sNDA Submitted for Additional Indication" → SKIP (supplemental)
-   "Positive Results in New Body Region for Approved Drug" → SKIP
-   "First-Time FDA Approval for Entirely New Drug" → TRADE (not line extension)
+   "Phase 3 Results for Drug on Extremities, Neck, and Trunk" → SKIP
+   "sNDA Submitted for Additional Indication" → SKIP
 
-MEDIA/PUBLICITY (No material business impact)
-├─ TV show features, news program mentions
-├─ "Featured on", "Highlighted by", "Spotlighted in"
-├─ Media coverage of research/technology
-├─ Awareness campaigns, PR mentions
-└─ Examples:
-   "Good Morning America Features Study Using Technology" → SKIP
-   "Company Featured on CNBC" → SKIP
-   "Research Highlighted in Media Report" → SKIP
+MEDIA/PUBLICITY
+├─ TV features, news program mentions, awareness campaigns
+└─ "Featured on", "Highlighted by" → SKIP
 
-═══════════════════════════════════════════════════════════════════════════════
-UNIVERSAL SKIP SIGNALS (Bad language patterns - applies to all headlines)
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
+UNIVERSAL SKIP SIGNALS (Bad language patterns)
+===============================================================================
 
 NON-COMMITTAL LANGUAGE (100% losers in backtesting)
-├─ "Non-binding" = not a real deal, frequently falls through
-├─ "Enters Into" without specifics = meaningless corporate speak
-├─ "Memorandum of Understanding" without $ = preliminary, no commitment
+├─ "Non-binding" = not a real deal
+├─ "Enters Into" without specifics = corporate speak
+├─ "Memorandum of Understanding" without $ = preliminary
 └─ Examples:
    "Signs Non-binding Letter of Intent" → SKIP
    "Enters Into Strategic Agreement" → SKIP (no details)
-   "Signs MOU for Future Cooperation" → SKIP (vague)
 
-LETTER OF INTENT (LOI) - NUANCED (50+ winners in backtest)
-├─ NOT all LOIs are bad - acquisition LOIs with named targets WIN
+LETTER OF INTENT — NUANCED (50+ winners in backtest)
 ├─ TRADE: LOI + Acquisition + Named Target (specific deal = credible)
-├─ SKIP: LOI + Vague partnership without specifics (no commitment)
-├─ Key difference: Acquisition intent with named target shows real deal
+├─ SKIP: LOI + Vague partnership (no commitment)
 └─ Examples:
-   "LOI To Acquire Majority Stake in ABC Corp" → TRADE (specific target)
-   "Signs LOI For Strategic Acquisition of XYZ" → TRADE (named target)
-   "Signs Letter of Intent With Major Partner" → SKIP (no target named)
-   "Enters Into LOI For Potential Investment" → SKIP (vague, no specifics)
+   "LOI To Acquire Majority Stake in ABC Corp" → TRADE (specific)
+   "Signs Letter of Intent With Major Partner" → SKIP (no target)
 
-DEFENSIVE/DISTRESSED LANGUAGE (Often bad news disguised as good)
-├─ "Restructuring" (debt, financing) = company in trouble
-├─ "Strengthens Financial Position" = defensive language
-└─ Examples:
-   "Restructures Debt Through Bank Financing" → SKIP
-   "Strengthens Financial Position" → SKIP
+DEFENSIVE/DISTRESSED LANGUAGE
+├─ "Restructuring", "Strengthens Financial Position"
+└─ SKIP (bad news disguised as good)
 
-PROVISIONAL/LIMITED (Not final or material)
-├─ "Allowance" (patent/regulatory) = not final grant
-├─ "Canadian" only = limited geography
-└─ Examples:
-   "Receives Canadian Patent Allowance" → SKIP
-
-CASH OUTFLOWS (Spending money, not making it)
+CASH OUTFLOWS
 ├─ "Acquires" / "To Acquire" = company SPENDING money
-├─ EXCEPTION: If being acquired (target) → TRADE
-└─ Examples:
-   "To Acquire Startup" → SKIP
-   "To Be Acquired For $X Per Share" → TRADE
+├─ EXCEPTION: Being acquired (target) → TRADE
+└─ "To Acquire Startup" → SKIP; "To Be Acquired" → TRADE
 
+DILUTION/OFFERINGS
+├─ "Securities purchase agreement", "Prices offering"
+├─ "Registered direct", "ATM offering", "PIPE"
+└─ ANY offering → SKIP
 
+VAGUE PARTNERSHIPS
+├─ No named partner, no dollar amount, no specific product
+├─ "Strategic collaboration to explore" = fluff
+└─ REQUIRE: Named partner + (specific product OR dollar amount)
 
-DILUTION/OFFERINGS (Company raising cash = stock goes DOWN)
-├─ "Securities purchase agreement" = private placement (PIPE) = dilution
-├─ "Prices offering", "Closes offering", "Underwritten offering" = dilution
-├─ "Registered direct offering", "At-the-market offering" = dilution
-├─ "Private placement", "PIPE", "Gross proceeds", "Net proceeds" = dilution
-├─ Even "at market" offerings signal the company needs cash (weakness)
-├─ The stock almost ALWAYS drops on offerings - sellers front-run dilution
-└─ Examples:
-   "Enters Into Securities Purchase Agreement" → SKIP (dilution)
-   "Prices $50M Public Offering" → SKIP (dilution)
-   "Announces Registered Direct Offering" → SKIP (dilution)
-   "Closes Private Placement" → SKIP (dilution)
-
-VAGUE PARTNERSHIPS (No concrete deliverables)
-├─ "Partnership for innovation" = vague, no specific product or revenue
-├─ "Strategic collaboration" without specifics = corporate fluff
-├─ Unknown counterparties with no dollar amounts = not credible
-├─ REQUIRE: Named customer/partner + (specific product OR dollar amount)
-└─ Examples:
-   "Partnership With Unknown Company For Innovation" → SKIP (vague)
-   "Strategic Collaboration To Explore Opportunities" → SKIP (no specifics)
-   "Partners With Fortune 500 For $20M Platform Deal" → TRADE (specific)
-
-OPERATIONAL MILESTONES (Planned events, not surprises)
-├─ "Begins production", "commences operations", "adds capacity" = operational
-├─ These are scheduled events the market already expects - no surprise value
-├─ Without NEW revenue, customers, or dollar amounts = not a catalyst
-└─ Examples:
-   "Begins Production At New Facility" → SKIP (planned, no $ value)
-   "Adds 50 MW Capacity To Data Center" → SKIP (operational expansion)
-   "Commences Shipments" without customer/$ → SKIP
-   "New Facility Secures $30M Annual Contract" → TRADE ($ attached)
-
-IMMATERIAL DOLLAR AMOUNTS (Too small to move the stock)
-├─ Dollar amounts must be MATERIAL relative to company market cap
-├─ Contracts/deals < 3% of market cap rarely move stocks significantly
-├─ Even "wins contract" headlines need material value to trade
+IMMATERIAL DOLLAR AMOUNTS
+├─ Contracts/deals < 3% of market cap rarely move stocks
 ├─ Check: "Would this news materially change the company's value?"
-└─ Examples:
-   "$2M contract" for $300M company (0.7%) → SKIP (immaterial)
-   "$15M deal" for $100M company (15%) → TRADE (material)
-   "$50M partnership" for $30M company (167%) → TRADE MAX (transformational)
-
-KEY RULE: Only trade headlines that are SURPRISING and TRANSFORMATIONAL
-✓ TRADE: Specific dollar amounts (>3% of mkt cap), named customers, definitive agreements
-✗ SKIP: Vague language, operational milestones, immaterial amounts, non-binding terms
+└─ "$2M contract" for $300M company → SKIP (immaterial)
 
 ===============================================================================
-POSITION SIZING (Output: TRADE SMALL, TRADE MODERATE, TRADE LARGE, TRADE MAX, or SKIP)
+POSITION SIZING
 ===============================================================================
 
-You must classify BOTH whether to trade AND the position size.
-Position size is based on headline strength and conviction level.
+Output: TRADE SMALL, TRADE MODERATE, TRADE LARGE, TRADE MAX, or SKIP
 
-SIZE FACTORS - Consider ALL of the following:
+SIZE FACTORS:
 
-1. HEADLINE CONCRETENESS (Most important)
-   - MAX: Specific dollar amounts, named counterparties, definitive terms
-   - LARGE: Specific details but missing some elements (e.g., no $ but named partner)
-   - MODERATE: Reasonably specific but some vagueness
-   - SMALL: Tradeable but lacks specificity
+1. CATALYST TYPE (Most important for biotech)
+   - MAX: FDA approval, M&A (being acquired), Phase 3 met primary endpoint
+   - LARGE: Fast Track/Breakthrough designation, major pharma partnership,
+     Phase 2/3 positive with numbers, government contract (large vs mkt cap),
+     Priority Review Voucher sale
+   - MODERATE: Phase 2 positive in hot area, hot modality Phase 1 with numbers,
+     orphan drug designation, share repurchase
+   - SMALL: Hot modality Phase 1 positive (no numbers), analyst upgrade, patent
 
-2. DOLLAR AMOUNT RELATIVE TO COMPANY (When applicable)
-   You will receive company market cap in the CONTEXT section.
-   - MAX: Deal value > 50% of market cap (transformational)
-   - LARGE: Deal value 25-50% of market cap (major)
-   - MODERATE: Deal value 10-25% of market cap (significant)
-   - SMALL: Deal value < 10% of market cap (modest)
-   Note: Not all headline types have dollar amounts - that's OK. Use other factors.
+2. MODALITY MULTIPLIER
+   - If hot modality (Tier 1/2): upgrade size by one level
+   - Example: Phase 2 positive normally = MODERATE, but ADC Phase 2 = LARGE
 
-3. CATALYST STRENGTH (Industry-specific)
-   - MAX: Strongest catalysts for this industry (see TRADE SIGNALS above)
-   - LARGE: Strong catalysts
-   - MODERATE: Moderate catalysts
-   - SMALL: Weaker but still tradeable catalysts
+3. HEADLINE CONCRETENESS
+   - Specific numbers, named counterparties, definitive terms → upgrade
+   - Vague "positive results" without specifics → downgrade
 
-4. COUNTERPARTY QUALITY (When applicable)
-   - MAX: Fortune 100, major government (DOD, DOE, NASA), big pharma, big tech
-   - LARGE: Fortune 500, major industry players
-   - MODERATE: Known companies, mid-tier partners
-   - SMALL: Unknown or smaller counterparties
+4. DOLLAR AMOUNT vs MARKET CAP (When applicable)
+   - MAX: Deal value > 50% of market cap
+   - LARGE: 25-50%
+   - MODERATE: 10-25%
+   - SMALL: < 10%
 
-EXAMPLES OF SIZE DETERMINATION:
-- "$140M contract with DOD" for $50M market cap company → TRADE MAX (280% of mkt cap, DOD)
-- "$20M partnership with Microsoft" for $100M company → TRADE LARGE (20% + big tech)
-- "Partners with regional distributor" (no $) → TRADE SMALL (vague, unknown partner)
-- "FDA Approval for new drug" → TRADE MAX (strongest biotech catalyst)
-- "Wins contract" (no $ amount, no customer name) → TRADE SMALL (vague)
-- "Signs $5M deal with Fortune 500" for $200M company → TRADE MODERATE (2.5%, good partner)
-
-CONCRETE > VAGUE:
-Headlines with specific numbers, names, and terms are more reliable.
-When in doubt about size, ask: "How concrete is this headline?"
-
-
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
 DECISION RULES
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
 
-BIOTECH IS VOLATILE - ONLY TRADE THE BEST HEADLINES
+THINK MODALITY-FIRST, THEN PHASE:
+1. Is this a HOT MODALITY? (ADC, GLP-1, radiopharmaceutical, CAR-T autoimmune, etc.)
+   → If yes: positive Phase 1+ data is tradeable
+   → If no: require Phase 2b+ with specific numbers
+2. Is this a HOT THERAPEUTIC AREA? (major cancer, obesity, Alzheimer's, rare disease)
+   → If yes: lower the phase threshold for trading
+3. Are results POSITIVE with any specificity?
+   → "Met endpoint", numbers, "complete response" = TRADE
+   → Vague "positive", "encouraging" alone = needs hot modality to trade
 
-1. FDA DRUG APPROVAL/CLEARANCE = TRADE (actual approval of a drug)
-2. IND Clearance = SKIP (just permission to start trials, not approval)
-3. BIG PHARMA partnerships are very strong (AstraZeneca avg +172%, Novartis +37%, Lilly +31%)
-4. Specific numbers (%, $, survival months) = TRADE. Vague "positive" without numbers = usually SKIP
-5. "Conference" anywhere = SKIP
-6. Future tense ("will", "to be", "upcoming") = usually SKIP
-7. Past/present tense with results = usually TRADE
-8. Media/TV mentions ("featured on", "highlighted") = SKIP - no material impact
+ALWAYS TRADE:
+- FDA drug approval
+- M&A (being acquired)
+- Phase 3 met primary endpoint
+- Fast Track / Breakthrough Therapy designation
+- Major pharma partnership with named company
 
-REGULATORY STAGE MATTERS:
-- IND (Investigational New Drug) = SKIP - just starting, years from revenue
-- Phase 1/2a = SKIP - too early, high failure rate
-- Phase 2b/3 topline results = TRADE if specific numbers
-- BLA/NDA Accepted = TRADE - near approval
-- FDA Approval = TRADE - the big one
+ALWAYS SKIP:
+- Earnings / financial results
+- Offerings / dilution
+- IND clearance
+- Conferences (future presentations)
+- In vitro / in vivo (preclinical)
+- Safety/tolerability only
+- Extension studies
+- "Potential" / "may" / "could"
 
-CLINICAL DATA HIERARCHY (most to least material):
-8. Phase 3 pivotal > Phase 3 > Phase 2b > Phase 2a > Phase 1 (earlier = less material)
-9. "Met primary endpoint" > "positive results" > "encouraging" (specific > vague)
-10. Own trial > license partner's trial (direct > indirect impact)
-11. Efficacy data > safety data (safety is baseline expectation)
-12. Final/topline > interim (interim can change, not definitive)
-13. Randomized controlled > open-label (methodology matters)
-
-RED FLAGS - These weaken any clinical headline:
-- "Extension" = continuation study, not new breakthrough
-- "Interim" without numbers = preliminary, can reverse
-- "Safety/tolerability" alone = monitoring, not efficacy win
-- "License partner" = their drug, not yours
-- "Open-label" = no placebo, weaker evidence
-- "Phase 2a" = exploratory, too early
-- "In vitro" = test tube, preclinical, NOT human trials (ALWAYS SKIP)
-- "In vivo" = animal studies, still preclinical (ALWAYS SKIP)
-- "Potential" / "may" / "could" = speculative, not proven results
+RED FLAGS (weaken any headline):
+- "Extension" = not new data
+- "Interim" without numbers = preliminary
+- "Safety/tolerability" alone = not efficacy
+- "License partner" = indirect
+- "Open-label" = weaker evidence
+- "In vitro" / "in vivo" = ALWAYS SKIP (preclinical)
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)
