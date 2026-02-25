@@ -774,6 +774,7 @@ class TradeClassificationJob:
         alpaca_trades: Dict[str, List[Dict]],
         target_date: date,
         headline_lookup: Dict[str, str] = None,
+        recall_records: List[Dict] = None,
     ) -> List[ClassifiedTrade]:
         """
         Classify trades using actual Alpaca P&L data.
@@ -782,6 +783,7 @@ class TradeClassificationJob:
         """
         classified = []
         headline_lookup = headline_lookup or {}
+        recall_records = recall_records or []
 
         for ticker, trades in alpaca_trades.items():
             # Calculate P&L for each round-trip trade
@@ -813,6 +815,8 @@ class TradeClassificationJob:
                 headline_type = None
                 session = ""
                 record_id = None
+                peak_pct = None
+                mae_pct = None
 
                 if matching_record:
                     meta = self.extract_metadata(matching_record, ticker)
@@ -825,7 +829,42 @@ class TradeClassificationJob:
                             headline = headline_lookup.get(article_id)
                     headline_type = matching_record.get("headline_type")
                     session = matching_record.get("_session", "")
-                    record_id = matching_record.get("trade_id")
+                    record_id = matching_record.get("article_id") or matching_record.get("trade_id")
+
+                    # Extract peak/MAE from signal record (covers actual hold period)
+                    sig_peak = matching_record.get("highest_price_during_hold", {})
+                    if sig_peak:
+                        peak_pct = sig_peak.get("percent_gain_from_entry")
+                    sig_mae = matching_record.get("max_adverse_excursion", {})
+                    if sig_mae:
+                        mae_pct = sig_mae.get("percent_loss_from_entry")
+
+                # Match recall record by article_id (precise), fall back to ticker
+                article_id = matching_record.get("article_id") if matching_record else None
+                matched_recall = None
+                if article_id:
+                    for recall_rec in recall_records:
+                        if recall_rec.get("article_id") == article_id:
+                            matched_recall = recall_rec
+                            break
+                if not matched_recall:
+                    for recall_rec in recall_records:
+                        if ticker in recall_rec.get("tickers", []):
+                            matched_recall = recall_rec
+                            break
+
+                if matched_recall:
+                    recall_peak = matched_recall.get("highest_price_during_hold", {})
+                    if recall_peak:
+                        recall_peak_pct = recall_peak.get("percent_gain_from_entry")
+                        # Use recall peak if higher (covers full 10-min window)
+                        if recall_peak_pct is not None and (peak_pct is None or recall_peak_pct > peak_pct):
+                            peak_pct = recall_peak_pct
+                    recall_mae = matched_recall.get("max_adverse_excursion", {})
+                    if recall_mae:
+                        recall_mae_pct = recall_mae.get("percent_loss_from_entry")
+                        if recall_mae_pct is not None and (mae_pct is None or abs(recall_mae_pct) > abs(mae_pct)):
+                            mae_pct = recall_mae_pct
 
                 classified.append(ClassifiedTrade(
                     ticker=ticker,
@@ -834,6 +873,8 @@ class TradeClassificationJob:
                     category=category,
                     pnl_pct=result["pnl_pct"],
                     pnl_usd=result["pnl_usd"],
+                    peak_pct=peak_pct,
+                    mae_pct=mae_pct,
                     entry_price=result["entry_price"],
                     exit_price=result["exit_price"],
                     shares=result["shares"],
@@ -852,6 +893,7 @@ class TradeClassificationJob:
         signal_records: List[Dict],
         target_date: date,
         headline_lookup: Dict[str, str] = None,
+        recall_records: List[Dict] = None,
     ) -> List[ClassifiedTrade]:
         """
         Classify trades from signal records only (fallback if Alpaca unavailable).
@@ -860,6 +902,7 @@ class TradeClassificationJob:
         """
         classified = []
         headline_lookup = headline_lookup or {}
+        recall_records = recall_records or []
 
         for record in signal_records:
             ticker = record.get("ticker")
@@ -891,12 +934,46 @@ class TradeClassificationJob:
             meta = self.extract_metadata(record, ticker)
             features = self.extract_confluence_features(record)
 
+            # Extract peak/MAE from signal record
+            peak_pct = None
+            mae_pct = None
+            sig_peak = record.get("highest_price_during_hold", {})
+            if sig_peak:
+                peak_pct = sig_peak.get("percent_gain_from_entry")
+            sig_mae = record.get("max_adverse_excursion", {})
+            if sig_mae:
+                mae_pct = sig_mae.get("percent_loss_from_entry")
+
+            # Match recall record by article_id (precise), fall back to ticker
+            article_id = record.get("article_id")
+            matched_recall = None
+            if article_id:
+                for recall_rec in recall_records:
+                    if recall_rec.get("article_id") == article_id:
+                        matched_recall = recall_rec
+                        break
+            if not matched_recall:
+                for recall_rec in recall_records:
+                    if ticker in recall_rec.get("tickers", []):
+                        matched_recall = recall_rec
+                        break
+
+            if matched_recall:
+                recall_peak = matched_recall.get("highest_price_during_hold", {})
+                if recall_peak:
+                    recall_peak_pct = recall_peak.get("percent_gain_from_entry")
+                    if recall_peak_pct is not None and (peak_pct is None or recall_peak_pct > peak_pct):
+                        peak_pct = recall_peak_pct
+                recall_mae = matched_recall.get("max_adverse_excursion", {})
+                if recall_mae:
+                    recall_mae_pct = recall_mae.get("percent_loss_from_entry")
+                    if recall_mae_pct is not None and (mae_pct is None or abs(recall_mae_pct) > abs(mae_pct)):
+                        mae_pct = recall_mae_pct
+
             # Get headline from signal record, or lookup from recall records
             headline = record.get("headline") or record.get("title")
-            if not headline:
-                article_id = record.get("article_id")
-                if article_id:
-                    headline = headline_lookup.get(article_id)
+            if not headline and article_id:
+                headline = headline_lookup.get(article_id)
 
             classified.append(ClassifiedTrade(
                 ticker=ticker,
@@ -904,13 +981,15 @@ class TradeClassificationJob:
                 session=record.get("_session", ""),
                 category=category,
                 pnl_pct=pnl,
+                peak_pct=peak_pct,
+                mae_pct=mae_pct,
                 entry_price=record.get("entry_price"),
                 exit_price=record.get("exit_price"),
                 shares=record.get("entry_shares"),
                 headline=headline,
                 headline_type=record.get("headline_type"),
                 source="signal",
-                record_id=record.get("trade_id"),
+                record_id=article_id or record.get("trade_id"),
                 **meta,
                 **features,
             ))
@@ -1187,6 +1266,115 @@ class TradeClassificationJob:
 
         return classified
 
+    async def _enrich_tp_fp_with_simulation(
+        self,
+        tp_fp_trades: List[ClassifiedTrade],
+        signal_records: List[Dict],
+        recall_records: List[Dict],
+    ) -> None:
+        """
+        Run tick simulation for TP/FP trades to get quote_count, move_progression, etc.
+
+        Same simulator as FN verification - shows what standardized exit rules would have produced.
+        Modifies trades in-place.
+        """
+        for trade in tp_fp_trades:
+            try:
+                # Find received_at from signal or recall record
+                # Use article_id (stored in record_id) to match the correct article
+                received_at = None
+                entry_price_hint = trade.entry_price
+                article_id = trade.record_id
+
+                # Try signal record first — match by article_id, fall back to ticker
+                matching_signal = None
+                if article_id:
+                    for record in signal_records:
+                        if record.get("article_id") == article_id:
+                            matching_signal = record
+                            break
+                if not matching_signal:
+                    for record in signal_records:
+                        if record.get("ticker") == trade.ticker:
+                            matching_signal = record
+                            break
+
+                if matching_signal:
+                    received_at = matching_signal.get("received_at")
+                    if not article_id:
+                        article_id = matching_signal.get("article_id")
+
+                # Fall back to recall record — match by article_id, fall back to ticker
+                if not received_at:
+                    matched_recall = None
+                    if article_id:
+                        for recall_rec in recall_records:
+                            if recall_rec.get("article_id") == article_id:
+                                matched_recall = recall_rec
+                                break
+                    if not matched_recall:
+                        for recall_rec in recall_records:
+                            if trade.ticker in recall_rec.get("tickers", []):
+                                matched_recall = recall_rec
+                                break
+                    if matched_recall:
+                        received_at = matched_recall.get("received_at")
+                        if not entry_price_hint:
+                            nbbo = matched_recall.get("initial_nbbo", {})
+                            entry_price_hint = nbbo.get("ask")
+
+                if not received_at:
+                    continue
+
+                # Parse received_at
+                if isinstance(received_at, str):
+                    recv_dt = datetime.fromisoformat(received_at.replace("Z", "+00:00"))
+                else:
+                    recv_dt = received_at
+
+                sim_result = await simulate_trade(
+                    ticker=trade.ticker,
+                    received_time=recv_dt,
+                    entry_price_hint=entry_price_hint,
+                )
+
+                if not sim_result:
+                    continue
+
+                # Calculate stop P&L if stopped out
+                stop_pnl = None
+                if sim_result.stopped_out and sim_result.stop_price and sim_result.entry_price:
+                    stop_pnl = round(((sim_result.stop_price - sim_result.entry_price) / sim_result.entry_price) * 100, 2)
+
+                # Populate sim fields on the trade object
+                trade.sim_would_have_traded = sim_result.would_have_traded
+                trade.sim_total_pnl_pct = sim_result.total_pnl_pct
+                trade.sim_realized_pnl_pct = sim_result.realized_pnl_pct
+                trade.sim_position_remaining_pct = sim_result.position_remaining_pct
+                trade.sim_stopped_out = sim_result.stopped_out
+                trade.sim_stop_type = sim_result.stop_type
+                trade.sim_stop_pnl_pct = stop_pnl
+                trade.sim_stop_elapsed_seconds = sim_result.stop_elapsed_seconds
+                trade.sim_stop_timestamp = sim_result.stop_triggered_at.isoformat() if sim_result.stop_triggered_at else None
+                trade.sim_max_pnl_pct = sim_result.max_pnl_pct
+                trade.sim_max_pnl_elapsed_seconds = sim_result.max_pnl_elapsed_seconds
+                trade.sim_min_pnl_pct = sim_result.min_pnl_pct
+                trade.sim_tp_count = len(sim_result.tp_events)
+                trade.sim_quote_count = sim_result.trade_count
+                trade.sim_entry_timestamp = sim_result.entry_time.isoformat() if sim_result.entry_time else None
+                trade.sim_simple_hold_pnl_pct = sim_result.simple_hold_pnl_pct
+                trade.sim_move_progression = sim_result.move_progression
+
+                logger.debug(
+                    f"TP/FP sim enriched: {trade.ticker} actual_pnl={trade.pnl_pct}% "
+                    f"sim_pnl={sim_result.total_pnl_pct:.1f}% "
+                    f"sim_peak={sim_result.max_pnl_pct:.1f}% "
+                    f"quotes={sim_result.trade_count}"
+                )
+
+            except Exception as e:
+                logger.warning(f"Simulation failed for TP/FP {trade.ticker}: {e}")
+
     def trade_to_dict(self, trade: ClassifiedTrade, category: str) -> Dict[str, Any]:
         """Convert a ClassifiedTrade to a dict with properly nested ML features."""
         # Derive move_type from confluence stats with exact thresholds
@@ -1283,17 +1471,66 @@ class TradeClassificationJob:
                 "mid": trade.surge_mid,
             }
 
+        # Format elapsed time as "Xm Ys.XXXs"
+        def format_elapsed(secs):
+            if secs is None:
+                return None
+            mins = int(secs // 60)
+            s = secs % 60
+            if mins > 0:
+                return f"{mins}m {s:.3f}s"
+            return f"{s:.3f}s"
+
+        # Build simulation block (reused for TP/FP and FN)
+        def build_simulation_block(outcome=None):
+            if trade.sim_total_pnl_pct is None:
+                return None
+            return {
+                "outcome": outcome or trade.fn_outcome,
+                "would_have_traded": trade.sim_would_have_traded,
+                "total_pnl_pct": trade.sim_total_pnl_pct,
+                "realized_pnl_pct": trade.sim_realized_pnl_pct,
+                "position_remaining_pct": trade.sim_position_remaining_pct,
+                # Stop details with timing
+                "stopped_out": trade.sim_stopped_out,
+                "stop_type": trade.sim_stop_type,
+                "stop_pnl_pct": trade.sim_stop_pnl_pct,
+                "stop_elapsed": format_elapsed(trade.sim_stop_elapsed_seconds),
+                "stop_elapsed_seconds": trade.sim_stop_elapsed_seconds,
+                "stop_timestamp": trade.sim_stop_timestamp,
+                # Peak details with timing
+                "max_pnl_pct": trade.sim_max_pnl_pct,
+                "max_pnl_elapsed": format_elapsed(trade.sim_max_pnl_elapsed_seconds),
+                "max_pnl_elapsed_seconds": trade.sim_max_pnl_elapsed_seconds,
+                "min_pnl_pct": trade.sim_min_pnl_pct,
+                # Simple hold comparison
+                "simple_hold_pnl_pct": trade.sim_simple_hold_pnl_pct,
+                # Move progression - when each price level was first crossed
+                "move_progression": trade.sim_move_progression,
+                # Other
+                "tp_count": trade.sim_tp_count,
+                "quote_count": trade.sim_quote_count,
+                "entry_timestamp": trade.sim_entry_timestamp,
+            }
+
         if category in ("true_positive", "false_positive"):
-            # Trades we made - show P&L + nested ML features
+            # Trades we made - show P&L, peak/MAE, simulation + nested ML features
             base.update({
                 "pnl_pct": trade.pnl_pct,
                 "pnl_usd": trade.pnl_usd,
+                "peak_pct": trade.peak_pct,     # Max gain from entry (what could have been)
+                "mae_pct": trade.mae_pct,        # Max adverse excursion (worst drawdown from entry)
                 "entry_price": trade.entry_price,
                 "exit_price": trade.exit_price,
                 "shares": trade.shares,
                 "confluence_stats": confluence_stats,
                 "surge_stats": surge_stats,  # null if confluence-based, populated if surge-based
             })
+
+            # Include tick simulation (shows what standardized exit rules would have produced)
+            sim_block = build_simulation_block(outcome=trade.category)
+            if sim_block:
+                base["simulation"] = sim_block
 
         elif category == "false_negative":
             # Missed winners - show peak, MAE, latency + simulation results + nested ML features
@@ -1309,44 +1546,9 @@ class TradeClassificationJob:
             })
 
             # Include tick simulation results if available
-            if trade.sim_total_pnl_pct is not None:
-                # Format elapsed time as "Xm Ys.XXXs"
-                def format_elapsed(secs):
-                    if secs is None:
-                        return None
-                    mins = int(secs // 60)
-                    s = secs % 60
-                    if mins > 0:
-                        return f"{mins}m {s:.3f}s"
-                    return f"{s:.3f}s"
-
-                base["simulation"] = {
-                    "outcome": trade.fn_outcome,
-                    "would_have_traded": trade.sim_would_have_traded,
-                    "total_pnl_pct": trade.sim_total_pnl_pct,
-                    "realized_pnl_pct": trade.sim_realized_pnl_pct,
-                    "position_remaining_pct": trade.sim_position_remaining_pct,
-                    # Stop details with timing
-                    "stopped_out": trade.sim_stopped_out,
-                    "stop_type": trade.sim_stop_type,
-                    "stop_pnl_pct": trade.sim_stop_pnl_pct,
-                    "stop_elapsed": format_elapsed(trade.sim_stop_elapsed_seconds),
-                    "stop_elapsed_seconds": trade.sim_stop_elapsed_seconds,
-                    "stop_timestamp": trade.sim_stop_timestamp,
-                    # Peak details with timing
-                    "max_pnl_pct": trade.sim_max_pnl_pct,
-                    "max_pnl_elapsed": format_elapsed(trade.sim_max_pnl_elapsed_seconds),
-                    "max_pnl_elapsed_seconds": trade.sim_max_pnl_elapsed_seconds,
-                    "min_pnl_pct": trade.sim_min_pnl_pct,
-                    # Simple hold comparison
-                    "simple_hold_pnl_pct": trade.sim_simple_hold_pnl_pct,
-                    # Move progression - when each price level was first crossed
-                    "move_progression": trade.sim_move_progression,
-                    # Other
-                    "tp_count": trade.sim_tp_count,
-                    "quote_count": trade.sim_quote_count,
-                    "entry_timestamp": trade.sim_entry_timestamp,
-                }
+            sim_block = build_simulation_block()
+            if sim_block:
+                base["simulation"] = sim_block
 
         else:  # true_negative
             # Correctly ignored - show peak, filter reasons, why not FN
@@ -1451,14 +1653,22 @@ class TradeClassificationJob:
         # Classify TP/FP
         if alpaca_trades:
             # Use Alpaca data (authoritative)
-            tp_fp_trades = self.classify_trades_with_alpaca(signal_records, alpaca_trades, target_date, headline_lookup)
+            tp_fp_trades = self.classify_trades_with_alpaca(
+                signal_records, alpaca_trades, target_date, headline_lookup, recall_records
+            )
             traded_tickers = set(alpaca_trades.keys())
         else:
             # Fall back to signal records
-            tp_fp_trades = self.classify_trades_from_signal(signal_records, target_date, headline_lookup)
+            tp_fp_trades = self.classify_trades_from_signal(
+                signal_records, target_date, headline_lookup, recall_records
+            )
             # Even if we couldn't classify P&L, mark these tickers as traded
             # so they don't appear as false negatives
             traded_tickers = set(record.get("ticker") for record in signal_records if record.get("ticker"))
+
+        # Enrich TP/FP trades with tick simulation (same as FN - gives quote_count, move_progression)
+        if SIMULATE_FN_WITH_TICK_DATA and tp_fp_trades:
+            await self._enrich_tp_fp_with_simulation(tp_fp_trades, signal_records, recall_records)
 
         # Classify FN/TN from recall records (with tick simulation for FN verification)
         fn_tn_trades = await self.classify_recall_records(recall_records, traded_tickers, target_date)

@@ -1,5 +1,5 @@
 {
-  "date": "2026-02-24",
+  "date": "2026-02-25",
   "data": {
     "ORCL": {
       "market_cap_millions": 459538.399232
@@ -16317,6 +16317,9 @@
     },
     "ROC": {
       "market_cap_millions": 95.514752
+    },
+    "FACT": {
+      "market_cap_millions": 254.888896
     }
   }
 }
