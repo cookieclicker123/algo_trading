@@ -1975,10 +1975,11 @@ async def process_imminent_article(
         # STRENGTH check: score >= 1 AND excursion >= 0.5%
         has_strength = confluence_score >= 1 and max_excursion_pct >= MIN_STRENGTH_EXCURSION_PCT
 
-        # HIGH CONFLUENCE check: score >= 3 alone is sufficient to confirm real activity
-        # Even without 0.5% price excursion, 3+ confluence criteria = strong confirmation
+        # HIGH CONFLUENCE check: score >= 3 AND price must have moved >= 0.5%
+        # Without price movement, high score can be faked by a few trades at same price (SPAI pattern)
+        # Stocks that don't move in 2s but move later get caught by surge (8s) or late (30s) monitoring
         HIGH_CONFLUENCE_SCORE = 3
-        has_high_confluence = confluence_score >= HIGH_CONFLUENCE_SCORE
+        has_high_confluence = confluence_score >= HIGH_CONFLUENCE_SCORE and max_excursion_pct >= MIN_STRENGTH_EXCURSION_PCT
 
         if has_strength or has_high_confluence:
             # Activity confirmed - use AI conviction for position sizing

@@ -141377,5 +141377,9 @@
   "HAYW": {
     "industry": "Electrical Equipment & Parts",
     "sector": "Industrials"
+  },
+  "GGRP": {
+    "industry": "Software - Infrastructure",
+    "sector": "Technology"
   }
 }
