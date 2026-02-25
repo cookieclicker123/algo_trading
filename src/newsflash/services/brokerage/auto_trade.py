@@ -1959,12 +1959,12 @@ async def process_imminent_article(
         max_excursion_pct = confluence_metadata.get("confluence_price_excursion_pct", 0.0)
         confluence_trade_count = confluence_metadata.get("confluence_trade_count", 0)
 
-        # Minimum trade count: 1 trade is not "confluence" — it's one person.
-        # Require at least 2 independent trades to confirm real market interest.
-        MIN_CONFLUENCE_TRADES = 2
+        # Minimum trade count: 1-2 trades is not "confluence" — it's one person.
+        # Require at least 3 independent trades to confirm real market interest.
+        MIN_CONFLUENCE_TRADES = 3
         if confluence_trade_count < MIN_CONFLUENCE_TRADES:
             logger.info(
-                f"⏭️ SINGLE TRADE: Only {confluence_trade_count} trade(s) in confluence window — not real activity",
+                f"⏭️ TOO FEW TRADES: Only {confluence_trade_count} trade(s) in confluence window — not real activity",
                 ticker=ticker,
                 confluence_trade_count=confluence_trade_count,
                 confluence_score=confluence_score,
