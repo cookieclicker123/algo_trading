@@ -23,5 +23,11 @@
     "permanent": false,
     "created_at": "2026-02-24T20:23:39.652284",
     "last_fp_date": "2026-02-24"
+  },
+  "IRD": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-02-25T12:09:05.178785",
+    "last_fp_date": "2026-02-25"
   }
 }

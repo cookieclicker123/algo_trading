@@ -141373,5 +141373,9 @@
   "MRAI": {
     "industry": "Healthcare Plans",
     "sector": "Healthcare"
+  },
+  "HAYW": {
+    "industry": "Electrical Equipment & Parts",
+    "sector": "Industrials"
   }
 }

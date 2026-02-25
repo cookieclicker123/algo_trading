@@ -1957,6 +1957,20 @@ async def process_imminent_article(
         # Get confluence score and excursion for gating decision
         confluence_score = confluence_metadata.get("confluence_score", 0)
         max_excursion_pct = confluence_metadata.get("confluence_price_excursion_pct", 0.0)
+        confluence_trade_count = confluence_metadata.get("confluence_trade_count", 0)
+
+        # Minimum trade count: 1 trade is not "confluence" — it's one person.
+        # Require at least 2 independent trades to confirm real market interest.
+        MIN_CONFLUENCE_TRADES = 2
+        if confluence_trade_count < MIN_CONFLUENCE_TRADES:
+            logger.info(
+                f"⏭️ SINGLE TRADE: Only {confluence_trade_count} trade(s) in confluence window — not real activity",
+                ticker=ticker,
+                confluence_trade_count=confluence_trade_count,
+                confluence_score=confluence_score,
+                article_id=article_id,
+            )
+            confluence_score = 0  # Override score — single trade can't confirm anything
 
         # STRENGTH check: score >= 1 AND excursion >= 0.5%
         has_strength = confluence_score >= 1 and max_excursion_pct >= MIN_STRENGTH_EXCURSION_PCT

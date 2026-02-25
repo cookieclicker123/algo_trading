@@ -16320,6 +16320,10 @@
     },
     "FACT": {
       "market_cap_millions": 254.888896
+    },
+    "HAYW": {
+      "market_cap_millions": 3398.246912,
+      "float_shares": 212116103
     }
   }
 }
