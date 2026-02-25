@@ -2642,8 +2642,8 @@ async def process_imminent_article(
         # ============================================================
         # If we're trying to trade too late after publication, skip.
         # For late trades (confirmed via monitor_for_late_entry), allow up to 35s.
-        # For normal trades, max 10s from publication.
-        max_entry_delay = 35.0 if is_late_trade else 10.0
+        # For normal trades, max 15s from publication (many arrive in 10-15s batches).
+        max_entry_delay = 35.0 if is_late_trade else 15.0
         now_utc = datetime.now(timezone.utc)
         pub_time_utc = published_at.replace(tzinfo=timezone.utc) if published_at.tzinfo is None else published_at
         entry_delay_seconds = (now_utc - pub_time_utc).total_seconds()
