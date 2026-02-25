@@ -597,17 +597,18 @@ Summary: {summary}"""
             if nbbo_snapshot:
                 current_price = nbbo_snapshot.get("mid") or nbbo_snapshot.get("ask") or 0
 
-                # Minimum price filter: < $0.25 = sub-penny territory, heavily manipulated
-                MIN_PRICE = 0.25
+                # Minimum price filter: < $0.05 = sub-penny territory
+                # Safety filters (pump-and-dump, momentum exhaustion, spread, etc.) handle risk
+                MIN_PRICE = 0.05
 
                 if current_price and current_price < MIN_PRICE:
                     logger.info(
-                        "⏭️ MICROSTRUCTURE FILTER: Price too low - manipulation risk",
+                        "⏭️ MICROSTRUCTURE FILTER: Price too low",
                         article_id=request_data.article_id,
                         ticker=primary_ticker,
                         price=round(current_price, 4),
                         threshold=MIN_PRICE,
-                        reason="Sub-$0.25 stocks are heavily manipulated"
+                        reason="Sub-$0.05 stocks"
                     )
                     await self._publish_skipped_event(infra_event, f"price_too_low:${round(current_price, 4)}")
                     return
