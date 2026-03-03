@@ -626,11 +626,10 @@ class PositionManager:
         )
 
         for ticker, position in positions_to_exit:
-            exit_key = f"{ticker}_session_end_exit"
-            if exit_key in self._exits_in_progress:
+            if ticker in self._exits_in_progress:
                 continue  # Already exiting
 
-            self._exits_in_progress.add(exit_key)
+            self._exits_in_progress.add(ticker)
 
             # Get current price for exit
             current_price = position.last_price or position.entry_price
@@ -651,7 +650,6 @@ class PositionManager:
                 shares=position.shares_remaining,
                 profit_pct=profit_pct,
                 exit_reason=f"session_end_{session}",
-                exit_key=exit_key,
             ))
 
     async def _check_position_exit(self, ticker: str, current_price: float) -> None:
@@ -669,9 +667,8 @@ class PositionManager:
 
             # Check for manual exit request first
             if self._manual_exits.get(ticker):
-                exit_key = f"{ticker}_manual_exit"
-                if exit_key not in self._exits_in_progress:
-                    self._exits_in_progress.add(exit_key)
+                if ticker not in self._exits_in_progress:
+                    self._exits_in_progress.add(ticker)
                     asyncio.create_task(self._execute_exit_async(
                         position,
                         position.shares_remaining,
@@ -755,9 +752,8 @@ class PositionManager:
                         breach_duration = (now - current_breach_time).total_seconds()
                         if breach_duration >= STOP_LOSS_CONFIRMATION_SECONDS:
                             # Confirmed - price stayed below stop
-                            exit_key = f"{ticker}_{stop_type}"
-                            if exit_key not in self._exits_in_progress:
-                                self._exits_in_progress.add(exit_key)
+                            if ticker not in self._exits_in_progress:
+                                self._exits_in_progress.add(ticker)
                                 position.stop_loss_triggered = True
                                 exit_reason = "breakeven_stop" if position.breakeven_stop_active else "stop_loss"
                                 logger.warning(
@@ -779,9 +775,8 @@ class PositionManager:
                             return
                     else:
                         # After grace period with regular stop - exit immediately
-                        exit_key = f"{ticker}_stop_loss"
-                        if exit_key not in self._exits_in_progress:
-                            self._exits_in_progress.add(exit_key)
+                        if ticker not in self._exits_in_progress:
+                            self._exits_in_progress.add(ticker)
                             position.stop_loss_triggered = True
                             logger.warning(
                                 f"🛑 STOP LOSS TRIGGERED (immediate - past grace period)",
@@ -824,9 +819,8 @@ class PositionManager:
             # After +10% exit, floor is +2.5%. After +15% exit, floor is +5%.
             if position.floor_price and position.shares_remaining > 0:
                 if current_price <= position.floor_price:
-                    exit_key = f"{ticker}_floor_exit"
-                    if exit_key not in self._exits_in_progress:
-                        self._exits_in_progress.add(exit_key)
+                    if ticker not in self._exits_in_progress:
+                        self._exits_in_progress.add(ticker)
                         # Get fixed floor % from mapping
                         floor_pct = TIER_FLOOR_PCT.get(position.last_exit_threshold)
                         if floor_pct is None:
@@ -857,9 +851,8 @@ class PositionManager:
             if (minutes_held >= EARLY_EXIT_MINUTES and
                 profit_pct >= EARLY_EXIT_PROFIT_PCT and
                 position.shares_remaining > 0):
-                exit_key = f"{ticker}_early_exit_10pct"
-                if exit_key not in self._exits_in_progress:
-                    self._exits_in_progress.add(exit_key)
+                if ticker not in self._exits_in_progress:
+                    self._exits_in_progress.add(ticker)
                     logger.info(
                         f"🚀 EARLY EXIT: +{profit_pct*100:.1f}% profit after {minutes_held:.1f} min - exiting entire position",
                         ticker=ticker,
@@ -891,9 +884,8 @@ class PositionManager:
                         shares_to_exit = int(position.shares_remaining)  # Exit all if fraction < 1 share
 
                     if shares_to_exit > 0:
-                        exit_key = f"{ticker}_tier_{position.next_tier_index}"
-                        if exit_key not in self._exits_in_progress:
-                            self._exits_in_progress.add(exit_key)
+                        if ticker not in self._exits_in_progress:
+                            self._exits_in_progress.add(ticker)
                             position.last_exit_threshold = threshold_pct  # Update for floor rule
                             position.next_tier_index += 1
                             position.total_exits_taken += 1
@@ -981,8 +973,8 @@ class PositionManager:
         try:
             await self._execute_exit(position, shares, exit_reason, profit_pct)
         finally:
-            exit_key = f"{position.ticker}_{exit_reason}"
-            self._exits_in_progress.discard(exit_key)
+            # Use unified ticker key (matches all add() calls)
+            self._exits_in_progress.discard(position.ticker)
 
     async def _execute_exit(
         self,
@@ -1053,9 +1045,8 @@ class PositionManager:
             }
         )
 
-        await self.event_bus.publish("Domain.TradeRequested", exit_event.model_dump())
-
-        # Update position tracking
+        # Update position tracking FIRST (before publishing to prevent race condition
+        # where another exit fires because shares_remaining hasn't been decremented yet)
         async with self._lock:
             position.shares_remaining -= shares
             # Track realized P&L from this exit
@@ -1066,6 +1057,9 @@ class PositionManager:
             # Record P&L for daily circuit breaker tracking (lazy import to avoid circular)
             from .auto_trade import record_trade_pnl
             record_trade_pnl(position.ticker, pnl_from_exit)
+
+        # THEN publish the exit event (after shares_remaining is already decremented)
+        await self.event_bus.publish("Domain.TradeRequested", exit_event.model_dump())
 
         logger.info(
             f"Exit trade request published: {exit_reason}",

@@ -13054,7 +13054,8 @@
   },
   "BCSF": {
     "exchange": "NYSE",
-    "industry": "Financial Services"
+    "industry": "Financial Services",
+    "sector": "Financial Services"
   },
   "BCSFX": {
     "exchange": "NASDAQ",
@@ -141381,5 +141382,65 @@
   "GGRP": {
     "industry": "Software - Infrastructure",
     "sector": "Technology"
+  },
+  "CCID": {
+    "industry": "Asset Management",
+    "sector": "Financial Services"
+  },
+  "XRN": {
+    "industry": "",
+    "sector": ""
+  },
+  "UHT": {
+    "industry": "REIT - Healthcare Facilities",
+    "sector": "Real Estate"
+  },
+  "APA": {
+    "industry": "Oil & Gas E&P",
+    "sector": "Energy"
+  },
+  "KGS": {
+    "industry": "Oil & Gas Equipment & Services",
+    "sector": "Energy"
+  },
+  "SND": {
+    "industry": "Oil & Gas Equipment & Services",
+    "sector": "Energy"
+  },
+  "MBI": {
+    "industry": "Insurance - Specialty",
+    "sector": "Financial Services"
+  },
+  "GL": {
+    "industry": "Insurance - Life",
+    "sector": "Financial Services"
+  },
+  "QNC": {
+    "industry": "Semiconductors",
+    "sector": "Technology"
+  },
+  "ETJ": {
+    "industry": "Asset Management",
+    "sector": "Financial Services"
+  },
+  "MGN": {
+    "industry": "Engineering & Construction",
+    "sector": "Industrials"
+  },
+  "BMN": {
+    "industry": "Asset Management",
+    "sector": "Financial Services"
+  },
+  "ALOY": {
+    "industry": "Other Industrial Metals & Mining",
+    "sector": "Basic Materials"
+  },
+  "NUCL": {
+    "industry": "Uranium",
+    "sector": "Energy"
+  },
+  "AHRT": {
+    "industry": "REIT - Healthcare Facilities",
+    "sector": "Real Estate"
   }
 }

@@ -211,9 +211,11 @@ OTHER TRADE SIGNALS
 SHARE REPURCHASE (Bullish signal)
 ├─ Share repurchase/buyback = confidence in undervaluation
 ├─ Reduces float, increases EPS = bullish
+├─ EXCEPTION: Share repurchase announced AS PART OF earnings/financial results = SKIP (earnings take precedence)
 └─ Examples:
    "Announces Share Repurchase Program" → TRADE MODERATE
    "Board Authorizes $10M Stock Buyback" → TRADE MODERATE
+   "Reports Q4 Results; Announces $1.5B Share Repurchase" → SKIP (earnings headline)
 
 ANALYST ACTIONS
 ├─ Price target raised, Upgraded to Buy

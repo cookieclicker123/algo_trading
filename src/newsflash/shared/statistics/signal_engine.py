@@ -294,6 +294,19 @@ class SignalStatsEngine:
                 order_shares=entry_shares,
                 ask_size=confluence_metadata.get("initial_ask_size")
             ),
+            # === ENTRY TIMING & LATE ENTRY DATA ===
+            entry_timing=confluence_metadata.get("entry_timing"),
+            is_late_trade=confluence_metadata.get("is_late_trade"),
+            late_entry_type=confluence_metadata.get("late_entry_type"),
+            late_entry_seconds_elapsed=confluence_metadata.get("late_entry_seconds_elapsed"),
+            late_entry_check_number=confluence_metadata.get("late_entry_check_number"),
+            late_entry_volume=confluence_metadata.get("late_entry_volume"),
+            late_entry_trade_count=confluence_metadata.get("late_entry_trade_count"),
+            late_entry_price_excursion_pct=confluence_metadata.get("late_entry_price_excursion_pct"),
+            late_entry_buying_pressure_pct=confluence_metadata.get("late_entry_buying_pressure_pct"),
+            late_entry_imbalance_ratio=confluence_metadata.get("late_entry_imbalance_ratio"),
+            late_entry_buy_volume=confluence_metadata.get("late_entry_buy_volume"),
+            late_entry_sell_volume=confluence_metadata.get("late_entry_sell_volume"),
             # === VOLUME DISTRIBUTION ANALYSIS (Manipulation Detection) ===
             single_trade_dominance_pct=confluence_metadata.get("single_trade_dominance_pct"),
             remaining_flow_imbalance=confluence_metadata.get("remaining_flow_imbalance"),

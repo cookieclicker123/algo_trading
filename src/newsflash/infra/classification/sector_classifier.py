@@ -15,6 +15,7 @@ Supported sectors:
 - Consumer Defensive (3 industries)
 - Basic Materials (5 industries)
 - Communication Services (1 industry - Electronic Gaming & Multimedia only)
+- Energy (9 industries - Solar + Oil & Gas)
 """
 import asyncio
 from pathlib import Path
@@ -180,6 +181,29 @@ SECTOR_INDUSTRY_MAP: Dict[str, Dict[str, str]] = {
         # DOD/DOE contracts, offtake agreements, strategic investments are key catalysts
         "Other Industrial Metals & Mining": "other_industrial_metals_mining.txt",
     },
+
+    # =========================================================================
+    # ENERGY (Solar + Oil & Gas industries)
+    # Solar under Energy uses same prompt as Technology/Solar (FMP classifies
+    # some solar tickers as Energy/Solar instead of Technology/Solar).
+    # Oil & Gas industries added based on 83 historical winners analysis.
+    # =========================================================================
+    "Energy": {
+        # Solar (FMP sometimes classifies solar tickers under Energy instead of Technology)
+        "Solar": "solar.txt",
+        # Oil & Gas Equipment & Services (28 winners, avg +14.0%, contracts strongest catalyst)
+        "Oil & Gas Equipment & Services": "oil_gas_equipment_services.txt",
+        # Oil & Gas E&P (25 winners, avg +22.9%, M&A/asset deals + well completions)
+        "Oil & Gas E&P": "oil_gas_ep.txt",
+        # Oil & Gas Midstream (18 winners, avg +31.4%, LNG contracts + spin-offs)
+        "Oil & Gas Midstream": "oil_gas_midstream.txt",
+        # Smaller O&G industries (combined prompt)
+        "Oil & Gas Drilling": "oil_gas_other.txt",
+        "Oil & Gas Integrated": "oil_gas_other.txt",
+        "Oil & Gas Refining & Marketing": "oil_gas_other.txt",
+        "Thermal Coal": "oil_gas_other.txt",
+        "Uranium": "oil_gas_other.txt",
+    },
 }
 
 # Aliases for FMP/yfinance industry names that differ from our SECTOR_INDUSTRY_MAP keys.
@@ -248,6 +272,17 @@ INDUSTRY_ALIASES: Dict[str, str] = {
     # TECHNOLOGY
     # =========================================================================
     "Hardware, Equipment & Parts": "Computer Hardware",
+    # =========================================================================
+    # ENERGY
+    # =========================================================================
+    "Oil & Gas - Equipment & Services": "Oil & Gas Equipment & Services",
+    "Oil & Gas - E&P": "Oil & Gas E&P",
+    "Oil & Gas - Midstream": "Oil & Gas Midstream",
+    "Oil & Gas - Drilling": "Oil & Gas Drilling",
+    "Oil & Gas - Integrated": "Oil & Gas Integrated",
+    "Oil & Gas - Refining & Marketing": "Oil & Gas Refining & Marketing",
+    "Oil & Gas - Services": "Oil & Gas Equipment & Services",
+    "Thermal Coal": "Thermal Coal",
 }
 
 # Set of all supported sectors

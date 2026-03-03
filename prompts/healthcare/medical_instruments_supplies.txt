@@ -73,9 +73,11 @@ SHARE REPURCHASE (Bullish signal)
 ├─ Company buying back shares = confidence in undervaluation
 ├─ Reduces float, increases EPS = bullish
 ├─ NOTE: "Capital Allocation Strategy" with share repurchase = TRADE (not defensive)
+├─ EXCEPTION: Share repurchase announced AS PART OF earnings/financial results = SKIP (earnings take precedence)
 └─ Examples:
    "Announces Share Repurchase Program" → TRADE
    "Board Authorizes Stock Buyback" → TRADE
+   "Reports Q4 Results; Announces $1.5B Share Repurchase" → SKIP (earnings headline)
 
 ═══════════════════════════════════════════════════════════════════════════════
 SKIP SIGNALS

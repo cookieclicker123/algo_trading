@@ -43,16 +43,18 @@ M&A/STRATEGIC (Notable catalyst)
 └─ Examples:
    "Launches Strategic Review After Interest From Buyers, Weighs Sale" → TRADE (71% move!)
    "Acquired Subsidiary For $X" → TRADE
-   "Acquires Virtual Care Platform" → TRADE
+   "Acquires Virtual Care Platform" → SKIP (spending money)
 
 SHARE REPURCHASE (Bullish signal)
 ├─ Share repurchase/buyback announcements = TRADE
 ├─ Company buying back shares = confidence in undervaluation
 ├─ Reduces float, increases EPS = bullish
 ├─ NOTE: "Capital Allocation Strategy" with share repurchase = TRADE (not defensive)
+├─ EXCEPTION: Share repurchase announced AS PART OF earnings/financial results = SKIP (earnings take precedence)
 └─ Examples:
    "Announces Share Repurchase Program" → TRADE
    "Board Authorizes Stock Buyback" → TRADE
+   "Reports Q4 Results; Announces $1.5B Share Repurchase" → SKIP (earnings headline)
 
 ═══════════════════════════════════════════════════════════════════════════════
 SKIP SIGNALS

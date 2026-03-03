@@ -21,7 +21,7 @@ M&A ACTIVITY (Strongest signal)
 └─ Examples:
    "To Be Acquired For $X Per Share" → TRADE MAX
    "Announces Merger Agreement With [Major Chain]" → TRADE LARGE
-   "Acquires Regional Grocery Chain" → TRADE MODERATE
+   "Acquires Regional Grocery Chain" → SKIP (spending money)
 
 MAJOR PARTNERSHIPS (High signal)
 ├─ National brand partnerships (McDonald's, Starbucks, etc.)
@@ -60,11 +60,13 @@ SHARE REPURCHASE (Bullish signal - size based on % of market cap)
 ├─ Reduces float, increases EPS = bullish
 ├─ Board authorization for repurchase = bullish
 ├─ "Capital Allocation Strategy" with buyback = TRADE (not defensive)
+├─ EXCEPTION: Share repurchase announced AS PART OF earnings/financial results = SKIP (earnings take precedence)
 └─ Examples:
    "$10M Repurchase" for $30M company (33%) → TRADE MAX
    "$5M Buyback" for $40M company (12.5%) → TRADE LARGE
    "Announces Share Repurchase Program" (no $ amount) → TRADE SMALL
    "Board Authorizes Stock Buyback" → TRADE SMALL
+   "Reports Q4 Results; Announces $1.5B Share Repurchase" → SKIP (earnings headline)
 
 ===============================================================================
 SKIP SIGNALS

@@ -395,6 +395,10 @@ class RecallRecord(BaseModel):
         description="When monitoring completed (after 2 minutes or surge detected)"
     )
 
+    # Early/late mover classification (derived from surge monitoring)
+    is_first_mover: Optional[bool] = Field(None, description="True if surge activity in first 2 cycles (8s)")
+    time_to_surge_seconds: Optional[float] = Field(None, description="Seconds from publication to surge detection")
+
     # === FILTER CHECKPOINT VALUES (for hit rate analysis) ===
     # These capture the actual values at each filter checkpoint for FN/TN analysis.
     # Enables comparison with TP/FP to identify what distinguishes good from bad trades.
@@ -665,6 +669,18 @@ class SignalRecord(BaseModel):
     # Entry timing classification
     entry_timing: Optional[str] = Field(None, description="Entry type: early_strength, early_surge, late_strength, late_surge")
     is_late_trade: Optional[bool] = Field(None, description="Whether trade entered via late monitoring (>10s from publication)")
+
+    # === LATE ENTRY WINDOW DATA (extended monitoring, only if confluence+surge failed) ===
+    late_entry_type: Optional[str] = Field(None, description="'late_strength' or 'late_surge'")
+    late_entry_seconds_elapsed: Optional[float] = Field(None, description="Seconds from pub to late detection")
+    late_entry_check_number: Optional[int] = Field(None, description="Which 1s poll detected it")
+    late_entry_volume: Optional[int] = Field(None, description="Volume at late detection")
+    late_entry_trade_count: Optional[int] = Field(None, description="Trade count at late detection")
+    late_entry_price_excursion_pct: Optional[float] = Field(None, description="Price excursion % at late detection")
+    late_entry_buying_pressure_pct: Optional[float] = Field(None, description="Buying pressure % at late detection")
+    late_entry_imbalance_ratio: Optional[float] = Field(None, description="Imbalance ratio at late detection")
+    late_entry_buy_volume: Optional[int] = Field(None, description="Buy volume at late detection")
+    late_entry_sell_volume: Optional[int] = Field(None, description="Sell volume at late detection")
 
     # Timing
     time_of_day: Optional[str] = Field(None, description="HH:MM format")

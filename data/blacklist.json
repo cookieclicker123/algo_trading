@@ -35,5 +35,30 @@
     "permanent": false,
     "created_at": "2026-02-25T13:13:04.792328",
     "last_fp_date": "2026-02-25"
+  },
+  "ADT": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-02T11:56:07.276988",
+    "last_fp_date": "2026-03-02"
+  },
+  "DTIL": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-02T12:11:05.796620",
+    "last_fp_date": "2026-03-02"
+  },
+  "NTLA": {
+    "consecutive_fps": 0,
+    "permanent": false,
+    "created_at": "2026-03-02T12:33:48.691721",
+    "last_fp_date": "2026-03-02",
+    "last_win_date": "2026-03-02T12:34:38.912696"
+  },
+  "ETON": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-02T12:37:49.489679",
+    "last_fp_date": "2026-03-02"
   }
 }

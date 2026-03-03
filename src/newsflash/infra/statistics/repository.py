@@ -7,6 +7,7 @@ import json
 import asyncio
 from pathlib import Path
 from datetime import datetime
+import os
 import aiofiles
 import pytz
 from collections import defaultdict
@@ -801,30 +802,34 @@ class StatisticsRepository:
         )
     
     async def _save_recall_file(self, file_path: Path, session_file: RecallSessionFile) -> None:
-        """Save recall session file."""
+        """Save recall session file (atomic write via temp file + rename)."""
         file_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        async with aiofiles.open(file_path, 'w', encoding='utf-8') as f:
-            json_str = json.dumps(
-                session_file.model_dump(mode='json'),
-                indent=2,
-                ensure_ascii=False,
-                default=str
-            )
+        tmp_path = file_path.with_suffix('.tmp')
+
+        json_str = json.dumps(
+            session_file.model_dump(mode='json'),
+            indent=2,
+            ensure_ascii=False,
+            default=str
+        )
+        async with aiofiles.open(tmp_path, 'w', encoding='utf-8') as f:
             await f.write(json_str)
+        os.replace(str(tmp_path), str(file_path))
     
     async def _save_signal_file(self, file_path: Path, session_file: SignalSessionFile) -> None:
-        """Save signal session file."""
+        """Save signal session file (atomic write via temp file + rename)."""
         file_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        async with aiofiles.open(file_path, 'w', encoding='utf-8') as f:
-            json_str = json.dumps(
-                session_file.model_dump(mode='json'),
-                indent=2,
-                ensure_ascii=False,
-                default=str
-            )
+        tmp_path = file_path.with_suffix('.tmp')
+
+        json_str = json.dumps(
+            session_file.model_dump(mode='json'),
+            indent=2,
+            ensure_ascii=False,
+            default=str
+        )
+        async with aiofiles.open(tmp_path, 'w', encoding='utf-8') as f:
             await f.write(json_str)
+        os.replace(str(tmp_path), str(file_path))
     
     # ===== Failed Trades Methods =====
     
@@ -1032,14 +1037,16 @@ class StatisticsRepository:
         )
     
     async def _save_failed_trade_file(self, file_path: Path, session_file: FailedTradeSessionFile) -> None:
-        """Save failed trade session file."""
+        """Save failed trade session file (atomic write via temp file + rename)."""
         file_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        async with aiofiles.open(file_path, 'w', encoding='utf-8') as f:
-            json_str = json.dumps(
-                session_file.model_dump(mode='json'),
-                indent=2,
-                ensure_ascii=False,
-                default=str
-            )
+        tmp_path = file_path.with_suffix('.tmp')
+
+        json_str = json.dumps(
+            session_file.model_dump(mode='json'),
+            indent=2,
+            ensure_ascii=False,
+            default=str
+        )
+        async with aiofiles.open(tmp_path, 'w', encoding='utf-8') as f:
             await f.write(json_str)
+        os.replace(str(tmp_path), str(file_path))

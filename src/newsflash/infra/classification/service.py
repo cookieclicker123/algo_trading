@@ -313,11 +313,10 @@ Summary: {summary}"""
             # Skip articles if websocket delivery was too slow (> 10 seconds after publication).
             # Late-arriving articles have missed the initial momentum opportunity and
             # are more likely to result in chasing rather than catching the move.
-            # Analysis shows ALL winners today entered within first 10 seconds.
-            # Reduced from 25s to 10s - winners are so big we're OK missing late entries
-            # in favor of avoiding late-entry losers like SAFX (entered at -15% from peak).
+            # Extended to 15s - safety filters (spread, pump-and-dump, momentum exhaustion)
+            # prevent bad late entries, so we can afford a wider reception window.
             # ====================================================================
-            MAX_WEBSOCKET_LATENCY_SECONDS = 10.0
+            MAX_WEBSOCKET_LATENCY_SECONDS = 15.0
 
             if request_data.article_published_at_iso:
                 try:
@@ -342,7 +341,7 @@ Summary: {summary}"""
 
                     if latency_seconds > MAX_WEBSOCKET_LATENCY_SECONDS:
                         logger.info(
-                            "⏭️ CLASSIFY INFRA: Skipping - websocket latency too high (>10s)",
+                            "⏭️ CLASSIFY INFRA: Skipping - websocket latency too high (>15s)",
                             article_id=request_data.article_id,
                             published_at=published_at.isoformat(),
                             latency_seconds=round(latency_seconds, 2),
@@ -725,7 +724,7 @@ Summary: {summary}"""
             # Pure language-based classification using industry-specific prompts.
             # Supported: Healthcare, Technology, Industrials, Consumer Cyclical,
             #            Financial Services, Communication Services, Consumer Defensive,
-            #            Basic Materials
+            #            Basic Materials, Energy
             # Flow: headline → sector check → industry check → Groq LLM → TRADE/SKIP
             # If TRADE → publish "imminent" classification → trigger AutoTradeService
             # If SKIP/NOT_SUPPORTED → no trade, but data collection continues

@@ -412,7 +412,7 @@ MIN_ABSOLUTE_VOLUME = 2000            # Absolute minimum volume (even if prior i
 MIN_ABSOLUTE_TRADES = 20              # Absolute minimum trades (even if prior is 0)
 
 # Late entry monitoring: extended window after initial STRENGTH/SURGE checks fail
-LATE_ENTRY_MAX_SECONDS = 30.0         # Max seconds from publication for late entry
+LATE_ENTRY_MAX_SECONDS = 90.0         # Max seconds from publication for late entry
 LATE_ENTRY_POLL_INTERVAL = 1.0        # Check every 1s (WebSocket data is instant)
 LATE_STRENGTH_MIN_TRADES = 5          # Min trades to confirm real activity
 
@@ -2138,7 +2138,7 @@ async def process_imminent_article(
         # already down 5% the moment you buy at ask and would sell at bid.
         # IINN lesson: 35% spread = untradeable.
         # Tightened to 5% - even 5% spread means instant -5% on entry.
-        MAX_SPREAD_PCT = 5.0  # Maximum spread as % of mid price (premarket often 3-5%)
+        MAX_SPREAD_PCT = 4.5  # Maximum spread as % of mid price (premarket often 3-5%)
         initial_spread = confluence_metadata.get("initial_spread")
         initial_ask = confluence_metadata.get("initial_ask")
         initial_bid = confluence_metadata.get("initial_bid", 0)
@@ -2156,7 +2156,7 @@ async def process_imminent_article(
                 # HARD STOP: Spread > 3% = instant loss territory
                 if spread_pct_of_mid > MAX_SPREAD_PCT:
                     logger.info(
-                        "⏭️ AUTO-TRADE SKIPPED: Spread too wide (>5% of mid) - instant loss trap",
+                        "⏭️ AUTO-TRADE SKIPPED: Spread too wide (>4.5% of mid) - instant loss trap",
                         ticker=ticker,
                         spread_pct_of_mid=round(spread_pct_of_mid, 2),
                         max_allowed=MAX_SPREAD_PCT,
@@ -2296,7 +2296,7 @@ async def process_imminent_article(
         # CRITICAL: Check spread at FILL TIME, not just at reception.
         # APUS disaster: Reception spread was 6%, but by fill time it was 10.27%.
         # This check prevents entering trades with wide spreads that developed during SURGE monitoring.
-        MAX_FILL_SPREAD_PCT = 5.0  # Never enter on spread >5% at any check point
+        MAX_FILL_SPREAD_PCT = 4.5  # Never enter on spread >4.5% at any check point
 
         pre_entry_nbbo = None
         if quote_fetcher:
@@ -2320,7 +2320,7 @@ async def process_imminent_article(
                                 current_ask=current_ask,
                                 current_spread=round(current_spread, 4),
                                 article_id=article_id,
-                                reason="Spread at fill time exceeds 5% threshold - APUS protection"
+                                reason="Spread at fill time exceeds 4.5% threshold - APUS protection"
                             )
                             await _record_postfilter_skip(article_id, f"postfilter_fill_spread_too_wide:{fill_spread_pct:.1f}%")
                             return
@@ -2643,7 +2643,7 @@ async def process_imminent_article(
         # If we're trying to trade too late after publication, skip.
         # For late trades (confirmed via monitor_for_late_entry), allow up to 35s.
         # For normal trades, max 15s from publication (many arrive in 10-15s batches).
-        max_entry_delay = 35.0 if is_late_trade else 15.0
+        max_entry_delay = 95.0 if is_late_trade else 15.0
         now_utc = datetime.now(timezone.utc)
         pub_time_utc = published_at.replace(tzinfo=timezone.utc) if published_at.tzinfo is None else published_at
         entry_delay_seconds = (now_utc - pub_time_utc).total_seconds()

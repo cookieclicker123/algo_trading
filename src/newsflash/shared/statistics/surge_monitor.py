@@ -166,15 +166,23 @@ class SurgeMonitor:
                     # CRITICAL: Trigger trade IMMEDIATELY (fire-and-forget)
                     asyncio.create_task(self._on_surge_detected(article, surge_ticker))
 
+                    # Compute early/late mover classification
+                    surge_detected_at = datetime.now(timezone.utc)
+                    pub_time_utc = published_at.replace(tzinfo=timezone.utc) if published_at.tzinfo is None else published_at
+                    time_to_surge_seconds = round((surge_detected_at - pub_time_utc).total_seconds(), 1)
+                    is_first_mover = cycle <= 1  # First 2 cycles = first 8 seconds
+
                     # Update record with surge detection (fire-and-forget)
                     asyncio.create_task(self.repository.update_recall_record(
                         article_id=article.id,
                         updates={
                             "monitoring_status": "surge_detected",
-                            "surge_detected_at": datetime.now(),
+                            "surge_detected_at": surge_detected_at,
                             "surge_detection_cycle": cycle,
                             "surge_detection_window_stats": surge_stats,
-                            "monitoring_completed_at": datetime.now()
+                            "monitoring_completed_at": surge_detected_at,
+                            "is_first_mover": is_first_mover,
+                            "time_to_surge_seconds": time_to_surge_seconds,
                         },
                         session=session,
                         date=received_at
