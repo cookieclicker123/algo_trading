@@ -99,3 +99,18 @@ The threshold equals the stop loss: if slippage alone would trigger your stop, t
 | Session-end force exit | Active | Active |
 | Manual /exit | Available | Available |
 | Manual /hold | Extends to 30 min | Extends to 30 min |
+
+## Audit Trail: Why Didn't We Trade?
+
+Every skipped IMMINENT article records why. Check these fields on the recall record:
+
+| Field | Set by | What it means |
+|-------|--------|---------------|
+| `filter_reason` | Prefilter (service.py) | Blocked before AI — latency, blacklist, market cap, spread, etc. |
+| `postfilter_reason` | Postfilter (auto_trade.py) | AI said TRADE but safety filter blocked — spread, front-running, pump-and-dump, selling pressure, etc. |
+| `trade_error` | Executor (trade_executor) | Passed all filters but execution failed — slippage guard abort, order rejected, timeout, etc. |
+| `ai_classification` | Classification (service.py) | If not "imminent", AI said SKIP — headline wasn't tradeable |
+
+**All 19 postfilter return paths record the reason.** Circuit breaker and disabled states now record as `postfilter_circuit_breaker` and `postfilter_trading_disabled`.
+
+**Race condition handling**: Postfilter reasons are queued in memory first, then applied when the recall record is created. This prevents the reason being lost if the postfilter fires before the recall record exists.

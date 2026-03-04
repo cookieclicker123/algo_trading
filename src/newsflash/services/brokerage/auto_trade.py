@@ -1817,6 +1817,12 @@ async def process_imminent_article(
     try:
         # Check if we should process this classification
         if not should_process_classification(classification_result, enabled):
+            # Record why for IMMINENT articles (non-IMMINENT handled by classification system)
+            if classification_result.classification == ClassificationCategory.IMMINENT:
+                if is_circuit_breaker_triggered():
+                    await _record_postfilter_skip(classification_result.article_id, "postfilter_circuit_breaker")
+                elif not enabled:
+                    await _record_postfilter_skip(classification_result.article_id, "postfilter_trading_disabled")
             return
 
         article_id = classification_result.article_id
