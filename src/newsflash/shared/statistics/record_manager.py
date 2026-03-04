@@ -466,11 +466,15 @@ class RecordManager:
         Returns:
             True if updated immediately, False if failed
         """
+        # Always store in pending first (race condition prevention).
+        # The record may be registered (record_loc exists) but not yet written
+        # to disk — if we try to update and fail, the reason is lost forever.
+        # Same pattern as update_classification which queues first, removes on success.
+        async with self._postfilter_reasons_lock:
+            self._pending_postfilter_reasons[article_id] = postfilter_reason
+
         record_loc = self._record_locations.get(article_id)
         if not record_loc:
-            # Record not created yet — queue for later application
-            async with self._postfilter_reasons_lock:
-                self._pending_postfilter_reasons[article_id] = postfilter_reason
             logger.info(
                 "RecordManager: Queued postfilter reason (record not yet created)",
                 article_id=article_id,
@@ -486,8 +490,16 @@ class RecordManager:
         )
 
         if updated:
+            async with self._postfilter_reasons_lock:
+                self._pending_postfilter_reasons.pop(article_id, None)
             logger.info(
                 "RecordManager: Updated postfilter reason",
+                article_id=article_id,
+                postfilter_reason=postfilter_reason
+            )
+        else:
+            logger.warning(
+                "RecordManager: Failed to update postfilter reason (record_loc exists but record not in file yet — staying in pending queue)",
                 article_id=article_id,
                 postfilter_reason=postfilter_reason
             )

@@ -666,6 +666,10 @@ class SignalRecord(BaseModel):
     headline: Optional[str] = Field(None, description="Article headline/title")
     headline_type: Optional[str] = Field(None, description="Catalyst type: contract, fda, partnership, earnings, etc.")
 
+    # AI classification context
+    ai_position_size: Optional[str] = Field(None, description="LLM position size: SMALL/MODERATE/LARGE/MAX")
+    is_mega_trade: Optional[bool] = Field(None, description="True when all signals overwhelmingly aligned")
+
     # Entry timing classification
     entry_timing: Optional[str] = Field(None, description="Entry type: early_strength, early_surge, late_strength, late_surge")
     is_late_trade: Optional[bool] = Field(None, description="Whether trade entered via late monitoring (>10s from publication)")

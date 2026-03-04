@@ -11,6 +11,22 @@ INDUSTRY CONTEXT:
 - NOTE: We do NOT trade earnings announcements
 
 ═══════════════════════════════════════════════════════════════════════════════
+CRITICAL: HEALTHCARE FALSE POSITIVE WARNING
+═══════════════════════════════════════════════════════════════════════════════
+
+Healthcare is our HIGHEST false positive sector. Be EXTREMELY STRICT about
+skip rules. The headline is the ONLY reliable filter — volume and price
+signals often look bullish even on weak headlines because pharma stocks are
+thinly traded.
+
+COMMON TRAPS (recent false positives):
+├─ Trial INITIATION = SKIP (no results yet — "to initiate", "to begin", "commence")
+├─ Label expansion for existing drug = SKIP (incremental, not transformational)
+├─ BOTH combined = DEFINITELY SKIP ("Initiate Phase 3 to Expand Label" = SKIP + SKIP)
+├─ "Framework" / "Anticipates" / "Potential" = NOT a real deal
+└─ If in doubt, SKIP. A missed winner costs less than a false positive.
+
+═══════════════════════════════════════════════════════════════════════════════
 TRADE SIGNALS
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -26,12 +42,16 @@ FDA/REGULATORY (Key signal - can be massive)
    "Receives FDA Approval For Generic Version" → TRADE
 
 CLINICAL TRIAL RESULTS
-├─ Phase 1/2/3 topline results
+├─ Phase 1/2/3 topline results (actual data, not trial initiation)
 ├─ Pharmacokinetic study results
 ├─ Bioequivalence study positive
+├─ NOTE: "Initiate" / "to begin" / "commence" trial = SKIP (no results yet)
+├─ NOTE: Label expansion trials for existing drugs = SKIP (see LINE EXTENSIONS below)
 └─ Examples:
    "Announces Topline Results from Phase 2 Clinical Trial" → TRADE
    "Completed Pharmacokinetic Study Shows Positive Results" → TRADE
+   "To Initiate Phase 3 Clinical Trial" → SKIP (no results, just starting)
+   "Phase 3 Trial Seeking to Expand Label" → SKIP (label expansion)
 
 PARTNERSHIPS (9% of winners)
 ├─ Licensing agreements
@@ -157,13 +177,16 @@ DEFENSIVE/DISTRESSED LANGUAGE (Often bad news disguised as good)
    "Strengthens Financial Position" → SKIP
 
 LINE EXTENSIONS / LABEL EXPANSIONS (Not breakthrough - incremental value)
-├─ Drug approved for one indication, now testing for new body parts
+├─ Drug approved for one indication, now testing for new body parts/populations
 ├─ "Extremities", "Trunk", "Neck", "Torso", "Limbs" = body part expansion
 ├─ "Supplemental NDA (sNDA)" = adding to existing approval
-├─ "Label expansion" / "Additional indication" for EXISTING drug
+├─ "Label expansion" / "Additional indication" / "Expand Label" for EXISTING drug
+├─ "Initiate trial seeking to expand label" = label expansion trial (NOT new drug)
 ├─ Market doesn't react strongly - already priced in, not transformational
+├─ Even "Phase 3" doesn't matter if it's for label expansion of existing drug
 └─ Examples:
    "Phase 3 Results for Drug on Extremities, Neck, and Trunk" → SKIP
+   "To Initiate Phase 3 Trial Seeking to Expand Label to Include [Indication]" → SKIP
    "Label Expansion for Existing Drug" → SKIP
    "sNDA for Additional Indication" → SKIP
    "NEW Drug Approval (first indication)" → TRADE (not line extension)
@@ -282,7 +305,7 @@ When in doubt about size, ask: "How concrete is this headline?"
 DECISION RULES
 ═══════════════════════════════════════════════════════════════════════════════
 
-1. Earnings beats = strongest consistent signal
+1. Earnings = always SKIP (we do NOT trade earnings)
 2. DEA/regulatory changes = highest magnitude moves (100%+)
 3. FDA inspection resolution = strong (removes overhang)
 4. Share repurchase/buyback programs = always TRADE (never defensive)

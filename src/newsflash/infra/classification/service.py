@@ -620,30 +620,31 @@ Summary: {summary}"""
 
                 # Step 3f: SPREAD FILTER (tight spreads = liquid, tradeable)
                 # ====================================================================
-                # Statistical analysis shows:
-                # - Winners: avg spread $1.10 vs Losers: avg spread $4.73
-                # - Adding spread < $1 improves P&L from $1,520 to $1,850
-                # - Filters illiquid stocks where spread eats into profits
+                # Percentage-based: spread relative to price matters, not absolute $
+                # A $1.70 spread on a $62 stock (2.7%) is fine, but $0.50 on a $2 stock (25%) is not
                 # ====================================================================
                 spread = nbbo_snapshot.get("spread", 0)
-                MAX_SPREAD = 1.0
+                spread_pct = nbbo_snapshot.get("spread_pct", 0)
+                MAX_SPREAD_PCT_PREFILTER = 4.5
 
-                if spread and spread > MAX_SPREAD:
+                if spread_pct and spread_pct > MAX_SPREAD_PCT_PREFILTER:
                     logger.info(
                         "⏭️ MICROSTRUCTURE FILTER: Spread too wide for profitable trade",
                         article_id=request_data.article_id,
                         ticker=primary_ticker,
                         spread=round(spread, 4),
-                        threshold=MAX_SPREAD,
+                        spread_pct=round(spread_pct, 2),
+                        threshold_pct=MAX_SPREAD_PCT_PREFILTER,
                         reason="Wide spreads eat into profits on entry/exit"
                     )
-                    await self._publish_skipped_event(infra_event, f"spread_too_wide:${round(spread, 2)}")
+                    await self._publish_skipped_event(infra_event, f"prefilter_spread_too_wide:{round(spread_pct, 2)}%")
                     return
 
                 logger.debug(
                     "✅ MICROSTRUCTURE FILTER: Spread check passed",
                     ticker=primary_ticker,
-                    spread=round(spread, 4) if spread else "unknown"
+                    spread=round(spread, 4) if spread else "unknown",
+                    spread_pct=round(spread_pct, 2) if spread_pct else "unknown"
                 )
 
             # Step 4: UNIVERSAL CATALYST CHECK (before industry-specific LLM)

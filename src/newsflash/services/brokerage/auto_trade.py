@@ -101,7 +101,9 @@ async def _record_postfilter_skip(article_id: str, reason: str) -> None:
         try:
             await _recall_engine.record_postfilter_skip(article_id, reason)
         except Exception as e:
-            logger.debug(f"Failed to record postfilter skip: {e}")
+            logger.warning(f"Failed to record postfilter skip: {e}", article_id=article_id, reason=reason)
+    else:
+        logger.warning("No recall engine set — postfilter reason lost", article_id=article_id, reason=reason)
 
 
 # ============================================================
@@ -1832,6 +1834,7 @@ async def process_imminent_article(
                 article_id=article_id,
                 classification=classification_result.classification.value
             )
+            await _record_postfilter_skip(article_id, "postfilter_no_tickers")
             return
 
         if not published_at:
@@ -1839,6 +1842,7 @@ async def process_imminent_article(
                 "⏭️ AUTO-TRADE SKIPPED: No published_at in classification event",
                 article_id=article_id,
             )
+            await _record_postfilter_skip(article_id, "postfilter_no_published_at")
             return
 
         # Log processing
@@ -1860,6 +1864,7 @@ async def process_imminent_article(
                 "⏭️ AUTO-TRADE SKIPPED: Article has no tickers",
                 article_id=article_id
             )
+            await _record_postfilter_skip(article_id, "postfilter_no_ticker")
             return
 
         # ============================================================
@@ -2083,6 +2088,41 @@ async def process_imminent_article(
                     return
 
         # ============================================================
+        # 🔥 MEGA TRADE DETECTION: When ALL signals overwhelmingly align
+        # ============================================================
+        # These are the highest-conviction trades — the edge-creating opportunities.
+        # Mega trades get relaxed front-running thresholds and wider 10% stop loss.
+        #
+        # ADIL lesson: score 4 without buying pressure is NOT mega-quality.
+        # ADIL had 66.6% buying pressure (a third was selling) and lost -5.3%.
+        # MOBX had score 5, 78.4% pressure, 93ms latency, 3378x surge → +120%.
+        # Mega trade must mean ALL signals firing, no exceptions.
+        confluence_buying_pressure = confluence_metadata.get("confluence_buying_pressure_pct", 0.0)
+        is_mega_trade = (
+            ai_position_size in ("LARGE", "MAX") and        # LLM says strong headline
+            confluence_score >= 5 and                         # ALL 5 criteria met (not 4 — ADIL had 4 and lost -5.3%)
+            confluence_metadata.get("confluence_has_volume_surge", False) and  # Extreme volume
+            confluence_metadata.get("confluence_has_price_excursion", False) and  # Strong price move
+            max_excursion_pct >= 2.0 and                      # Significant excursion (not noise)
+            confluence_buying_pressure >= 70.0                 # Majority buying (MOBX 78.4% yes, ADIL 66.6% no)
+            # NOTE: Not requiring confluence_has_buying_pressure bool (80% threshold)
+            # because MOBX was at 78.4% which is below the 80% bool but clearly strong.
+            # The 70% raw check is the real gate.
+        )
+        confluence_metadata["is_mega_trade"] = is_mega_trade
+
+        if is_mega_trade:
+            logger.info(
+                "MEGA TRADE DETECTED: All signals overwhelmingly bullish — relaxed front-running, wider stop",
+                ticker=ticker,
+                ai_position_size=ai_position_size,
+                confluence_score=confluence_score,
+                max_excursion_pct=max_excursion_pct,
+                buying_pressure_pct=confluence_buying_pressure,
+                article_id=article_id,
+            )
+
+        # ============================================================
         # 🛡️ SAFETY FILTERS: Market cap check
         # ============================================================
         # These filters prevent trading manipulated or low-quality stocks.
@@ -2244,6 +2284,7 @@ async def process_imminent_article(
         )
 
         if not trade_request:
+            await _record_postfilter_skip(article_id, "postfilter_trade_request_build_failed")
             return
 
         # 🚀 MICROSTRUCTURE CHECK: Ensure there is actually trading activity
@@ -2346,6 +2387,7 @@ async def process_imminent_article(
         #
         # This catches both front-running (pub→recv) and chase scenarios (recv→fill).
         MAX_ASK_CHANGE_PER_LEG_PCT = 3.0
+        MIN_ABSOLUTE_ASK_MOVE = 0.05  # $0.05 minimum move to trigger filter (penny stock protection)
         initial_ask = confluence_metadata.get("initial_ask")  # Ask at reception/confluence time
 
         # LEG 1: Publication → Reception price change
@@ -2417,18 +2459,28 @@ async def process_imminent_article(
             except Exception as e:
                 logger.debug(f"REST API quote fetch failed: {e}")
 
+        # Mega trades get relaxed front-running thresholds
+        # When ALL signals are green, a larger pre-move is acceptable because
+        # the confluence evidence (volume, pressure, excursion) confirms this is real
+        is_mega_trade = confluence_metadata.get("is_mega_trade", False)
+        effective_max_pct = 15.0 if is_mega_trade else MAX_ASK_CHANGE_PER_LEG_PCT  # 15% vs 3%
+
         # Check pub → recv change if we have both prices
         if pub_time_ask and initial_ask and pub_time_ask > 0:
             pub_to_recv_pct = ((initial_ask - pub_time_ask) / pub_time_ask) * 100
+            absolute_move = abs(initial_ask - pub_time_ask)
 
-            if pub_to_recv_pct > MAX_ASK_CHANGE_PER_LEG_PCT:
+            if pub_to_recv_pct > effective_max_pct and absolute_move >= MIN_ABSOLUTE_ASK_MOVE:
                 logger.info(
                     "⏭️ AUTO-TRADE SKIPPED: Ask moved too much between publication and reception",
                     ticker=ticker,
                     pub_time_ask=round(pub_time_ask, 4),
                     recv_time_ask=round(initial_ask, 4),
                     pub_to_recv_pct=round(pub_to_recv_pct, 2),
-                    max_allowed=MAX_ASK_CHANGE_PER_LEG_PCT,
+                    absolute_move=round(absolute_move, 4),
+                    max_allowed_pct=effective_max_pct,
+                    min_absolute=MIN_ABSOLUTE_ASK_MOVE,
+                    is_mega_trade=is_mega_trade,
                     article_id=article_id,
                     reason="Front-running detected: move happened BEFORE we received the article"
                 )
@@ -2441,7 +2493,9 @@ async def process_imminent_article(
                 pub_time_ask=round(pub_time_ask, 4),
                 recv_time_ask=round(initial_ask, 4),
                 pub_to_recv_pct=round(pub_to_recv_pct, 2),
-                max_allowed=MAX_ASK_CHANGE_PER_LEG_PCT
+                absolute_move=round(absolute_move, 4),
+                max_allowed_pct=effective_max_pct,
+                is_mega_trade=is_mega_trade,
             )
 
             # Store pub_time_ask in metadata for statistics
@@ -2457,15 +2511,19 @@ async def process_imminent_article(
             current_ask = pre_entry_nbbo.get("ask", 0)
             if current_ask and current_ask > 0:
                 recv_to_fill_pct = ((current_ask - initial_ask) / initial_ask) * 100
+                absolute_move_leg2 = abs(current_ask - initial_ask)
 
-                if recv_to_fill_pct > MAX_ASK_CHANGE_PER_LEG_PCT:
+                if recv_to_fill_pct > effective_max_pct and absolute_move_leg2 >= MIN_ABSOLUTE_ASK_MOVE:
                     logger.info(
                         "⏭️ AUTO-TRADE SKIPPED: Ask moved too much between reception and fill",
                         ticker=ticker,
                         recv_time_ask=round(initial_ask, 4),
                         fill_time_ask=round(current_ask, 4),
                         recv_to_fill_pct=round(recv_to_fill_pct, 2),
-                        max_allowed=MAX_ASK_CHANGE_PER_LEG_PCT,
+                        absolute_move=round(absolute_move_leg2, 4),
+                        max_allowed_pct=effective_max_pct,
+                        min_absolute=MIN_ABSOLUTE_ASK_MOVE,
+                        is_mega_trade=is_mega_trade,
                         article_id=article_id,
                         reason="Price too volatile during our checks - likely pump in progress"
                     )
@@ -2478,7 +2536,9 @@ async def process_imminent_article(
                     recv_time_ask=round(initial_ask, 4),
                     fill_time_ask=round(current_ask, 4),
                     recv_to_fill_pct=round(recv_to_fill_pct, 2),
-                    max_allowed=MAX_ASK_CHANGE_PER_LEG_PCT
+                    absolute_move=round(absolute_move_leg2, 4),
+                    max_allowed_pct=effective_max_pct,
+                    is_mega_trade=is_mega_trade,
                 )
 
                 # Store recv_to_fill_pct in metadata for statistics
@@ -2773,6 +2833,14 @@ async def process_imminent_article(
             article_id=classification_result.article_id,
             exc_info=True
         )
+        # Record the exception as the postfilter reason so it's never silently lost
+        try:
+            await _record_postfilter_skip(
+                classification_result.article_id,
+                f"postfilter_exception:{type(e).__name__}:{str(e)[:100]}"
+            )
+        except Exception:
+            pass  # Last resort — don't let recording failure mask the real error
 
 
 class AutoTradeService:

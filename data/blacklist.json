@@ -60,5 +60,35 @@
     "permanent": false,
     "created_at": "2026-03-02T12:37:49.489679",
     "last_fp_date": "2026-03-02"
+  },
+  "HROW": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-03T12:05:25.151830",
+    "last_fp_date": "2026-03-03"
+  },
+  "ENSC": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-03T13:01:41.651010",
+    "last_fp_date": "2026-03-03"
+  },
+  "ADIL": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-03T13:27:04.413302",
+    "last_fp_date": "2026-03-03"
+  },
+  "IVF": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-03T13:50:29.358562",
+    "last_fp_date": "2026-03-03"
+  },
+  "FBGL": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-04T13:05:08.912674",
+    "last_fp_date": "2026-03-04"
   }
 }

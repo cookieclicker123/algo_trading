@@ -141442,5 +141442,41 @@
   "AHRT": {
     "industry": "REIT - Healthcare Facilities",
     "sector": "Real Estate"
+  },
+  "SHAZ": {
+    "industry": "Information Technology Services",
+    "sector": "Technology"
+  },
+  "ABOS": {
+    "industry": "Biotechnology",
+    "sector": "Healthcare"
+  },
+  "CNTN": {
+    "industry": "Biotechnology",
+    "sector": "Healthcare"
+  },
+  "BCHT": {
+    "industry": "Pollution & Treatment Controls",
+    "sector": "Industrials"
+  },
+  "DDL": {
+    "industry": "Grocery Stores",
+    "sector": "Consumer Defensive"
+  },
+  "MRDN": {
+    "industry": "",
+    "sector": ""
+  },
+  "KMDA": {
+    "industry": "Drug Manufacturers - Specialty & Generic",
+    "sector": "Healthcare"
+  },
+  "HYAC": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
+  },
+  "FRMM": {
+    "industry": "Software - Application",
+    "sector": "Technology"
   }
 }

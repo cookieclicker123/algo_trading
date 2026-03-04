@@ -153,6 +153,11 @@ class Position:
     confirmation_received: bool = False  # True once volume/activity confirmed
     scale_in_triggered: bool = False  # True once scale-in order sent
 
+    # === MEGA TRADE: Manual exit control ===
+    # Mega trades skip all automated exits (stop loss, breakeven, early exit, tiered).
+    # Only manual /exit, 10-min scheduled exit (ExitTradeUseCase), and session-end force exit remain.
+    is_mega_trade: bool = False
+
     # === MOMENTUM TRACKING (Phase 1: Data Collection) ===
     # After Tier 2 (+20%), track price trajectory for comparison analysis.
     # End-of-day will compare fixed tier exits vs momentum-based trailing.
@@ -294,6 +299,7 @@ class PositionManager:
         initial_nbbo_mid: Optional[float] = None,
         awaiting_confirmation: bool = False,
         target_full_shares: float = 0.0,
+        is_mega_trade: bool = False,
     ) -> Position:
         """
         Add a new position to track.
@@ -301,6 +307,7 @@ class PositionManager:
         Args:
             awaiting_confirmation: True if this is a partial entry awaiting volume confirmation
             target_full_shares: Full position size to scale into if confirmed
+            is_mega_trade: True for mega trades — skips automated exits, manual control via /exit
         """
         async with self._lock:
             position = Position(
@@ -311,6 +318,7 @@ class PositionManager:
                 article_id=article_id,
                 conviction=conviction,
                 initial_nbbo_mid=initial_nbbo_mid,
+                is_mega_trade=is_mega_trade,
             )
 
             # Scale-in tracking for no_volume entries
@@ -665,7 +673,7 @@ class PositionManager:
             if profit_pct > position.highest_profit_pct:
                 position.highest_profit_pct = profit_pct
 
-            # Check for manual exit request first
+            # Check for manual exit request first (always allowed)
             if self._manual_exits.get(ticker):
                 if ticker not in self._exits_in_progress:
                     self._exits_in_progress.add(ticker)
@@ -676,6 +684,93 @@ class PositionManager:
                         profit_pct
                     ))
                     self._manual_exits.pop(ticker, None)
+                return
+
+            # MEGA TRADE: Wider 10% stop + breakeven at +20% + skip tiered/early exits
+            # These trades have massive volatility — tight stops cause false exits
+            # ADIL lesson: mega trade with -5.30% loss proves we still need stops
+            if position.is_mega_trade:
+                now = datetime.now()
+                mega_stop_pct = 0.10  # 10% stop loss (vs 5% normal)
+                mega_breakeven_trigger = 0.20  # Move to breakeven at +20% (vs +5% normal)
+                mega_grace_period = 10.0  # 10 seconds soft stop (vs 5 seconds normal)
+                mega_confirmation_seconds = 1.0  # 1 second confirmation during grace
+
+                # Breakeven activation at +20%
+                if not position.breakeven_stop_active and profit_pct >= mega_breakeven_trigger:
+                    if position.breakeven_trigger_time is None:
+                        position.breakeven_trigger_time = now
+                    else:
+                        trigger_duration = (now - position.breakeven_trigger_time).total_seconds()
+                        if trigger_duration >= 0.5:
+                            position.breakeven_stop_active = True
+                            logger.info(
+                                "MEGA TRADE BREAKEVEN ACTIVATED: Stop moved from -10% to 0%",
+                                ticker=ticker,
+                                current_price=current_price,
+                                profit_pct=f"+{profit_pct*100:.1f}%",
+                            )
+                elif not position.breakeven_stop_active and profit_pct < mega_breakeven_trigger:
+                    position.breakeven_trigger_time = None
+
+                # Stop loss check (10% or breakeven)
+                effective_stop = position.entry_price if position.breakeven_stop_active else position.entry_price * (1 - mega_stop_pct)
+                if current_price <= effective_stop and not position.stop_loss_triggered:
+                    seconds_since_entry = (now - position.entry_time).total_seconds()
+                    in_grace = seconds_since_entry <= mega_grace_period
+                    breach_time = position.breakeven_breach_time if position.breakeven_stop_active else position.stop_breach_time
+
+                    if in_grace:
+                        # Soft stop: require 1s confirmation
+                        if breach_time is None:
+                            if position.breakeven_stop_active:
+                                position.breakeven_breach_time = now
+                            else:
+                                position.stop_breach_time = now
+                            return
+                        breach_duration = (now - breach_time).total_seconds()
+                        if breach_duration >= mega_confirmation_seconds:
+                            if ticker not in self._exits_in_progress:
+                                self._exits_in_progress.add(ticker)
+                                position.stop_loss_triggered = True
+                                stop_type = "mega_breakeven_stop" if position.breakeven_stop_active else "mega_stop_loss"
+                                logger.warning(
+                                    f"MEGA TRADE {stop_type.upper()} TRIGGERED (confirmed after {breach_duration:.1f}s)",
+                                    ticker=ticker,
+                                    current_price=current_price,
+                                    effective_stop=effective_stop,
+                                    entry_price=position.entry_price,
+                                    pnl_pct=f"{profit_pct*100:+.1f}%",
+                                )
+                                asyncio.create_task(self._execute_exit_async(
+                                    position, position.shares_remaining, stop_type, profit_pct
+                                ))
+                        return
+                    else:
+                        # Hard stop: immediate after grace period
+                        if ticker not in self._exits_in_progress:
+                            self._exits_in_progress.add(ticker)
+                            position.stop_loss_triggered = True
+                            stop_type = "mega_breakeven_stop" if position.breakeven_stop_active else "mega_stop_loss"
+                            logger.warning(
+                                f"MEGA TRADE {stop_type.upper()} TRIGGERED (immediate — past grace period)",
+                                ticker=ticker,
+                                current_price=current_price,
+                                effective_stop=effective_stop,
+                                entry_price=position.entry_price,
+                                pnl_pct=f"{profit_pct*100:+.1f}%",
+                            )
+                            asyncio.create_task(self._execute_exit_async(
+                                position, position.shares_remaining, stop_type, profit_pct
+                            ))
+                        return
+                else:
+                    # Price above stop — reset breach timers
+                    position.stop_breach_time = None
+                    position.breakeven_breach_time = None
+
+                # Skip tiered exits, early exit, floor rule for mega trades
+                # User controls via /exit or /hold. 10-min scheduled exit still fires.
                 return
 
             # 🎯 BREAKEVEN STOP ACTIVATION CHECK

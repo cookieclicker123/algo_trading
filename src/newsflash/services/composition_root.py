@@ -346,6 +346,9 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
                     awaiting_confirmation = metadata.get("awaiting_confirmation", False)
                     target_full_shares = metadata.get("target_full_shares", 0.0)
 
+                    # Extract mega trade flag
+                    is_mega_trade = metadata.get("is_mega_trade", False)
+
                     if ticker and fill_price and shares:
                         # Register active position for duplicate guard
                         register_active_position(ticker)
@@ -359,8 +362,17 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
                             initial_nbbo_mid=initial_nbbo_mid,
                             awaiting_confirmation=awaiting_confirmation,
                             target_full_shares=target_full_shares,
+                            is_mega_trade=is_mega_trade,
                         )
-                        if awaiting_confirmation:
+                        if is_mega_trade:
+                            logger.info(
+                                "MEGA TRADE: Auto-exits disabled — use /exit or /hold for manual control",
+                                ticker=ticker,
+                                entry_price=fill_price,
+                                shares=shares,
+                                conviction=conviction.value,
+                            )
+                        elif awaiting_confirmation:
                             logger.info(
                                 "📊 Position added (AWAITING SCALE-IN CONFIRMATION)",
                                 ticker=ticker,

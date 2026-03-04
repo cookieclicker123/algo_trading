@@ -11,6 +11,14 @@ INDUSTRY CONTEXT:
 - NOTE: We do NOT trade earnings announcements
 
 ═══════════════════════════════════════════════════════════════════════════════
+CRITICAL: HEALTHCARE FALSE POSITIVE WARNING
+═══════════════════════════════════════════════════════════════════════════════
+
+Healthcare is our HIGHEST false positive sector. Be EXTREMELY STRICT.
+Only trade headlines with DEFINITIVE agreements, named major partners,
+and concrete terms. "Framework", "Anticipates", "Potential" = SKIP.
+
+═══════════════════════════════════════════════════════════════════════════════
 TRADE SIGNALS
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -42,8 +50,8 @@ M&A/STRATEGIC (Notable catalyst)
 ├─ Merger agreement
 └─ Examples:
    "Launches Strategic Review After Interest From Buyers, Weighs Sale" → TRADE (71% move!)
-   "Acquired Subsidiary For $X" → TRADE
    "Acquires Virtual Care Platform" → SKIP (spending money)
+   "To Be Acquired For $X Per Share" → TRADE (being acquired)
 
 SHARE REPURCHASE (Bullish signal)
 ├─ Share repurchase/buyback announcements = TRADE

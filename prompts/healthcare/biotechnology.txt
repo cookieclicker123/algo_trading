@@ -11,6 +11,31 @@ INDUSTRY CONTEXT:
 - Phase 2/3 positive data for small biotechs averages +13-80% depending on catalyst
 - NOTE: We do NOT trade earnings announcements
 
+═══════════════════════════════════════════════════════════════════════════════
+CRITICAL: HEALTHCARE FALSE POSITIVE WARNING
+═══════════════════════════════════════════════════════════════════════════════
+
+Healthcare/Biotech is our HIGHEST false positive sector. 75% of recent trades
+in this sector have been losers. The headline is the ONLY reliable filter —
+market microstructure (volume, pressure, excursion) often looks bullish on
+biotech stocks even when the headline is weak, because biotechs are thinly
+traded and any news creates volume spikes.
+
+YOU MUST BE EXTREMELY SKEPTICAL of biotech headlines. Apply every skip rule
+rigorously. When in doubt, SKIP. A missed biotech winner costs $0.30.
+A biotech false positive costs $0.20 AND erodes confidence in the system.
+
+COMMON BIOTECH TRAPS (all recent false positives):
+├─ "Collaboration Framework" / "Anticipates" / "Potential Milestones" = NOT a deal
+├─ Trial INITIATION ("to initiate", "to begin") = no results, ALWAYS SKIP
+├─ Label expansion for existing drug = incremental, ALWAYS SKIP
+├─ Network membership / clinic joins network = operational, not a catalyst
+├─ Unknown pharma partner with inflated milestone numbers = pump PR
+└─ Ask: "Is this a DEFINITIVE, SIGNED agreement with CONCRETE terms, or is
+   this a press release about something that MIGHT happen in the future?"
+
+If the answer is "might happen" → SKIP. No exceptions.
+
 ===============================================================================
 TRADE SIGNALS
 ===============================================================================
@@ -54,6 +79,7 @@ CLINICAL DATA (21% of winners - MODALITY-AWARE)
 │
 ├─ STILL SKIP even if hot area or hot modality:
 │   ├─ "In vitro" / "in vivo" (preclinical, NOT human trials — ALWAYS SKIP)
+│   ├─ Trial INITIATION with no results ("Initiates", "to begin", "commence", "doses first patient", "enrolls first patient") — ALWAYS SKIP
 │   ├─ Safety/tolerability only (no efficacy signal)
 │   ├─ Extension/continuation studies (not new data)
 │   ├─ Interim without specific numbers
@@ -73,6 +99,9 @@ CLINICAL DATA (21% of winners - MODALITY-AWARE)
    "Phase 1 Safety Data for Small Molecule" → SKIP (safety only, generic modality)
    "In Vitro Results for Novel mRNA Platform" → SKIP (preclinical)
    "Open-Label Extension Study Shows Tolerability" → SKIP (extension + safety)
+   "Initiates Phase 2 Clinical Trial for Novel ADC" → SKIP (trial initiation, no results)
+   "Doses First Patient in Phase 3 Radioligand Trial" → SKIP (trial initiation, no results)
+   "Begins Enrollment in Phase 1 CAR-T Study" → SKIP (trial initiation, no results)
 
 ═══════════════════════════════════════════════════════════════════════════════
 HOT MODALITIES — Buzzwords that move stocks in 2025-2026
@@ -311,10 +340,13 @@ WEAK CLINICAL DATA (Looks like news but isn't material)
 
 LINE EXTENSIONS / LABEL EXPANSIONS (Incremental)
 ├─ Drug already approved, testing for new body parts or populations
-├─ "sNDA", "Label expansion", "Additional indication" for EXISTING drug
+├─ "sNDA", "Label expansion", "Additional indication", "Expand Label" for EXISTING drug
+├─ "Initiate trial seeking to expand label" = label expansion (NOT new drug)
+├─ Even "Phase 3" doesn't matter if it's for label expansion of existing drug
 ├─ EXCEPTION: New indication in MUCH larger market (rare disease → mass market)
 └─ Examples:
    "Phase 3 Results for Drug on Extremities, Neck, and Trunk" → SKIP
+   "To Initiate Phase 3 Trial Seeking to Expand Label to Include [Indication]" → SKIP
    "sNDA Submitted for Additional Indication" → SKIP
 
 MEDIA/PUBLICITY
@@ -329,9 +361,17 @@ NON-COMMITTAL LANGUAGE (100% losers in backtesting)
 ├─ "Non-binding" = not a real deal
 ├─ "Enters Into" without specifics = corporate speak
 ├─ "Memorandum of Understanding" without $ = preliminary
+├─ "Framework" / "Collaboration Framework" = NOT a definitive agreement
+├─ "Anticipates" / "Potential Royalties" / "Potential Milestones" = speculative projections
+├─ "upon execution of a Definitive Agreement" = the real deal DOES NOT EXIST YET
+├─ KEY: Dollar amounts tied to "potential" or "anticipated" milestones are WORTHLESS
+│   until a definitive agreement is signed. Micro-cap biotechs use inflated milestone
+│   numbers to generate press releases. The actual deal often never materialises.
 └─ Examples:
    "Signs Non-binding Letter of Intent" → SKIP
    "Enters Into Strategic Agreement" → SKIP (no details)
+   "Signs Collaboration Framework Anticipating $60M in Potential Royalties upon Definitive Agreement" → SKIP (framework, not deal; "anticipates" = speculative; definitive agreement doesn't exist)
+   "Signs Exclusive Framework with [Unknown Pharma] for $X Million in Milestones" → SKIP (framework ≠ contract, unknown partner, milestone $ = contingent)
 
 LETTER OF INTENT — NUANCED (50+ winners in backtest)
 ├─ TRADE: LOI + Acquisition + Named Target (specific deal = credible)
@@ -358,7 +398,16 @@ DILUTION/OFFERINGS
 VAGUE PARTNERSHIPS
 ├─ No named partner, no dollar amount, no specific product
 ├─ "Strategic collaboration to explore" = fluff
-└─ REQUIRE: Named partner + (specific product OR dollar amount)
+├─ REQUIRE: Named MAJOR PHARMA partner + (specific product OR dollar amount)
+├─ Unknown or small pharma partners (not on the major pharma list) = SKIP
+│   unless the deal has a SIGNED definitive agreement with concrete terms
+├─ Biotech-specific trap: Small biotechs issue partnership PRs with inflated
+│   milestone numbers to pump their stock. The partner is often unknown,
+│   the deal is a "framework" not a contract, and the $ are "potential"
+└─ Examples:
+   "Collaboration Framework with [Unknown Pharma] Anticipating $60M" → SKIP (not major pharma, framework not contract, $ are potential)
+   "Licensing Agreement with Pfizer for $200M Upfront" → TRADE LARGE (major pharma, signed, upfront $)
+   "Exclusive Agreement with Molteni for European Distribution" → SKIP (unknown partner, no definitive terms)
 
 IMMATERIAL DOLLAR AMOUNTS
 ├─ Contracts/deals < 3% of market cap rarely move stocks
@@ -424,6 +473,7 @@ ALWAYS SKIP:
 - IND clearance
 - Conferences (future presentations)
 - In vitro / in vivo (preclinical)
+- Trial initiation with no results ("Initiates", "begins", "doses first patient", "enrolls first patient")
 - Safety/tolerability only
 - Extension studies
 - "Potential" / "may" / "could"

@@ -11,6 +11,20 @@ INDUSTRY CONTEXT:
 - NOTE: We do NOT trade earnings announcements
 
 ═══════════════════════════════════════════════════════════════════════════════
+CRITICAL: HEALTHCARE FALSE POSITIVE WARNING
+═══════════════════════════════════════════════════════════════════════════════
+
+Healthcare is our HIGHEST false positive sector. Be EXTREMELY STRICT.
+
+COMMON TRAPS (recent false positives):
+├─ "Joins Network" / "Added to Network" = operational, NOT a catalyst (SKIP)
+├─ Clinic openings / expansions = operational, NOT a catalyst (SKIP)
+├─ Soft launches without FDA clearance = marketing fluff (SKIP)
+├─ "Framework" / "Anticipates" / "Potential" = NOT a real deal (SKIP)
+└─ If in doubt, SKIP. Only trade DEFINITIVE FDA/regulatory milestones,
+   signed M&A, or partnerships with named major companies and concrete terms.
+
+═══════════════════════════════════════════════════════════════════════════════
 TRADE SIGNALS
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -122,6 +136,15 @@ SOFT PRODUCT LAUNCHES (No regulatory milestone) → SKIP
    "Launches New Patient Platform" → SKIP (software, no regulatory)
    "Introduces Digital Health Solution" → SKIP (marketing fluff)
    "Launches NeuroCare®, an AI-Driven Virtual Clinic" → SKIP (no FDA milestone)
+
+NETWORK MEMBERSHIP / OPERATIONAL EXPANSION → SKIP
+├─ "Joins Network", "Added to Network" = operational, not surprising
+├─ Clinic openings, new locations = planned expansion, not catalyst
+├─ Fertility network memberships, provider directory additions = routine
+└─ Examples:
+   "Clinic Joins Progyny Network" → SKIP (network membership, operational)
+   "Opens New Clinic in [City]" → SKIP (planned expansion)
+   "Added to Fertility Network" → SKIP (routine operational)
 
 ═══════════════════════════════════════════════════════════════════════════════
 UNIVERSAL SKIP SIGNALS (Bad language patterns - applies to all headlines)

@@ -313,6 +313,9 @@ class SignalStatsEngine:
             remaining_trade_count=confluence_metadata.get("remaining_trade_count"),
             remaining_sell_pct=confluence_metadata.get("remaining_sell_pct"),
             volume_distribution_class=confluence_metadata.get("volume_distribution_class"),
+            # === AI CLASSIFICATION CONTEXT ===
+            ai_position_size=confluence_metadata.get("ai_position_size"),
+            is_mega_trade=confluence_metadata.get("is_mega_trade"),
         )
 
         # Append record immediately (before metadata fetch)

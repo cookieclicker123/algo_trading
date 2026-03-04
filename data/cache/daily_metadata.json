@@ -16316,7 +16316,7 @@
       "float_shares": 13502571
     },
     "ROC": {
-      "market_cap_millions": 117.140728
+      "market_cap_millions": 109.932064
     },
     "FACT": {
       "market_cap_millions": 254.888896
@@ -16375,6 +16375,41 @@
     },
     "AHRT": {
       "float_shares": 130252876
+    },
+    "SHAZ": {
+      "market_cap_millions": 235.305392,
+      "float_shares": 17417
+    },
+    "ABOS": {
+      "market_cap_millions": 199.892304,
+      "float_shares": 35334902
+    },
+    "CNTN": {
+      "market_cap_millions": 203.183408,
+      "float_shares": 28897952
+    },
+    "BCHT": {
+      "market_cap_millions": 45.721524,
+      "float_shares": 14459204
+    },
+    "DDL": {
+      "market_cap_millions": 596.711296,
+      "float_shares": 174100035
+    },
+    "MRDN": {
+      "float_shares": 1883785
+    },
+    "KMDA": {
+      "market_cap_millions": 515.095104,
+      "float_shares": 9549865
+    },
+    "HYAC": {
+      "market_cap_millions": 333.767712,
+      "float_shares": 19628692
+    },
+    "FRMM": {
+      "market_cap_millions": 58.367552,
+      "float_shares": 14312613
     }
   }
 }
