@@ -200,6 +200,62 @@ class AlpacaExtendedHoursTradeExecutor:
                     await self._publish_failed_event(trade_request, error_result["error"])
                     return error_result
 
+                # =============================================================
+                # 🛡️ EXECUTION-TIME SLIPPAGE CHECK: Decision ask vs execution ask
+                # =============================================================
+                # The postfilters validated the ask at DECISION time, but by the
+                # time we reach the executor, the ask may have spiked (race condition).
+                # FBGL lesson: ask spiked $0.879 → $0.9683 (10.16%) between
+                # postfilter check and execution → instant -10.78% loss.
+                #
+                # Rule: If slippage from decision ask exceeds the stop loss, abort.
+                # Mathematically impossible to enter past your own stop.
+                # Regular: 5% (stop = 5%)  |  Mega: 7.5% (stop = 7.5%)
+                # Plus $0.05 absolute floor (penny stock protection).
+                decision_ask = metadata.get("initial_ask") if metadata else None
+                is_mega = metadata.get("is_mega_trade", False) if metadata else False
+
+                if decision_ask and decision_ask > 0:
+                    execution_slippage_pct = ((initial_ask - decision_ask) / decision_ask) * 100
+                    max_execution_slippage = 7.5 if is_mega else 5.0
+                    min_absolute_slippage = 0.05  # $0.05 floor
+                    absolute_slippage = abs(initial_ask - decision_ask)
+
+                    if execution_slippage_pct > max_execution_slippage and absolute_slippage >= min_absolute_slippage:
+                        error_msg = (
+                            f"Execution slippage {execution_slippage_pct:.1f}% exceeds "
+                            f"{max_execution_slippage}% max (ask moved ${decision_ask:.4f} → ${initial_ask:.4f})"
+                        )
+                        logger.warning(
+                            "🛡️ TRADE ABORTED: Execution slippage exceeds stop loss threshold",
+                            ticker=trade_request.ticker,
+                            decision_ask=round(decision_ask, 4),
+                            execution_ask=round(initial_ask, 4),
+                            slippage_pct=round(execution_slippage_pct, 2),
+                            max_allowed_pct=max_execution_slippage,
+                            absolute_slippage=round(absolute_slippage, 4),
+                            is_mega_trade=is_mega,
+                        )
+                        error_result = {
+                            "success": False,
+                            "error": error_msg,
+                            "session": session,
+                            "order_type": "LIMIT",
+                            "instrument": "stock",
+                        }
+                        await self._publish_failed_event(trade_request, error_result["error"])
+                        return error_result
+
+                    if execution_slippage_pct > 1.0:
+                        logger.info(
+                            "⚠️ EXECUTION SLIPPAGE NOTED (within tolerance)",
+                            ticker=trade_request.ticker,
+                            decision_ask=round(decision_ask, 4),
+                            execution_ask=round(initial_ask, 4),
+                            slippage_pct=round(execution_slippage_pct, 2),
+                            max_allowed_pct=max_execution_slippage,
+                        )
+
                 # Price collar: Maximum we're willing to pay (10% above initial ask for extended chase)
                 # This prevents chasing into pump-and-dumps while allowing runners
                 MAX_SLIPPAGE_PCT = 0.10  # 10% max slippage for extended chase

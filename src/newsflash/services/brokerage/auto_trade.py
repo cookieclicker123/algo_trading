@@ -2192,6 +2192,7 @@ async def process_imminent_article(
 
             if initial_mid > 0:
                 spread_pct_of_mid = (initial_spread / initial_mid) * 100
+                confluence_metadata["initial_spread_pct"] = round(spread_pct_of_mid, 2)
 
                 # HARD STOP: Spread > 3% = instant loss territory
                 if spread_pct_of_mid > MAX_SPREAD_PCT:
@@ -2337,7 +2338,15 @@ async def process_imminent_article(
         # CRITICAL: Check spread at FILL TIME, not just at reception.
         # APUS disaster: Reception spread was 6%, but by fill time it was 10.27%.
         # This check prevents entering trades with wide spreads that developed during SURGE monitoring.
-        MAX_FILL_SPREAD_PCT = 4.5  # Never enter on spread >4.5% at any check point
+        #
+        # JZXN lesson: On penny stocks, the spread temporarily widens during initial
+        # volatility (bid drops as sells hit). JZXN had 2.11% initial spread but the
+        # bid likely dipped causing ~5% fill spread — blocking a +69% winner.
+        # Fix: If the initial spread was tight (< 3%) and widening is modest (< 3pp),
+        # allow it — this is temporary noise, not genuine spread deterioration.
+        MAX_FILL_SPREAD_PCT = 4.5  # Base threshold
+        SPREAD_TIGHT_INITIAL = 3.0  # Initial spread considered "tight"
+        SPREAD_WIDENING_TOLERANCE = 3.0  # Max acceptable widening from initial (percentage points)
 
         pre_entry_nbbo = None
         if quote_fetcher:
@@ -2352,26 +2361,51 @@ async def process_imminent_article(
                         fill_spread_pct = (current_spread / current_mid) * 100 if current_mid > 0 else 0
 
                         if fill_spread_pct > MAX_FILL_SPREAD_PCT:
+                            # Check if this is temporary volatility on a normally liquid stock
+                            initial_spread_pct_val = confluence_metadata.get("initial_spread_pct", 0)
+                            spread_widening = fill_spread_pct - initial_spread_pct_val if initial_spread_pct_val > 0 else fill_spread_pct
+                            initial_was_tight = initial_spread_pct_val > 0 and initial_spread_pct_val < SPREAD_TIGHT_INITIAL
+                            widening_is_modest = spread_widening < SPREAD_WIDENING_TOLERANCE
+
+                            if initial_was_tight and widening_is_modest:
+                                # Temporary volatility on a liquid stock — allow it
+                                logger.info(
+                                    "✅ FILL-TIME SPREAD: Exceeds 4.5% but initial was tight and widening modest — temporary volatility",
+                                    ticker=ticker,
+                                    fill_spread_pct=round(fill_spread_pct, 2),
+                                    initial_spread_pct=round(initial_spread_pct_val, 2),
+                                    spread_widening_pp=round(spread_widening, 2),
+                                    tolerance_pp=SPREAD_WIDENING_TOLERANCE,
+                                    current_bid=current_bid,
+                                    current_ask=current_ask,
+                                )
+                                confluence_metadata["fill_spread_pct"] = round(fill_spread_pct, 2)
+                            else:
+                                # Genuine deterioration or already wide — block
+                                logger.info(
+                                    "⏭️ AUTO-TRADE SKIPPED: Spread widened beyond threshold at fill time",
+                                    ticker=ticker,
+                                    fill_spread_pct=round(fill_spread_pct, 2),
+                                    initial_spread_pct=round(initial_spread_pct_val, 2) if initial_spread_pct_val else None,
+                                    spread_widening_pp=round(spread_widening, 2),
+                                    max_allowed=MAX_FILL_SPREAD_PCT,
+                                    current_bid=current_bid,
+                                    current_ask=current_ask,
+                                    current_spread=round(current_spread, 4),
+                                    article_id=article_id,
+                                    reason="Spread genuinely deteriorated or initial already wide"
+                                )
+                                await _record_postfilter_skip(article_id, f"postfilter_fill_spread_too_wide:{fill_spread_pct:.1f}%")
+                                return
+                        else:
                             logger.info(
-                                "⏭️ AUTO-TRADE SKIPPED: Spread widened beyond threshold at fill time",
+                                "✅ FILL-TIME SPREAD CHECK PASSED",
                                 ticker=ticker,
                                 fill_spread_pct=round(fill_spread_pct, 2),
                                 max_allowed=MAX_FILL_SPREAD_PCT,
-                                current_bid=current_bid,
-                                current_ask=current_ask,
-                                current_spread=round(current_spread, 4),
-                                article_id=article_id,
-                                reason="Spread at fill time exceeds 4.5% threshold - APUS protection"
                             )
-                            await _record_postfilter_skip(article_id, f"postfilter_fill_spread_too_wide:{fill_spread_pct:.1f}%")
-                            return
 
-                        logger.info(
-                            "✅ FILL-TIME SPREAD CHECK PASSED",
-                            ticker=ticker,
-                            fill_spread_pct=round(fill_spread_pct, 2),
-                            max_allowed=MAX_FILL_SPREAD_PCT,
-                        )
+                        confluence_metadata["fill_spread_pct"] = round(fill_spread_pct, 2)
             except Exception as e:
                 logger.warning(f"Fill-time spread check failed: {e} - proceeding with caution")
 
@@ -2459,11 +2493,13 @@ async def process_imminent_article(
             except Exception as e:
                 logger.debug(f"REST API quote fetch failed: {e}")
 
-        # Mega trades get relaxed front-running thresholds
-        # When ALL signals are green, a larger pre-move is acceptable because
-        # the confluence evidence (volume, pressure, excursion) confirms this is real
+        # Mega trades get slightly relaxed front-running thresholds
+        # MOBX had 12% LEG 1 front-running but passes via $0.05 absolute floor anyway.
+        # The percentage only matters for non-penny stocks where absolute > $0.05.
+        # 8% is conservative but still above normal 3% — absolute floor handles penny stocks.
         is_mega_trade = confluence_metadata.get("is_mega_trade", False)
-        effective_max_pct = 15.0 if is_mega_trade else MAX_ASK_CHANGE_PER_LEG_PCT  # 15% vs 3%
+        MEGA_MAX_ASK_CHANGE_PER_LEG_PCT = 8.0  # 8% vs 3% normal (MOBX was 12% but passes via $0.05 floor)
+        effective_max_pct = MEGA_MAX_ASK_CHANGE_PER_LEG_PCT if is_mega_trade else MAX_ASK_CHANGE_PER_LEG_PCT
 
         # Check pub → recv change if we have both prices
         if pub_time_ask and initial_ask and pub_time_ask > 0:
@@ -2547,27 +2583,40 @@ async def process_imminent_article(
         # ============================================================
         # 🎯 PUMP-AND-DUMP FILTER: Entry ask vs confluence VWAP
         # ============================================================
-        # EPOW lesson: Ask stayed at $1.00 while trades averaged ~$0.94 (VWAP).
-        # We entered at $1.00 paying a 6.4% premium over actual trading activity.
-        # This is classic pump-and-dump: trades create "confluence", we pay the inflated ask.
+        # Pump-and-dump pattern: Ask held high while trades happen at lower prices.
+        # We'd enter at the inflated ask and the price crashes to where trades actually are.
         #
         # Uses VWAP (not first_price) because first_price can be a stale pre-news tick
         # (e.g. GFAI $0.44 stale → VWAP $0.49 → ask $0.503 = 2.6% premium, not 14.3%).
+        #
+        # JZXN lesson: On sub-$1 stocks, the bid-ask spread is structurally wide (2-4%),
+        # so VWAP (trades near bid/mid) is naturally 3-5% below the ask. This is normal
+        # microstructure, not pump manipulation. Require BOTH percentage AND absolute dollar
+        # thresholds to avoid false positives on penny stocks (same fix as front-running).
         MAX_ASK_VS_VWAP_PCT = 5.5  # Entry ask >5.5% above VWAP = paying pump premium
+        MIN_ABSOLUTE_ASK_VS_VWAP = 0.08  # $0.08 minimum gap to trigger (penny stock protection)
+        # Higher than front-running's $0.05 because this checks a LEVEL gap (ask vs VWAP),
+        # not a DELTA (how much ask moved). On sub-$1 stocks, VWAP naturally sits 5-8¢
+        # below ask due to spread structure. Empirical: filter has 0 real catches and 2
+        # false positives (JZXN $0.051 gap +69%, OneMedNet $0.079 gap +26%). EPOW (the
+        # inspiration) had actual VWAP $0.9641 vs ask $1.00 = 3.7% — wouldn't even trigger.
         confluence_vwap = confluence_metadata.get("confluence_vwap")
         fill_ask = pre_entry_nbbo.get("ask") if pre_entry_nbbo else None
 
         if confluence_vwap and fill_ask and confluence_vwap > 0:
             ask_vs_vwap_pct = ((fill_ask - confluence_vwap) / confluence_vwap) * 100
+            absolute_gap = abs(fill_ask - confluence_vwap)
 
-            if ask_vs_vwap_pct > MAX_ASK_VS_VWAP_PCT:
+            if ask_vs_vwap_pct > MAX_ASK_VS_VWAP_PCT and absolute_gap >= MIN_ABSOLUTE_ASK_VS_VWAP:
                 logger.info(
                     "⏭️ AUTO-TRADE SKIPPED: Entry ask too far above VWAP (pump-and-dump pattern)",
                     ticker=ticker,
                     confluence_vwap=round(confluence_vwap, 4),
                     fill_ask=round(fill_ask, 4),
                     ask_vs_vwap_pct=round(ask_vs_vwap_pct, 2),
-                    max_allowed=MAX_ASK_VS_VWAP_PCT,
+                    absolute_gap=round(absolute_gap, 4),
+                    max_allowed_pct=MAX_ASK_VS_VWAP_PCT,
+                    min_absolute=MIN_ABSOLUTE_ASK_VS_VWAP,
                     article_id=article_id,
                     reason="Entry ask is above average trading price - paying the pump premium"
                 )
@@ -2580,7 +2629,9 @@ async def process_imminent_article(
                 confluence_vwap=round(confluence_vwap, 4),
                 fill_ask=round(fill_ask, 4),
                 ask_vs_vwap_pct=round(ask_vs_vwap_pct, 2),
-                max_allowed=MAX_ASK_VS_VWAP_PCT
+                absolute_gap=round(absolute_gap, 4),
+                max_allowed_pct=MAX_ASK_VS_VWAP_PCT,
+                min_absolute=MIN_ABSOLUTE_ASK_VS_VWAP,
             )
 
             # Store for statistics

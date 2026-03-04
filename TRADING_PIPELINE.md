@@ -65,27 +65,37 @@ Detected here but only affects downstream filters. ALL criteria must be true:
 | 2 | Spread (post) | >4.5% = skip | Same | Wide spread at confluence time |
 | 3 | Selling pressure | Imbalance < -0.3 (>65% selling) = skip | Same | Heavy selling = someone knows something |
 | 4 | Zero volume | 0 trades since pub = skip | Same | Dead market, no interest |
-| 5 | Fill-time spread | >4.5% = skip | Same | Spread widened during SURGE monitoring (APUS protection) |
-| 6 | Front-running LEG 1 (pub->recv) | >3% AND >$0.05 = skip | >15% AND >$0.05 = skip | Ask already moved before we received article |
-| 7 | Front-running LEG 2 (recv->fill) | >3% AND >$0.05 = skip | >15% AND >$0.05 = skip | Ask moving during our checks |
-| 8 | Pump-and-dump | Fill ask >5.5% above VWAP = skip | Same | Paying inflated ask while trades at lower VWAP |
+| 5 | Fill-time spread | >4.5% = skip (with deterioration tolerance) | Same | Spread widened during SURGE monitoring (APUS protection). If initial spread was tight (<3%) and widening <3pp, allows temporary volatility |
+| 6 | Front-running LEG 1 (pub->recv) | >3% AND >$0.05 = skip | >8% AND >$0.05 = skip | Ask already moved before we received article |
+| 7 | Front-running LEG 2 (recv->fill) | >3% AND >$0.05 = skip | >8% AND >$0.05 = skip | Ask moving during our checks |
+| 8 | Pump-and-dump | Fill ask >5.5% above VWAP AND >$0.08 absolute gap = skip | Same | Paying inflated ask while trades at lower VWAP |
 | 9 | Pre-news runup | >5% move in prior 30 min = skip | Same | News already priced in / leaked |
 | 10 | Momentum exhaustion | Max confluence price >5% above entry ask = skip | Same | Buying at the top |
 | 11 | Late entry timing | >15s (normal) / >95s (late trade) = skip | Same | Too late to the party |
 
-Only filters 6 and 7 differ for mega trades (15% vs 3% threshold). The $0.05 absolute floor applies to both.
+Only filters 6 and 7 differ for mega trades (8% vs 3% threshold). The $0.05 absolute floor applies to filters 6, 7. The $0.08 floor applies to filter 8.
+
+## Stage 6b: Execution-Time Slippage Guard (trade_executor_extended_hours.py — final safety net)
+
+After postfilters pass and the trade event reaches the executor, a fresh NBBO is fetched. If the ask has spiked since the decision-time NBBO (race condition), this guard aborts.
+
+| Check | Regular | Mega | What it catches |
+|-------|---------|------|-----------------|
+| Decision-to-execution slippage | >5% AND >$0.05 = abort | >7.5% AND >$0.05 = abort | Ask spiked between postfilter check and execution (FBGL: $0.879→$0.9683 = 10.16%, instant -10.78% loss) |
+
+The threshold equals the stop loss: if slippage alone would trigger your stop, the trade is mathematically guaranteed to lose.
 
 ## Stage 7: Execution and Position Management
 
 | Aspect | Regular Trade | Mega Trade |
 |--------|--------------|------------|
 | Position size | $4 base x confluence multiplier | Same $4 base x confluence multiplier |
-| Stop loss | 5% hard stop | 10% stop with 10s grace (soft: 1s confirm), hard after grace |
-| Breakeven | At +10% (normal logic) | At +20% -> lifts stop to entry price |
-| Tiered exits | Active (take profits at thresholds) | Disabled -- no automated profit-taking |
-| Early exit | Active | Disabled |
-| Floor rule | Active | Disabled |
-| 10-min scheduled exit | Active (ExitTradeUseCase) | Active (safety net) |
+| Stop loss | 5% hard, 5s grace, 1.25s confirm | 7.5% hard, 5s grace, 1s confirm |
+| Breakeven | At +5% -> lifts stop to entry | At +20% -> lifts stop to entry |
+| Tiered exits | +15%: 50%, +20%: 50%, +30%: 100% | +20%: 50%, +25%: 50%, +30%: 100% |
+| Floor rule | Active (+5% after T1, +10% after T2) | Active (+10% after T1, +15% after T2) |
+| Early exit | +10% after 5 min | Same |
+| 10-min scheduled exit | Active (ExitTradeUseCase) | Active |
 | Session-end force exit | Active | Active |
-| Manual /exit | Available | Available (primary exit method) |
+| Manual /exit | Available | Available |
 | Manual /hold | Extends to 30 min | Extends to 30 min |

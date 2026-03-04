@@ -87,6 +87,7 @@ TIERED_EXIT_THRESHOLDS = [
 TIER_FLOOR_PCT = {
     0.15: 0.05,   # After +15% exit, floor is +5%
     0.20: 0.10,   # After +20% exit, floor is +10%
+    0.25: 0.15,   # After +25% exit (mega tier 2), floor is +15%
     0.30: None,   # After +30%, fully exited - no floor needed
 }
 
@@ -686,15 +687,16 @@ class PositionManager:
                     self._manual_exits.pop(ticker, None)
                 return
 
-            # MEGA TRADE: Wider 10% stop + breakeven at +20% + skip tiered/early exits
-            # These trades have massive volatility — tight stops cause false exits
-            # ADIL lesson: mega trade with -5.30% loss proves we still need stops
+            # MEGA TRADE: Slightly wider stop + breakeven at +20% + first tier at +20%
+            # Minimal differences from normal trades — just enough breathing room.
+            # Normal: 5% stop / 5s grace / 1.25s confirm / breakeven +5% / tiers +15/+20/+30
+            # Mega:   7.5% stop / 5s grace / 1s confirm / breakeven +20% / tiers +20/+25/+30
             if position.is_mega_trade:
                 now = datetime.now()
-                mega_stop_pct = 0.10  # 10% stop loss (vs 5% normal)
+                mega_stop_pct = 0.075  # 7.5% stop loss (vs 5% normal)
                 mega_breakeven_trigger = 0.20  # Move to breakeven at +20% (vs +5% normal)
-                mega_grace_period = 10.0  # 10 seconds soft stop (vs 5 seconds normal)
-                mega_confirmation_seconds = 1.0  # 1 second confirmation during grace
+                mega_grace_period = 5.0  # 5 seconds grace (same as normal)
+                mega_confirmation_seconds = 1.0  # 1 second confirmation during grace (vs 1.25s normal)
 
                 # Breakeven activation at +20%
                 if not position.breakeven_stop_active and profit_pct >= mega_breakeven_trigger:
@@ -705,7 +707,7 @@ class PositionManager:
                         if trigger_duration >= 0.5:
                             position.breakeven_stop_active = True
                             logger.info(
-                                "MEGA TRADE BREAKEVEN ACTIVATED: Stop moved from -10% to 0%",
+                                "MEGA TRADE BREAKEVEN ACTIVATED: Stop moved from -7.5% to 0%",
                                 ticker=ticker,
                                 current_price=current_price,
                                 profit_pct=f"+{profit_pct*100:.1f}%",
@@ -713,7 +715,7 @@ class PositionManager:
                 elif not position.breakeven_stop_active and profit_pct < mega_breakeven_trigger:
                     position.breakeven_trigger_time = None
 
-                # Stop loss check (10% or breakeven)
+                # Stop loss check (7.5% or breakeven)
                 effective_stop = position.entry_price if position.breakeven_stop_active else position.entry_price * (1 - mega_stop_pct)
                 if current_price <= effective_stop and not position.stop_loss_triggered:
                     seconds_since_entry = (now - position.entry_time).total_seconds()
@@ -769,8 +771,75 @@ class PositionManager:
                     position.stop_breach_time = None
                     position.breakeven_breach_time = None
 
-                # Skip tiered exits, early exit, floor rule for mega trades
-                # User controls via /exit or /hold. 10-min scheduled exit still fires.
+                # Mega trade tiered exits: first tier at +20% instead of +15%
+                # Tiers: +20%: 50%, +25%: 50%, +30%: 100% (normal is +15/+20/+30)
+                MEGA_TIERS = [(0.20, 0.50), (0.25, 0.50), (0.30, 1.00)]
+                if position.next_tier_index < len(MEGA_TIERS) and position.shares_remaining > 0:
+                    threshold_pct, exit_fraction = MEGA_TIERS[position.next_tier_index]
+                    if profit_pct >= threshold_pct:
+                        shares_to_exit = int(position.shares_remaining * exit_fraction)
+                        if shares_to_exit < 1 and position.shares_remaining >= 1:
+                            shares_to_exit = int(position.shares_remaining)
+                        if shares_to_exit > 0 and ticker not in self._exits_in_progress:
+                            self._exits_in_progress.add(ticker)
+                            position.last_exit_threshold = threshold_pct
+                            position.next_tier_index += 1
+                            position.total_exits_taken += 1
+                            new_floor_pct = TIER_FLOOR_PCT.get(threshold_pct)
+                            new_floor_str = f"+{new_floor_pct*100:.1f}%" if new_floor_pct else "N/A"
+                            logger.info(
+                                f"📈 MEGA TIERED EXIT: +{threshold_pct*100:.0f}% threshold - exiting {exit_fraction*100:.0f}%",
+                                ticker=ticker,
+                                current_price=current_price,
+                                entry_price=position.entry_price,
+                                profit_pct=f"+{profit_pct*100:.1f}%",
+                                shares_to_exit=shares_to_exit,
+                                shares_remaining_after=position.shares_remaining - shares_to_exit,
+                                new_floor=new_floor_str,
+                            )
+                            asyncio.create_task(self._execute_exit_async(
+                                position, shares_to_exit, f"mega_tier_{threshold_pct*100:.0f}pct", profit_pct
+                            ))
+                        return
+
+                # Floor rule for mega trades (same as normal)
+                if position.floor_price and position.shares_remaining > 0:
+                    if current_price <= position.floor_price:
+                        if ticker not in self._exits_in_progress:
+                            self._exits_in_progress.add(ticker)
+                            floor_pct = TIER_FLOOR_PCT.get(position.last_exit_threshold)
+                            if floor_pct is None:
+                                floor_pct = position.last_exit_threshold * FLOOR_RULE_MULTIPLIER
+                            logger.warning(
+                                f"📉 MEGA FLOOR RULE: Price dropped to +{floor_pct*100:.1f}% floor",
+                                ticker=ticker,
+                                current_price=current_price,
+                                floor_price=position.floor_price,
+                                profit_pct=f"{profit_pct*100:.1f}%",
+                            )
+                            asyncio.create_task(self._execute_exit_async(
+                                position, position.shares_remaining, "mega_floor_exit", profit_pct
+                            ))
+                        return
+
+                # Early exit for mega trades (same as normal: +10% after 5 min)
+                minutes_held = (now - position.entry_time).total_seconds() / 60.0
+                if (minutes_held >= EARLY_EXIT_MINUTES and
+                    profit_pct >= EARLY_EXIT_PROFIT_PCT and
+                    position.shares_remaining > 0):
+                    if ticker not in self._exits_in_progress:
+                        self._exits_in_progress.add(ticker)
+                        logger.info(
+                            f"🚀 MEGA EARLY EXIT: +{profit_pct*100:.1f}% after {minutes_held:.1f} min",
+                            ticker=ticker,
+                            current_price=current_price,
+                            profit_pct=f"+{profit_pct*100:.1f}%",
+                        )
+                        asyncio.create_task(self._execute_exit_async(
+                            position, position.shares_remaining, "mega_early_exit", profit_pct
+                        ))
+                    return
+
                 return
 
             # 🎯 BREAKEVEN STOP ACTIVATION CHECK
