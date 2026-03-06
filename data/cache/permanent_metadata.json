@@ -141478,5 +141478,13 @@
   "FRMM": {
     "industry": "Software - Application",
     "sector": "Technology"
+  },
+  "OCCIM": {
+    "industry": "Asset Management",
+    "sector": "Financial Services"
+  },
+  "LLYVK": {
+    "industry": "Entertainment",
+    "sector": "Communication Services"
   }
 }

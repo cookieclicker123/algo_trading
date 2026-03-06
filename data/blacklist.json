@@ -90,5 +90,11 @@
     "permanent": false,
     "created_at": "2026-03-04T13:05:08.912674",
     "last_fp_date": "2026-03-04"
+  },
+  "NVVE": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-06T14:00:32.084411",
+    "last_fp_date": "2026-03-06"
   }
 }

@@ -236,6 +236,7 @@ class ClassificationDomainListener(
             title=infra_event.request_data.article_title,
             published_at=published_at,
             position_size=infra_event.response_data.position_size,
+            headline_type=infra_event.response_data.headline_type,
         )
     
     @handle_errors(log_context="ClassificationDomainListener: Error handling classification failed event")
@@ -285,6 +286,7 @@ class ClassificationDomainListener(
         title: Optional[str] = None,
         published_at: Optional[datetime] = None,
         position_size: Optional[str] = None,
+        headline_type: Optional[str] = None,
     ) -> None:
         """
         Publish ArticleClassified domain event (implements DomainClassificationEventPublisher).
@@ -296,6 +298,7 @@ class ClassificationDomainListener(
             title: Article title (for logging)
             published_at: Article publication time (for confluence scoring)
             position_size: AI-determined position size (SMALL, MODERATE, LARGE, MAX)
+            headline_type: Headline type from HeadlineTypeClassifier (for high-conviction bypass)
         """
         domain_event = ArticleClassifiedDomainEvent(
             article_id=result.article_id,
@@ -305,6 +308,7 @@ class ClassificationDomainListener(
             title=title or "",
             published_at=published_at,
             position_size=position_size,
+            headline_type=headline_type,
         )
         await self.event_bus.publish(DomainEventType.ARTICLE_CLASSIFIED, domain_event.model_dump())
 
@@ -316,7 +320,8 @@ class ClassificationDomainListener(
             reasoning=result.reasoning,
             tickers=tickers,
             has_published_at=published_at is not None,
-            position_size=position_size
+            position_size=position_size,
+            headline_type=headline_type
         )
     
     @handle_errors(log_context="ClassificationDomainListener: Error publishing domain classification failed event")

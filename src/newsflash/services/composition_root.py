@@ -346,8 +346,9 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
                     awaiting_confirmation = metadata.get("awaiting_confirmation", False)
                     target_full_shares = metadata.get("target_full_shares", 0.0)
 
-                    # Extract mega trade flag
+                    # Extract mega trade and high-conviction flags
                     is_mega_trade = metadata.get("is_mega_trade", False)
+                    is_high_conviction = metadata.get("is_high_conviction", False)
 
                     if ticker and fill_price and shares:
                         # Register active position for duplicate guard
@@ -363,6 +364,7 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
                             awaiting_confirmation=awaiting_confirmation,
                             target_full_shares=target_full_shares,
                             is_mega_trade=is_mega_trade,
+                            is_high_conviction=is_high_conviction,
                         )
                         if is_mega_trade:
                             logger.info(

@@ -159,6 +159,10 @@ class Position:
     # Only manual /exit, 10-min scheduled exit (ExitTradeUseCase), and session-end force exit remain.
     is_mega_trade: bool = False
 
+    # === HIGH-CONVICTION: Wider stop loss ===
+    # Gov/military contract headlines use mega-trade stop loss (7.5%) but keep normal exit logic.
+    is_high_conviction: bool = False
+
     # === MOMENTUM TRACKING (Phase 1: Data Collection) ===
     # After Tier 2 (+20%), track price trajectory for comparison analysis.
     # End-of-day will compare fixed tier exits vs momentum-based trailing.
@@ -175,19 +179,29 @@ class Position:
         self.total_cost_basis = self.entry_price * self.shares
 
     @property
+    def _stop_loss_pct(self) -> float:
+        """Get stop loss percentage — 12% for high-conviction, 5% normal.
+
+        High-conviction (gov/military contracts) have extreme initial volatility:
+        MTEK had -9.99% MAE at T+51s then ran +49%. Normal 5% stop kills these.
+        12% gives enough room to survive the market-maker repricing whipsaw.
+        """
+        return 0.12 if self.is_high_conviction else STOP_LOSS_PCT
+
+    @property
     def stop_loss_price(self) -> Optional[float]:
-        """Calculate stop loss price (5% below actual entry price)."""
+        """Calculate stop loss price (5% or 12% below actual entry price)."""
         if self.entry_price:
-            return self.entry_price * (1 - STOP_LOSS_PCT)
+            return self.entry_price * (1 - self._stop_loss_pct)
         return None
 
     @property
     def effective_stop_price(self) -> Optional[float]:
-        """Get effective stop price - breakeven if activated, otherwise -5%."""
+        """Get effective stop price - breakeven if activated, otherwise -5%/-12%."""
         if self.entry_price:
             if self.breakeven_stop_active:
                 return self.entry_price  # Breakeven stop
-            return self.entry_price * (1 - STOP_LOSS_PCT)  # -5% stop
+            return self.entry_price * (1 - self._stop_loss_pct)
         return None
 
     @property
@@ -301,6 +315,7 @@ class PositionManager:
         awaiting_confirmation: bool = False,
         target_full_shares: float = 0.0,
         is_mega_trade: bool = False,
+        is_high_conviction: bool = False,
     ) -> Position:
         """
         Add a new position to track.
@@ -309,6 +324,7 @@ class PositionManager:
             awaiting_confirmation: True if this is a partial entry awaiting volume confirmation
             target_full_shares: Full position size to scale into if confirmed
             is_mega_trade: True for mega trades — skips automated exits, manual control via /exit
+            is_high_conviction: True for high-conviction headlines — uses mega stop loss but normal exits
         """
         async with self._lock:
             position = Position(
@@ -320,6 +336,7 @@ class PositionManager:
                 conviction=conviction,
                 initial_nbbo_mid=initial_nbbo_mid,
                 is_mega_trade=is_mega_trade,
+                is_high_conviction=is_high_conviction,
             )
 
             # Scale-in tracking for no_volume entries

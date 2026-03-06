@@ -32,6 +32,7 @@ class InfrastructureClassificationResponseData(BaseModel):
     confidence: str = Field(..., description="Confidence: 'HIGH', 'MEDIUM', or 'LOW'")
     reasoning: str = Field(..., description="Reasoning for classification")
     position_size: Optional[str] = Field(None, description="AI-determined position size: 'SMALL', 'MODERATE', 'LARGE', 'MAX'")
+    headline_type: Optional[str] = Field(None, description="Headline type from HeadlineTypeClassifier (e.g. 'military_contract', 'fda_approval')")
     # Raw Groq API response fields can be added here
 
 

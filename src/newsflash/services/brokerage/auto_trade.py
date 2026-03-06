@@ -54,6 +54,30 @@ logger = get_logger(__name__)
 
 
 # ============================================================
+# HIGH-CONVICTION HEADLINE TYPES (bypass/relax postfilters)
+# ============================================================
+# Government/military contracts with concrete deal specifics reliably produce
+# sustained moves. GXAI +37%, MTEK +49%, MOBX +25% — all blocked by
+# microstructure filters despite being highly profitable.
+# When headline_type matches, postfilters are relaxed (not removed):
+#   pub_to_recv: SKIP (legitimate market reaction, not front-running)
+#   fill_spread: 8% (spreads widen during fast moves but settle)
+#   momentum_exhaustion: SKIP (these headlines sustain momentum)
+#   late_entry: 180s (large institutions slower to react)
+#   pre_news_runup: 10% (some pre-positioning is normal for defense)
+# Activity confirmation, spread at reception, selling pressure, recv_to_fill,
+# and circuit breaker still apply at normal thresholds.
+#
+# These match the universal triage prompt types (prompts/headline_types/universal_triage.txt).
+# Broad categories — the LLM handles specifics (Navy, Army, DARPA all → military_contract).
+HIGH_CONVICTION_HEADLINE_TYPES = frozenset({
+    "government_contract",   # Any government deal (federal, state, NASA, DARPA, agency awards)
+    "military_contract",     # Any military/defense deal (Army, Navy, Air Force, weapons, drones, munitions)
+    "defense_order",         # Orders from defense companies or for defense products
+})
+
+
+# ============================================================
 # DUPLICATE POSITION & COOLDOWN PROTECTION
 # ============================================================
 # Track active positions and recently exited tickers to prevent:
@@ -1792,6 +1816,8 @@ async def process_imminent_article(
     event_published_at: Optional[datetime] = None,
     # AI-determined position size for immediate entry
     event_position_size: Optional[str] = None,
+    # Headline type for high-conviction bypass
+    event_headline_type: Optional[str] = None,
 ) -> None:
     """
     Process an IMMINENT classification result and publish trade request if valid.
@@ -1813,6 +1839,7 @@ async def process_imminent_article(
         event_title: Title from the classification event (for logging)
         event_published_at: Published_at from the classification event (for stats collection)
         event_position_size: AI-determined position size (SMALL, MODERATE, LARGE, MAX)
+        event_headline_type: Headline type from HeadlineTypeClassifier (for high-conviction bypass)
     """
     try:
         # Check if we should process this classification
@@ -1921,6 +1948,23 @@ async def process_imminent_article(
             )
             await _record_postfilter_skip(article_id, "postfilter_blacklisted")
             return
+
+        # ============================================================
+        # 🎖️ HIGH-CONVICTION HEADLINE TYPE CHECK
+        # ============================================================
+        # If headline_type matches HIGH_CONVICTION_HEADLINE_TYPES, relax postfilters.
+        # These headline types (gov/military contracts) reliably produce sustained moves.
+        headline_type = event_headline_type
+        is_high_conviction = headline_type in HIGH_CONVICTION_HEADLINE_TYPES if headline_type else False
+
+        if is_high_conviction:
+            logger.info(
+                "🎖️ HIGH-CONVICTION HEADLINE: Postfilters will be relaxed",
+                ticker=ticker,
+                headline_type=headline_type,
+                article_id=article_id,
+                relaxed_filters="pub_to_recv=SKIP, fill_spread=8%, momentum_exhaustion=SKIP, late_entry=180s, pre_news_runup=10%",
+            )
 
         # ============================================================
         # 🚀 AI + CONFLUENCE GATING: Require STRENGTH or SURGE to trade
@@ -2116,6 +2160,9 @@ async def process_imminent_article(
             # The 70% raw check is the real gate.
         )
         confluence_metadata["is_mega_trade"] = is_mega_trade
+        confluence_metadata["is_high_conviction"] = is_high_conviction
+        if headline_type:
+            confluence_metadata["headline_type"] = headline_type
 
         if is_mega_trade:
             logger.info(
@@ -2350,7 +2397,7 @@ async def process_imminent_article(
         # bid likely dipped causing ~5% fill spread — blocking a +69% winner.
         # Fix: If the initial spread was tight (< 3%) and widening is modest (< 3pp),
         # allow it — this is temporary noise, not genuine spread deterioration.
-        MAX_FILL_SPREAD_PCT = 4.5  # Base threshold
+        MAX_FILL_SPREAD_PCT = 8.0 if is_high_conviction else 4.5  # High-conviction: 8% (spreads widen during fast moves)
         SPREAD_TIGHT_INITIAL = 3.0  # Initial spread considered "tight"
         SPREAD_WIDENING_TOLERANCE = 3.0  # Max acceptable widening from initial (percentage points)
 
@@ -2513,21 +2560,32 @@ async def process_imminent_article(
             absolute_move = abs(initial_ask - pub_time_ask)
 
             if pub_to_recv_pct > effective_max_pct and absolute_move >= MIN_ABSOLUTE_ASK_MOVE:
-                logger.info(
-                    "⏭️ AUTO-TRADE SKIPPED: Ask moved too much between publication and reception",
-                    ticker=ticker,
-                    pub_time_ask=round(pub_time_ask, 4),
-                    recv_time_ask=round(initial_ask, 4),
-                    pub_to_recv_pct=round(pub_to_recv_pct, 2),
-                    absolute_move=round(absolute_move, 4),
-                    max_allowed_pct=effective_max_pct,
-                    min_absolute=MIN_ABSOLUTE_ASK_MOVE,
-                    is_mega_trade=is_mega_trade,
-                    article_id=article_id,
-                    reason="Front-running detected: move happened BEFORE we received the article"
-                )
-                await _record_postfilter_skip(article_id, f"postfilter_pub_to_recv:{pub_to_recv_pct:.1f}%")
-                return
+                # High-conviction headlines: skip pub_to_recv filter (legitimate market reaction)
+                if is_high_conviction:
+                    logger.info(
+                        "🎖️ HIGH-CONVICTION BYPASS: pub_to_recv filter skipped (legitimate market reaction to gov/mil contract)",
+                        ticker=ticker,
+                        pub_to_recv_pct=round(pub_to_recv_pct, 2),
+                        normal_max=effective_max_pct,
+                        headline_type=headline_type,
+                        article_id=article_id,
+                    )
+                else:
+                    logger.info(
+                        "⏭️ AUTO-TRADE SKIPPED: Ask moved too much between publication and reception",
+                        ticker=ticker,
+                        pub_time_ask=round(pub_time_ask, 4),
+                        recv_time_ask=round(initial_ask, 4),
+                        pub_to_recv_pct=round(pub_to_recv_pct, 2),
+                        absolute_move=round(absolute_move, 4),
+                        max_allowed_pct=effective_max_pct,
+                        min_absolute=MIN_ABSOLUTE_ASK_MOVE,
+                        is_mega_trade=is_mega_trade,
+                        article_id=article_id,
+                        reason="Front-running detected: move happened BEFORE we received the article"
+                    )
+                    await _record_postfilter_skip(article_id, f"postfilter_pub_to_recv:{pub_to_recv_pct:.1f}%")
+                    return
 
             logger.info(
                 "✅ PUB→RECV CHECK PASSED",
@@ -2650,7 +2708,7 @@ async def process_imminent_article(
         # If it ran 5%+ in the 30 minutes prior, the news may already be priced in.
         # Could indicate: insider buying, leaked news, or technical breakout unrelated to news.
         PRE_NEWS_LOOKBACK_SECONDS = 1800  # 30 minutes
-        PRE_NEWS_RUNUP_THRESHOLD = 5.0  # 5%
+        PRE_NEWS_RUNUP_THRESHOLD = 10.0 if is_high_conviction else 5.0  # High-conviction: 10% (pre-positioning normal for defense)
 
         pre_news_change_pct = None
         stream_manager = getattr(quote_fetcher, 'stream_manager', None) if quote_fetcher else None
@@ -2729,18 +2787,29 @@ async def process_imminent_article(
             confluence_runup_pct = ((confluence_max_price - entry_reference_price) / entry_reference_price) * 100
 
             if confluence_runup_pct > MAX_CONFLUENCE_RUNUP_PCT:
-                logger.info(
-                    "⏭️ AUTO-TRADE SKIPPED: Momentum exhausted (max price >5% above entry)",
-                    ticker=ticker,
-                    entry_reference_price=round(entry_reference_price, 4),
-                    confluence_max_price=round(confluence_max_price, 4),
-                    confluence_runup_pct=round(confluence_runup_pct, 2),
-                    max_allowed=MAX_CONFLUENCE_RUNUP_PCT,
-                    article_id=article_id,
-                    reason="Max confluence price is above our entry price - entering at the top"
-                )
-                await _record_postfilter_skip(article_id, f"postfilter_momentum_exhausted:{confluence_runup_pct:.1f}%")
-                return
+                # High-conviction headlines: skip momentum exhaustion (these sustain momentum)
+                if is_high_conviction:
+                    logger.info(
+                        "🎖️ HIGH-CONVICTION BYPASS: momentum_exhaustion filter skipped (gov/mil contracts sustain momentum)",
+                        ticker=ticker,
+                        confluence_runup_pct=round(confluence_runup_pct, 2),
+                        normal_max=MAX_CONFLUENCE_RUNUP_PCT,
+                        headline_type=headline_type,
+                        article_id=article_id,
+                    )
+                else:
+                    logger.info(
+                        "⏭️ AUTO-TRADE SKIPPED: Momentum exhausted (max price >5% above entry)",
+                        ticker=ticker,
+                        entry_reference_price=round(entry_reference_price, 4),
+                        confluence_max_price=round(confluence_max_price, 4),
+                        confluence_runup_pct=round(confluence_runup_pct, 2),
+                        max_allowed=MAX_CONFLUENCE_RUNUP_PCT,
+                        article_id=article_id,
+                        reason="Max confluence price is above our entry price - entering at the top"
+                    )
+                    await _record_postfilter_skip(article_id, f"postfilter_momentum_exhausted:{confluence_runup_pct:.1f}%")
+                    return
 
             logger.info(
                 "✅ MOMENTUM CHECK PASSED",
@@ -2760,7 +2829,12 @@ async def process_imminent_article(
         # If we're trying to trade too late after publication, skip.
         # For late trades (confirmed via monitor_for_late_entry), allow up to 35s.
         # For normal trades, max 15s from publication (many arrive in 10-15s batches).
-        max_entry_delay = 95.0 if is_late_trade else 15.0
+        if is_high_conviction:
+            max_entry_delay = 180.0  # High-conviction: 3 min (institutions slower to react)
+        elif is_late_trade:
+            max_entry_delay = 95.0
+        else:
+            max_entry_delay = 15.0
         now_utc = datetime.now(timezone.utc)
         pub_time_utc = published_at.replace(tzinfo=timezone.utc) if published_at.tzinfo is None else published_at
         entry_delay_seconds = (now_utc - pub_time_utc).total_seconds()
@@ -2832,6 +2906,8 @@ async def process_imminent_article(
             "sector": confluence_metadata.get("sector"),
             "industry": confluence_metadata.get("industry"),
             "sector_is_hot": confluence_metadata.get("sector_is_hot", False),
+            "is_high_conviction": is_high_conviction,
+            "headline_type": headline_type,
         }
         # All filters passed for executed trades
         filters_checked = {
@@ -2971,6 +3047,7 @@ class AutoTradeService:
             tickers=domain_event.tickers,
             has_published_at=domain_event.published_at is not None,
             position_size=domain_event.position_size,
+            headline_type=domain_event.headline_type,
             enabled=self.is_enabled
         )
         await process_imminent_article(
@@ -2987,6 +3064,8 @@ class AutoTradeService:
             event_published_at=domain_event.published_at,
             # AI-determined position size for immediate entry
             event_position_size=domain_event.position_size,
+            # Headline type for high-conviction bypass
+            event_headline_type=domain_event.headline_type,
         )
     
     async def start(self) -> None:

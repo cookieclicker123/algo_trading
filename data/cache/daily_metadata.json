@@ -1,5 +1,5 @@
 {
-  "date": "2026-03-03",
+  "date": "2026-03-06",
   "data": {
     "ORCL": {
       "market_cap_millions": 459538.399232
@@ -16410,6 +16410,10 @@
     "FRMM": {
       "market_cap_millions": 58.367552,
       "float_shares": 14312613
+    },
+    "LLYVK": {
+      "market_cap_millions": 9045.054464,
+      "float_shares": 47949720
     }
   }
 }

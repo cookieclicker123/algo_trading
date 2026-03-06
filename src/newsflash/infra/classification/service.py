@@ -101,6 +101,11 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
         # Multi-sector classifier (initialized lazily when metadata_cache is set)
         self._sector_classifier: Optional[SectorClassifier] = None
 
+        # Triage cache: article_id → headline_type from prefilter LLM triage
+        # Reused in _classify_via_sector to avoid duplicate LLM call.
+        # Auto-evicts oldest entries when size > 50 (prevents memory leak from skipped articles).
+        self._triage_cache: dict = {}
+
         # Stateful: Groq client (initialized if enabled)
         self.client: Optional[AsyncGroq] = None
         if enabled and api_key:
@@ -627,14 +632,58 @@ Summary: {summary}"""
                 spread_pct = nbbo_snapshot.get("spread_pct", 0)
                 MAX_SPREAD_PCT_PREFILTER = 4.5
 
-                if spread_pct and spread_pct > MAX_SPREAD_PCT_PREFILTER:
+                # HIGH-CONVICTION TRIAGE: LLM classifies headline type before spread check.
+                # If headline is high-conviction (e.g. military_contract), relax spread from 4.5% → 7%.
+                # MTEK lesson: blocked at 5.13% spread but ran +49% on Navy contract.
+                # This triage result is stored and reused downstream as headline_type for postfilter bypass.
+                # Only call LLM if spread would actually fail the normal threshold (avoid wasting API calls).
+                HIGH_CONVICTION_PREFILTER_TYPES = frozenset({
+                    "government_contract", "military_contract", "defense_order",
+                })
+                MAX_SPREAD_PCT_HIGH_CONVICTION = 7.0
+                triage_headline_type = None  # Stored for reuse in _classify_via_sector
+
+                if spread_pct and spread_pct > MAX_SPREAD_PCT_PREFILTER and spread_pct <= MAX_SPREAD_PCT_HIGH_CONVICTION:
+                    # Spread in 4.5%-7% range — worth triaging (above 7% is untradeable regardless)
+                    try:
+                        from ...shared.statistics.headline_classifier import get_headline_classifier
+                        triage_classifier = get_headline_classifier()
+                        triage_headline_type = await triage_classifier.triage(
+                            headline=request_data.article_title or "",
+                            timeout=3.0,
+                        )
+                        logger.info(
+                            f"🎖️ HEADLINE TRIAGE: {triage_headline_type or 'failed'}",
+                            article_id=request_data.article_id,
+                            ticker=primary_ticker,
+                            headline_type=triage_headline_type,
+                            spread_pct=round(spread_pct, 2),
+                        )
+                    except Exception as e:
+                        logger.debug(f"Headline triage failed (non-blocking): {e}")
+
+                is_high_conviction_headline = triage_headline_type in HIGH_CONVICTION_PREFILTER_TYPES
+                effective_spread_threshold = MAX_SPREAD_PCT_HIGH_CONVICTION if is_high_conviction_headline else MAX_SPREAD_PCT_PREFILTER
+
+                if is_high_conviction_headline and spread_pct and spread_pct > MAX_SPREAD_PCT_PREFILTER:
+                    logger.info(
+                        "✅ HIGH-CONVICTION HEADLINE: Relaxing spread prefilter (4.5% → 7%)",
+                        article_id=request_data.article_id,
+                        ticker=primary_ticker,
+                        spread_pct=round(spread_pct, 2),
+                        headline_type=triage_headline_type,
+                        effective_threshold=MAX_SPREAD_PCT_HIGH_CONVICTION,
+                    )
+
+                if spread_pct and spread_pct > effective_spread_threshold:
                     logger.info(
                         "⏭️ MICROSTRUCTURE FILTER: Spread too wide for profitable trade",
                         article_id=request_data.article_id,
                         ticker=primary_ticker,
                         spread=round(spread, 4),
                         spread_pct=round(spread_pct, 2),
-                        threshold_pct=MAX_SPREAD_PCT_PREFILTER,
+                        threshold_pct=effective_spread_threshold,
+                        headline_type=triage_headline_type,
                         reason="Wide spreads eat into profits on entry/exit"
                     )
                     await self._publish_skipped_event(infra_event, f"prefilter_spread_too_wide:{round(spread_pct, 2)}%")
@@ -646,6 +695,15 @@ Summary: {summary}"""
                     spread=round(spread, 4) if spread else "unknown",
                     spread_pct=round(spread_pct, 2) if spread_pct else "unknown"
                 )
+
+                # Store triage result for reuse in _classify_via_sector
+                # (avoids a second LLM call for headline_type after TRADE classification)
+                if triage_headline_type:
+                    self._triage_cache[request_data.article_id] = triage_headline_type
+                    # Evict oldest entries to prevent memory leak
+                    if len(self._triage_cache) > 50:
+                        oldest_key = next(iter(self._triage_cache))
+                        del self._triage_cache[oldest_key]
 
             # Step 4: UNIVERSAL CATALYST CHECK (before industry-specific LLM)
             # ====================================================================
@@ -914,12 +972,37 @@ Summary: {summary}"""
 
             # Handle classification result
             if classification == "TRADE":
+                # Get headline_type: reuse prefilter triage if available, else classify now
+                headline_type = self._triage_cache.pop(request_data.article_id, None)
+                if not headline_type:
+                    # No triage cached (spread was fine, triage wasn't needed at prefilter).
+                    # Classify now — this adds ~200-500ms but only for TRADE results.
+                    try:
+                        from ...shared.statistics.headline_classifier import get_headline_classifier
+                        headline_classifier = get_headline_classifier()
+                        headline_type = await headline_classifier.triage(
+                            headline=headline,
+                            timeout=3.0,
+                        )
+                    except Exception as e:
+                        logger.debug(f"Headline type classification failed (non-blocking): {e}")
+
+                if headline_type:
+                    logger.info(
+                        f"Headline type: {headline_type}",
+                        article_id=request_data.article_id,
+                        ticker=primary_ticker,
+                        headline_type=headline_type,
+                        source="triage_cache" if request_data.article_id not in self._triage_cache else "fresh_call",
+                    )
+
                 # TRADE signal → publish "imminent" to trigger AutoTradeService
                 response_data = InfrastructureClassificationResponseData(
                     classification="imminent",
                     confidence="HIGH",
                     reasoning=f"{sector}/{industry} - LLM classified as tradeable",
-                    position_size=position_size
+                    position_size=position_size,
+                    headline_type=headline_type,
                 )
 
                 completed_event = ClassificationCompletedInfrastructureEvent(

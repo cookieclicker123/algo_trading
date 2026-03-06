@@ -1,0 +1,47 @@
+Classify this financial news headline into exactly ONE type from this list:
+
+government_contract
+military_contract
+defense_order
+acquisition_target
+acquisition_announced
+fda_approval
+fda_clearance
+clinical_trial_positive
+clinical_trial_negative
+partnership
+licensing_agreement
+major_contract
+earnings_beat
+earnings_miss
+guidance_raise
+guidance_cut
+product_launch
+offering_announced
+analyst_upgrade
+analyst_downgrade
+debt_restructuring
+grant_funding
+patent_granted
+executive_change
+restructuring
+facility_expansion
+store_expansion
+drill_results_positive
+stock_buyback
+lawsuit_settlement
+regulatory_approval
+other
+
+Rules:
+- government_contract: ANY government deal (federal, state, NASA, DARPA, DoD, agency awards)
+- military_contract: ANY military/defense deal (Army, Navy, Air Force, Space Force, foreign military sales, weapons, drones, munitions, counter-UAS, satellites for defense)
+- defense_order: orders from defense companies or for defense products (not government directly)
+- major_contract: large commercial contracts with specific dollar amounts or named counterparties
+- acquisition_target: company TO BE acquired
+- acquisition_announced: company ACQUIRING another
+- If unsure between military_contract and government_contract, prefer military_contract for anything involving armed forces, weapons, or defense systems
+
+Headline: {headline}
+
+Return ONLY the type, nothing else.
