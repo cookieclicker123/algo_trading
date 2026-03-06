@@ -23,10 +23,16 @@ The fixed floors are wider than the old 50% rule to avoid volatility-induced
 stopouts. Example: CETX went +9.5% then reversed - with 10% tier, would have
 captured 50% at the top instead of full loss.
 
-STOP LOSS (5% below entry price):
+STOP LOSS (5% below entry price, 12% for high-conviction):
 - First 5 seconds: 0.5s confirmation (brief spikes are noise, not signal)
 - After 5 seconds: Immediate execution (if crashing, it's real)
 - Rationale: SMTK went -7% at 1.8s then +37% at 2.0s - grace period prevents false stops
+
+HIGH-CONVICTION TRADES (gov/military contracts):
+- Wider tiers: +25% (34%), +40% (50%), +60% (100%)
+- 12% stop loss (MTEK had -9.99% MAE then ran +49%)
+- Trailing stop after first tier: 15pp below peak (replaces fixed floors)
+- No early exit (trailing stop handles fading moves)
 
 Uses WebSocket for real-time price monitoring (sub-100ms latency).
 Falls back to 500ms polling if WebSocket unavailable.
@@ -100,6 +106,21 @@ FLOOR_RULE_MULTIPLIER = 0.25  # Fallback: 25% of last exit level
 EARLY_EXIT_MINUTES = 5.0  # Check after 5 minutes of holding
 EARLY_EXIT_PROFIT_PCT = 0.10  # Exit if profit >= 10%
 
+# High-conviction exit configuration (gov/military contracts)
+# Wider tiers because these headlines sustain momentum (PRSO +72%, SYNX +62%)
+# Normal tiers at 15/20/30% leave too much on the table for sustained movers.
+HIGH_CONVICTION_TIERS = [
+    (0.25, 0.34),  # +25%: Exit 34% of position
+    (0.40, 0.50),  # +40%: Exit 50% of remaining
+    (0.60, 1.00),  # +60%: Exit remaining
+]
+
+# Trailing stop replaces fixed floors for high-conviction trades.
+# After first tier exit, tracks peak profit and exits remaining if price
+# drops 15 percentage points below peak.
+# Example: peak at +72%, trailing stop exits at +57%.
+HIGH_CONVICTION_TRAILING_PCT = 0.15  # 15 percentage points below peak
+
 # Overnight risk configuration - force exit before extended hours close
 # Rationale: If still holding at 8 PM ET (post-market close), stuck until 4 AM ET next day.
 # Overnight gap risk is unacceptable - force exit 10 minutes before session end.
@@ -159,9 +180,11 @@ class Position:
     # Only manual /exit, 10-min scheduled exit (ExitTradeUseCase), and session-end force exit remain.
     is_mega_trade: bool = False
 
-    # === HIGH-CONVICTION: Wider stop loss ===
-    # Gov/military contract headlines use mega-trade stop loss (7.5%) but keep normal exit logic.
+    # === HIGH-CONVICTION: Wider stop loss + wider tiers + trailing stop ===
+    # Gov/military contract headlines: 12% stop, wider tiers (25/40/60%), trailing stop after T1.
     is_high_conviction: bool = False
+    trailing_stop_active: bool = False  # Activated after first high-conviction tier exit
+    trailing_stop_peak_pct: float = 0.0  # Highest profit % since trailing stop activation
 
     # === MOMENTUM TRACKING (Phase 1: Data Collection) ===
     # After Tier 2 (+20%), track price trajectory for comparison analysis.
@@ -220,7 +243,10 @@ class Position:
 
     @property
     def floor_price(self) -> Optional[float]:
-        """Calculate floor price based on fixed floor levels per tier."""
+        """Calculate floor price based on fixed floor levels per tier.
+        Returns None for high-conviction trades (trailing stop replaces floor)."""
+        if self.is_high_conviction and self.trailing_stop_active:
+            return None  # Trailing stop handles exit protection
         if self.last_exit_threshold is not None:
             # Use fixed floor from TIER_FLOOR_PCT if available, else fallback to multiplier
             floor_pct = TIER_FLOOR_PCT.get(self.last_exit_threshold)
@@ -232,10 +258,18 @@ class Position:
         return None
 
     @property
+    def _exit_thresholds(self) -> list:
+        """Get exit tier thresholds based on trade type."""
+        if self.is_high_conviction:
+            return HIGH_CONVICTION_TIERS
+        return TIERED_EXIT_THRESHOLDS
+
+    @property
     def next_tier_threshold(self) -> Optional[tuple[float, float]]:
         """Get next tiered exit threshold (profit_pct, exit_fraction) or None if all tiers complete."""
-        if self.next_tier_index < len(TIERED_EXIT_THRESHOLDS):
-            return TIERED_EXIT_THRESHOLDS[self.next_tier_index]
+        thresholds = self._exit_thresholds
+        if self.next_tier_index < len(thresholds):
+            return thresholds[self.next_tier_index]
         return None
 
 
@@ -691,6 +725,10 @@ class PositionManager:
             if profit_pct > position.highest_profit_pct:
                 position.highest_profit_pct = profit_pct
 
+            # Update trailing stop peak (high-conviction trades)
+            if position.trailing_stop_active and profit_pct > position.trailing_stop_peak_pct:
+                position.trailing_stop_peak_pct = profit_pct
+
             # Check for manual exit request first (always allowed)
             if self._manual_exits.get(ticker):
                 if ticker not in self._exits_in_progress:
@@ -996,8 +1034,35 @@ class PositionManager:
                         position.breakeven_breach_time = None
                         position.stop_breach_time = None
 
+            # 📉 TRAILING STOP CHECK (high-conviction only — replaces floor rule)
+            # After first tier exit, tracks peak and exits if price drops 15pp below peak.
+            # Example: peak +72%, trailing stop fires at +57%.
+            if position.is_high_conviction and position.trailing_stop_active and position.shares_remaining > 0:
+                trailing_exit_level = position.trailing_stop_peak_pct - HIGH_CONVICTION_TRAILING_PCT
+                if profit_pct <= trailing_exit_level:
+                    if ticker not in self._exits_in_progress:
+                        self._exits_in_progress.add(ticker)
+                        logger.warning(
+                            f"📉 TRAILING STOP TRIGGERED: Dropped 15pp from peak +{position.trailing_stop_peak_pct*100:.1f}%",
+                            ticker=ticker,
+                            current_price=current_price,
+                            entry_price=position.entry_price,
+                            profit_pct=f"+{profit_pct*100:.1f}%",
+                            peak_pct=f"+{position.trailing_stop_peak_pct*100:.1f}%",
+                            trailing_exit_level=f"+{trailing_exit_level*100:.1f}%",
+                            shares_remaining=position.shares_remaining,
+                        )
+                        asyncio.create_task(self._execute_exit_async(
+                            position,
+                            position.shares_remaining,
+                            "hc_trailing_stop",
+                            profit_pct
+                        ))
+                    return
+
             # 📉 FLOOR RULE CHECK: Exit if price drops to fixed floor level
-            # After +10% exit, floor is +2.5%. After +15% exit, floor is +5%.
+            # After +15% exit, floor is +5%. After +20% exit, floor is +10%.
+            # (Skipped for high-conviction — trailing stop handles this)
             if position.floor_price and position.shares_remaining > 0:
                 if current_price <= position.floor_price:
                     if ticker not in self._exits_in_progress:
@@ -1027,29 +1092,31 @@ class PositionManager:
             # 🚀 EARLY EXIT CHECK: Exit entire position if profit >= 10% after 5 minutes
             # Takes the win early instead of waiting for tiered exits or 10-min auto-exit.
             # Rationale: ELBM hit +11% at 6:55 but was only +6% at 10 min. Capture the move.
-            now = datetime.now()
-            minutes_held = (now - position.entry_time).total_seconds() / 60.0
-            if (minutes_held >= EARLY_EXIT_MINUTES and
-                profit_pct >= EARLY_EXIT_PROFIT_PCT and
-                position.shares_remaining > 0):
-                if ticker not in self._exits_in_progress:
-                    self._exits_in_progress.add(ticker)
-                    logger.info(
-                        f"🚀 EARLY EXIT: +{profit_pct*100:.1f}% profit after {minutes_held:.1f} min - exiting entire position",
-                        ticker=ticker,
-                        current_price=current_price,
-                        entry_price=position.entry_price,
-                        profit_pct=f"+{profit_pct*100:.1f}%",
-                        minutes_held=round(minutes_held, 1),
-                        shares_remaining=position.shares_remaining,
-                        threshold=f"+{EARLY_EXIT_PROFIT_PCT*100:.0f}% after {EARLY_EXIT_MINUTES:.0f} min",
-                    )
-                    asyncio.create_task(self._execute_exit_async(
-                        position,
-                        position.shares_remaining,
-                        "early_exit_10pct",
-                        profit_pct
-                    ))
+            # Skipped for high-conviction — trailing stop handles fading moves better.
+            if not position.is_high_conviction:
+                now = datetime.now()
+                minutes_held = (now - position.entry_time).total_seconds() / 60.0
+                if (minutes_held >= EARLY_EXIT_MINUTES and
+                    profit_pct >= EARLY_EXIT_PROFIT_PCT and
+                    position.shares_remaining > 0):
+                    if ticker not in self._exits_in_progress:
+                        self._exits_in_progress.add(ticker)
+                        logger.info(
+                            f"🚀 EARLY EXIT: +{profit_pct*100:.1f}% profit after {minutes_held:.1f} min - exiting entire position",
+                            ticker=ticker,
+                            current_price=current_price,
+                            entry_price=position.entry_price,
+                            profit_pct=f"+{profit_pct*100:.1f}%",
+                            minutes_held=round(minutes_held, 1),
+                            shares_remaining=position.shares_remaining,
+                            threshold=f"+{EARLY_EXIT_PROFIT_PCT*100:.0f}% after {EARLY_EXIT_MINUTES:.0f} min",
+                        )
+                        asyncio.create_task(self._execute_exit_async(
+                            position,
+                            position.shares_remaining,
+                            "early_exit_10pct",
+                            profit_pct
+                        ))
                 return
 
             # 📈 TIERED EXIT CHECK: Take profit at predefined thresholds
@@ -1071,6 +1138,18 @@ class PositionManager:
                             position.next_tier_index += 1
                             position.total_exits_taken += 1
 
+                            # === HIGH-CONVICTION: Activate trailing stop after first tier ===
+                            if position.is_high_conviction and not position.trailing_stop_active:
+                                position.trailing_stop_active = True
+                                position.trailing_stop_peak_pct = profit_pct
+                                logger.info(
+                                    f"📈 TRAILING STOP ACTIVATED: Tracking peak from +{profit_pct*100:.1f}%, "
+                                    f"will exit if drops 15pp below peak",
+                                    ticker=ticker,
+                                    current_price=current_price,
+                                    trailing_exit_at=f"+{(profit_pct - HIGH_CONVICTION_TRAILING_PCT)*100:.1f}%",
+                                )
+
                             # === MOMENTUM TRACKING: Start after Tier 2 (+20%) ===
                             # Tier 2 is index 1, threshold 0.20 (+20%)
                             # After triggering tier 2, next_tier_index becomes 2
@@ -1088,11 +1167,16 @@ class PositionManager:
                                     profit_pct=f"+{profit_pct*100:.1f}%",
                                 )
 
-                            # Get new floor from fixed mapping
-                            new_floor_pct = TIER_FLOOR_PCT.get(threshold_pct)
-                            new_floor_str = f"+{new_floor_pct*100:.1f}%" if new_floor_pct else "N/A (fully exited)"
+                            # Get new floor from fixed mapping (not used for high-conviction — trailing stop instead)
+                            if position.is_high_conviction:
+                                new_floor_str = "trailing_stop"
+                            else:
+                                new_floor_pct = TIER_FLOOR_PCT.get(threshold_pct)
+                                new_floor_str = f"+{new_floor_pct*100:.1f}%" if new_floor_pct else "N/A (fully exited)"
+                            exit_label = "HC TIERED EXIT" if position.is_high_conviction else "TIERED EXIT"
+                            exit_reason = f"hc_tier_{threshold_pct*100:.0f}pct" if position.is_high_conviction else f"tier_{threshold_pct*100:.0f}pct"
                             logger.info(
-                                f"📈 TIERED EXIT: +{threshold_pct*100:.0f}% threshold reached - exiting {exit_fraction*100:.0f}%",
+                                f"📈 {exit_label}: +{threshold_pct*100:.0f}% threshold reached - exiting {exit_fraction*100:.0f}%",
                                 ticker=ticker,
                                 current_price=current_price,
                                 entry_price=position.entry_price,
@@ -1100,13 +1184,13 @@ class PositionManager:
                                 shares_to_exit=shares_to_exit,
                                 shares_remaining_after=position.shares_remaining - shares_to_exit,
                                 tier_index=position.next_tier_index,
-                                total_tiers=len(TIERED_EXIT_THRESHOLDS),
+                                total_tiers=len(position._exit_thresholds),
                                 new_floor=new_floor_str,
                             )
                             asyncio.create_task(self._execute_exit_async(
                                 position,
                                 shares_to_exit,
-                                f"tier_{threshold_pct*100:.0f}pct",
+                                exit_reason,
                                 profit_pct
                             ))
                     return

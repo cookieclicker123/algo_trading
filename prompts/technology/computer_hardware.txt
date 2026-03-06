@@ -14,15 +14,20 @@ INDUSTRY CONTEXT:
 TRADE SIGNALS
 ===============================================================================
 
-CONTRACTS (33% of winners - KEY SIGNAL)
+CONTRACTS & DEFENSE/MILITARY (33% of winners - KEY SIGNAL)
 - Government/defense contracts
 - Enterprise server deals
 - Data center contracts
 - Educational contracts
+- Defense/military investments, partnerships, or orders (drones, munitions, counter-UAS, sensors)
+- NOTE: Many hardware companies pivot to or participate in defense — this is ALWAYS tradeable
 - Examples:
    "Wins $50M Government Server Contract" -> TRADE
    "Secures Enterprise Data Center Deal" -> TRADE
    "Awarded Large Education Sector Contract" -> TRADE
+   "Announces Strategic Investment in Precision Loitering Munition Innovator" -> TRADE
+   "Selected for Military Drone Identification System" -> TRADE
+   "Receives Tactical Systems Order from Military Force" -> TRADE
 
 PARTNERSHIPS (15% of winners)
 - OEM partnerships
@@ -158,17 +163,23 @@ PROVISIONAL/LIMITED (Not final or material)
 SECTOR MISMATCH (Company doing something outside their business)
 ├─ If a company announces news completely unrelated to their industry
 ├─ This often signals desperation or pump scheme
+├─ EXCEPTION: Defense/military contracts, investments, or orders are ALWAYS valid
+│   regardless of the company's primary industry — many tech companies serve defense
 ├─ E.g., Internet Retail company doing submarines, Solar company doing AI
 └─ Examples:
    "E-commerce Company Enters Defense Sector" → SKIP (mismatch)
+   "Hardware Company Invests in Military Munitions" → TRADE (defense = always valid)
 
 CASH OUTFLOWS (Spending money, not making it)
 ├─ "Acquires" / "To Acquire" = company SPENDING money
 ├─ Acquisitions often dilute or overextend the acquirer
 ├─ EXCEPTION: If the company is BEING acquired (target) → TRADE
+├─ EXCEPTION: Strategic investments in defense/military technology → TRADE
+│   (defense pivots are transformational for small companies)
 └─ Examples:
    "To Acquire AI Startup" → SKIP (spending money)
    "To Be Acquired For $X Per Share" → TRADE (being acquired)
+   "Strategic Investment in Military Technology Company" → TRADE (defense pivot)
 
 
 DILUTION/OFFERINGS (Company raising cash = stock goes DOWN)
@@ -272,14 +283,15 @@ DECISION RULES
 ===============================================================================
 
 1. Government/enterprise contracts = strongest signal (must have $ value or specific customer)
-2. AI/quantum hardware PRODUCT LAUNCHES = TRADE (actual product, not R&D)
-3. Major tech partnerships WITH NAMED COMPANY = TRADE (Microsoft, Dell, etc.)
-4. Share repurchase/buyback programs = always TRADE (never defensive)
-5. Earnings = always SKIP
-6. Trade show attendance = always SKIP
-7. Market share commentary = SKIP
-8. "Strategic upgrade/initiative" without specific deal = SKIP
-9. R&D announcements (accelerates, expands, invests in R&D) = SKIP
-10. Supply chain access/partnership without contract value = SKIP
+2. Defense/military contracts, investments, or orders = ALWAYS TRADE (never sector mismatch)
+3. AI/quantum hardware PRODUCT LAUNCHES = TRADE (actual product, not R&D)
+4. Major tech partnerships WITH NAMED COMPANY = TRADE (Microsoft, Dell, etc.)
+5. Share repurchase/buyback programs = always TRADE (never defensive)
+6. Earnings = always SKIP
+7. Trade show attendance = always SKIP
+8. Market share commentary = SKIP
+9. "Strategic upgrade/initiative" without specific deal = SKIP
+10. R&D announcements (accelerates, expands, invests in R&D) = SKIP
+11. Supply chain access/partnership without contract value = SKIP
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

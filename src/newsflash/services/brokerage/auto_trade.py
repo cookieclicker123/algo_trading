@@ -1980,6 +1980,10 @@ async def process_imminent_article(
         # that's a false positive to be fixed in prompt refinement, not a sizing decision.
         # Position size = $4 base × confluence_multiplier (0.5-1.0)
         ai_position_size = event_position_size or "MAX"  # Log what AI sent, but always use MAX
+        # High-conviction trades: minimum MODERATE (defense/military headlines are always strong)
+        if is_high_conviction and ai_position_size == "SMALL":
+            ai_position_size = "MODERATE"
+            logger.info("HC POSITION SIZE OVERRIDE: SMALL → MODERATE", ticker=ticker)
         ai_conviction = ConvictionLevel.VERY_HIGH  # Always $4 base
 
         logger.info(

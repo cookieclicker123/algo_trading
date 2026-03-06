@@ -42,6 +42,17 @@ CONTRACTS
    "Secures Enterprise Services Contract" -> TRADE
    "Signs Event/Venue Contract" -> TRADE
 
+STRATEGIC INVESTMENTS (Investor putting large capital into the company)
+- Strategic investor commits specific dollar amount at specific price per share
+- Large capital injection with management participation or board seats
+- Institutional investors taking significant stake
+- Key signals: specific $ amount, specific price per share, named investor
+- NOT the same as dilutive offerings (see DILUTION section for distinction)
+- Examples:
+   "Strategic Investor Agrees to $80 Million Investment at $2.00 Per Share" -> TRADE MAX
+   "Institutional Investor Commits $50M at Premium to Market" -> TRADE LARGE
+   "Investor Group Acquires 20% Stake for $30M" -> TRADE LARGE
+
 MAJOR EXPANSION
 - Significant rollout
 - International expansion
@@ -165,11 +176,16 @@ DILUTION/OFFERINGS (Company raising cash = stock goes DOWN)
 ├─ "Private placement", "PIPE", "Gross proceeds", "Net proceeds" = dilution
 ├─ Even "at market" offerings signal the company needs cash (weakness)
 ├─ The stock almost ALWAYS drops on offerings - sellers front-run dilution
+├─ EXCEPTION: Strategic investor committing large $ at specific price per share = TRADE
+│   (This is an investor BUYING IN, not the company desperately raising cash)
+│   Key difference: "Investor agrees to $80M at $2/share" = bullish commitment
+│   vs "Company prices $80M offering" = dilutive capital raise
 └─ Examples:
    "Enters Into Securities Purchase Agreement" → SKIP (dilution)
    "Prices $50M Public Offering" → SKIP (dilution)
    "Announces Registered Direct Offering" → SKIP (dilution)
    "Closes Private Placement" → SKIP (dilution)
+   "Strategic Investor Agrees to $80M Investment at $2.00 Per Share" → TRADE (investor buying in)
 
 VAGUE PARTNERSHIPS (No concrete deliverables)
 ├─ "Partnership for innovation" = vague, no specific product or revenue
@@ -259,11 +275,13 @@ DECISION RULES
 ===============================================================================
 
 1. M&A/buyout offers = strongest TRADE signal
-2. Major franchise deals = TRADE
-3. Brand/celebrity partnerships = TRADE
-4. Share repurchase/buyback programs = always TRADE (never defensive)
-5. Earnings = always SKIP
-6. Menu/collection updates = SKIP
-7. Single location news = SKIP
+2. Strategic investor committing large $ at specific price per share = TRADE (not dilution)
+3. Major franchise deals = TRADE
+4. Brand/celebrity partnerships = TRADE
+5. Share repurchase/buyback programs = always TRADE (never defensive)
+6. Earnings = always SKIP
+7. Menu/collection updates = SKIP
+8. Single location news = SKIP
+9. Generic offerings/private placements without named strategic investor = SKIP
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)
