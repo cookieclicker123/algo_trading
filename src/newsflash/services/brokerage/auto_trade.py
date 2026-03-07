@@ -371,6 +371,15 @@ POSITION_SIZES_USD = {
     ConvictionLevel.VERY_HIGH: Decimal("4.00"),       # AI: MAX - transformational (proving mode)
 }
 
+# High-conviction defense trades: statistically proven edge (+8.2% return, 56% win rate over 60 days)
+# Sized up because the LLM pipeline (triage + sector) has demonstrated reliable precision.
+HC_POSITION_SIZES_USD = {
+    ConvictionLevel.MINIMUM: Decimal("750.00"),       # AI: SMALL → overridden to MODERATE ($750)
+    ConvictionLevel.STANDARD: Decimal("750.00"),      # AI: MODERATE - $750
+    ConvictionLevel.HIGH: Decimal("1000.00"),         # AI: LARGE - $1000
+    ConvictionLevel.VERY_HIGH: Decimal("1500.00"),    # AI: MAX - $1500
+}
+
 # Map AI position size strings to ConvictionLevel
 AI_SIZE_TO_CONVICTION = {
     "SMALL": ConvictionLevel.MINIMUM,
@@ -1615,6 +1624,7 @@ def build_trade_request_for_article(
     ticker: Optional[str] = None,
     conviction: ConvictionLevel = ConvictionLevel.STANDARD,
     confluence_multiplier: float = 1.0,
+    is_high_conviction: bool = False,
 ) -> Optional[TradeRequest]:
     """
     Build a trade request from an article with conviction-based position sizing.
@@ -1646,7 +1656,8 @@ def build_trade_request_for_article(
     import os
 
     # Use conviction-based position sizing with confluence multiplier
-    BASE_SIZE_USD = POSITION_SIZES_USD.get(conviction, POSITION_SIZES_USD[ConvictionLevel.STANDARD])
+    size_dict = HC_POSITION_SIZES_USD if is_high_conviction else POSITION_SIZES_USD
+    BASE_SIZE_USD = size_dict.get(conviction, size_dict[ConvictionLevel.STANDARD])
     TRADE_SIZE_USD = Decimal(str(float(BASE_SIZE_USD) * confluence_multiplier))
 
     # Risk reduction: If we skipped a headline for this ticker recently, cap position
@@ -1975,26 +1986,36 @@ async def process_imminent_article(
         # STRENGTH = at least 1 criterion met + 0.5% excursion (any direction)
         # SURGE = full surge criteria (2%+ positive move, 80% buying pressure, volume spike)
 
-        # BASE SIZE: Always $4 (VERY_HIGH)
-        # Rationale: AI should only trade strong headlines. If a weak headline slips through,
-        # that's a false positive to be fixed in prompt refinement, not a sizing decision.
-        # Position size = $4 base × confluence_multiplier (0.5-1.0)
-        ai_position_size = event_position_size or "MAX"  # Log what AI sent, but always use MAX
-        # High-conviction trades: minimum MODERATE (defense/military headlines are always strong)
-        if is_high_conviction and ai_position_size == "SMALL":
-            ai_position_size = "MODERATE"
-            logger.info("HC POSITION SIZE OVERRIDE: SMALL → MODERATE", ticker=ticker)
-        ai_conviction = ConvictionLevel.VERY_HIGH  # Always $4 base
+        ai_position_size = event_position_size or "MAX"  # What the sector LLM sent
 
-        logger.info(
-            f"🚀 BASE SIZE: $4 (AI sent: {ai_position_size})",
-            ticker=ticker,
-            ai_position_size=ai_position_size,
-            conviction=ai_conviction.value,
-            position_size=f"${POSITION_SIZES_USD[ai_conviction]}",
-            article_id=article_id,
-            note="Base always $4, modified by confluence multiplier only"
-        )
+        if is_high_conviction:
+            # HIGH-CONVICTION DEFENSE: Use AI position size with minimum MODERATE
+            # Sized up: MODERATE=$750, LARGE=$1000, MAX=$1500
+            if ai_position_size == "SMALL":
+                ai_position_size = "MODERATE"
+            ai_conviction = AI_SIZE_TO_CONVICTION.get(ai_position_size, ConvictionLevel.STANDARD)
+            size_dict = HC_POSITION_SIZES_USD
+            logger.info(
+                f"🎯 HC DEFENSE SIZE: ${size_dict[ai_conviction]} (AI: {ai_position_size})",
+                ticker=ticker,
+                ai_position_size=ai_position_size,
+                conviction=ai_conviction.value,
+                position_size=f"${size_dict[ai_conviction]}",
+                article_id=article_id,
+            )
+        else:
+            # NORMAL TRADES: $4 base (proving mode)
+            ai_conviction = ConvictionLevel.VERY_HIGH  # Always $4 base
+            size_dict = POSITION_SIZES_USD
+            logger.info(
+                f"🚀 BASE SIZE: $4 (AI sent: {ai_position_size})",
+                ticker=ticker,
+                ai_position_size=ai_position_size,
+                conviction=ai_conviction.value,
+                position_size=f"${size_dict[ai_conviction]}",
+                article_id=article_id,
+                note="Base always $4, modified by confluence multiplier only"
+            )
 
         # ============================================================
         # 📊 CONFLUENCE CHECK: 2-second window for STRENGTH verification
@@ -2338,7 +2359,8 @@ async def process_imminent_article(
             current_price=current_price,
             ticker=ticker,
             conviction=conviction,
-            confluence_multiplier=confluence_multiplier
+            confluence_multiplier=confluence_multiplier,
+            is_high_conviction=is_high_conviction,
         )
 
         if not trade_request:
@@ -2401,7 +2423,7 @@ async def process_imminent_article(
         # bid likely dipped causing ~5% fill spread — blocking a +69% winner.
         # Fix: If the initial spread was tight (< 3%) and widening is modest (< 3pp),
         # allow it — this is temporary noise, not genuine spread deterioration.
-        MAX_FILL_SPREAD_PCT = 8.0 if is_high_conviction else 4.5  # High-conviction: 8% (spreads widen during fast moves)
+        MAX_FILL_SPREAD_PCT = 10.0 if is_high_conviction else 4.5  # High-conviction: 10% (defense sweet spot 3-10%, zero winners above 10%)
         SPREAD_TIGHT_INITIAL = 3.0  # Initial spread considered "tight"
         SPREAD_WIDENING_TOLERANCE = 3.0  # Max acceptable widening from initial (percentage points)
 

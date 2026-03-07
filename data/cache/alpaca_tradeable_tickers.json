@@ -145,7 +145,6 @@
     "ADSK",
     "ADT",
     "ADTN",
-    "ADTX",
     "ADUR",
     "ADUS",
     "ADV",
@@ -987,7 +986,6 @@
     "BGY",
     "BH",
     "BH.A",
-    "BHAT",
     "BHB",
     "BHC",
     "BHE",
@@ -2107,7 +2105,6 @@
     "DCOM",
     "DCOMG",
     "DCOMP",
-    "DCOY",
     "DCTH",
     "DCX",
     "DD",
@@ -2284,7 +2281,6 @@
     "DSYWW",
     "DT",
     "DTB",
-    "DTCK",
     "DTCR",
     "DTCX",
     "DTE",
@@ -6623,7 +6619,6 @@
     "RVMDW",
     "RVNL",
     "RVP",
-    "RVPH",
     "RVSB",
     "RVSN",
     "RVSNW",
@@ -8516,6 +8511,6 @@
     "ZYBT",
     "ZYME"
   ],
-  "updated_at": "2026-03-06T17:58:14.414145",
-  "count": 8515
+  "updated_at": "2026-03-07T22:07:13.670814",
+  "count": 8510
 }

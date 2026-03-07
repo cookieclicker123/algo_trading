@@ -640,11 +640,11 @@ Summary: {summary}"""
                 HIGH_CONVICTION_PREFILTER_TYPES = frozenset({
                     "government_contract", "military_contract", "defense_order",
                 })
-                MAX_SPREAD_PCT_HIGH_CONVICTION = 7.0
+                MAX_SPREAD_PCT_HIGH_CONVICTION = 10.0  # Defense sweet spot is 3-10%, zero winners above 10%
                 triage_headline_type = None  # Stored for reuse in _classify_via_sector
 
                 if spread_pct and spread_pct > MAX_SPREAD_PCT_PREFILTER and spread_pct <= MAX_SPREAD_PCT_HIGH_CONVICTION:
-                    # Spread in 4.5%-7% range — worth triaging (above 7% is untradeable regardless)
+                    # Spread in 4.5%-10% range — worth triaging (above 10% has zero defense winners)
                     try:
                         from ...shared.statistics.headline_classifier import get_headline_classifier
                         triage_classifier = get_headline_classifier()

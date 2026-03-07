@@ -96,5 +96,12 @@
     "permanent": false,
     "created_at": "2026-03-06T14:00:32.084411",
     "last_fp_date": "2026-03-06"
+  },
+  "LSTA": {
+    "consecutive_fps": 0,
+    "permanent": false,
+    "created_at": "2026-03-06T23:16:31.561584",
+    "last_fp_date": "2026-03-06",
+    "last_win_date": "2026-03-06T23:20:09.446191"
   }
 }
