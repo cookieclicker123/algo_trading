@@ -24,6 +24,17 @@ CONTRACTS
    "Wins Government Transportation Contract" -> TRADE
    "Secures Rail Track Agreement" -> TRADE
    "Awarded Airport Concession Contract" -> TRADE
+- CONTRACT QUALITY FILTERS (apply to ALL contract headlines):
+   - NEW contract/order/agreement = TRADE (if material)
+   - Contract RENEWAL or EXTENSION = SKIP (priced in, not new business)
+   - "Follow-on order" without significant expansion = SKIP
+   - Must have SPECIFIC counterparty name OR dollar amount (vague = SKIP)
+   - Company must be RECEIVING revenue (not spending/acquiring)
+   - PRV sales, royalty agreements, asset purchases = SKIP (financial transactions, not contracts)
+   - "Framework agreement" or "anticipates upon execution" = SKIP (conditional, not definitive)
+   - Examples:
+      "Renews Supply Agreement" -> SKIP (renewal, not new)
+      "Signs Framework Agreement For Future Orders" -> SKIP (conditional)
 
 PARTNERSHIPS
 - Airlines: Codeshare/alliance expansions
@@ -254,8 +265,9 @@ DECISION RULES
 2. Government contracts = TRADE
 3. Major fleet orders = TRADE
 4. Alliance/codeshare expansions = TRADE
-5. Share repurchase/buyback programs = always TRADE (never defensive)
-6. Earnings = always SKIP
-7. Industry commentary = always SKIP
+5. Contract renewals/extensions = always SKIP
+6. Share repurchase/buyback programs = always TRADE (never defensive)
+7. Earnings = always SKIP
+8. Industry commentary = always SKIP
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

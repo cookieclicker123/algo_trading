@@ -37,10 +37,24 @@ CONTRACTS
 - Restaurant: Franchise deals
 - Leisure: Event contracts
 - Personal Services: Enterprise contracts
+- Long-term service contracts with named customers
 - Examples:
    "Wins Major Franchise Agreement" -> TRADE
    "Secures Enterprise Services Contract" -> TRADE
    "Signs Event/Venue Contract" -> TRADE
+   "Awarded Long-Term Service Contract With Named Customer" -> TRADE
+- CONTRACT QUALITY FILTERS (apply to ALL contract headlines):
+   - NEW contract/order/agreement = TRADE (if material)
+   - Contract RENEWAL or EXTENSION = SKIP (priced in, not new business)
+   - "Follow-on order" without significant expansion = SKIP
+   - Must have SPECIFIC counterparty name OR dollar amount (vague = SKIP)
+   - Company must be RECEIVING revenue (not spending/acquiring)
+   - PRV sales, royalty agreements, asset purchases = SKIP (financial transactions, not contracts)
+   - "Framework agreement" or "anticipates upon execution" = SKIP (conditional, not definitive)
+   - Examples:
+      "Renews Supply Agreement" -> SKIP (renewal, not new)
+      "Sells Priority Review Voucher" -> SKIP (financial transaction)
+      "Signs Framework Agreement For Future Orders" -> SKIP (conditional)
 
 STRATEGIC INVESTMENTS (Investor putting large capital into the company)
 - Strategic investor commits specific dollar amount at specific price per share
@@ -278,10 +292,11 @@ DECISION RULES
 2. Strategic investor committing large $ at specific price per share = TRADE (not dilution)
 3. Major franchise deals = TRADE
 4. Brand/celebrity partnerships = TRADE
-5. Share repurchase/buyback programs = always TRADE (never defensive)
-6. Earnings = always SKIP
-7. Menu/collection updates = SKIP
-8. Single location news = SKIP
-9. Generic offerings/private placements without named strategic investor = SKIP
+5. Contract renewals/extensions = always SKIP
+6. Share repurchase/buyback programs = always TRADE (never defensive)
+7. Earnings = always SKIP
+8. Menu/collection updates = SKIP
+9. Single location news = SKIP
+10. Generic offerings/private placements without named strategic investor = SKIP
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

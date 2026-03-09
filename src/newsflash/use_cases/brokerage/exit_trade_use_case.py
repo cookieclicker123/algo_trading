@@ -310,7 +310,27 @@ class ExitTradeUseCase:
             )
 
             await asyncio.sleep(delay_seconds)
-            
+
+            # GUARD: Check if position still exists before selling.
+            # Prevents double-sell race condition (LSTA bug): if position_manager
+            # already exited, this scheduled exit would create an accidental short.
+            from ...services.brokerage.auto_trade import _active_positions
+            if ticker not in _active_positions:
+                logger.info(
+                    "EXIT USE CASE: Scheduled exit cancelled — position already closed",
+                    ticker=ticker,
+                    reason=reason,
+                    shares=shares,
+                )
+                # Clean up
+                if ticker in self._scheduled_exits:
+                    del self._scheduled_exits[ticker]
+                if ticker in self._held_tickers:
+                    del self._held_tickers[ticker]
+                if ticker in self._trade_info:
+                    del self._trade_info[ticker]
+                return
+
             # Create exit trade request
             # Use exact shares from entry trade (supports fractional shares)
             # No amount_usd needed - we have explicit shares

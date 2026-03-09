@@ -10,7 +10,7 @@ REFACTORED: Core engine now orchestrates specialized modules:
 """
 import asyncio
 from datetime import datetime
-from typing import Optional, Dict, Any, Set, List
+from typing import Optional, Dict, Any, Set
 
 try:
     from alpaca.data import StockHistoricalDataClient
@@ -41,8 +41,6 @@ from .trade_trigger import TradeTrigger
 from .surge_monitor import SurgeMonitor
 from .price_monitor import PriceMonitor
 from .record_manager import RecordManager
-from .headline_classifier import get_headline_classifier
-
 logger = get_logger(__name__)
 
 
@@ -273,57 +271,11 @@ class RecallStatsEngine:
                 article_id, classification, filter_reason
             )
 
-            # For IMMINENT articles, classify headline type in background
-            if classification.upper() == "IMMINENT" and event.title:
-                asyncio.create_task(
-                    self._classify_headline_type(article_id, event.title, event.tickers)
-                )
+            # Store headline_type from triage (already set by classification service)
+            if event.headline_type:
+                await self.record_manager.update_headline_type(article_id, event.headline_type)
         except Exception as e:
             logger.error("Error handling classification", error=str(e), exc_info=True)
-
-    async def _classify_headline_type(
-        self, article_id: str, headline: str, tickers: List[str]
-    ) -> None:
-        """Classify headline type for IMMINENT articles (background task)."""
-        try:
-            # Get industry from first ticker's metadata
-            industry = None
-            for ticker in tickers:
-                try:
-                    metadata = await self.yahoo_finance_coordinator.fetch_metadata(
-                        ticker, timeout=5.0, queue_on_failure=False
-                    )
-                    if metadata and metadata.get("industry"):
-                        industry = metadata["industry"]
-                        break
-                except Exception:
-                    continue
-
-            if not industry:
-                logger.debug(
-                    "No industry found for headline classification",
-                    article_id=article_id
-                )
-                return
-
-            # Classify headline type
-            classifier = get_headline_classifier()
-            headline_type = await classifier.classify(
-                headline=headline,
-                industry=industry,
-                timeout=5.0
-            )
-
-            if headline_type:
-                await self.record_manager.update_headline_type(article_id, headline_type)
-                logger.info(
-                    "Classified headline type for recall",
-                    article_id=article_id,
-                    headline_type=headline_type,
-                    industry=industry
-                )
-        except Exception as e:
-            logger.debug(f"Headline type classification failed: {e}")
 
     async def _handle_trade_executed(self, event: TradeExecutedDomainEvent) -> None:
         """Handle Domain.TradeExecuted event."""
@@ -370,6 +322,11 @@ class RecallStatsEngine:
             await self.record_manager.update_classification(
                 event.request_data.article_id, None, filter_reason
             )
+            # Store headline_type if available (post-prefilter skips have it)
+            if event.headline_type:
+                await self.record_manager.update_headline_type(
+                    event.request_data.article_id, event.headline_type
+                )
         except Exception as e:
             logger.error("Error handling classification skipped", error=str(e), exc_info=True)
 

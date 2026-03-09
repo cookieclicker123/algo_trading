@@ -46,6 +46,17 @@ CONTRACTS
 - Examples:
    "Wins Government Education Contract" -> TRADE
    "Secures Enterprise Training Deal" -> TRADE
+- CONTRACT QUALITY FILTERS (apply to ALL contract headlines):
+   - NEW contract/order/agreement = TRADE (if material)
+   - Contract RENEWAL or EXTENSION = SKIP (priced in, not new business)
+   - "Follow-on order" without significant expansion = SKIP
+   - Must have SPECIFIC counterparty name OR dollar amount (vague = SKIP)
+   - Company must be RECEIVING revenue (not spending/acquiring)
+   - PRV sales, royalty agreements, asset purchases = SKIP (financial transactions, not contracts)
+   - "Framework agreement" or "anticipates upon execution" = SKIP (conditional, not definitive)
+   - Examples:
+      "Renews Supply Agreement" -> SKIP (renewal, not new)
+      "Signs Framework Agreement For Future Orders" -> SKIP (conditional)
 
 SHARE REPURCHASE (Bullish signal - size based on % of market cap)
 ├─ Share repurchase/buyback announcements = TRADE
@@ -250,8 +261,9 @@ DECISION RULES
 1. AI/EdTech product launches = strongest TRADE signal
 2. Corporate/university partnerships = TRADE
 3. Government contracts = TRADE
-4. Share repurchase/buyback programs = always TRADE (never defensive)
-5. Earnings = always SKIP
+4. Contract renewals/extensions = always SKIP
+5. Share repurchase/buyback programs = always TRADE (never defensive)
+6. Earnings = always SKIP
 6. Course announcements = SKIP
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

@@ -639,6 +639,7 @@ Summary: {summary}"""
                 # Only call LLM if spread would actually fail the normal threshold (avoid wasting API calls).
                 HIGH_CONVICTION_PREFILTER_TYPES = frozenset({
                     "government_contract", "military_contract", "defense_order",
+                    "major_contract",  # Commercial contracts — 46.2% IMMINENT win rate, avg MFE +50%
                 })
                 MAX_SPREAD_PCT_HIGH_CONVICTION = 10.0  # Defense sweet spot is 3-10%, zero winners above 10%
                 triage_headline_type = None  # Stored for reuse in _classify_via_sector
@@ -696,8 +697,26 @@ Summary: {summary}"""
                     spread_pct=round(spread_pct, 2) if spread_pct else "unknown"
                 )
 
-                # Store triage result for reuse in _classify_via_sector
-                # (avoids a second LLM call for headline_type after TRADE classification)
+                # Always triage ALL post-prefilter articles for headline_type tracking.
+                # If triage already ran at prefilter (spread >4.5%), reuse result.
+                # This adds ~200-300ms (Groq 8B) but guarantees every post-prefilter article
+                # has a headline_type for statistics querying.
+                if not triage_headline_type:
+                    try:
+                        from ...shared.statistics.headline_classifier import get_headline_classifier
+                        triage_classifier = get_headline_classifier()
+                        triage_headline_type = await triage_classifier.triage(
+                            headline=request_data.article_title or "",
+                            timeout=3.0,
+                        )
+                        logger.debug(
+                            f"Post-prefilter triage: {triage_headline_type or 'none'}",
+                            article_id=request_data.article_id,
+                            ticker=primary_ticker,
+                        )
+                    except Exception as e:
+                        logger.debug(f"Headline triage failed (non-blocking): {e}")
+
                 if triage_headline_type:
                     self._triage_cache[request_data.article_id] = triage_headline_type
                     # Evict oldest entries to prevent memory leak
@@ -746,11 +765,15 @@ Summary: {summary}"""
                             sector = metadata.get("sector")
                             industry = metadata.get("industry")
 
+                    # Get headline_type from triage cache (always populated after prefilters)
+                    cached_headline_type = self._triage_cache.pop(request_data.article_id, None)
+
                     # Publish IMMINENT classification directly (bypass LLM)
                     response_data = InfrastructureClassificationResponseData(
                         classification="imminent",
                         confidence="HIGH",
-                        reasoning=f"Universal catalyst: {catalyst_type}"
+                        reasoning=f"Universal catalyst: {catalyst_type}",
+                        headline_type=cached_headline_type,
                     )
 
                     completed_event = ClassificationCompletedInfrastructureEvent(
@@ -1031,15 +1054,15 @@ Summary: {summary}"""
 
             elif classification == "NOT_SUPPORTED_SECTOR":
                 # Sector not supported - skip trading but continue data collection
-                await self._publish_skipped_event(infra_event, f"unsupported_sector:{sector or 'unknown'}")
+                await self._publish_skipped_event(infra_event, f"unsupported_sector:{sector or 'unknown'}", headline_type=self._triage_cache.pop(request_data.article_id, None))
 
             elif classification == "UNSUPPORTED_INDUSTRY":
                 # Supported sector but unsupported industry - skip trading
-                await self._publish_skipped_event(infra_event, f"unsupported_industry:{sector}/{industry}")
+                await self._publish_skipped_event(infra_event, f"unsupported_industry:{sector}/{industry}", headline_type=self._triage_cache.pop(request_data.article_id, None))
 
             else:
                 # SKIP signal - LLM determined not tradeable
-                await self._publish_skipped_event(infra_event, f"llm_skip:{sector}/{industry}")
+                await self._publish_skipped_event(infra_event, f"llm_skip:{sector}/{industry}", headline_type=self._triage_cache.pop(request_data.article_id, None))
 
         except Exception as e:
             logger.error(
@@ -1127,20 +1150,23 @@ Summary: {summary}"""
     async def _publish_skipped_event(
         self,
         infra_event: ClassificationRequestedInfrastructureEvent,
-        reason: str
+        reason: str,
+        headline_type: Optional[str] = None,
     ) -> None:
         """
         Publish ClassificationSkipped infrastructure event.
-        
+
         Args:
             infra_event: Original classification request event
             reason: Skip reason ('no_tickers', 'invalid_exchange', 'broker_not_tradeable', 'nbbo_unavailable', or 'no_volume_since_publication')
+            headline_type: Headline type from universal triage (only for post-prefilter skips)
         """
         skipped_event = ClassificationSkippedInfrastructureEvent(
             request_data=infra_event.request_data,
             skipped_at=datetime.now(),
             reason=reason,
-            source="classification_infrastructure"
+            source="classification_infrastructure",
+            headline_type=headline_type,
         )
         
         await self.event_bus.publish(

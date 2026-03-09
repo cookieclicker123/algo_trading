@@ -25,6 +25,17 @@ CONTRACTS/PROCUREMENT (Strongest signal - avg +37%)
    "Framework Procurement Contract With Contemporary Amperex Technology" → TRADE
    "Signs Three-Year Exclusive Deal" → TRADE
    "Lands First Big CATL Order" → TRADE
+- CONTRACT QUALITY FILTERS (apply to ALL contract headlines):
+   - NEW contract/order/agreement = TRADE (if material)
+   - Contract RENEWAL or EXTENSION = SKIP (priced in, not new business)
+   - "Follow-on order" without significant expansion = SKIP
+   - Must have SPECIFIC counterparty name OR dollar amount (vague = SKIP)
+   - Company must be RECEIVING revenue (not spending/acquiring)
+   - PRV sales, royalty agreements, asset purchases = SKIP (financial transactions, not contracts)
+   - "Framework agreement" or "anticipates upon execution" = SKIP (conditional, not definitive)
+   - Examples:
+      "Renews Supply Agreement" -> SKIP (renewal, not new)
+      "Signs Framework Agreement For Future Orders" -> SKIP (conditional)
 
 ACQUISITIONS (Strong signal for growth)
 ├─ Acquires company, Acquires technology
@@ -283,6 +294,7 @@ DECISION RULES
 5. Specific dollar amounts or percentages strengthen signals
 6. "100% acquisition" or "exclusive" deals = extra strong
 7. LOI (Letter of Intent) counts as acquisition signal
-8. Share repurchase/buyback programs = always TRADE (never defensive)
+8. Contract renewals/extensions = always SKIP
+9. Share repurchase/buyback programs = always TRADE (never defensive)
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

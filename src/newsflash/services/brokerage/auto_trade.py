@@ -56,17 +56,22 @@ logger = get_logger(__name__)
 # ============================================================
 # HIGH-CONVICTION HEADLINE TYPES (bypass/relax postfilters)
 # ============================================================
-# Government/military contracts with concrete deal specifics reliably produce
-# sustained moves. GXAI +37%, MTEK +49%, MOBX +25% — all blocked by
-# microstructure filters despite being highly profitable.
-# When headline_type matches, postfilters are relaxed (not removed):
+# Government/military contracts AND major commercial contracts with concrete
+# deal specifics reliably produce sustained moves.
+# Defense: GXAI +37%, MTEK +49%, MOBX +25%
+# Commercial: RITR +35%, ASNS +17%, PLBY +17%, SWVL +11%
+# All blocked by microstructure filters despite being highly profitable.
+# When headline_type matches, most postfilters are SKIPPED — the edge is the headline signal:
+#   circuit_breaker: SKIP (don't let unrelated losses block proven patterns)
+#   initial_spread: 10% (matches prefilter, defense stocks have wider spreads)
+#   selling_pressure: SKIP (trust the headline signal)
 #   pub_to_recv: SKIP (legitimate market reaction, not front-running)
-#   fill_spread: 8% (spreads widen during fast moves but settle)
+#   recv_to_fill: SKIP (fast price movement IS the signal)
+#   fill_spread: 10% (spreads widen during fast moves but settle)
 #   momentum_exhaustion: SKIP (these headlines sustain momentum)
-#   late_entry: 180s (large institutions slower to react)
-#   pre_news_runup: 10% (some pre-positioning is normal for defense)
-# Activity confirmation, spread at reception, selling pressure, recv_to_fill,
-# and circuit breaker still apply at normal thresholds.
+#   late_entry: 25s (10s extra over normal, pump-and-dump filter protects)
+#   pre_news_runup: 10% (some pre-positioning is normal)
+# KEPT at normal thresholds: pump-and-dump (5.5% ask vs VWAP), pre-news runup (10%)
 #
 # These match the universal triage prompt types (prompts/headline_types/universal_triage.txt).
 # Broad categories — the LLM handles specifics (Navy, Army, DARPA all → military_contract).
@@ -74,6 +79,7 @@ HIGH_CONVICTION_HEADLINE_TYPES = frozenset({
     "government_contract",   # Any government deal (federal, state, NASA, DARPA, agency awards)
     "military_contract",     # Any military/defense deal (Army, Navy, Air Force, weapons, drones, munitions)
     "defense_order",         # Orders from defense companies or for defense products
+    "major_contract",        # Commercial contracts — micro-cap + material deal size = sustained moves
 })
 
 
@@ -1853,15 +1859,27 @@ async def process_imminent_article(
         event_headline_type: Headline type from HeadlineTypeClassifier (for high-conviction bypass)
     """
     try:
+        # High-conviction trades bypass circuit breaker — the edge is in the headline signal.
+        is_hc_early = event_headline_type in HIGH_CONVICTION_HEADLINE_TYPES if event_headline_type else False
+
         # Check if we should process this classification
         if not should_process_classification(classification_result, enabled):
-            # Record why for IMMINENT articles (non-IMMINENT handled by classification system)
-            if classification_result.classification == ClassificationCategory.IMMINENT:
-                if is_circuit_breaker_triggered():
-                    await _record_postfilter_skip(classification_result.article_id, "postfilter_circuit_breaker")
-                elif not enabled:
-                    await _record_postfilter_skip(classification_result.article_id, "postfilter_trading_disabled")
-            return
+            # HC trades bypass circuit breaker (but not disabled/non-IMMINENT)
+            if is_hc_early and is_circuit_breaker_triggered() and enabled and classification_result.classification == ClassificationCategory.IMMINENT:
+                logger.info(
+                    "🎖️ HIGH-CONVICTION BYPASS: Circuit breaker overridden for proven headline pattern",
+                    article_id=classification_result.article_id,
+                    headline_type=event_headline_type,
+                )
+                # Fall through to continue processing
+            else:
+                # Record why for IMMINENT articles (non-IMMINENT handled by classification system)
+                if classification_result.classification == ClassificationCategory.IMMINENT:
+                    if is_circuit_breaker_triggered():
+                        await _record_postfilter_skip(classification_result.article_id, "postfilter_circuit_breaker")
+                    elif not enabled:
+                        await _record_postfilter_skip(classification_result.article_id, "postfilter_trading_disabled")
+                return
 
         article_id = classification_result.article_id
         processing_start = datetime.now(timezone.utc)
@@ -1974,7 +1992,7 @@ async def process_imminent_article(
                 ticker=ticker,
                 headline_type=headline_type,
                 article_id=article_id,
-                relaxed_filters="pub_to_recv=SKIP, fill_spread=8%, momentum_exhaustion=SKIP, late_entry=180s, pre_news_runup=10%",
+                relaxed_filters="circuit_breaker=SKIP, spread=10%, selling_pressure=SKIP, pub_to_recv=SKIP, recv_to_fill=SKIP, fill_spread=10%, momentum_exhaustion=SKIP, late_entry=25s, pre_news_runup=10%",
             )
 
         # ============================================================
@@ -2256,7 +2274,7 @@ async def process_imminent_article(
         # already down 5% the moment you buy at ask and would sell at bid.
         # IINN lesson: 35% spread = untradeable.
         # Tightened to 5% - even 5% spread means instant -5% on entry.
-        MAX_SPREAD_PCT = 4.5  # Maximum spread as % of mid price (premarket often 3-5%)
+        MAX_SPREAD_PCT = 10.0 if is_high_conviction else 4.5  # HC: 10% (matches prefilter), normal: 4.5%
         initial_spread = confluence_metadata.get("initial_spread")
         initial_ask = confluence_metadata.get("initial_ask")
         initial_bid = confluence_metadata.get("initial_bid", 0)
@@ -2272,7 +2290,6 @@ async def process_imminent_article(
                 spread_pct_of_mid = (initial_spread / initial_mid) * 100
                 confluence_metadata["initial_spread_pct"] = round(spread_pct_of_mid, 2)
 
-                # HARD STOP: Spread > 3% = instant loss territory
                 if spread_pct_of_mid > MAX_SPREAD_PCT:
                     logger.info(
                         "⏭️ AUTO-TRADE SKIPPED: Spread too wide (>4.5% of mid) - instant loss trap",
@@ -2297,18 +2314,27 @@ async def process_imminent_article(
         SELLING_PRESSURE_THRESHOLD = -0.3  # More than 65% selling = block
         confluence_imbalance = confluence_metadata.get("confluence_imbalance_ratio")
         if confluence_imbalance is not None and confluence_imbalance < SELLING_PRESSURE_THRESHOLD:
-            buying_pct = ((confluence_imbalance + 1) / 2) * 100  # Convert to buying %
-            logger.info(
-                "⏭️ AUTO-TRADE SKIPPED: Heavy selling pressure detected",
-                ticker=ticker,
-                imbalance_ratio=round(confluence_imbalance, 3),
-                buying_pressure_pct=round(buying_pct, 1),
-                threshold=SELLING_PRESSURE_THRESHOLD,
-                article_id=article_id,
-                reason="Imbalance strongly negative - more sellers than buyers, someone knows something"
-            )
-            await _record_postfilter_skip(article_id, f"postfilter_selling_pressure:{confluence_imbalance:.2f}")
-            return
+            if is_high_conviction:
+                logger.info(
+                    "🎖️ HIGH-CONVICTION BYPASS: selling_pressure filter skipped (trusting headline signal)",
+                    ticker=ticker,
+                    imbalance_ratio=round(confluence_imbalance, 3),
+                    headline_type=headline_type,
+                    article_id=article_id,
+                )
+            else:
+                buying_pct = ((confluence_imbalance + 1) / 2) * 100  # Convert to buying %
+                logger.info(
+                    "⏭️ AUTO-TRADE SKIPPED: Heavy selling pressure detected",
+                    ticker=ticker,
+                    imbalance_ratio=round(confluence_imbalance, 3),
+                    buying_pressure_pct=round(buying_pct, 1),
+                    threshold=SELLING_PRESSURE_THRESHOLD,
+                    article_id=article_id,
+                    reason="Imbalance strongly negative - more sellers than buyers, someone knows something"
+                )
+                await _record_postfilter_skip(article_id, f"postfilter_selling_pressure:{confluence_imbalance:.2f}")
+                return
 
         logger.info(
             "✅ SAFETY FILTERS PASSED - Proceeding to trade",
@@ -2630,8 +2656,6 @@ async def process_imminent_article(
 
         # LEG 2: Reception → Fill price change
         # Check if ask moved too much since reception (chase/volatility filter)
-        # NO EXCEPTIONS - even surge trades must pass this check
-        # "under no conditions is anything that has run away from us allowed to fill"
         if pre_entry_nbbo and initial_ask and initial_ask > 0:
             # Use already-fetched NBBO for chase check
             current_ask = pre_entry_nbbo.get("ask", 0)
@@ -2640,21 +2664,31 @@ async def process_imminent_article(
                 absolute_move_leg2 = abs(current_ask - initial_ask)
 
                 if recv_to_fill_pct > effective_max_pct and absolute_move_leg2 >= MIN_ABSOLUTE_ASK_MOVE:
-                    logger.info(
-                        "⏭️ AUTO-TRADE SKIPPED: Ask moved too much between reception and fill",
-                        ticker=ticker,
-                        recv_time_ask=round(initial_ask, 4),
-                        fill_time_ask=round(current_ask, 4),
-                        recv_to_fill_pct=round(recv_to_fill_pct, 2),
-                        absolute_move=round(absolute_move_leg2, 4),
-                        max_allowed_pct=effective_max_pct,
-                        min_absolute=MIN_ABSOLUTE_ASK_MOVE,
-                        is_mega_trade=is_mega_trade,
-                        article_id=article_id,
-                        reason="Price too volatile during our checks - likely pump in progress"
-                    )
-                    await _record_postfilter_skip(article_id, f"postfilter_recv_to_fill:{recv_to_fill_pct:.1f}%")
-                    return
+                    if is_high_conviction:
+                        logger.info(
+                            "🎖️ HIGH-CONVICTION BYPASS: recv_to_fill filter skipped (fast price movement is the signal)",
+                            ticker=ticker,
+                            recv_to_fill_pct=round(recv_to_fill_pct, 2),
+                            normal_max=effective_max_pct,
+                            headline_type=headline_type,
+                            article_id=article_id,
+                        )
+                    else:
+                        logger.info(
+                            "⏭️ AUTO-TRADE SKIPPED: Ask moved too much between reception and fill",
+                            ticker=ticker,
+                            recv_time_ask=round(initial_ask, 4),
+                            fill_time_ask=round(current_ask, 4),
+                            recv_to_fill_pct=round(recv_to_fill_pct, 2),
+                            absolute_move=round(absolute_move_leg2, 4),
+                            max_allowed_pct=effective_max_pct,
+                            min_absolute=MIN_ABSOLUTE_ASK_MOVE,
+                            is_mega_trade=is_mega_trade,
+                            article_id=article_id,
+                            reason="Price too volatile during our checks - likely pump in progress"
+                        )
+                        await _record_postfilter_skip(article_id, f"postfilter_recv_to_fill:{recv_to_fill_pct:.1f}%")
+                        return
 
                 logger.info(
                     "✅ RECV→FILL CHECK PASSED",
@@ -2856,7 +2890,7 @@ async def process_imminent_article(
         # For late trades (confirmed via monitor_for_late_entry), allow up to 35s.
         # For normal trades, max 15s from publication (many arrive in 10-15s batches).
         if is_high_conviction:
-            max_entry_delay = 180.0  # High-conviction: 3 min (institutions slower to react)
+            max_entry_delay = 25.0  # High-conviction: 25s (10s extra over normal — moves last long enough, pump-and-dump protects)
         elif is_late_trade:
             max_entry_delay = 95.0
         else:

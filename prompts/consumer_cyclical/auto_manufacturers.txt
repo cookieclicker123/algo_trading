@@ -22,6 +22,17 @@ CONTRACTS (22% of winners - KEY SIGNAL)
    "Wins Major Fleet Order" -> TRADE
    "Secures Government EV Contract" -> TRADE
    "Signs Contract With Major Delivery Company" -> TRADE
+- CONTRACT QUALITY FILTERS (apply to ALL contract headlines):
+   - NEW contract/order/agreement = TRADE (if material)
+   - Contract RENEWAL or EXTENSION = SKIP (priced in, not new business)
+   - "Follow-on order" without significant expansion = SKIP
+   - Must have SPECIFIC counterparty name OR dollar amount (vague = SKIP)
+   - Company must be RECEIVING revenue (not spending/acquiring)
+   - PRV sales, royalty agreements, asset purchases = SKIP (financial transactions, not contracts)
+   - "Framework agreement" or "anticipates upon execution" = SKIP (conditional, not definitive)
+   - Examples:
+      "Renews Supply Agreement" -> SKIP (renewal, not new)
+      "Signs Framework Agreement For Future Orders" -> SKIP (conditional)
 
 PARTNERSHIPS (20% of winners)
 - Technology partnerships
@@ -253,8 +264,9 @@ DECISION RULES
 1. Fleet/government contracts = strongest TRADE signal
 2. Battery/charging partnerships = TRADE
 3. Production start = TRADE
-4. Share repurchase/buyback programs = always TRADE (never defensive)
-5. Earnings/deliveries = always SKIP
-6. Concept reveals = SKIP
+4. Contract renewals/extensions = always SKIP
+5. Share repurchase/buyback programs = always TRADE (never defensive)
+6. Earnings/deliveries = always SKIP
+7. Concept reveals = SKIP
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

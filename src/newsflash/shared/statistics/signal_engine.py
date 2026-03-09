@@ -19,7 +19,6 @@ from ...domain.brokerage.models import MarketSession
 from ...infra.brokerage.quote_fetcher import AlpacaQuoteFetcher
 from ...infra.cache.metadata_cache import MetadataCache
 from .yahoo_finance_coordinator import YahooFinanceCoordinator
-from .headline_classifier import get_headline_classifier
 
 try:
     from alpaca.trading.client import TradingClient
@@ -316,6 +315,7 @@ class SignalStatsEngine:
             # === AI CLASSIFICATION CONTEXT ===
             ai_position_size=confluence_metadata.get("ai_position_size"),
             is_mega_trade=confluence_metadata.get("is_mega_trade"),
+            headline_type=confluence_metadata.get("headline_type"),  # From triage via auto_trade.py
         )
 
         # Append record immediately (before metadata fetch)
@@ -886,30 +886,8 @@ class SignalStatsEngine:
         try:
             updates: Dict[str, Any] = {}
 
-            # Classify headline type in background (uses fast Groq model)
-            if headline:
-                try:
-                    # Get industry from metadata for industry-specific classification
-                    metadata = await self.yahoo_finance_coordinator.fetch_metadata(ticker, timeout=10.0)
-                    industry = metadata.get("industry") if metadata else None
-
-                    if industry:
-                        classifier = get_headline_classifier()
-                        headline_type = await classifier.classify(
-                            headline=headline,
-                            industry=industry,
-                            timeout=5.0
-                        )
-                        if headline_type:
-                            updates["headline_type"] = headline_type
-                            logger.debug(
-                                "Signal: Classified headline",
-                                trade_id=trade_id,
-                                ticker=ticker,
-                                headline_type=headline_type
-                            )
-                except Exception as e:
-                    logger.debug(f"Headline classification failed for {ticker}: {e}")
+            # headline_type: already set from confluence_metadata at record creation (triage types).
+            # No background classify() call — triage types are correct, classify() types are not.
 
             # Calculate immediate fill quality metrics
             if entry_nbbo:

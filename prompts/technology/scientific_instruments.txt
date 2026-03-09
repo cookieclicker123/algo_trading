@@ -23,6 +23,17 @@ CONTRACTS (24% of winners)
    "Wins $30M NIH Research Contract" -> TRADE
    "Secures Lab Equipment Deal With Major Pharma" -> TRADE
    "Awarded Defense Testing Contract" -> TRADE
+- CONTRACT QUALITY FILTERS (apply to ALL contract headlines):
+   - NEW contract/order/agreement = TRADE (if material)
+   - Contract RENEWAL or EXTENSION = SKIP (priced in, not new business)
+   - "Follow-on order" without significant expansion = SKIP
+   - Must have SPECIFIC counterparty name OR dollar amount (vague = SKIP)
+   - Company must be RECEIVING revenue (not spending/acquiring)
+   - PRV sales, royalty agreements, asset purchases = SKIP (financial transactions, not contracts)
+   - "Framework agreement" or "anticipates upon execution" = SKIP (conditional, not definitive)
+   - Examples:
+      "Renews Supply Agreement" -> SKIP (renewal, not new)
+      "Signs Framework Agreement For Future Orders" -> SKIP (conditional)
 
 PARTNERSHIPS (14% of winners)
 - Research partnerships
@@ -258,9 +269,10 @@ DECISION RULES
 1. Government/NIH contracts = strongest TRADE signal
 2. Pharma partnerships = TRADE
 3. Defense contracts = TRADE
-4. Share repurchase/buyback programs = always TRADE (never defensive)
-5. Earnings = always SKIP
-6. Research publications = usually SKIP
-7. Conference attendance = always SKIP
+4. Contract renewals/extensions = always SKIP
+5. Share repurchase/buyback programs = always TRADE (never defensive)
+6. Earnings = always SKIP
+7. Research publications = usually SKIP
+8. Conference attendance = always SKIP
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

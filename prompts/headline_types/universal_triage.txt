@@ -37,7 +37,7 @@ Rules:
 - government_contract: ANY government deal (federal, state, NASA, DARPA, DoD, agency awards)
 - military_contract: ANY military/defense deal (Army, Navy, Air Force, Space Force, foreign military sales, weapons, drones, munitions, counter-UAS, satellites for defense)
 - defense_order: orders from defense companies or for defense products (not government directly)
-- major_contract: large commercial contracts with specific dollar amounts or named counterparties
+- major_contract: NEW commercial contracts/orders/agreements with specific dollar amounts or named counterparties. Must be revenue-generating for the company (company RECEIVING money). EXCLUDE: contract renewals/extensions, PRV sales, royalty agreements, merger/acquisition agreements, FDA pathway agreements, vague "strategic" partnerships without $ amounts, and company SPENDING money (acquisitions, investments outward)
 - acquisition_target: company TO BE acquired
 - acquisition_announced: company ACQUIRING another
 - If unsure between military_contract and government_contract, prefer military_contract for anything involving armed forces, weapons, or defense systems

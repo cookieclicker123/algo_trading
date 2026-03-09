@@ -29,6 +29,17 @@ CONTRACTS (11% of winners)
 - Examples:
    "Wins Major B2B Supply Contract" -> TRADE
    "Secures Enterprise Deal" -> TRADE
+- CONTRACT QUALITY FILTERS (apply to ALL contract headlines):
+   - NEW contract/order/agreement = TRADE (if material)
+   - Contract RENEWAL or EXTENSION = SKIP (priced in, not new business)
+   - "Follow-on order" without significant expansion = SKIP
+   - Must have SPECIFIC counterparty name OR dollar amount (vague = SKIP)
+   - Company must be RECEIVING revenue (not spending/acquiring)
+   - PRV sales, royalty agreements, asset purchases = SKIP (financial transactions, not contracts)
+   - "Framework agreement" or "anticipates upon execution" = SKIP (conditional, not definitive)
+   - Examples:
+      "Renews Supply Agreement" -> SKIP (renewal, not new)
+      "Signs Framework Agreement For Future Orders" -> SKIP (conditional)
 
 M&A ACTIVITY
 - Acquisition announcements
@@ -248,8 +259,9 @@ DECISION RULES
 1. Brand/celebrity partnerships = strong TRADE signal
 2. Exclusive distribution = TRADE
 3. Major expansion (50+ stores) = TRADE
-4. Share repurchase/buyback programs = always TRADE (never defensive)
-5. Earnings = always SKIP
+4. Contract renewals/extensions = always SKIP
+5. Share repurchase/buyback programs = always TRADE (never defensive)
+6. Earnings = always SKIP
 6. Single store news = SKIP
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

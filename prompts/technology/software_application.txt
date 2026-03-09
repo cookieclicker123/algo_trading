@@ -23,6 +23,17 @@ CONTRACTS/PARTNERSHIPS (26% combined)
    "Secures $50M Enterprise Contract With Fortune 500 Company" -> TRADE
    "Partners With Microsoft To Integrate AI Solutions" -> TRADE
    "Wins Major Government Contract" -> TRADE
+- CONTRACT QUALITY FILTERS (apply to ALL contract headlines):
+   - NEW contract/order/agreement = TRADE (if material)
+   - Contract RENEWAL or EXTENSION = SKIP (priced in, not new business)
+   - "Follow-on order" without significant expansion = SKIP
+   - Must have SPECIFIC counterparty name OR dollar amount (vague = SKIP)
+   - Company must be RECEIVING revenue (not spending/acquiring)
+   - PRV sales, royalty agreements, asset purchases = SKIP (financial transactions, not contracts)
+   - "Framework agreement" or "anticipates upon execution" = SKIP (conditional, not definitive)
+   - Examples:
+      "Renews Supply Agreement" -> SKIP (renewal, not new)
+      "Signs Framework Agreement For Future Orders" -> SKIP (conditional)
 
 AI/TECHNOLOGY ADVANCEMENT (Strong signal in this sector)
 - AI product launches with SPECIFIC deliverables
@@ -272,9 +283,10 @@ DECISION RULES
 1. AI/ML product launches = strong TRADE signal
 2. Major partnership with big tech (MSFT, GOOGL, AMZN) = TRADE
 3. Government contract wins = TRADE
-4. Share repurchase/buyback programs = always TRADE (never defensive)
-5. Earnings/financial metrics = always SKIP
-6. Conference attendance = always SKIP
-7. Executive appointments = usually SKIP
+4. Contract renewals/extensions = always SKIP
+5. Share repurchase/buyback programs = always TRADE (never defensive)
+6. Earnings/financial metrics = always SKIP
+7. Conference attendance = always SKIP
+8. Executive appointments = usually SKIP
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

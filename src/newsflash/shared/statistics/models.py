@@ -231,7 +231,7 @@ class RecallRecord(BaseModel):
     # Headline type classification (for statistical analysis)
     headline_type: Optional[str] = Field(
         None,
-        description="Catalyst type: contract, fda, partnership, earnings, etc. Only classified for IMMINENT articles."
+        description="Headline type from universal triage (e.g., major_contract, government_contract). Set for all post-prefilter articles."
     )
 
     # Time-of-day tracking (for hour-by-hour win rate analysis)

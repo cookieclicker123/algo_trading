@@ -53,6 +53,17 @@ CONTRACTS & SUPPLY DEALS
 └─ Examples:
    "Wins $50M Government Supply Contract" → TRADE LARGE
    "Signs Exclusive Supply Agreement With [Major Brand]" → TRADE MODERATE
+- CONTRACT QUALITY FILTERS (apply to ALL contract headlines):
+   - NEW contract/order/agreement = TRADE (if material)
+   - Contract RENEWAL or EXTENSION = SKIP (priced in, not new business)
+   - "Follow-on order" without significant expansion = SKIP
+   - Must have SPECIFIC counterparty name OR dollar amount (vague = SKIP)
+   - Company must be RECEIVING revenue (not spending/acquiring)
+   - PRV sales, royalty agreements, asset purchases = SKIP (financial transactions, not contracts)
+   - "Framework agreement" or "anticipates upon execution" = SKIP (conditional, not definitive)
+   - Examples:
+      "Renews Supply Agreement" -> SKIP (renewal, not new)
+      "Signs Framework Agreement For Future Orders" -> SKIP (conditional)
 
 SHARE REPURCHASE (Bullish signal - size based on % of market cap)
 ├─ Share repurchase/buyback announcements = TRADE
@@ -146,6 +157,8 @@ SIZE FACTORS:
    - LARGE: Major brand partnerships, significant automation rollout
    - MODERATE: Named contracts with $ amounts, specific tech partnerships
    - SMALL: Weaker but still tradeable catalysts
+
+Contract renewals/extensions = always SKIP
 
 KEY RULE: Only trade headlines that are SURPRISING and TRANSFORMATIONAL
 ✓ TRADE: M&A, major partnerships, automation/robotics, material contracts

@@ -22,6 +22,17 @@ CONTRACTS (23% of winners)
    "Secures Major Retail Distribution Deal" -> TRADE
    "Wins OEM Contract With Major Brand" -> TRADE
    "Signs Licensing Agreement For Smart Home" -> TRADE
+- CONTRACT QUALITY FILTERS (apply to ALL contract headlines):
+   - NEW contract/order/agreement = TRADE (if material)
+   - Contract RENEWAL or EXTENSION = SKIP (priced in, not new business)
+   - "Follow-on order" without significant expansion = SKIP
+   - Must have SPECIFIC counterparty name OR dollar amount (vague = SKIP)
+   - Company must be RECEIVING revenue (not spending/acquiring)
+   - PRV sales, royalty agreements, asset purchases = SKIP (financial transactions, not contracts)
+   - "Framework agreement" or "anticipates upon execution" = SKIP (conditional, not definitive)
+   - Examples:
+      "Renews Supply Agreement" -> SKIP (renewal, not new)
+      "Signs Framework Agreement For Future Orders" -> SKIP (conditional)
 
 PARTNERSHIPS (17% of winners)
 - Retail partnerships (Walmart, Best Buy, Amazon)
@@ -259,8 +270,9 @@ DECISION RULES
 1. Major retail partnerships = strongest TRADE signal
 2. Brand collaborations = TRADE
 3. Retail distribution deals = TRADE
-4. Share repurchase/buyback programs = always TRADE (never defensive)
-5. Earnings = always SKIP
+4. Contract renewals/extensions = always SKIP
+5. Share repurchase/buyback programs = always TRADE (never defensive)
+6. Earnings = always SKIP
 6. Trade show attendance (without deal) = SKIP
 7. Minor product updates = SKIP
 

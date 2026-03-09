@@ -86,6 +86,7 @@ class ClassificationSkippedInfrastructureEvent(BaseModel):
     skipped_at: datetime = Field(..., description="When classification was skipped")
     reason: str = Field(..., description="Skip reason: 'no_tickers', 'invalid_exchange', 'broker_not_tradeable', 'nbbo_unavailable', or 'no_volume_since_publication'")
     source: str = Field(default="classification_infrastructure", description="Event source")
+    headline_type: Optional[str] = Field(None, description="Headline type from universal triage (for statistics). Only set for post-prefilter skips.")
     
     model_config = {"frozen": False}
 

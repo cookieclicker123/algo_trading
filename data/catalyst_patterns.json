@@ -1,0 +1,244 @@
+{
+  "metadata": {
+    "analysis_date": "2026-03-07",
+    "total_records_analyzed": 22871,
+    "date_range": {
+      "earliest": "2025-12-12",
+      "latest": "2026-03-07"
+    },
+    "methodology": "Keyword-based headline matching across all recall records (not limited to headline_type field)",
+    "notes": "Win rate = 10min change >= 5%. MFE = max favorable excursion (peak gain). MAE = max adverse excursion (worst drawdown)."
+  },
+  "catalyst_patterns": {
+    "defense_military": {
+      "implementation_status": "live",
+      "total_headlines": 320,
+      "records_with_price_data": 267,
+      "winner_count": 30,
+      "loser_count": 200,
+      "win_rate_5pct": 0.112,
+      "avg_winner_mfe_pct": 29.8,
+      "avg_loser_10min_pct": -7.2,
+      "expected_value": 2.73,
+      "spread": {
+        "avg_winners": 6.2,
+        "avg_losers": 9.8,
+        "sweet_spot": "3-10%",
+        "zero_winner_above": "10%",
+        "correlation_r": -0.45,
+        "prefilter_threshold": 10.0
+      },
+      "market_cap": {
+        "median_winners_M": 59,
+        "median_losers_M": 2143,
+        "best_bucket": "0-50M"
+      },
+      "ai_accuracy": {
+        "imminent_precision": 0.381,
+        "recall_among_classified": 1.0,
+        "notes": "38% of IMMINENT defense headlines are 5%+ winners. 100% recall among classified articles."
+      },
+      "stop_loss": {
+        "recommended_pct": 12.0,
+        "winner_stopout_at_5pct": 0.40,
+        "winner_stopout_at_7pct": 0.27,
+        "winner_stopout_at_12pct": 0.11
+      },
+      "position_sizing": {
+        "MODERATE": 750,
+        "LARGE": 1000,
+        "MAX": 1500,
+        "minimum_size": "MODERATE"
+      },
+      "exit_strategy": {
+        "tiers": [[0.25, 0.34], [0.40, 0.50], [0.60, 1.00]],
+        "trailing_stop_pct": 0.15,
+        "early_exit_disabled": true
+      },
+      "winner_keywords": ["secures", "first", "navy", "missile", "counter-UAS", "tomahawk"],
+      "loser_keywords": ["capabilities", "support", "platform"],
+      "triage_types": ["dod_contract", "military_contract", "defense_contract", "navy_contract", "army_contract", "air_force_contract", "space_force_contract", "darpa_contract", "nasa_contract", "government_award", "idiq_contract", "multi_year_contract", "foreign_military_sale", "drone_contract", "missile_contract", "satellite_contract", "space_contract", "defense_order", "military_order", "defense_partnership"],
+      "full_simulation": {
+        "period": "2025-12-12 to 2026-03-07",
+        "trades_at_10k": 17,
+        "profit_usd": 13864,
+        "win_rate": 0.562,
+        "return_pct": 8.2
+      },
+      "notes": "Live in production. Strongest proven pattern. Defense sweet spot is 3-10% spread. Micro-cap winners. Deep drawdowns require 12% stop."
+    },
+    "fda_clinical": {
+      "implementation_status": "not_recommended",
+      "total_headlines": 541,
+      "records_with_price_data": 385,
+      "winner_count": 16,
+      "loser_count": 337,
+      "win_rate_5pct": 0.042,
+      "avg_winner_mfe_pct": 24.57,
+      "avg_loser_10min_pct": -8.14,
+      "avg_all_10min_pct": -6.40,
+      "expected_value": -6.79,
+      "spread": {
+        "avg_winners": 11.13,
+        "median_winners": 3.04,
+        "avg_losers": 8.18,
+        "correlation_r": -0.59,
+        "notes": "4-5% spread bucket has 0% win rate. Best win rate at 3-4% (10.3%)."
+      },
+      "market_cap": {
+        "median_winners_M": 408,
+        "median_losers_M": 402,
+        "best_buckets": ["250-500M (9.1%)", "1B-5B (8.3%)"],
+        "zero_winners": ["50-100M", "100-250M", "5B+"]
+      },
+      "ai_accuracy": {
+        "imminent_precision": 0.051,
+        "winners_classified_imminent": 0,
+        "notes": "0 of 16 winners were classified IMMINENT. The LLM actively skips these (prefilter_llm_skip) and this PROTECTS capital."
+      },
+      "stop_loss": {
+        "winner_stopout_at_3pct": 0.467,
+        "winner_stopout_at_5pct": 0.400,
+        "winner_stopout_at_7pct": 0.267,
+        "winner_stopout_at_10pct": 0.133,
+        "winner_stopout_at_12pct": 0.133
+      },
+      "confluence": {
+        "avg_winners": 3.62,
+        "avg_losers": 2.82,
+        "confluence_4plus_win_rate": 0.176,
+        "confluence_6_win_rate": 0.50
+      },
+      "conviction": {
+        "very_high_win_rate": 0.20,
+        "standard_win_rate": 0.039
+      },
+      "high_confidence_subset": {
+        "filter": "spread < 3% AND confluence >= 3",
+        "win_rate": 0.167,
+        "notes": "4x the baseline, but tiny sample size"
+      },
+      "session": {
+        "premarket_win_rate": 0.029,
+        "postmarket_win_rate": 0.098,
+        "market_hours_win_rate": 0.071
+      },
+      "headline_language": {
+        "winner_keywords": ["primary endpoint", "gene therapy", "lift hold", "magnitude", "successfully"],
+        "loser_only_keywords": ["approval (31x, 0 winners)", "application (28x)", "pharmaceuticals (24x)", "meeting (20x)", "enrollment (18x)", "clearance (15x)", "update (14x)", "review (14x)"],
+        "notes": "The word 'approval' appears 31 times in losers and ZERO times in winners. FDA approvals are priced in."
+      },
+      "notes": "NOT recommended for high-conviction path. 87.5% of FDA headlines are losers. Average 10min change is -6.40%. The LLM's skip filter is actually protecting capital. Only a tiny subset (clinical hold lifts, primary endpoint met on specific trials) are winners, and these are too rare and hard to identify systematically."
+    },
+    "major_contract": {
+      "implementation_status": "research",
+      "total_headlines": 201,
+      "records_with_price_data": 133,
+      "winner_count": 9,
+      "loser_count": 113,
+      "win_rate_5pct": 0.068,
+      "avg_winner_mfe_pct": 50.34,
+      "avg_winner_10min_pct": 27.32,
+      "avg_loser_10min_pct": -9.51,
+      "avg_all_10min_pct": -6.10,
+      "spread": {
+        "avg_winners": 6.17,
+        "avg_losers": 9.75,
+        "correlation_r": -0.71,
+        "best_bucket": "4-5% (15.4% win rate)",
+        "notes": "Top losers (BWMN -75%, BLFS -69%) all had 40%+ spreads — illiquid premarket quotes."
+      },
+      "market_cap": {
+        "median_winners_M": 18.3,
+        "median_losers_M": 636.3,
+        "bucket_0_50M_win_rate": 0.222,
+        "zero_winners_above": "500M"
+      },
+      "ai_accuracy": {
+        "imminent_precision": 0.238,
+        "recall_among_classified": 1.0,
+        "total_classified": 21,
+        "notes": "23.8% precision when IMMINENT (5/21). 3.5x better than overall 6.8%. All classified articles were IMMINENT."
+      },
+      "stop_loss": {
+        "median_winner_mae": -6.99,
+        "winner_stopout_at_3pct": 0.778,
+        "winner_stopout_at_5pct": 0.667,
+        "winner_stopout_at_7pct": 0.444,
+        "winner_stopout_at_10pct": 0.222,
+        "winner_stopout_at_12pct": 0.111,
+        "recommended_pct": 12.0,
+        "notes": "Winners have DEEP drawdowns. A 3% stop kills 78% of winners. Need 12% to keep 89%."
+      },
+      "dollar_amount_analysis": {
+        "with_dollar_win_rate": 0.067,
+        "without_dollar_win_rate": 0.068,
+        "deal_pct_of_mcap": {
+          "below_1pct": {"win_rate": 0.0, "avg_10min": -3.29},
+          "1_to_5pct": {"win_rate": 0.0, "avg_10min": -9.15},
+          "5_to_10pct": {"win_rate": 0.0, "avg_10min": -9.61},
+          "10_to_25pct": {"win_rate": 0.143, "avg_10min": -3.26},
+          "25_to_50pct": {"win_rate": 0.0, "avg_10min": -8.04},
+          "above_50pct": {"win_rate": 0.273, "avg_10min": 10.76}
+        },
+        "notes": "Dollar amount alone doesn't predict. But deals >50% of market cap have 27.3% win rate."
+      },
+      "headline_language": {
+        "winner_enriched": ["revenue (7.4x)", "deployment (5.9x)", "signs (5.7x)", "infrastructure (4.2x)", "framework (4.2x)"],
+        "loser_only_keywords": ["awarded (21x, all losers)", "government (6x, all losers)", "california (7x, all losers)", "construction (5x, all losers)"],
+        "notes": "'awarded' appears 21 times and ALL are losers. 'signs' is 5.7x enriched in winners."
+      },
+      "sector_breakdown": {
+        "best_sectors": ["Consumer Cyclical (22.2%)", "Industrials (10.9%)"],
+        "zero_win_sectors": ["Energy", "Basic Materials", "Financial Services", "Communication Services", "Utilities"]
+      },
+      "sample_winners": [
+        {"ticker": "CJMB", "change_10min": 122.86, "mfe": 231.43, "spread": 4.29, "mcap_M": 5, "deal_M": 75},
+        {"ticker": "RITR", "change_10min": 35.37, "mfe": 70.54, "spread": 4.07, "mcap_M": 52},
+        {"ticker": "ASNS", "change_10min": 17.0, "mfe": 30.66, "spread": 2.0, "mcap_M": 4},
+        {"ticker": "PLBY", "change_10min": 16.97, "mfe": 27.27, "spread": 12.12, "mcap_M": 162, "deal_M": 122},
+        {"ticker": "HCTI", "change_10min": 15.92, "mfe": 16.39, "spread": 0.96, "mcap_M": 4, "deal_M": 38}
+      ],
+      "notes": "Potential high-conviction candidate with strict filters: micro-cap (<50M) + deal >50% of mkt cap + IMMINENT classification. But 6.8% overall win rate means it needs a high-precision filter chain. The 'awarded' keyword being 100% losers is a strong negative signal. Overlap with defense should be excluded (defense handled separately)."
+    },
+    "partnership_jv": {
+      "implementation_status": "research",
+      "total_count_headline_type": 19,
+      "winner_count": 3,
+      "win_rate_5pct": 0.158,
+      "avg_winner_mfe": 53.24,
+      "expected_value": 0.86,
+      "notes": "Partnerships vary widely in materiality. Volume confirmation is critical. Small sample from headline_type only."
+    },
+    "acquisition_merger": {
+      "implementation_status": "research",
+      "total_count_headline_type": 10,
+      "winner_count": 0,
+      "win_rate_5pct": 0.0,
+      "notes": "Acquisition headlines in recall data are 100% losers. These are often the ACQUIRER spending money, not the target being acquired. Target-side M&A rarely appears in Benzinga feed."
+    },
+    "patent_ip": {
+      "implementation_status": "research",
+      "total_count_headline_type": 5,
+      "winner_count": 0,
+      "win_rate_5pct": 0.0,
+      "avg_loser_spread": 14.17,
+      "notes": "Patent grants alone rarely move price. Too wide spreads in sample. Not recommended."
+    },
+    "product_launch": {
+      "implementation_status": "research",
+      "total_count_headline_type": 7,
+      "winner_count": 0,
+      "win_rate_5pct": 0.0,
+      "notes": "Product launches tend to be priced in. Zero winners in sample."
+    },
+    "share_repurchase": {
+      "implementation_status": "research",
+      "notes": "Buyback announcements handled within sector prompts. No separate high-conviction path needed — already traded via sector LLM."
+    },
+    "strategic_investment": {
+      "implementation_status": "research",
+      "notes": "Strategic investments handled within sector prompts (e.g., JZXN via consumer_services.txt). Sector-specific approach preferred."
+    }
+  }
+}

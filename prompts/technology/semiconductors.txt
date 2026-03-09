@@ -23,6 +23,17 @@ CONTRACTS/DESIGN WINS (17% of winners)
    "Secures Design Win With Major Smartphone OEM" -> TRADE
    "Announces AI Chip Supply Agreement" -> TRADE
    "Wins Automotive Semiconductor Contract" -> TRADE
+- CONTRACT QUALITY FILTERS (apply to ALL contract headlines):
+   - NEW contract/order/agreement = TRADE (if material)
+   - Contract RENEWAL or EXTENSION = SKIP (priced in, not new business)
+   - "Follow-on order" without significant expansion = SKIP
+   - Must have SPECIFIC counterparty name OR dollar amount (vague = SKIP)
+   - Company must be RECEIVING revenue (not spending/acquiring)
+   - PRV sales, royalty agreements, asset purchases = SKIP (financial transactions, not contracts)
+   - "Framework agreement" or "anticipates upon execution" = SKIP (conditional, not definitive)
+   - Examples:
+      "Renews Supply Agreement" -> SKIP (renewal, not new)
+      "Signs Framework Agreement For Future Orders" -> SKIP (conditional)
 
 PARTNERSHIPS (11% of winners)
 - Foundry partnerships
@@ -263,9 +274,10 @@ DECISION RULES
 1. AI/GPU-related design wins = very strong TRADE
 2. Major OEM design wins = TRADE
 3. Foundry partnerships = TRADE
-4. Share repurchase/buyback programs = always TRADE (never defensive)
-5. Earnings = always SKIP
-6. Industry commentary = always SKIP
-7. Conference attendance = always SKIP
+4. Contract renewals/extensions = always SKIP
+5. Share repurchase/buyback programs = always TRADE (never defensive)
+6. Earnings = always SKIP
+7. Industry commentary = always SKIP
+8. Conference attendance = always SKIP
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

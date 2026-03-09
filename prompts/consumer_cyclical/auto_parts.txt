@@ -31,6 +31,17 @@ CONTRACTS (12% of winners)
    "Wins Multi-Year OEM Supply Contract" -> TRADE
    "Secures Platform Win With Major Automaker" -> TRADE
    "Awarded EV Component Contract" -> TRADE
+- CONTRACT QUALITY FILTERS (apply to ALL contract headlines):
+   - NEW contract/order/agreement = TRADE (if material)
+   - Contract RENEWAL or EXTENSION = SKIP (priced in, not new business)
+   - "Follow-on order" without significant expansion = SKIP
+   - Must have SPECIFIC counterparty name OR dollar amount (vague = SKIP)
+   - Company must be RECEIVING revenue (not spending/acquiring)
+   - PRV sales, royalty agreements, asset purchases = SKIP (financial transactions, not contracts)
+   - "Framework agreement" or "anticipates upon execution" = SKIP (conditional, not definitive)
+   - Examples:
+      "Renews Supply Agreement With OEM" -> SKIP (renewal, not new)
+      "Signs Framework Agreement For Future Supply" -> SKIP (conditional)
 
 M&A ACTIVITY
 - Acquisition announcements
@@ -246,8 +257,9 @@ DECISION RULES
 1. EV/electric partnerships = strongest TRADE signal
 2. OEM contracts = TRADE
 3. Platform wins = TRADE
-4. Share repurchase/buyback programs = always TRADE (never defensive)
-5. Earnings = always SKIP
-6. Industry commentary = SKIP
+4. Contract renewals/extensions = always SKIP
+5. Share repurchase/buyback programs = always TRADE (never defensive)
+6. Earnings = always SKIP
+7. Industry commentary = SKIP
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

@@ -24,6 +24,18 @@ CONTRACTS (34% of winners - KEY SIGNAL)
    "Secures 5G Infrastructure Deal" -> TRADE
    "Awarded Government Communications Contract" -> TRADE
    "Signs Satellite Network Agreement" -> TRADE
+- CONTRACT QUALITY FILTERS (apply to ALL contract headlines):
+   - NEW contract/order/agreement = TRADE (if material)
+   - Contract RENEWAL or EXTENSION = SKIP (priced in, not new business)
+   - "Follow-on order" without significant expansion = SKIP
+   - Must have SPECIFIC counterparty name OR dollar amount (vague = SKIP)
+   - Company must be RECEIVING revenue (not spending/acquiring)
+   - PRV sales, royalty agreements, asset purchases = SKIP (financial transactions, not contracts)
+   - "Framework agreement" or "anticipates upon execution" = SKIP (conditional, not definitive)
+   - Examples:
+      "Renews Supply Agreement With Carrier" -> SKIP (renewal, not new)
+      "Sells Priority Review Voucher" -> SKIP (financial transaction)
+      "Signs Framework Agreement For Future Orders" -> SKIP (conditional)
 
 PARTNERSHIPS (11% of winners)
 - Carrier partnerships
@@ -263,9 +275,10 @@ DECISION RULES
 1. Telecom carrier contracts = strongest signal (34% of winners)
 2. Government/defense contracts = strong TRADE
 3. 5G infrastructure deals = TRADE
-4. Share repurchase/buyback programs = always TRADE (never defensive)
-5. Earnings = always SKIP
-6. Conference attendance = always SKIP
-7. Regulatory commentary = SKIP
+4. Contract renewals/extensions = always SKIP
+5. Share repurchase/buyback programs = always TRADE (never defensive)
+6. Earnings = always SKIP
+7. Conference attendance = always SKIP
+8. Regulatory commentary = SKIP
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

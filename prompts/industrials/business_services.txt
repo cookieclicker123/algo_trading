@@ -29,6 +29,17 @@ CONTRACTS (16% of winners)
 - Examples:
    "Wins Government Services Contract" -> TRADE
    "Secures Multi-Year Enterprise Agreement" -> TRADE
+- CONTRACT QUALITY FILTERS (apply to ALL contract headlines):
+   - NEW contract/order/agreement = TRADE (if material)
+   - Contract RENEWAL or EXTENSION = SKIP (priced in, not new business)
+   - "Follow-on order" without significant expansion = SKIP
+   - Must have SPECIFIC counterparty name OR dollar amount (vague = SKIP)
+   - Company must be RECEIVING revenue (not spending/acquiring)
+   - PRV sales, royalty agreements, asset purchases = SKIP (financial transactions, not contracts)
+   - "Framework agreement" or "anticipates upon execution" = SKIP (conditional, not definitive)
+   - Examples:
+      "Renews Services Agreement With Customer" -> SKIP (renewal, not new)
+      "Signs Framework Agreement For Consulting Services" -> SKIP (conditional)
 
 M&A ACTIVITY
 - Acquisition announcements
@@ -233,8 +244,9 @@ DECISION RULES
 
 1. Enterprise partnerships = TRADE
 2. Government contracts = TRADE
-3. Share repurchase/buyback programs = always TRADE (never defensive)
-4. Earnings = always SKIP
-5. Conference attendance = always SKIP
+3. Contract renewals/extensions = always SKIP
+4. Share repurchase/buyback programs = always TRADE (never defensive)
+5. Earnings = always SKIP
+6. Conference attendance = always SKIP
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

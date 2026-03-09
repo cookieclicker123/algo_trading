@@ -28,7 +28,7 @@ STOP LOSS (5% below entry price, 12% for high-conviction):
 - After 5 seconds: Immediate execution (if crashing, it's real)
 - Rationale: SMTK went -7% at 1.8s then +37% at 2.0s - grace period prevents false stops
 
-HIGH-CONVICTION TRADES (gov/military contracts):
+HIGH-CONVICTION TRADES (gov/military + major commercial contracts):
 - Wider tiers: +25% (34%), +40% (50%), +60% (100%)
 - 12% stop loss (MTEK had -9.99% MAE then ran +49%)
 - Trailing stop after first tier: 15pp below peak (replaces fixed floors)

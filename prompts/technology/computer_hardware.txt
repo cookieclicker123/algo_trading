@@ -28,6 +28,18 @@ CONTRACTS & DEFENSE/MILITARY (33% of winners - KEY SIGNAL)
    "Announces Strategic Investment in Precision Loitering Munition Innovator" -> TRADE
    "Selected for Military Drone Identification System" -> TRADE
    "Receives Tactical Systems Order from Military Force" -> TRADE
+- CONTRACT QUALITY FILTERS (apply to ALL contract headlines):
+   - NEW contract/order/agreement = TRADE (if material)
+   - Contract RENEWAL or EXTENSION = SKIP (priced in, not new business)
+   - "Follow-on order" without significant expansion = SKIP
+   - Must have SPECIFIC counterparty name OR dollar amount (vague = SKIP)
+   - Company must be RECEIVING revenue (not spending/acquiring)
+   - PRV sales, royalty agreements, asset purchases = SKIP (financial transactions, not contracts)
+   - "Framework agreement" or "anticipates upon execution" = SKIP (conditional, not definitive)
+   - Examples:
+      "Renews Supply Agreement With Enterprise Customer" -> SKIP (renewal, not new)
+      "Sells Priority Review Voucher" -> SKIP (financial transaction)
+      "Signs Framework Agreement For Future Orders" -> SKIP (conditional)
 
 PARTNERSHIPS (15% of winners)
 - OEM partnerships
@@ -286,12 +298,13 @@ DECISION RULES
 2. Defense/military contracts, investments, or orders = ALWAYS TRADE (never sector mismatch)
 3. AI/quantum hardware PRODUCT LAUNCHES = TRADE (actual product, not R&D)
 4. Major tech partnerships WITH NAMED COMPANY = TRADE (Microsoft, Dell, etc.)
-5. Share repurchase/buyback programs = always TRADE (never defensive)
-6. Earnings = always SKIP
-7. Trade show attendance = always SKIP
-8. Market share commentary = SKIP
-9. "Strategic upgrade/initiative" without specific deal = SKIP
-10. R&D announcements (accelerates, expands, invests in R&D) = SKIP
-11. Supply chain access/partnership without contract value = SKIP
+5. Contract renewals/extensions = always SKIP
+6. Share repurchase/buyback programs = always TRADE (never defensive)
+7. Earnings = always SKIP
+8. Trade show attendance = always SKIP
+9. Market share commentary = SKIP
+10. "Strategic upgrade/initiative" without specific deal = SKIP
+11. R&D announcements (accelerates, expands, invests in R&D) = SKIP
+12. Supply chain access/partnership without contract value = SKIP
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)
