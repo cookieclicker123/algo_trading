@@ -812,7 +812,7 @@ Summary: {summary}"""
             # If SKIP/NOT_SUPPORTED → no trade, but data collection continues
             # ========================================================================
 
-            await self._classify_via_sector(infra_event, primary_ticker)
+            await self._classify_via_sector(infra_event, primary_ticker, triage_headline_type)
             
         except Exception as e:
             logger.error(
@@ -946,7 +946,8 @@ Summary: {summary}"""
     async def _classify_via_sector(
         self,
         infra_event: ClassificationRequestedInfrastructureEvent,
-        primary_ticker: str
+        primary_ticker: str,
+        triage_headline_type: Optional[str] = None,
     ) -> None:
         """
         Classify article via multi-sector LLM classifier and publish result event.
@@ -996,7 +997,7 @@ Summary: {summary}"""
             # Handle classification result
             if classification == "TRADE":
                 # Get headline_type: reuse prefilter triage if available, else classify now
-                headline_type = self._triage_cache.pop(request_data.article_id, None)
+                headline_type = triage_headline_type or self._triage_cache.pop(request_data.article_id, None)
                 if not headline_type:
                     # No triage cached (spread was fine, triage wasn't needed at prefilter).
                     # Classify now — this adds ~200-500ms but only for TRADE results.
@@ -1054,15 +1055,15 @@ Summary: {summary}"""
 
             elif classification == "NOT_SUPPORTED_SECTOR":
                 # Sector not supported - skip trading but continue data collection
-                await self._publish_skipped_event(infra_event, f"unsupported_sector:{sector or 'unknown'}", headline_type=self._triage_cache.pop(request_data.article_id, None))
+                await self._publish_skipped_event(infra_event, f"unsupported_sector:{sector or 'unknown'}", headline_type=triage_headline_type)
 
             elif classification == "UNSUPPORTED_INDUSTRY":
                 # Supported sector but unsupported industry - skip trading
-                await self._publish_skipped_event(infra_event, f"unsupported_industry:{sector}/{industry}", headline_type=self._triage_cache.pop(request_data.article_id, None))
+                await self._publish_skipped_event(infra_event, f"unsupported_industry:{sector}/{industry}", headline_type=triage_headline_type)
 
             else:
                 # SKIP signal - LLM determined not tradeable
-                await self._publish_skipped_event(infra_event, f"llm_skip:{sector}/{industry}", headline_type=self._triage_cache.pop(request_data.article_id, None))
+                await self._publish_skipped_event(infra_event, f"llm_skip:{sector}/{industry}", headline_type=triage_headline_type)
 
         except Exception as e:
             logger.error(
