@@ -401,6 +401,13 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
                 profit_pct = metadata.get("profit_pct")
                 was_profitable = profit_pct is not None and profit_pct > 0
                 unregister_active_position(ticker, was_profitable=was_profitable)
+
+                # CRITICAL: Also remove from PositionManager to prevent ghost exits.
+                # Without this, ExitTradeUseCase exits leave stale positions in
+                # PositionManager, which then triggers force-exit-before-session-end
+                # or other exit logic hours later — creating accidental shorts.
+                await position_manager.remove_position(ticker)
+
                 logger.info(
                     "Position unregistered from TradeExecuted SELL (dynamic cooldown started)",
                     ticker=ticker,

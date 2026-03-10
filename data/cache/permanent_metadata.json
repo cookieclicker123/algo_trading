@@ -141486,5 +141486,9 @@
   "LLYVK": {
     "industry": "Entertainment",
     "sector": "Communication Services"
+  },
+  "MMED": {
+    "industry": "Health Information Services",
+    "sector": "Healthcare"
   }
 }

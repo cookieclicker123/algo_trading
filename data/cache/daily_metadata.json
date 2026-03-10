@@ -1,5 +1,5 @@
 {
-  "date": "2026-03-09",
+  "date": "2026-03-10",
   "data": {
     "ORCL": {
       "market_cap_millions": 459538.399232
@@ -16414,6 +16414,12 @@
     "LLYVK": {
       "market_cap_millions": 9045.054464,
       "float_shares": 47949720
+    },
+    "IRAB": {
+      "market_cap_millions": 283.197376
+    },
+    "MMED": {
+      "market_cap_millions": 5054.640128
     }
   }
 }

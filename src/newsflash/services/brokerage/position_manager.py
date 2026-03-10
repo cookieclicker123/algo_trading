@@ -689,6 +689,9 @@ class PositionManager:
             if ticker in self._exits_in_progress:
                 continue  # Already exiting
 
+            if position.shares_remaining <= 0:
+                continue  # Already fully exited (stale position)
+
             self._exits_in_progress.add(ticker)
 
             # Get current price for exit
