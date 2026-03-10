@@ -7152,7 +7152,7 @@
       "market_cap_millions": 650.201408
     },
     "AGD": {
-      "market_cap_millions": 305.496384
+      "market_cap_millions": 288.579648
     },
     "FCO": {
       "market_cap_millions": 41.77728
@@ -11698,7 +11698,7 @@
       "market_cap_millions": 32566.165504
     },
     "ATCX": {
-      "market_cap_millions": 30.534396
+      "market_cap_millions": 32.633324
     },
     "GCLWW": {
       "market_cap_millions": 0.6435
@@ -16280,7 +16280,7 @@
       "float_shares": 92765717
     },
     "BCTXL": {
-      "float_shares": 1684344
+      "float_shares": 1665618
     },
     "BTG": {
       "market_cap_millions": 7188.42112,
@@ -16397,7 +16397,8 @@
       "float_shares": 174100035
     },
     "MRDN": {
-      "float_shares": 1883785
+      "float_shares": 1883785,
+      "market_cap_millions": 117.309064
     },
     "KMDA": {
       "market_cap_millions": 515.095104,
@@ -16420,6 +16421,13 @@
     },
     "MMED": {
       "market_cap_millions": 5054.640128
+    },
+    "PTIX": {
+      "market_cap_millions": 0.811645
+    },
+    "CVSA": {
+      "market_cap_millions": 3746.563072,
+      "float_shares": 33667205
     }
   }
 }

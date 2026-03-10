@@ -116,5 +116,17 @@
     "created_at": "2026-03-09T20:12:06.339514",
     "last_fp_date": "2026-03-09",
     "last_win_date": "2026-03-09T23:50:01.608697"
+  },
+  "APVO": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-10T12:06:53.383027",
+    "last_fp_date": "2026-03-10"
+  },
+  "SYNX": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-10T13:18:13.767124",
+    "last_fp_date": "2026-03-10"
   }
 }

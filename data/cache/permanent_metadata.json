@@ -141464,8 +141464,8 @@
     "sector": "Consumer Defensive"
   },
   "MRDN": {
-    "industry": "",
-    "sector": ""
+    "industry": "Electronic Gaming & Multimedia",
+    "sector": "Communication Services"
   },
   "KMDA": {
     "industry": "Drug Manufacturers - Specialty & Generic",
@@ -141490,5 +141490,13 @@
   "MMED": {
     "industry": "Health Information Services",
     "sector": "Healthcare"
+  },
+  "PTIX": {
+    "industry": "Biotechnology",
+    "sector": "Healthcare"
+  },
+  "CVSA": {
+    "industry": "Education & Training Services",
+    "sector": "Consumer Defensive"
   }
 }

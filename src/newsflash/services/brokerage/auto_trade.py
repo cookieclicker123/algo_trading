@@ -2,10 +2,15 @@
 Auto-trade service - subscribes to domain events and handles trading logic.
 
 AI-BASED POSITION SIZING (Immediate entry on classification):
-- SMALL: $1 position (weak headline, vague, unknown partner) [PROVING MODE]
-- MODERATE: $2 position (decent headline, some specificity) [PROVING MODE]
-- LARGE: $3 position (strong headline, specific details) [PROVING MODE]
-- MAX: $4 position (transformational headline, >50% of market cap deal) [PROVING MODE]
+Regular path:
+- SMALL: $300 position (weak headline, vague, unknown partner)
+- MODERATE: $400 position (decent headline, some specificity)
+- LARGE: $500 position (strong headline, specific details)
+- MAX: $600 position (transformational headline, >50% of market cap deal)
+High-conviction headline types (gov/military contracts, major commercial contracts):
+- SMALL/MODERATE: $2,000 position
+- LARGE: $2,500 position
+- MAX: $3,000 position
 
 The AI determines position size based on:
 1. Headline concreteness (specific $ amounts, named parties, definitive terms)
@@ -144,7 +149,7 @@ async def _record_postfilter_skip(article_id: str, reason: str) -> None:
 # Threshold should be scaled with position sizes.
 
 DAILY_MAX_LOSS_USD = 5.00  # Shut down after $5 loss (scale up as positions increase)
-DAILY_MAX_LOSS_ENABLED = True  # Set to False to disable circuit breaker
+DAILY_MAX_LOSS_ENABLED = False  # Disabled — will re-enable with appropriate threshold later
 
 _daily_pnl_usd: float = 0.0  # Running P&L for the day
 _daily_pnl_trades: list = []  # List of (ticker, pnl) for logging
@@ -371,19 +376,19 @@ def get_cooldown_remaining(ticker: str) -> Optional[float]:
 # REDUCED 10x from normal sizes while testing/validating filters
 # Paper shadow trades use 50x these amounts for meaningful stats
 POSITION_SIZES_USD = {
-    ConvictionLevel.MINIMUM: Decimal("1.00"),         # AI: SMALL - weak/vague headline (proving mode)
-    ConvictionLevel.STANDARD: Decimal("2.00"),        # AI: MODERATE - decent specificity (proving mode)
-    ConvictionLevel.HIGH: Decimal("3.00"),            # AI: LARGE - strong, specific headline (proving mode)
-    ConvictionLevel.VERY_HIGH: Decimal("4.00"),       # AI: MAX - transformational (proving mode)
+    ConvictionLevel.MINIMUM: Decimal("300.00"),       # AI: SMALL - weak/vague headline
+    ConvictionLevel.STANDARD: Decimal("400.00"),      # AI: MODERATE - decent specificity
+    ConvictionLevel.HIGH: Decimal("500.00"),          # AI: LARGE - strong, specific headline
+    ConvictionLevel.VERY_HIGH: Decimal("600.00"),     # AI: MAX - transformational
 }
 
-# High-conviction defense trades: statistically proven edge (+8.2% return, 56% win rate over 60 days)
-# Sized up because the LLM pipeline (triage + sector) has demonstrated reliable precision.
+# High-conviction headline types (gov/military contracts, major commercial contracts):
+# Statistically proven edge — sized up accordingly.
 HC_POSITION_SIZES_USD = {
-    ConvictionLevel.MINIMUM: Decimal("750.00"),       # AI: SMALL → overridden to MODERATE ($750)
-    ConvictionLevel.STANDARD: Decimal("750.00"),      # AI: MODERATE - $750
-    ConvictionLevel.HIGH: Decimal("1000.00"),         # AI: LARGE - $1000
-    ConvictionLevel.VERY_HIGH: Decimal("1500.00"),    # AI: MAX - $1500
+    ConvictionLevel.MINIMUM: Decimal("2000.00"),      # AI: SMALL → overridden to MODERATE ($2000)
+    ConvictionLevel.STANDARD: Decimal("2000.00"),     # AI: MODERATE - $2000
+    ConvictionLevel.HIGH: Decimal("2500.00"),         # AI: LARGE - $2500
+    ConvictionLevel.VERY_HIGH: Decimal("3000.00"),    # AI: MAX - $3000
 }
 
 # Map AI position size strings to ConvictionLevel

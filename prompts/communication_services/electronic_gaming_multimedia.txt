@@ -7,8 +7,11 @@ INDUSTRY CONTEXT:
 - 33 historical winners analyzed, avg move +25%
 - Top catalysts: Strategic Investments (25%), AI/Tech Launches (20%), Technology Acquisitions (15%)
 - Includes video game developers, esports, gaming platforms, interactive entertainment
+- ALSO includes companies that have pivoted to defense drones, robotics, and military AI
+  (many small-cap gaming/multimedia companies now derive revenue from defense tech)
 - Small-cap gaming stocks are highly reactive to funding and technology announcements
 - AI-related gaming tools and platforms are particularly strong catalysts
+- Defense/military catalysts are EXTREMELY strong for companies in this space
 - NOTE: We do NOT trade earnings announcements
 
 ===============================================================================
@@ -36,6 +39,23 @@ AI & TECHNOLOGY PRODUCT LAUNCHES (20% of winners)
    "Releases Visual Editor For Game Engine" -> TRADE
    "Launches AI Video Creation Platform" -> TRADE
    "Enhances Game Development With AI Integration" -> TRADE
+
+DEFENSE, MILITARY & DRONE CONTRACTS (VERY STRONG - proven +20-49% moves)
+- Many Electronic Gaming/Multimedia companies have pivoted to defense drones & robotics
+- Military contracts, government defense awards, DOD/Navy/Army/Air Force deals
+- Senior military appointments to advisory boards (generals, admirals = credibility signal)
+- Defense drone orders, military robotics partnerships, munitions contracts
+- These are NOT sector mismatches — defense IS the business for these companies
+- Backtested winners: GXAI +37% (Navy contract), MTEK +49% (Navy), MOBX +25% (defense)
+- Examples:
+   "Receives $40M Contract From US Navy For Drone Systems" -> TRADE MAX
+   "Major General Joins Company Advisory Council For Defense Drones" -> TRADE MODERATE
+   "Awarded Department of Defense Contract For Autonomous Robotics" -> TRADE LARGE
+   "US Army Selects Company For Counter-Drone Program" -> TRADE LARGE
+   "Joins Defense Drone Advisory Council" -> TRADE SMALL
+   "Named Subcontractor On $500M DARPA Program" -> TRADE LARGE
+- NOTE: Advisory board appointments with named military officials (General, Admiral,
+  Colonel) signal government credibility and future contracts = always TRADE
 
 TECHNOLOGY & IP ACQUISITIONS (15% of winners)
 - Acquires technology rights
@@ -183,9 +203,12 @@ PROVISIONAL/LIMITED (Not final or material)
 SECTOR MISMATCH (Company doing something outside their business)
 ├─ If a company announces news completely unrelated to their industry
 ├─ This often signals desperation or pump scheme
-├─ E.g., Internet Retail company doing submarines, Solar company doing AI
+├─ EXCEPTION: Defense/military/drones is NOT a mismatch for this industry.
+│  Many Electronic Gaming companies have legitimately pivoted to defense tech.
+│  Defense headlines = TRADE (see DEFENSE section above)
 └─ Examples:
-   "E-commerce Company Enters Defense Sector" → SKIP (mismatch)
+   "E-commerce Company Enters Healthcare Sector" → SKIP (mismatch)
+   "Gaming Company Wins Navy Drone Contract" → TRADE (defense is legitimate)
 
 CASH OUTFLOWS (Spending money, not making it)
 ├─ "Acquires" / "To Acquire" = company SPENDING money
@@ -297,15 +320,16 @@ DECISION RULES
 ===============================================================================
 
 1. Strategic investment with named partner + $ amount = STRONGEST TRADE
-2. AI/technology product launch for gaming = TRADE
-3. Technology/IP acquisition = TRADE
-4. M&A/buyout announcement = TRADE
-5. Crypto treasury strategy with $ amount = TRADE
-6. Special dividend = TRADE
-7. Share repurchase/buyback programs = always TRADE (never defensive)
-8. Earnings = always SKIP
-9. Nasdaq compliance = SKIP
-10. Offerings without strategic context = SKIP
-11. Conference attendance = SKIP
+2. Defense/military contracts, drone orders, military advisory appointments = TRADE
+3. AI/technology product launch for gaming = TRADE
+4. Technology/IP acquisition = TRADE
+5. M&A/buyout announcement = TRADE
+6. Crypto treasury strategy with $ amount = TRADE
+7. Special dividend = TRADE
+8. Share repurchase/buyback programs = always TRADE (never defensive)
+9. Earnings = always SKIP
+10. Nasdaq compliance = SKIP
+11. Offerings without strategic context = SKIP
+12. Conference attendance = SKIP
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)
