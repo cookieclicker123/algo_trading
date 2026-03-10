@@ -41,6 +41,22 @@ M&A ACTIVITY
    "To Be Acquired By Logistics Giant" -> TRADE
    "Acquires Regional Logistics Provider" -> SKIP (spending money)
 
+STRATEGIC ALTERNATIVES / ACQUISITION TARGET (Very strong — company is being pursued)
+- "Evaluating strategic alternatives" with investment bank engaged = serious M&A process
+- "Unsolicited expressions of interest" = buyers are approaching the company
+- "Received unsolicited offer/proposal" = concrete acquisition attempt
+- "Retained [investment bank] to explore strategic alternatives" = formal sale process
+- These signal the company is an ACQUISITION TARGET — one of the strongest catalysts
+- Named investment bank (Roth Capital, Goldman, Lazard, etc.) = credible, not just talk
+- NUANCE: "Evaluating strategic alternatives" ALONE without bank/advisor = weaker (TRADE SMALL)
+- NUANCE: "Exploring strategic options" in an earnings call = often defensive language = SKIP
+- Examples:
+   "Engages Investment Bank To Review Unsolicited Interest And Evaluate Strategic Alternatives" -> TRADE LARGE
+   "Retains Roth Capital To Explore Strategic Alternatives" -> TRADE MODERATE
+   "Received Unsolicited Acquisition Proposal" -> TRADE LARGE
+   "Board Evaluating Strategic Alternatives" (no bank named) -> TRADE SMALL
+   "Exploring Strategic Options" (in earnings context) -> SKIP (defensive)
+
 PARTNERSHIPS
 - Technology partnerships
 - E-commerce partnerships
