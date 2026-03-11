@@ -87,6 +87,13 @@ HIGH_CONVICTION_HEADLINE_TYPES = frozenset({
     "major_contract",        # Commercial contracts — micro-cap + material deal size = sustained moves
 })
 
+# Headline types that should NEVER be traded.
+# Acquiring company = cash outflow, dilution risk, typically sells off.
+# Only the acquisition TARGET (acquired company) should be traded.
+BLOCKED_HEADLINE_TYPES = frozenset({
+    "acquisition_announced",  # Company ACQUIRING another — cash outflow, stock usually drops
+})
+
 
 # ============================================================
 # DUPLICATE POSITION & COOLDOWN PROTECTION
@@ -1984,11 +1991,26 @@ async def process_imminent_article(
             return
 
         # ============================================================
+        # 🚫 BLOCKED HEADLINE TYPE CHECK
+        # ============================================================
+        # Some headline types are never worth trading (e.g. acquirer = cash outflow).
+        headline_type = event_headline_type
+        if headline_type in BLOCKED_HEADLINE_TYPES:
+            logger.info(
+                f"⏭️ AUTO-TRADE SKIPPED: Blocked headline type '{headline_type}'",
+                ticker=ticker,
+                headline_type=headline_type,
+                article_id=article_id,
+                reason="Acquiring company trades are cash outflow — only targets are tradeable",
+            )
+            await _record_postfilter_skip(article_id, f"postfilter_blocked_headline_type:{headline_type}")
+            return
+
+        # ============================================================
         # 🎖️ HIGH-CONVICTION HEADLINE TYPE CHECK
         # ============================================================
         # If headline_type matches HIGH_CONVICTION_HEADLINE_TYPES, relax postfilters.
         # These headline types (gov/military contracts) reliably produce sustained moves.
-        headline_type = event_headline_type
         is_high_conviction = headline_type in HIGH_CONVICTION_HEADLINE_TYPES if headline_type else False
 
         if is_high_conviction:
