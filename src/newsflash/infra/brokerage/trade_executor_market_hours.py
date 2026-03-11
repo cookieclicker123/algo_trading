@@ -82,8 +82,9 @@ class AlpacaMarketHoursTradeExecutor:
         Returns:
             Trade result dictionary (for backward compatibility, also publishes events)
         """
-        # Store metadata for event publishing
+        # Store metadata locally for event publishing (avoid race condition on self._current_metadata)
         self._current_metadata = metadata
+        _local_metadata = metadata
         total_start_time = time.time()
         session_time = timing_info.get("session_detection", 0.0)
         connect_time = timing_info.get("connection", 0.0)
@@ -261,7 +262,7 @@ class AlpacaMarketHoursTradeExecutor:
             }
             
             # Publish success event
-            await self._publish_executed_event(trade_request, result)
+            await self._publish_executed_event(trade_request, result, metadata=_local_metadata)
             
             logger.info(
                 f"🎉 MARKET ORDER FILLED! Price: ${fill_price}, Shares: {filled_shares}, Total: ${total_cost:.2f}"
@@ -293,7 +294,7 @@ class AlpacaMarketHoursTradeExecutor:
             await self._publish_failed_event(trade_request, str(exc))
             return error_result
     
-    async def _publish_executed_event(self, trade_request: TradeRequest, result: Dict[str, Any]) -> None:
+    async def _publish_executed_event(self, trade_request: TradeRequest, result: Dict[str, Any], metadata: Optional[Dict[str, Any]] = None) -> None:
         """Publish trade executed event and send fast notification."""
         infra_trade_request = build_infrastructure_trade_request_data(trade_request)
 
@@ -315,7 +316,7 @@ class AlpacaMarketHoursTradeExecutor:
             spread_info=spread_info,
             executed_at=datetime.now(),
             source="brokerage",
-            metadata=getattr(self, '_current_metadata', None)  # Exit metadata (tier, exit_reason, etc.)
+            metadata=metadata if metadata is not None else getattr(self, '_current_metadata', None)
         )
         
         await self.event_bus.publish("TradeExecuted", event.model_dump())

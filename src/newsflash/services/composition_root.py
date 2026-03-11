@@ -301,8 +301,8 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
                 shares = event_data.get("shares")
                 article_id = trade_request.get("article_id")
 
-                # Extract metadata
-                metadata = event_data.get("metadata", {})
+                # Extract metadata (defensive: handle None from serialization)
+                metadata = event_data.get("metadata") or {}
 
                 # Check if this is a scale-in fill (adding to existing position)
                 is_scale_in = metadata.get("scale_in", False)
@@ -350,6 +350,18 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
                     is_mega_trade = metadata.get("is_mega_trade", False)
                     is_high_conviction = metadata.get("is_high_conviction", False)
 
+                    # Safety check: HC-sized trade but flag missing = metadata race condition
+                    total_cost = fill_price * shares if fill_price and shares else 0
+                    if total_cost > 1500 and not is_high_conviction and not is_mega_trade:
+                        logger.error(
+                            "🚨 METADATA BUG: Large position ($%.0f) but is_high_conviction=False! "
+                            "Forcing is_high_conviction=True to prevent wrong stop loss",
+                            total_cost,
+                            ticker=ticker,
+                            metadata_keys=list(metadata.keys()) if metadata else [],
+                        )
+                        is_high_conviction = True
+
                     if ticker and fill_price and shares:
                         # Register active position for duplicate guard
                         register_active_position(ticker)
@@ -385,13 +397,16 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
                                 conviction=conviction.value,
                             )
                         else:
+                            stop_pct = 0.12 if is_high_conviction else 0.05
                             logger.info(
                                 "Position added from TradeExecuted event (stop loss + let winners run)",
                                 ticker=ticker,
                                 entry_price=fill_price,
                                 shares=shares,
                                 conviction=conviction.value,
-                                stop_loss_price=fill_price * 0.95 if fill_price else None
+                                is_high_conviction=is_high_conviction,
+                                stop_loss_pct=f"{stop_pct*100:.0f}%",
+                                stop_loss_price=round(fill_price * (1 - stop_pct), 4) if fill_price else None,
                             )
 
             # Track SELL trades (exits) - unregister position and start cooldown

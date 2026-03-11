@@ -405,6 +405,8 @@ class PositionManager:
                     shares=shares,
                     cost_basis=position.total_cost_basis,
                     conviction=conviction.value,
+                    is_high_conviction=is_high_conviction,
+                    stop_loss_pct=f"{position._stop_loss_pct*100:.0f}%",
                     stop_loss_price=position.stop_loss_price,
                     first_tier=f"+{TIERED_EXIT_THRESHOLDS[0][0]*100:.0f}%",
                 )
@@ -749,9 +751,10 @@ class PositionManager:
             # Minimal differences from normal trades — just enough breathing room.
             # Normal: 5% stop / 5s grace / 1.25s confirm / breakeven +5% / tiers +15/+20/+30
             # Mega:   7.5% stop / 5s grace / 1s confirm / breakeven +20% / tiers +20/+25/+30
+            # HC mega: 12% stop (HC always wins — wider stop protects the edge)
             if position.is_mega_trade:
                 now = datetime.now()
-                mega_stop_pct = 0.075  # 7.5% stop loss (vs 5% normal)
+                mega_stop_pct = max(0.075, position._stop_loss_pct)  # 12% for HC, 7.5% otherwise
                 mega_breakeven_trigger = 0.20  # Move to breakeven at +20% (vs +5% normal)
                 mega_grace_period = 5.0  # 5 seconds grace (same as normal)
                 mega_confirmation_seconds = 1.0  # 1 second confirmation during grace (vs 1.25s normal)

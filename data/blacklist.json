@@ -134,5 +134,17 @@
     "permanent": false,
     "created_at": "2026-03-11T11:24:26.031633",
     "last_fp_date": "2026-03-11"
+  },
+  "KWM": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-11T12:31:27.472569",
+    "last_fp_date": "2026-03-11"
+  },
+  "ASNS": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-11T12:45:05.703069",
+    "last_fp_date": "2026-03-11"
   }
 }

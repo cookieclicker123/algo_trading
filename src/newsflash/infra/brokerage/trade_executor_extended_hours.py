@@ -104,8 +104,9 @@ class AlpacaExtendedHoursTradeExecutor:
         Returns:
             Trade result dictionary (for backward compatibility, also publishes events)
         """
-        # Store metadata for event publishing
+        # Store metadata locally for event publishing (avoid race condition on self._current_metadata)
         self._current_metadata = metadata
+        _local_metadata = metadata
         total_start_time = time.time()
         session_time = timing_info.get("session_detection", 0.0)
         connect_time = timing_info.get("connection", 0.0)
@@ -574,7 +575,7 @@ class AlpacaExtendedHoursTradeExecutor:
                             }
 
                             current_order_id = None  # Clear tracking
-                            await self._publish_executed_event(trade_request, result)
+                            await self._publish_executed_event(trade_request, result, metadata=_local_metadata)
                             return result
 
                         elif order_status.status in ["rejected", "canceled", "expired"]:
@@ -856,7 +857,7 @@ class AlpacaExtendedHoursTradeExecutor:
                             }
 
                             current_order_id = None  # Clear tracking
-                            await self._publish_executed_event(trade_request, result)
+                            await self._publish_executed_event(trade_request, result, metadata=_local_metadata)
                             return result
 
                         elif order_status.status in ["rejected", "canceled", "expired"]:
@@ -1125,7 +1126,7 @@ class AlpacaExtendedHoursTradeExecutor:
                         ladder_attempts_detail=ladder_attempts
                     )
                     
-                    await self._publish_executed_event(trade_request, result)
+                    await self._publish_executed_event(trade_request, result, metadata=_local_metadata)
                     return result
                 
                 # Order didn't fill - will be cancelled before next attempt
@@ -1429,7 +1430,7 @@ class AlpacaExtendedHoursTradeExecutor:
         )
         return limit_price
 
-    async def _publish_executed_event(self, trade_request: TradeRequest, result: Dict[str, Any]) -> None:
+    async def _publish_executed_event(self, trade_request: TradeRequest, result: Dict[str, Any], metadata: Optional[Dict[str, Any]] = None) -> None:
         """Publish trade executed event and send fast notification."""
         infra_trade_request = build_infrastructure_trade_request_data(trade_request)
 
@@ -1463,7 +1464,7 @@ class AlpacaExtendedHoursTradeExecutor:
             spread_info=spread_info,  # For notifications
             executed_at=datetime.now(),
             source="brokerage",
-            metadata=getattr(self, '_current_metadata', None)  # Exit metadata (tier, exit_reason, etc.)
+            metadata=metadata if metadata is not None else getattr(self, '_current_metadata', None)
         )
 
         await self.event_bus.publish("TradeExecuted", event.model_dump())
