@@ -128,5 +128,11 @@
     "permanent": false,
     "created_at": "2026-03-10T13:18:13.767124",
     "last_fp_date": "2026-03-10"
+  },
+  "SXTP": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-11T11:24:26.031633",
+    "last_fp_date": "2026-03-11"
   }
 }

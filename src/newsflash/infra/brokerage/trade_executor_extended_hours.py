@@ -516,7 +516,21 @@ class AlpacaExtendedHoursTradeExecutor:
 
                         if order_status.status == "filled":
                             # SUCCESS - Order filled
-                            fill_price = float(order_status.filled_avg_price) if order_status.filled_avg_price else limit_price
+                            # CRITICAL: Use actual fill price, NOT limit price.
+                            # filled_avg_price may be None on first check (API race).
+                            # Retry once to get the real fill price for accurate stop loss.
+                            fill_price_raw = order_status.filled_avg_price
+                            if not fill_price_raw:
+                                await asyncio.sleep(0.1)  # Brief wait for API to populate
+                                order_status = self.trading_client.get_order_by_id(order.id)
+                                fill_price_raw = order_status.filled_avg_price
+                            fill_price = float(fill_price_raw) if fill_price_raw else limit_price
+                            if not fill_price_raw:
+                                logger.warning(
+                                    "⚠️ filled_avg_price unavailable after retry, using limit_price as fallback",
+                                    ticker=trade_request.ticker,
+                                    limit_price=limit_price,
+                                )
                             filled_shares = float(order_status.filled_qty) if order_status.filled_qty else quantity
                             total_trading_time = time.time() - trading_start
                             total_time = time.time() - total_start_time
@@ -798,7 +812,19 @@ class AlpacaExtendedHoursTradeExecutor:
 
                         if order_status.status == "filled":
                             # SUCCESS - Order filled
-                            fill_price = float(order_status.filled_avg_price) if order_status.filled_avg_price else limit_price
+                            # Retry if filled_avg_price not yet populated (API race)
+                            fill_price_raw = order_status.filled_avg_price
+                            if not fill_price_raw:
+                                await asyncio.sleep(0.1)
+                                order_status = self.trading_client.get_order_by_id(order.id)
+                                fill_price_raw = order_status.filled_avg_price
+                            fill_price = float(fill_price_raw) if fill_price_raw else limit_price
+                            if not fill_price_raw:
+                                logger.warning(
+                                    "⚠️ EXIT filled_avg_price unavailable after retry, using limit_price",
+                                    ticker=trade_request.ticker,
+                                    limit_price=limit_price,
+                                )
                             filled_shares = float(order_status.filled_qty) if order_status.filled_qty else quantity
                             total_trading_time = time.time() - trading_start
                             total_time = time.time() - total_start_time
@@ -1039,12 +1065,24 @@ class AlpacaExtendedHoursTradeExecutor:
                     
                     # Get order details
                     order_status = self.trading_client.get_order_by_id(order.id)
-                    fill_price = float(order_status.filled_avg_price) if order_status.filled_avg_price else limit_price
+                    # Retry if filled_avg_price not yet populated (API race)
+                    fill_price_raw = order_status.filled_avg_price
+                    if not fill_price_raw:
+                        await asyncio.sleep(0.1)
+                        order_status = self.trading_client.get_order_by_id(order.id)
+                        fill_price_raw = order_status.filled_avg_price
+                    fill_price = float(fill_price_raw) if fill_price_raw else limit_price
+                    if not fill_price_raw:
+                        logger.warning(
+                            "⚠️ LADDER filled_avg_price unavailable after retry, using limit_price",
+                            ticker=trade_request.ticker,
+                            limit_price=limit_price,
+                        )
                     filled_shares = float(order_status.filled_qty) if order_status.filled_qty else quantity
-                    
+
                     total_trading_time = time.time() - trading_start
                     total_time = time.time() - total_start_time
-                    
+
                     logger.info(
                         f"🎉 ORDER FILLED after {attempt_number} attempt(s)! Price: ${fill_price}"
                     )
