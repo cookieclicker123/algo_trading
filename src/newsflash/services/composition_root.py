@@ -351,8 +351,9 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
                     is_high_conviction = metadata.get("is_high_conviction", False)
 
                     # Safety check: HC-sized trade but flag missing = metadata race condition
+                    # Normal max is $2,000 — anything above that without HC flag is a bug
                     total_cost = fill_price * shares if fill_price and shares else 0
-                    if total_cost > 1500 and not is_high_conviction and not is_mega_trade:
+                    if total_cost > 2500 and not is_high_conviction and not is_mega_trade:
                         logger.error(
                             "🚨 METADATA BUG: Large position ($%.0f) but is_high_conviction=False! "
                             "Forcing is_high_conviction=True to prevent wrong stop loss",

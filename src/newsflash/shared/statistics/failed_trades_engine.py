@@ -352,12 +352,14 @@ class FailedTradeStatsEngine:
     async def _finalization_loop(self) -> None:
         """
         Background task that periodically ensures all metadata is populated.
-        
+
         Runs every 5 minutes to retry failed metadata fetches.
+        Also evicts stale entries older than 1 hour to prevent memory leaks.
         """
         while True:
             try:
                 await asyncio.sleep(300)  # 5 minutes
+                await self._evict_stale_pending_metadata()
                 await self._finalize_all_metadata()
             except asyncio.CancelledError:
                 break
@@ -367,6 +369,27 @@ class FailedTradeStatsEngine:
                     error=str(e),
                     exc_info=True
                 )
+
+    async def _evict_stale_pending_metadata(self) -> None:
+        """Evict pending metadata entries older than 1 hour to prevent unbounded growth."""
+        from datetime import timedelta
+        now = datetime.now()
+        stale_ttl = timedelta(hours=1)
+
+        async with self._metadata_lock:
+            stale = [tid for tid, (_, _, failed_at, _) in self._pending_metadata.items()
+                     if now - failed_at > stale_ttl]
+            for tid in stale:
+                entry = self._pending_metadata.pop(tid, None)
+                if entry and not entry[3].done():
+                    entry[3].cancel()
+
+        if stale:
+            logger.info(
+                "FailedTrade: Evicted stale pending metadata entries",
+                evicted=len(stale),
+                remaining=len(self._pending_metadata),
+            )
     
     async def _finalize_all_metadata(self) -> None:
         """

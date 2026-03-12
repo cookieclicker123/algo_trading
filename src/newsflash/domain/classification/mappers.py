@@ -71,14 +71,19 @@ class ClassificationRequestMapper:
         Returns:
             Typed InfrastructureClassificationRequestData model
         """
-        # Sort tickers to ensure common stock (no suffix) comes before warrants/units
-        # e.g., "SDST" before "SDSTW", "ABC" before "ABCW" or "ABC.U"
-        # This ensures the primary ticker (common stock) is used for classification
+        # Sort tickers to ensure the PRIMARY ticker (subject of the headline) comes first.
+        # Priority: 1) appears in headline (earliest position) 2) common stock (no suffix) 3) shorter 4) alphabetical
+        # This fixes multi-ticker articles (e.g., SGN/SMCI/AIB) picking wrong sector.
+        import re
+        headline_upper = (domain_request.article_title or "").upper()
+
         def ticker_sort_key(ticker: str) -> tuple:
-            # Common stock tickers are shorter and have no suffix
-            # Warrants end with W, units with U, etc.
             has_suffix = ticker.endswith(('W', 'WS', '.U', '.UN', 'R', '.WS'))
-            return (has_suffix, len(ticker), ticker)
+            # Check if ticker symbol appears as a word in the headline
+            match = re.search(r'\b' + re.escape(ticker.upper()) + r'\b', headline_upper)
+            headline_pos = match.start() if match else 9999
+            appears = 0 if match else 1  # 0 = appears (sort first), 1 = doesn't
+            return (has_suffix, appears, headline_pos, len(ticker), ticker)
 
         sorted_tickers = sorted(domain_request.article_tickers, key=ticker_sort_key)
 

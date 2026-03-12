@@ -152,13 +152,10 @@ class SurgeMonitor:
                     article.id, tradable_tickers, initial_nbbos, window_start, cycle
                 )
 
-                # Update record with cycle progress (fire-and-forget)
-                asyncio.create_task(self.repository.update_recall_record(
-                    article_id=article.id,
-                    updates={"monitoring_cycles_completed": cycle + 1},
-                    session=session,
-                    date=received_at
-                ))
+                # Note: cycle progress is recorded at finalization, not every cycle.
+                # Writing to disk 30 times per article (once per cycle) caused massive
+                # I/O amplification under load: 100 articles × 30 cycles = 3000 file
+                # loads+saves per 2 minutes, each loading the entire session JSON.
 
                 if surge_result:
                     surge_ticker, surge_stats = surge_result
@@ -369,7 +366,8 @@ class SurgeMonitor:
                 article_id=article_id,
                 updates={
                     "monitoring_status": "completed_no_surge",
-                    "monitoring_completed_at": datetime.now()
+                    "monitoring_completed_at": datetime.now(),
+                    "monitoring_cycles_completed": max_cycles,
                 },
                 session=session,
                 date=received_at

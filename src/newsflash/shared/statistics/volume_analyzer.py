@@ -815,38 +815,43 @@ def _fetch_quote_at_time(
         if target_time.tzinfo is None:
             target_time = target_time.replace(tzinfo=timezone.utc)
         
-        # Fetch quotes in a window around target time
-        # Use 60 seconds for illiquid stocks that may not have frequent quotes
-        start = target_time - timedelta(seconds=60)
-        end = target_time + timedelta(seconds=5)
-        
-        request = StockQuotesRequest(
-            symbol_or_symbols=[symbol],
-            start=start,
-            end=end,
-            feed=DataFeed.SIP
-        )
-        
-        quotes = client.get_stock_quotes(request)
-        
-        if symbol not in quotes.data:
-            return None
-        
-        quote_list = list(quotes[symbol])
-        if not quote_list:
-            return None
-        
-        # Find quote closest to target_time (at or before)
+        # Fetch quotes in a narrow window first, widen only if needed.
+        # 60s of SIP quotes can be thousands of objects per ticker.
         closest_quote = None
-        for quote in quote_list:
-            qt = quote.timestamp
-            if qt.tzinfo is None:
-                qt = qt.replace(tzinfo=timezone.utc)
-            if qt <= target_time:
-                closest_quote = quote
-        
+        for lookback_secs in [10, 60]:
+            start = target_time - timedelta(seconds=lookback_secs)
+            end = target_time + timedelta(seconds=5)
+
+            request = StockQuotesRequest(
+                symbol_or_symbols=[symbol],
+                start=start,
+                end=end,
+                feed=DataFeed.SIP
+            )
+
+            quotes = client.get_stock_quotes(request)
+
+            if symbol not in quotes.data:
+                continue
+
+            # Iterate without materializing full list — just track the last quote <= target_time
+            fallback_quote = None
+            for quote in quotes[symbol]:
+                fallback_quote = quote
+                qt = quote.timestamp
+                if qt.tzinfo is None:
+                    qt = qt.replace(tzinfo=timezone.utc)
+                if qt <= target_time:
+                    closest_quote = quote
+
+            if not closest_quote and fallback_quote:
+                closest_quote = fallback_quote
+
+            if closest_quote:
+                break
+
         if not closest_quote:
-            closest_quote = quote_list[0]  # Fallback to first available
+            return None
         
         bid = float(closest_quote.bid_price) if closest_quote.bid_price else None
         ask = float(closest_quote.ask_price) if closest_quote.ask_price else None
@@ -947,30 +952,38 @@ async def _get_stats_at_time(
         bar_data = await asyncio.to_thread(_fetch_minute_bar, client, symbol, minute_start)
     
     # Get quote at Publication time (Widen window for dead stocks)
-    # Search up to 5 minutes back to find the last valid Ask price before news
-    start_lookup = target_time - timedelta(minutes=5)
-    end_lookup = target_time # Strictly before or at news time
-    
+    # Search up to 5 minutes back to find the last valid Ask price before news.
+    # Use a narrow 30s window first (covers >99% of stocks), only widen if needed.
+    # Previously fetched 5min of SIP quotes (thousands of objects) 40× per ticker
+    # per 4s window — the primary cause of memory spikes under load.
     quote_data = None
     try:
-        request = StockQuotesRequest(
-            symbol_or_symbols=[symbol],
-            start=start_lookup,
-            end=end_lookup,
-            feed=DataFeed.SIP
-        )
-        # Use to_thread to avoid blocking event loop
-        quotes = await asyncio.to_thread(client.get_stock_quotes, request)
-        if symbol in quotes.data and quotes[symbol]:
-            closest_quote = list(quotes[symbol])[-1] # Take the most recent quote before/at target
-            quote_data = {
-                "bid": float(closest_quote.bid_price),
-                "ask": float(closest_quote.ask_price),
-                "mid": round((float(closest_quote.bid_price) + float(closest_quote.ask_price)) / 2, 4),
-                "spread": round(float(closest_quote.ask_price) - float(closest_quote.bid_price), 4),
-                "bid_size": int(closest_quote.bid_size) if hasattr(closest_quote, 'bid_size') else None,
-                "ask_size": int(closest_quote.ask_size) if hasattr(closest_quote, 'ask_size') else None
-            }
+        # Try narrow window first (most stocks quote every few seconds)
+        for lookback_secs in [30, 300]:
+            start_lookup = target_time - timedelta(seconds=lookback_secs)
+            end_lookup = target_time
+            request = StockQuotesRequest(
+                symbol_or_symbols=[symbol],
+                start=start_lookup,
+                end=end_lookup,
+                feed=DataFeed.SIP
+            )
+            quotes = await asyncio.to_thread(client.get_stock_quotes, request)
+            if symbol in quotes.data and quotes[symbol]:
+                # Only need the last quote — iterate to find it without materializing full list
+                closest_quote = None
+                for q in quotes[symbol]:
+                    closest_quote = q
+                if closest_quote:
+                    quote_data = {
+                        "bid": float(closest_quote.bid_price),
+                        "ask": float(closest_quote.ask_price),
+                        "mid": round((float(closest_quote.bid_price) + float(closest_quote.ask_price)) / 2, 4),
+                        "spread": round(float(closest_quote.ask_price) - float(closest_quote.bid_price), 4),
+                        "bid_size": int(closest_quote.bid_size) if hasattr(closest_quote, 'bid_size') else None,
+                        "ask_size": int(closest_quote.ask_size) if hasattr(closest_quote, 'ask_size') else None
+                    }
+                    break  # Found quote, no need for wider window
     except: pass
     
     # If historical lookup failed, use injected reference NBBO
@@ -1223,12 +1236,24 @@ async def analyze_volume_around_event(
     
     def _fetch_shadow_spread():
         try:
-            spread_start = event_time - timedelta(minutes=10)
+            # Use 2-minute window instead of 10 — more than enough for a spread average,
+            # and avoids loading tens of thousands of quotes into memory per ticker.
+            # During active trading, SIP produces ~50-500 quotes/second per ticker.
+            # 10min = 30k-300k Quote objects = 10-100MB per ticker. With 100+ concurrent
+            # articles this was the primary cause of 16GB+ memory spikes.
+            spread_start = event_time - timedelta(minutes=2)
             spread_req = StockQuotesRequest(symbol_or_symbols=[symbol], start=spread_start, end=event_time, feed=DataFeed.SIP)
             spread_quotes = client.get_stock_quotes(spread_req)
             if symbol in spread_quotes.data and spread_quotes[symbol]:
-                all_spreads = [(float(q.ask_price) - float(q.bid_price)) for q in spread_quotes[symbol] if q.ask_price and q.bid_price]
-                return sum(all_spreads) / len(all_spreads) if all_spreads else 0.0
+                # Sample at most 500 quotes for the average (no need for all of them)
+                quotes_iter = iter(spread_quotes[symbol])
+                spreads = []
+                for i, q in enumerate(quotes_iter):
+                    if i >= 500:
+                        break
+                    if q.ask_price and q.bid_price:
+                        spreads.append(float(q.ask_price) - float(q.bid_price))
+                return sum(spreads) / len(spreads) if spreads else 0.0
         except: return 0.0
         return 0.0
 

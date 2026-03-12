@@ -149,7 +149,8 @@ class AlpacaExtendedHoursTradeExecutor:
             # Get current price
             current_price = await self.quote_fetcher.get_realtime_price(trade_request.ticker)
             price_fallback_used = False
-            
+            leverage = getattr(trade_request, "leverage", None)
+
             # Handle price fallback
             if not current_price:
                 fallback_price = None
@@ -178,7 +179,6 @@ class AlpacaExtendedHoursTradeExecutor:
                 return error_result
             
             # Calculate quantity
-            leverage = getattr(trade_request, "leverage", None)
             quantity, capital_required = calculate_trade_quantity(
                 trade_request, current_price, leverage or 1.0
             )

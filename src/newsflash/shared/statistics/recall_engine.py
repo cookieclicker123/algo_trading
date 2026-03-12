@@ -9,7 +9,7 @@ REFACTORED: Core engine now orchestrates specialized modules:
 - RecordManager: Metadata and record updates
 """
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, Set
 
 try:
@@ -81,6 +81,9 @@ class RecallStatsEngine:
         self._monitoring_lock = asyncio.Lock()
         self._traded_articles: Set[str] = set()
         self._traded_lock = asyncio.Lock()
+        # Timestamps for TTL eviction of _traded_articles (prevents unbounded growth)
+        self._traded_article_times: Dict[str, datetime] = {}
+        self._TRADED_ARTICLES_TTL = timedelta(hours=2)
 
         # Initialize modules with shared state
         self.trade_trigger = TradeTrigger(
@@ -187,6 +190,22 @@ class RecallStatsEngine:
         self._article_received_wrapper = None
         logger.info("RecallStatsEngine stopped")
 
+    async def _evict_stale_traded_articles(self) -> None:
+        """Evict traded article IDs older than TTL to prevent unbounded set growth."""
+        now = datetime.now()
+        async with self._traded_lock:
+            stale = [aid for aid, t in self._traded_article_times.items()
+                     if now - t > self._TRADED_ARTICLES_TTL]
+            for aid in stale:
+                self._traded_articles.discard(aid)
+                self._traded_article_times.pop(aid, None)
+        if stale:
+            logger.info(
+                "RecallEngine: Evicted stale traded article IDs",
+                evicted=len(stale),
+                remaining=len(self._traded_articles),
+            )
+
     # ==================== Surge Detection Callback ====================
 
     async def _on_surge_detected(self, article: Any, ticker: str) -> None:
@@ -282,6 +301,10 @@ class RecallStatsEngine:
         try:
             async with self._traded_lock:
                 self._traded_articles.add(event.article_id)
+                self._traded_article_times[event.article_id] = datetime.now()
+
+            # Periodic eviction of stale traded article IDs
+            await self._evict_stale_traded_articles()
 
             await self.record_manager.update_trade_executed(
                 article_id=event.article_id,
@@ -755,7 +778,6 @@ class RecallStatsEngine:
         if has_surge:
             # NOTE: SURGE-based trade triggering is DISABLED
             # Trading is now controlled by Healthcare LLM classification
-            # DISABLED: asyncio.create_task(self.trade_trigger.trigger_trade(article, surge_ticker))
             logger.info(
                 "Initial SURGE detected (trade trigger disabled - LLM controls trading)",
                 article_id=article.id,

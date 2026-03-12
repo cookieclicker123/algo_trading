@@ -346,6 +346,17 @@ WEAK CLINICAL DATA (Looks like news but isn't material)
 ├─ Vague "positive results" with generic small molecule (not a hot modality)
 ├─ "In vitro" / "in vivo" = PRECLINICAL (ALWAYS SKIP, even for hot modalities)
 ├─ "Potential" / "may" / "could" = speculative, not proven
+├─ VAGUE PHASE 2/3 WITHOUT DATA = SKIP
+│   "Positive Phase 2 Outcomes" or "Positive Phase 2 Results" WITHOUT any
+│   specific numbers (no response rate, no %, no p-value, no endpoint named,
+│   no patient count increase) = SKIP. The big biotech winners ALWAYS have
+│   concrete data in the headline. Compare:
+│   ✗ "Positive Phase 2 Outcomes" → SKIP (zero specifics — what was positive?)
+│   ✗ "Strengthens Clinical Pathway Following Positive Phase 2" → SKIP (vague verbs + no data)
+│   ✓ "86% Clinical Benefit Rate and No CRS as Data increases by 50%" → TRADE (three concrete numbers)
+│   ✓ "Phase 2 Shows 30% Weight Loss at 12 Weeks" → TRADE (specific number + timeframe)
+│   Rule: If the headline says "positive" but gives NO number, NO endpoint,
+│   NO response rate — it's a press release, not clinical data. SKIP.
 └─ Examples:
    "Reports Positive Phase 2a Extension Interim Study Results" → SKIP
    "Positive 52-Week Safety Data from License Partner" → SKIP
@@ -353,6 +364,9 @@ WEAK CLINICAL DATA (Looks like news but isn't material)
    "Reports Successful Results in Vitro" → SKIP (preclinical)
    "In Vivo Results Demonstrate Efficacy" → SKIP (animal studies)
    "Small Molecules Show Potential for Disease" → SKIP (speculative)
+   "Strengthens Clinical Development Pathway Following Positive Phase 2 Outcomes" → SKIP (no data, vague)
+   "Announces Positive Phase 2 Results" → SKIP (no numbers — what does "positive" mean?)
+   "Phase 2 Data Shows Encouraging Trends" → SKIP (no specifics)
 
 LINE EXTENSIONS / LABEL EXPANSIONS (Incremental)
 ├─ Drug already approved, testing for new body parts or populations

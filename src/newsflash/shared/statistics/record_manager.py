@@ -113,12 +113,19 @@ class RecordManager:
         # Record locations cache (article_id -> (session, date))
         self._record_locations: Dict[str, tuple[str, datetime]] = {}
 
+        # Insertion timestamps for TTL eviction (prevents unbounded memory growth)
+        self._pending_insert_times: Dict[str, datetime] = {}
+        self._record_location_insert_times: Dict[str, datetime] = {}
+        self._PENDING_TTL = timedelta(hours=1)
+        self._RECORD_LOC_TTL = timedelta(hours=4)
+
         # Finalization task
         self._finalization_task: Optional[asyncio.Task] = None
 
     def register_record_location(self, article_id: str, session: str, received_at: datetime) -> None:
         """Register where a record was created for later updates."""
         self._record_locations[article_id] = (session, received_at)
+        self._record_location_insert_times[article_id] = datetime.now()
 
     async def apply_pending_updates(self, article_id: str, session: str, received_at: datetime) -> None:
         """
@@ -411,12 +418,15 @@ class RecordManager:
             True if updated immediately, False if queued for retry
         """
         # Store in pending first (race condition prevention)
+        now = datetime.now()
         async with self._classification_lock:
             self._pending_classifications[article_id] = classification
+            self._pending_insert_times[f"cls:{article_id}"] = now
 
         if filter_reason:
             async with self._filter_reasons_lock:
                 self._pending_filter_reasons[article_id] = filter_reason
+                self._pending_insert_times[f"fr:{article_id}"] = now
 
         # Try to update
         record_loc = self._record_locations.get(article_id)
@@ -472,6 +482,7 @@ class RecordManager:
         # Same pattern as update_classification which queues first, removes on success.
         async with self._postfilter_reasons_lock:
             self._pending_postfilter_reasons[article_id] = postfilter_reason
+            self._pending_insert_times[f"pfr:{article_id}"] = datetime.now()
 
         record_loc = self._record_locations.get(article_id)
         if not record_loc:
@@ -604,10 +615,78 @@ class RecordManager:
                 await asyncio.sleep(300)  # 5 minutes
                 await self._retry_pending_filter_reasons()
                 await self._retry_pending_classifications()
+                await self._evict_stale_pending()
             except asyncio.CancelledError:
                 break
             except Exception as e:
                 logger.error("RecordManager: Error in finalization loop", error=str(e))
+
+    async def _evict_stale_pending(self) -> None:
+        """
+        Evict stale entries from all pending dicts to prevent unbounded memory growth.
+
+        Entries older than _PENDING_TTL (1h) are considered abandoned — the article
+        is long past and the pending update will never succeed.
+        Record locations older than _RECORD_LOC_TTL (4h) are also evicted.
+        """
+        now = datetime.now()
+        evicted = 0
+
+        # Evict stale pending classifications
+        async with self._classification_lock:
+            stale = [aid for aid in self._pending_classifications
+                     if now - self._pending_insert_times.get(f"cls:{aid}", now) > self._PENDING_TTL]
+            for aid in stale:
+                self._pending_classifications.pop(aid, None)
+                self._pending_insert_times.pop(f"cls:{aid}", None)
+            evicted += len(stale)
+
+        # Evict stale pending filter reasons
+        async with self._filter_reasons_lock:
+            stale = [aid for aid in self._pending_filter_reasons
+                     if now - self._pending_insert_times.get(f"fr:{aid}", now) > self._PENDING_TTL]
+            for aid in stale:
+                self._pending_filter_reasons.pop(aid, None)
+                self._pending_insert_times.pop(f"fr:{aid}", None)
+            evicted += len(stale)
+
+        # Evict stale pending postfilter reasons
+        async with self._postfilter_reasons_lock:
+            stale = [aid for aid in self._pending_postfilter_reasons
+                     if now - self._pending_insert_times.get(f"pfr:{aid}", now) > self._PENDING_TTL]
+            for aid in stale:
+                self._pending_postfilter_reasons.pop(aid, None)
+                self._pending_insert_times.pop(f"pfr:{aid}", None)
+            evicted += len(stale)
+
+        # Evict stale pending metadata (cancel the task too)
+        async with self._metadata_lock:
+            stale = [aid for aid, (_, _, inserted_at, task) in self._pending_metadata.items()
+                     if now - inserted_at > self._PENDING_TTL]
+            for aid in stale:
+                entry = self._pending_metadata.pop(aid, None)
+                if entry and not entry[3].done():
+                    entry[3].cancel()
+            evicted += len(stale)
+
+        # Evict stale record locations
+        stale_locs = [aid for aid in self._record_locations
+                      if now - self._record_location_insert_times.get(aid, now) > self._RECORD_LOC_TTL]
+        for aid in stale_locs:
+            self._record_locations.pop(aid, None)
+            self._record_location_insert_times.pop(aid, None)
+        evicted += len(stale_locs)
+
+        if evicted > 0:
+            logger.info(
+                "RecordManager: Evicted stale pending entries",
+                evicted=evicted,
+                remaining_classifications=len(self._pending_classifications),
+                remaining_filter_reasons=len(self._pending_filter_reasons),
+                remaining_postfilter_reasons=len(self._pending_postfilter_reasons),
+                remaining_metadata=len(self._pending_metadata),
+                remaining_record_locations=len(self._record_locations),
+            )
 
     async def _retry_pending_filter_reasons(self) -> None:
         """Retry pending filter_reason updates."""

@@ -3,14 +3,14 @@ Auto-trade service - subscribes to domain events and handles trading logic.
 
 AI-BASED POSITION SIZING (Immediate entry on classification):
 Regular path:
-- SMALL: $300 position (weak headline, vague, unknown partner)
-- MODERATE: $400 position (decent headline, some specificity)
-- LARGE: $500 position (strong headline, specific details)
-- MAX: $600 position (transformational headline, >50% of market cap deal)
+- SMALL: $1,000 position (weak headline, vague, unknown partner)
+- MODERATE: $1,250 position (decent headline, some specificity)
+- LARGE: $1,500 position (strong headline, specific details)
+- MAX: $2,000 position (transformational headline, >50% of market cap deal)
 High-conviction headline types (gov/military contracts, major commercial contracts):
-- SMALL/MODERATE: $2,000 position
-- LARGE: $2,500 position
-- MAX: $3,000 position
+- SMALL/MODERATE: $3,000 position
+- LARGE: $4,000 position
+- MAX: $5,000 position
 
 The AI determines position size based on:
 1. Headline concreteness (specific $ amounts, named parties, definitive terms)
@@ -94,6 +94,19 @@ BLOCKED_HEADLINE_TYPES = frozenset({
     "acquisition_announced",  # Company ACQUIRING another — cash outflow, stock usually drops
 })
 
+# AI breakthrough headlines get price-tiered spread leniency (only spread, nothing else).
+# Cheap stocks with genuine AI breakthroughs have structurally wide spreads that thin rapidly.
+AI_BREAKTHROUGH_HEADLINE_TYPES = frozenset({"ai_breakthrough"})
+
+
+def _ai_breakthrough_spread_threshold(price: float) -> float:
+    """Price-tiered spread threshold for AI breakthrough headlines."""
+    if price < 0.30:
+        return 10.0
+    if price < 0.50:
+        return 7.5
+    return 4.5
+
 
 # ============================================================
 # DUPLICATE POSITION & COOLDOWN PROTECTION
@@ -122,6 +135,10 @@ TICKER_COOLDOWN_LOSS_MINUTES = 30     # Wait 30 min after a loss
 _skipped_tickers: dict = {}  # ticker -> skip_time
 SKIPPED_TICKER_WINDOW_MINUTES = 10  # Remember skips for 10 minutes
 SKIPPED_TICKER_MAX_POSITION_USD = 5000  # Cap at $5k for recently skipped tickers
+
+# Housekeeping: last time we swept stale entries from module-level dicts
+_last_cleanup_time: Optional[datetime] = None
+_CLEANUP_INTERVAL_MINUTES = 30  # Sweep every 30 minutes
 
 # ============================================================
 # RECALL ENGINE INTEGRATION (for recording post-AI skip reasons)
@@ -375,6 +392,52 @@ def get_cooldown_remaining(ticker: str) -> Optional[float]:
     return max(0, remaining)
 
 
+def cleanup_stale_tracking() -> None:
+    """
+    Sweep stale entries from module-level tracking dicts.
+
+    Prevents unbounded memory growth from tickers that are seen once
+    and never re-checked (lazy cleanup only fires on re-access).
+    Called periodically — gated by _CLEANUP_INTERVAL_MINUTES.
+    """
+    global _last_cleanup_time
+
+    now = datetime.now(timezone.utc)
+    if _last_cleanup_time and (now - _last_cleanup_time) < timedelta(minutes=_CLEANUP_INTERVAL_MINUTES):
+        return
+    _last_cleanup_time = now
+
+    # Sweep _exited_tickers: remove entries past their cooldown
+    max_cooldown = timedelta(minutes=max(TICKER_COOLDOWN_PROFIT_MINUTES, TICKER_COOLDOWN_LOSS_MINUTES))
+    stale_exited = [t for t, data in _exited_tickers.items()
+                    if now - data["exit_time"] > max_cooldown]
+    for t in stale_exited:
+        del _exited_tickers[t]
+
+    # Sweep _skipped_tickers: remove entries past their window
+    skip_window = timedelta(minutes=SKIPPED_TICKER_WINDOW_MINUTES)
+    stale_skipped = [t for t, skip_time in _skipped_tickers.items()
+                     if now - skip_time > skip_window]
+    for t in stale_skipped:
+        del _skipped_tickers[t]
+
+    # Sweep _daily_pnl_trades: only keep today's trades
+    today = date.today()
+    global _daily_pnl_trades
+    if _daily_pnl_date and _daily_pnl_date != today:
+        _daily_pnl_trades = []
+
+    if stale_exited or stale_skipped:
+        logger.info(
+            "Tracking cleanup sweep",
+            evicted_exited=len(stale_exited),
+            evicted_skipped=len(stale_skipped),
+            remaining_exited=len(_exited_tickers),
+            remaining_skipped=len(_skipped_tickers),
+            active_positions=len(_active_positions),
+        )
+
+
 # ============================================================
 # POSITION SIZING - AI-BASED (TESTING MODE - 10x REDUCED)
 # ============================================================
@@ -383,19 +446,19 @@ def get_cooldown_remaining(ticker: str) -> Optional[float]:
 # REDUCED 10x from normal sizes while testing/validating filters
 # Paper shadow trades use 50x these amounts for meaningful stats
 POSITION_SIZES_USD = {
-    ConvictionLevel.MINIMUM: Decimal("300.00"),       # AI: SMALL - weak/vague headline
-    ConvictionLevel.STANDARD: Decimal("400.00"),      # AI: MODERATE - decent specificity
-    ConvictionLevel.HIGH: Decimal("500.00"),          # AI: LARGE - strong, specific headline
-    ConvictionLevel.VERY_HIGH: Decimal("600.00"),     # AI: MAX - transformational
+    ConvictionLevel.MINIMUM: Decimal("1000.00"),      # AI: SMALL - $1,000
+    ConvictionLevel.STANDARD: Decimal("1250.00"),     # AI: MODERATE - $1,250
+    ConvictionLevel.HIGH: Decimal("1500.00"),         # AI: LARGE - $1,500
+    ConvictionLevel.VERY_HIGH: Decimal("2000.00"),    # AI: MAX - $2,000
 }
 
 # High-conviction headline types (gov/military contracts, major commercial contracts):
 # Statistically proven edge — sized up accordingly.
 HC_POSITION_SIZES_USD = {
-    ConvictionLevel.MINIMUM: Decimal("2000.00"),      # AI: SMALL → overridden to MODERATE ($2000)
-    ConvictionLevel.STANDARD: Decimal("2000.00"),     # AI: MODERATE - $2000
-    ConvictionLevel.HIGH: Decimal("2500.00"),         # AI: LARGE - $2500
-    ConvictionLevel.VERY_HIGH: Decimal("3000.00"),    # AI: MAX - $3000
+    ConvictionLevel.MINIMUM: Decimal("3000.00"),      # AI: SMALL → overridden to MODERATE ($3,000)
+    ConvictionLevel.STANDARD: Decimal("3000.00"),     # AI: MODERATE - $3,000
+    ConvictionLevel.HIGH: Decimal("4000.00"),         # AI: LARGE - $4,000
+    ConvictionLevel.VERY_HIGH: Decimal("5000.00"),    # AI: MAX - $5,000
 }
 
 # Map AI position size strings to ConvictionLevel
@@ -2012,6 +2075,15 @@ async def process_imminent_article(
         # If headline_type matches HIGH_CONVICTION_HEADLINE_TYPES, relax postfilters.
         # These headline types (gov/military contracts) reliably produce sustained moves.
         is_high_conviction = headline_type in HIGH_CONVICTION_HEADLINE_TYPES if headline_type else False
+        is_ai_breakthrough = headline_type in AI_BREAKTHROUGH_HEADLINE_TYPES if headline_type else False
+
+        if is_ai_breakthrough:
+            logger.info(
+                "🤖 AI BREAKTHROUGH HEADLINE: Spread filters will use price-tiered thresholds",
+                ticker=ticker,
+                headline_type=headline_type,
+                article_id=article_id,
+            )
 
         if is_high_conviction:
             logger.info(
@@ -2049,17 +2121,18 @@ async def process_imminent_article(
                 article_id=article_id,
             )
         else:
-            # NORMAL TRADES: $4 base (proving mode)
-            ai_conviction = ConvictionLevel.VERY_HIGH  # Always $4 base
+            # NORMAL TRADES: Use AI-determined position size
+            # AI sizes: SMALL=$1000, MODERATE=$1250, LARGE=$1500, MAX=$2000
+            # Modified by confluence multiplier (0.5x-1.0x)
+            ai_conviction = AI_SIZE_TO_CONVICTION.get(ai_position_size, ConvictionLevel.STANDARD)
             size_dict = POSITION_SIZES_USD
             logger.info(
-                f"🚀 BASE SIZE: $4 (AI sent: {ai_position_size})",
+                f"🚀 BASE SIZE: ${size_dict[ai_conviction]} (AI: {ai_position_size})",
                 ticker=ticker,
                 ai_position_size=ai_position_size,
                 conviction=ai_conviction.value,
                 position_size=f"${size_dict[ai_conviction]}",
                 article_id=article_id,
-                note="Base always $4, modified by confluence multiplier only"
             )
 
         # ============================================================
@@ -2086,8 +2159,9 @@ async def process_imminent_article(
 
         # Minimum trade count: 1-2 trades is not "confluence" — it's one person.
         # Require at least 3 independent trades to confirm real market interest.
+        # EXCEPTION: HC trades bypass this — the headline type IS the confirmation.
         MIN_CONFLUENCE_TRADES = 3
-        if confluence_trade_count < MIN_CONFLUENCE_TRADES:
+        if confluence_trade_count < MIN_CONFLUENCE_TRADES and not is_high_conviction:
             logger.info(
                 f"⏭️ TOO FEW TRADES: Only {confluence_trade_count} trade(s) in confluence window — not real activity",
                 ticker=ticker,
@@ -2096,6 +2170,15 @@ async def process_imminent_article(
                 article_id=article_id,
             )
             confluence_score = 0  # Override score — single trade can't confirm anything
+        elif confluence_trade_count < MIN_CONFLUENCE_TRADES and is_high_conviction:
+            logger.info(
+                f"🎖️ HC BYPASS: Only {confluence_trade_count} trade(s) but high-conviction headline — keeping score {confluence_score}",
+                ticker=ticker,
+                confluence_trade_count=confluence_trade_count,
+                confluence_score=confluence_score,
+                headline_type=headline_type,
+                article_id=article_id,
+            )
 
         # STRENGTH check: score >= 1 AND excursion >= 0.5%
         has_strength = confluence_score >= 1 and max_excursion_pct >= MIN_STRENGTH_EXCURSION_PCT
@@ -2106,10 +2189,14 @@ async def process_imminent_article(
         HIGH_CONFLUENCE_SCORE = 3
         has_high_confluence = confluence_score >= HIGH_CONFLUENCE_SCORE and max_excursion_pct >= MIN_STRENGTH_EXCURSION_PCT
 
-        if has_strength or has_high_confluence:
+        # HC BYPASS: High-conviction headlines (gov/military contracts) don't need activity confirmation.
+        # The headline type IS the catalyst — 12% stop loss protects us. Any activity (score >= 1) is enough.
+        has_hc_bypass = is_high_conviction and confluence_score >= 1
+
+        if has_strength or has_high_confluence or has_hc_bypass:
             # Activity confirmed - use AI conviction for position sizing
             conviction = ai_conviction
-            entry_reason = "STRENGTH" if has_strength else "HIGH_CONFLUENCE"
+            entry_reason = "HC_BYPASS" if has_hc_bypass and not has_strength and not has_high_confluence else ("STRENGTH" if has_strength else "HIGH_CONFLUENCE")
             logger.info(
                 f"✅ {entry_reason} CONFIRMED: Confluence score {confluence_score}, excursion {max_excursion_pct:.2f}%",
                 ticker=ticker,
@@ -2301,7 +2388,13 @@ async def process_imminent_article(
         # already down 5% the moment you buy at ask and would sell at bid.
         # IINN lesson: 35% spread = untradeable.
         # Tightened to 5% - even 5% spread means instant -5% on entry.
-        MAX_SPREAD_PCT = 10.0 if is_high_conviction else 4.5  # HC: 10% (matches prefilter), normal: 4.5%
+        if is_high_conviction:
+            MAX_SPREAD_PCT = 10.0
+        elif is_ai_breakthrough:
+            _ab_price = confluence_metadata.get("initial_ask") or 0
+            MAX_SPREAD_PCT = _ai_breakthrough_spread_threshold(_ab_price)
+        else:
+            MAX_SPREAD_PCT = 4.5
         initial_spread = confluence_metadata.get("initial_spread")
         initial_ask = confluence_metadata.get("initial_ask")
         initial_bid = confluence_metadata.get("initial_bid", 0)
@@ -2476,7 +2569,13 @@ async def process_imminent_article(
         # bid likely dipped causing ~5% fill spread — blocking a +69% winner.
         # Fix: If the initial spread was tight (< 3%) and widening is modest (< 3pp),
         # allow it — this is temporary noise, not genuine spread deterioration.
-        MAX_FILL_SPREAD_PCT = 10.0 if is_high_conviction else 4.5  # High-conviction: 10% (defense sweet spot 3-10%, zero winners above 10%)
+        if is_high_conviction:
+            MAX_FILL_SPREAD_PCT = 10.0
+        elif is_ai_breakthrough:
+            _ab_fill_price = confluence_metadata.get("initial_ask") or 0
+            MAX_FILL_SPREAD_PCT = _ai_breakthrough_spread_threshold(_ab_fill_price)
+        else:
+            MAX_FILL_SPREAD_PCT = 4.5
         SPREAD_TIGHT_INITIAL = 3.0  # Initial spread considered "tight"
         SPREAD_WIDENING_TOLERANCE = 3.0  # Max acceptable widening from initial (percentage points)
 
@@ -3127,6 +3226,9 @@ class AutoTradeService:
         This is called when classification is complete (event-driven from classification microservice).
         Uses article metadata from event directly to avoid storage fetch delay.
         """
+        # Periodic housekeeping — sweep stale entries from tracking dicts
+        cleanup_stale_tracking()
+
         logger.info(
             "🎯 AUTO-TRADE: Received ArticleClassified event (with article metadata)",
             article_id=domain_event.result.article_id,

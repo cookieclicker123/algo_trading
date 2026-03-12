@@ -141498,5 +141498,21 @@
   "CVSA": {
     "industry": "Education & Training Services",
     "sector": "Consumer Defensive"
+  },
+  "BRT": {
+    "industry": "REIT - Residential",
+    "sector": "Real Estate"
+  },
+  "MFM": {
+    "industry": "Asset Management",
+    "sector": "Financial Services"
+  },
+  "SUNB": {
+    "industry": "Rental & Leasing Services",
+    "sector": "Industrials"
+  },
+  "IOR": {
+    "industry": "Mortgage Finance",
+    "sector": "Financial Services"
   }
 }

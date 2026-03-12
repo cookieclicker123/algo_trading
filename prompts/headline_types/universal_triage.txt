@@ -31,15 +31,21 @@ drill_results_positive
 stock_buyback
 lawsuit_settlement
 regulatory_approval
+ai_breakthrough
 other
 
 Rules:
 - government_contract: ANY government deal (federal, state, NASA, DARPA, DoD, agency awards)
 - military_contract: ANY military/defense deal (Army, Navy, Air Force, Space Force, foreign military sales, weapons, drones, munitions, counter-UAS, satellites for defense)
 - defense_order: orders from defense companies or for defense products (not government directly)
-- major_contract: NEW commercial contracts/orders/agreements with specific dollar amounts or named counterparties. Must be revenue-generating for the company (company RECEIVING money). EXCLUDE: contract renewals/extensions, PRV sales, royalty agreements, merger/acquisition agreements, FDA pathway agreements, vague "strategic" partnerships without $ amounts, and company SPENDING money (acquisitions, investments outward)
-- acquisition_target: company TO BE acquired
-- acquisition_announced: company ACQUIRING another
+- major_contract: NEW commercial contracts/orders/agreements that are CONCRETE and MATERIAL. REQUIRES at least ONE of: (1) specific dollar amount, (2) named well-known counterparty (Fortune 500, major institution, government entity), (3) government/military order. Must be revenue-generating for the company (company RECEIVING money). EXCLUDE: contract renewals/extensions, PRV sales, royalty agreements, merger/acquisition agreements, FDA pathway agreements, vague "strategic" partnerships without $ amounts, company SPENDING money (acquisitions, investments outward), and vague deployments/partnerships with unnamed customers. KEY: if the headline has NO dollar amount AND NO named counterparty AND is NOT a government order, it is NOT major_contract — classify as "other".
+  Examples that ARE major_contract: "Secures $15M Contract With Fortune 500", "Wins $8M Order From U.S. Army" (also military_contract), "Signs $20M Deal With Microsoft"
+  Examples that are NOT major_contract (classify as "other"): "Secures New Multifamily Deployment" (no $ amount, no named customer), "Announces New Enterprise Partnership With Prominent Company" (unnamed = not credible), "Expands Commercial Rollout" (vague operational milestone), "Secures New Customer Deployment" (no specifics)
+- acquisition_target: the company named FIRST in the headline is BEING acquired/bought. Look for: "X to be acquired", "X agrees to be acquired", "X enters agreement to be acquired", "Y to acquire X" (X is target), "tender offer for X", "X receives buyout offer". Also: if headline says "Y and X announce acquisition" and context shows Y is buying X, classify as acquisition_target if X is the smaller/subject company being absorbed.
+- acquisition_announced: the company named FIRST in the headline is DOING the acquiring/buying (spending money). Look for: "X acquires Y", "X signs LOI to acquire", "X closes acquisition of", "X to acquire Y", "X secures ownership of". The acquirer is SPENDING cash — this is bearish for the acquirer's stock.
+- ai_breakthrough: Company launches, deploys, or unveils a SPECIFIC AI product, tool, agent, or platform with CONCRETE details. REQUIRES at least TWO of: (1) named AI product/tool/agent (e.g. "AI Agent", "AI Drug Discovery Platform"), (2) specific function it performs (e.g. "Revolutionizing Biospecimen Matching", "Predicting Drug Toxicity"), (3) concrete results claim (e.g. "Achieving 95% Accuracy", "Reducing Processing Time by 80%"). Must describe a tangible AI product with real capabilities — NOT vague AI marketing.
+  Examples that ARE ai_breakthrough: "Launches AI Agent Revolutionizing Biospecimen Matching", "Deploys AI Drug Discovery Platform Achieving 95% Accuracy", "Unveils AI-Powered Diagnostic Tool That Detects Cancer With 99% Sensitivity"
+  Examples that are NOT ai_breakthrough (classify as "other"): "Announces AI-Powered Solutions", "Integrating AI Into Platform", "AI-Driven Revenue Growth", "Partners With AI Company", "Hiring Chief AI Officer", "Exploring AI Opportunities", "Leveraging AI To Enhance Operations"
 - If unsure between military_contract and government_contract, prefer military_contract for anything involving armed forces, weapons, or defense systems
 
 Headline: {headline}

@@ -373,6 +373,26 @@ Summary: {summary}"""
                 except (ValueError, TypeError) as e:
                     logger.debug(f"Could not parse published_at for latency check: {e}")
 
+            # Early triage: classify headline type for ALL articles with valid tickers.
+            # Runs before any remaining prefilters so recall records always have headline_type.
+            # Cost: ~200-300ms (Groq 8B). Also used for HC spread bypass downstream.
+            triage_headline_type = None
+            if request_data.article_title:
+                try:
+                    from ...shared.statistics.headline_classifier import get_headline_classifier
+                    triage_classifier = get_headline_classifier()
+                    triage_headline_type = await triage_classifier.triage(
+                        headline=request_data.article_title,
+                        timeout=3.0,
+                    )
+                    if triage_headline_type:
+                        logger.debug(
+                            f"Early headline triage: {triage_headline_type}",
+                            article_id=request_data.article_id,
+                        )
+                except Exception as e:
+                    logger.debug(f"Early headline triage failed (non-blocking): {e}")
+
             # Step 3: Check NBBO availability (before expensive Groq API call)
             primary_ticker = request_data.article_tickers[0] if request_data.article_tickers else None
             if self.quote_fetcher and primary_ticker:
@@ -391,7 +411,7 @@ Summary: {summary}"""
                         reason="nbbo_unavailable",
                         diagnostic="Stock does not have active bid/ask in extended hours (check logs for detailed failure reason)"
                     )
-                    await self._publish_skipped_event(infra_event, "nbbo_unavailable")
+                    await self._publish_skipped_event(infra_event, "nbbo_unavailable", headline_type=triage_headline_type)
                     return
                 
                 # Filter 3b: Volume prefilter DISABLED
@@ -487,7 +507,7 @@ Summary: {summary}"""
                         pattern_name=reason,
                         headline_snippet=headline_lower[:80]
                     )
-                    await self._publish_skipped_event(infra_event, f"headline_{reason}")
+                    await self._publish_skipped_event(infra_event, f"headline_{reason}", headline_type=triage_headline_type)
                     return
 
             # Step 3d: MARKET CAP FILTER (before expensive Groq API call)
@@ -529,7 +549,7 @@ Summary: {summary}"""
                             threshold_millions=MAX_MARKET_CAP_MILLIONS,
                             reason="Large-caps don't move significantly on news (statistical edge lost)"
                         )
-                        await self._publish_skipped_event(infra_event, f"market_cap_too_high:{round(market_cap)}M")
+                        await self._publish_skipped_event(infra_event, f"market_cap_too_high:{round(market_cap)}M", headline_type=triage_headline_type)
                         return
 
                     # Minimum market cap filter: < $1.5M = too small, heavily manipulated
@@ -571,7 +591,7 @@ Summary: {summary}"""
                                     magnitude_ratio=f"{magnitude_ratio:.1f}x" if dollar_amount else None,
                                     reason="Sub-$2M stocks are heavily manipulated (dollar amount not transformational)"
                                 )
-                                await self._publish_skipped_event(infra_event, f"prefilter_market_cap_too_low:{round(market_cap, 1)}M")
+                                await self._publish_skipped_event(infra_event, f"prefilter_market_cap_too_low:{round(market_cap, 1)}M", headline_type=triage_headline_type)
                                 return
                         else:
                             # No dollar amount in headline - apply normal filter
@@ -583,7 +603,7 @@ Summary: {summary}"""
                                 threshold_millions=MIN_MARKET_CAP_MILLIONS,
                                 reason="Sub-$2M stocks are heavily manipulated"
                             )
-                            await self._publish_skipped_event(infra_event, f"prefilter_market_cap_too_low:{round(market_cap, 1)}M")
+                            await self._publish_skipped_event(infra_event, f"prefilter_market_cap_too_low:{round(market_cap, 1)}M", headline_type=triage_headline_type)
                             return
 
                     logger.debug(
@@ -614,7 +634,7 @@ Summary: {summary}"""
                         threshold=MIN_PRICE,
                         reason="Sub-$0.05 stocks"
                     )
-                    await self._publish_skipped_event(infra_event, f"price_too_low:${round(current_price, 4)}")
+                    await self._publish_skipped_event(infra_event, f"price_too_low:${round(current_price, 4)}", headline_type=triage_headline_type)
                     return
 
                 logger.debug(
@@ -632,39 +652,33 @@ Summary: {summary}"""
                 spread_pct = nbbo_snapshot.get("spread_pct", 0)
                 MAX_SPREAD_PCT_PREFILTER = 4.5
 
-                # HIGH-CONVICTION TRIAGE: LLM classifies headline type before spread check.
-                # If headline is high-conviction (e.g. military_contract), relax spread from 4.5% → 7%.
-                # MTEK lesson: blocked at 5.13% spread but ran +49% on Navy contract.
-                # This triage result is stored and reused downstream as headline_type for postfilter bypass.
-                # Only call LLM if spread would actually fail the normal threshold (avoid wasting API calls).
+                # HIGH-CONVICTION SPREAD BYPASS: If headline is high-conviction (e.g. military_contract),
+                # relax spread from 4.5% → 10%. Uses early triage result (already populated above).
                 HIGH_CONVICTION_PREFILTER_TYPES = frozenset({
                     "government_contract", "military_contract", "defense_order",
                     "major_contract",  # Commercial contracts — 46.2% IMMINENT win rate, avg MFE +50%
                 })
                 MAX_SPREAD_PCT_HIGH_CONVICTION = 10.0  # Defense sweet spot is 3-10%, zero winners above 10%
-                triage_headline_type = None  # Stored for reuse in _classify_via_sector
-
-                if spread_pct and spread_pct > MAX_SPREAD_PCT_PREFILTER and spread_pct <= MAX_SPREAD_PCT_HIGH_CONVICTION:
-                    # Spread in 4.5%-10% range — worth triaging (above 10% has zero defense winners)
-                    try:
-                        from ...shared.statistics.headline_classifier import get_headline_classifier
-                        triage_classifier = get_headline_classifier()
-                        triage_headline_type = await triage_classifier.triage(
-                            headline=request_data.article_title or "",
-                            timeout=3.0,
-                        )
-                        logger.info(
-                            f"🎖️ HEADLINE TRIAGE: {triage_headline_type or 'failed'}",
-                            article_id=request_data.article_id,
-                            ticker=primary_ticker,
-                            headline_type=triage_headline_type,
-                            spread_pct=round(spread_pct, 2),
-                        )
-                    except Exception as e:
-                        logger.debug(f"Headline triage failed (non-blocking): {e}")
 
                 is_high_conviction_headline = triage_headline_type in HIGH_CONVICTION_PREFILTER_TYPES
-                effective_spread_threshold = MAX_SPREAD_PCT_HIGH_CONVICTION if is_high_conviction_headline else MAX_SPREAD_PCT_PREFILTER
+
+                # AI BREAKTHROUGH SPREAD LENIENCY: Price-tiered thresholds for cheap stocks
+                # Cheap stocks with genuine AI breakthroughs have structurally wide spreads
+                # that thin rapidly when the news is real (ISPC: 9.73% → 1.73% in 10 min).
+                AI_BREAKTHROUGH_PREFILTER_TYPES = frozenset({"ai_breakthrough"})
+                is_ai_breakthrough_headline = triage_headline_type in AI_BREAKTHROUGH_PREFILTER_TYPES
+
+                if is_high_conviction_headline:
+                    effective_spread_threshold = MAX_SPREAD_PCT_HIGH_CONVICTION
+                elif is_ai_breakthrough_headline and current_price:
+                    if current_price < 0.30:
+                        effective_spread_threshold = 10.0
+                    elif current_price < 0.50:
+                        effective_spread_threshold = 7.5
+                    else:
+                        effective_spread_threshold = MAX_SPREAD_PCT_PREFILTER
+                else:
+                    effective_spread_threshold = MAX_SPREAD_PCT_PREFILTER
 
                 if is_high_conviction_headline and spread_pct and spread_pct > MAX_SPREAD_PCT_PREFILTER:
                     logger.info(
@@ -674,6 +688,17 @@ Summary: {summary}"""
                         spread_pct=round(spread_pct, 2),
                         headline_type=triage_headline_type,
                         effective_threshold=MAX_SPREAD_PCT_HIGH_CONVICTION,
+                    )
+
+                if is_ai_breakthrough_headline and spread_pct and spread_pct > MAX_SPREAD_PCT_PREFILTER:
+                    logger.info(
+                        "🤖 AI BREAKTHROUGH HEADLINE: Price-tiered spread prefilter",
+                        article_id=request_data.article_id,
+                        ticker=primary_ticker,
+                        price=round(current_price, 2) if current_price else None,
+                        spread_pct=round(spread_pct, 2),
+                        headline_type=triage_headline_type,
+                        effective_threshold=effective_spread_threshold,
                     )
 
                 if spread_pct and spread_pct > effective_spread_threshold:
@@ -687,7 +712,7 @@ Summary: {summary}"""
                         headline_type=triage_headline_type,
                         reason="Wide spreads eat into profits on entry/exit"
                     )
-                    await self._publish_skipped_event(infra_event, f"prefilter_spread_too_wide:{round(spread_pct, 2)}%")
+                    await self._publish_skipped_event(infra_event, f"prefilter_spread_too_wide:{round(spread_pct, 2)}%", headline_type=triage_headline_type)
                     return
 
                 logger.debug(
@@ -697,26 +722,7 @@ Summary: {summary}"""
                     spread_pct=round(spread_pct, 2) if spread_pct else "unknown"
                 )
 
-                # Always triage ALL post-prefilter articles for headline_type tracking.
-                # If triage already ran at prefilter (spread >4.5%), reuse result.
-                # This adds ~200-300ms (Groq 8B) but guarantees every post-prefilter article
-                # has a headline_type for statistics querying.
-                if not triage_headline_type:
-                    try:
-                        from ...shared.statistics.headline_classifier import get_headline_classifier
-                        triage_classifier = get_headline_classifier()
-                        triage_headline_type = await triage_classifier.triage(
-                            headline=request_data.article_title or "",
-                            timeout=3.0,
-                        )
-                        logger.debug(
-                            f"Post-prefilter triage: {triage_headline_type or 'none'}",
-                            article_id=request_data.article_id,
-                            ticker=primary_ticker,
-                        )
-                    except Exception as e:
-                        logger.debug(f"Headline triage failed (non-blocking): {e}")
-
+                # Cache triage result for reuse in _classify_via_sector (avoids duplicate LLM call)
                 if triage_headline_type:
                     self._triage_cache[request_data.article_id] = triage_headline_type
                     # Evict oldest entries to prevent memory leak
@@ -740,9 +746,12 @@ Summary: {summary}"""
                 # Definitive agreements (M&A finalized)
                 (r'\b(completes?|signs?|enters?|executes?).*definitive.*agreement\b', 'definitive_agreement'),
                 (r'\bdefinitive.*agreement.*\b(complet|sign|enter|execut)\b', 'definitive_agreement'),
-                # Acquisition target
+                # Acquisition target (company being bought = stock goes UP)
                 (r'\bto be acquired\b', 'acquisition_target'),
+                (r'\bagrees to be acquired\b', 'acquisition_target'),
+                (r'\bwill be acquired\b', 'acquisition_target'),
                 (r'\breceives? (buyout|acquisition) (offer|proposal)\b', 'acquisition_target'),
+                (r'\btender offer for\b', 'acquisition_target'),
                 # Strategic investment received (not making, receiving)
                 (r'\b(receives?|secures?|closes?).*strategic investment\b', 'strategic_investment_received'),
             ]
@@ -999,8 +1008,8 @@ Summary: {summary}"""
                 # Get headline_type: reuse prefilter triage if available, else classify now
                 headline_type = triage_headline_type or self._triage_cache.pop(request_data.article_id, None)
                 if not headline_type:
-                    # No triage cached (spread was fine, triage wasn't needed at prefilter).
-                    # Classify now — this adds ~200-500ms but only for TRADE results.
+                    # Early triage returned None (headline didn't match known types).
+                    # Retry as fallback — classifier may have updated since early call.
                     try:
                         from ...shared.statistics.headline_classifier import get_headline_classifier
                         headline_classifier = get_headline_classifier()

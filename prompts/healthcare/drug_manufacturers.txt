@@ -47,11 +47,21 @@ CLINICAL TRIAL RESULTS
 ├─ Bioequivalence study positive
 ├─ NOTE: "Initiate" / "to begin" / "commence" trial = SKIP (no results yet)
 ├─ NOTE: Label expansion trials for existing drugs = SKIP (see LINE EXTENSIONS below)
+├─ NOTE: VAGUE "POSITIVE" WITHOUT DATA = SKIP
+│   Headlines that say "Positive Phase 2 Outcomes" or "Positive Results" without
+│   ANY specific numbers (no response rate, no %, no p-value, no endpoint) = SKIP.
+│   Winners always have concrete data. "Positive" without numbers is a press release.
+│   ✗ "Positive Phase 2 Outcomes" → SKIP (what was positive? No data given)
+│   ✗ "Strengthens Clinical Pathway Following Positive Results" → SKIP (vague)
+│   ✓ "86% Clinical Benefit Rate" → TRADE (specific number)
+│   ✓ "Phase 2 Shows 40% Reduction in Disease Score" → TRADE (specific %)
 └─ Examples:
    "Announces Topline Results from Phase 2 Clinical Trial" → TRADE
    "Completed Pharmacokinetic Study Shows Positive Results" → TRADE
    "To Initiate Phase 3 Clinical Trial" → SKIP (no results, just starting)
    "Phase 3 Trial Seeking to Expand Label" → SKIP (label expansion)
+   "Strengthens Clinical Development Pathway Following Positive Phase 2 Outcomes" → SKIP (no data)
+   "Announces Positive Phase 2 Results" → SKIP (no numbers)
 
 PARTNERSHIPS (9% of winners)
 ├─ Licensing agreements

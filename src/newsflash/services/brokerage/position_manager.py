@@ -23,9 +23,9 @@ The fixed floors are wider than the old 50% rule to avoid volatility-induced
 stopouts. Example: CETX went +9.5% then reversed - with 10% tier, would have
 captured 50% at the top instead of full loss.
 
-STOP LOSS (5% below entry price, 12% for high-conviction):
-- First 5 seconds: 0.5s confirmation (brief spikes are noise, not signal)
-- After 5 seconds: Immediate execution (if crashing, it's real)
+STOP LOSS (5% below fill price, 12% for high-conviction):
+- Normal: 5s grace + 1.0s confirmation / HC: 10s grace + 1.25s confirmation
+- After grace period: Immediate execution (if still crashing, it's real)
 - Rationale: SMTK went -7% at 1.8s then +37% at 2.0s - grace period prevents false stops
 
 HIGH-CONVICTION TRADES (gov/military + major commercial contracts):
@@ -63,13 +63,15 @@ class ConvictionLevel(Enum):
 # Stop loss configuration
 STOP_LOSS_PCT = 0.05  # 5% below actual entry price
 
-# Grace period for first 5 seconds after entry
-# Rationale: First 5 seconds are chaotic with brief spikes that recover instantly
+# Grace period: chaotic first seconds after entry have brief spikes that recover
 # (e.g., SMTK went -7% at 1.8s then +37% at 2.0s - recovered in 0.2s)
-# (e.g., KIDZ had 1.046s breach at -7.4% but recovered to +40% - 0.5s was too tight)
-# After 5 seconds, if stop is breached, it's a real crash - exit immediately
-ENTRY_GRACE_PERIOD_SECONDS = 5.0  # First 5 seconds: use confirmation
-STOP_LOSS_CONFIRMATION_SECONDS = 1.25  # During grace period: wait 1.25s to confirm (KIDZ max breach was 1.046s)
+# After grace period, if stop is breached, it's a real crash - exit immediately
+ENTRY_GRACE_PERIOD_SECONDS = 5.0        # Normal trades: 5 seconds grace
+STOP_LOSS_CONFIRMATION_SECONDS = 1.25   # Normal trades: 1.25s breach confirmation
+HC_GRACE_PERIOD_SECONDS = 10.0          # HC trades: 10 seconds grace (statistical edge needs room)
+HC_CONFIRMATION_SECONDS = 1.25          # HC trades: 1.25s breach confirmation
+MEGA_GRACE_PERIOD_SECONDS = 10.0        # Mega trades: 10 seconds grace
+MEGA_CONFIRMATION_SECONDS = 1.25        # Mega trades: 1.25s breach confirmation
 
 # Breakeven stop configuration - protects gains after reaching +5%
 # Once price stays at +5% for 0.5 seconds, stop moves from -5% to breakeven (0%)
@@ -749,15 +751,15 @@ class PositionManager:
 
             # MEGA TRADE: Slightly wider stop + breakeven at +20% + first tier at +20%
             # Minimal differences from normal trades — just enough breathing room.
-            # Normal: 5% stop / 5s grace / 1.25s confirm / breakeven +5% / tiers +15/+20/+30
-            # Mega:   7.5% stop / 5s grace / 1s confirm / breakeven +20% / tiers +20/+25/+30
+            # Normal: 5% stop / 5s grace / 1s confirm / breakeven +5% / tiers +15/+20/+30
+            # Mega:   7.5% stop / 10s grace / 1.25s confirm / breakeven +20% / tiers +20/+25/+30
             # HC mega: 12% stop (HC always wins — wider stop protects the edge)
             if position.is_mega_trade:
                 now = datetime.now()
                 mega_stop_pct = max(0.075, position._stop_loss_pct)  # 12% for HC, 7.5% otherwise
                 mega_breakeven_trigger = 0.20  # Move to breakeven at +20% (vs +5% normal)
-                mega_grace_period = 5.0  # 5 seconds grace (same as normal)
-                mega_confirmation_seconds = 1.0  # 1 second confirmation during grace (vs 1.25s normal)
+                mega_grace_period = MEGA_GRACE_PERIOD_SECONDS  # 10 seconds grace
+                mega_confirmation_seconds = MEGA_CONFIRMATION_SECONDS  # 1.25 second confirmation
 
                 # Breakeven activation at +20%
                 if not position.breakeven_stop_active and profit_pct >= mega_breakeven_trigger:
@@ -941,14 +943,18 @@ class PositionManager:
                     position.breakeven_trigger_time = None
 
             # 🛑 STOP LOSS CHECK with grace period logic
-            # Uses effective_stop_price (breakeven if activated, otherwise -5%)
-            # First 5 seconds: Use 1.25s confirmation (volatility is extreme, brief spikes recover)
-            # After 5 seconds: Exit immediately (if still crashing, it's real)
+            # Uses effective_stop_price (breakeven if activated, otherwise -5%/-12%)
+            # HC trades: 10s grace, 1.25s confirmation (statistical edge needs room)
+            # Normal trades: 5s grace, 1s confirmation
+            # After grace period: Exit immediately (if still crashing, it's real)
+            grace_seconds = HC_GRACE_PERIOD_SECONDS if position.is_high_conviction else ENTRY_GRACE_PERIOD_SECONDS
+            confirm_seconds = HC_CONFIRMATION_SECONDS if position.is_high_conviction else STOP_LOSS_CONFIRMATION_SECONDS
+
             effective_stop = position.effective_stop_price
             if effective_stop and not position.stop_loss_triggered:
                 if current_price <= effective_stop:
                     seconds_since_entry = (now - position.entry_time).total_seconds()
-                    in_grace_period = seconds_since_entry <= ENTRY_GRACE_PERIOD_SECONDS
+                    in_grace_period = seconds_since_entry <= grace_seconds
                     stop_type = "breakeven" if position.breakeven_stop_active else "stop_loss"
                     breach_time_attr = "breakeven_breach_time" if position.breakeven_stop_active else "stop_breach_time"
                     current_breach_time = position.breakeven_breach_time if position.breakeven_stop_active else position.stop_breach_time
@@ -965,7 +971,7 @@ class PositionManager:
                             else:
                                 position.stop_breach_time = now
                             logger.info(
-                                f"⚠️ {stop_type.upper()} BREACH: Starting {STOP_LOSS_CONFIRMATION_SECONDS}s confirmation",
+                                f"⚠️ {stop_type.upper()} BREACH: Starting {confirm_seconds}s confirmation",
                                 ticker=ticker,
                                 current_price=current_price,
                                 effective_stop=effective_stop,
@@ -975,7 +981,7 @@ class PositionManager:
                             return
 
                         breach_duration = (now - current_breach_time).total_seconds()
-                        if breach_duration >= STOP_LOSS_CONFIRMATION_SECONDS:
+                        if breach_duration >= confirm_seconds:
                             # Confirmed - price stayed below stop
                             if ticker not in self._exits_in_progress:
                                 self._exits_in_progress.add(ticker)

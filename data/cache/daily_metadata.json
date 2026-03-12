@@ -1,5 +1,5 @@
 {
-  "date": "2026-03-11",
+  "date": "2026-03-12",
   "data": {
     "ORCL": {
       "market_cap_millions": 459538.399232
@@ -16428,6 +16428,21 @@
     "CVSA": {
       "market_cap_millions": 3746.563072,
       "float_shares": 33667205
+    },
+    "BRT": {
+      "market_cap_millions": 271.135712,
+      "float_shares": 11613736
+    },
+    "MFM": {
+      "market_cap_millions": 225.296336
+    },
+    "SUNB": {
+      "market_cap_millions": 58550.161408,
+      "float_shares": 414440716
+    },
+    "IOR": {
+      "market_cap_millions": 71.40208,
+      "float_shares": 358312
     }
   }
 }
