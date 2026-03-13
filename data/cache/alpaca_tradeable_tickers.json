@@ -324,7 +324,6 @@
     "ALDFW",
     "ALDX",
     "ALEC",
-    "ALEX",
     "ALF",
     "ALFUU",
     "ALFUW",
@@ -2090,7 +2089,6 @@
     "DBVT",
     "DBX",
     "DC",
-    "DC.WS",
     "DCBO",
     "DCGO",
     "DCH",
@@ -6035,6 +6033,7 @@
     "POLEU",
     "POLEW",
     "POM",
+    "PONOU",
     "PONY",
     "POOL",
     "POR",
@@ -8326,7 +8325,9 @@
     "XBP",
     "XBPEW",
     "XBTY",
+    "XCBE",
     "XCBEU",
+    "XCBEW",
     "XCH",
     "XCNY",
     "XCUR",
@@ -8506,6 +8507,6 @@
     "ZYBT",
     "ZYME"
   ],
-  "updated_at": "2026-03-12T20:23:29.867265",
-  "count": 8505
+  "updated_at": "2026-03-13T11:33:40.849390",
+  "count": 8506
 }

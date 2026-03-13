@@ -673,10 +673,8 @@ Summary: {summary}"""
                 elif is_ai_breakthrough_headline and current_price:
                     if current_price < 0.30:
                         effective_spread_threshold = 10.0
-                    elif current_price < 0.50:
-                        effective_spread_threshold = 7.5
                     else:
-                        effective_spread_threshold = MAX_SPREAD_PCT_PREFILTER
+                        effective_spread_threshold = 7.5
                 else:
                     effective_spread_threshold = MAX_SPREAD_PCT_PREFILTER
 

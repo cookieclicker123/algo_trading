@@ -103,9 +103,7 @@ def _ai_breakthrough_spread_threshold(price: float) -> float:
     """Price-tiered spread threshold for AI breakthrough headlines."""
     if price < 0.30:
         return 10.0
-    if price < 0.50:
-        return 7.5
-    return 4.5
+    return 7.5
 
 
 # ============================================================
@@ -2843,7 +2841,7 @@ async def process_imminent_article(
         # so VWAP (trades near bid/mid) is naturally 3-5% below the ask. This is normal
         # microstructure, not pump manipulation. Require BOTH percentage AND absolute dollar
         # thresholds to avoid false positives on penny stocks (same fix as front-running).
-        MAX_ASK_VS_VWAP_PCT = 5.5  # Entry ask >5.5% above VWAP = paying pump premium
+        MAX_ASK_VS_VWAP_PCT = 12.0 if is_ai_breakthrough else 5.5  # AI breakthrough: 12% (early volatility dips depress VWAP), normal: 5.5%
         MIN_ABSOLUTE_ASK_VS_VWAP = 0.08  # $0.08 minimum gap to trigger (penny stock protection)
         # Higher than front-running's $0.05 because this checks a LEVEL gap (ask vs VWAP),
         # not a DELTA (how much ask moved). On sub-$1 stocks, VWAP naturally sits 5-8¢

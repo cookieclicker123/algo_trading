@@ -158,5 +158,23 @@
     "permanent": false,
     "created_at": "2026-03-12T13:02:18.600395",
     "last_fp_date": "2026-03-12"
+  },
+  "AIFF": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-13T11:58:14.627272",
+    "last_fp_date": "2026-03-13"
+  },
+  "SGN": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-13T12:00:24.061061",
+    "last_fp_date": "2026-03-13"
+  },
+  "SAGT": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-13T12:01:15.086614",
+    "last_fp_date": "2026-03-13"
   }
 }
