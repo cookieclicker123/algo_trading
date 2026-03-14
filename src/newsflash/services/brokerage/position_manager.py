@@ -942,26 +942,26 @@ class PositionManager:
                     )
                     position.breakeven_trigger_time = None
 
-            # 🛑 STOP LOSS CHECK with grace period logic
+            # 🛑 STOP LOSS CHECK with confirmation logic
             # Uses effective_stop_price (breakeven if activated, otherwise -5%/-12%)
-            # HC trades: 10s grace, 1.25s confirmation (statistical edge needs room)
-            # Normal trades: 5s grace, 1s confirmation
-            # After grace period: Exit immediately (if still crashing, it's real)
-            grace_seconds = HC_GRACE_PERIOD_SECONDS if position.is_high_conviction else ENTRY_GRACE_PERIOD_SECONDS
+            # ALL stops require confirmation (1.25s normal, 1.25s HC) to filter
+            # transient low bid quotes in thin premarket order books (PRZO lesson).
+            # Grace period still used for HC trades (10s vs 5s normal).
             confirm_seconds = HC_CONFIRMATION_SECONDS if position.is_high_conviction else STOP_LOSS_CONFIRMATION_SECONDS
 
             effective_stop = position.effective_stop_price
             if effective_stop and not position.stop_loss_triggered:
                 if current_price <= effective_stop:
                     seconds_since_entry = (now - position.entry_time).total_seconds()
-                    in_grace_period = seconds_since_entry <= grace_seconds
                     stop_type = "breakeven" if position.breakeven_stop_active else "stop_loss"
                     breach_time_attr = "breakeven_breach_time" if position.breakeven_stop_active else "stop_breach_time"
                     current_breach_time = position.breakeven_breach_time if position.breakeven_stop_active else position.stop_breach_time
 
-                    # Always use confirmation for breakeven stops (they're protecting gains)
-                    # For regular stops: use confirmation only in grace period
-                    use_confirmation = position.breakeven_stop_active or in_grace_period
+                    # Always use confirmation for ALL stop losses (not just grace period)
+                    # Premarket order books are thin — a single transient low bid quote
+                    # can falsely trigger the stop. Requiring 1.25s confirmation filters
+                    # out momentary bid flashes while still exiting quickly on real crashes.
+                    use_confirmation = True
 
                     if use_confirmation:
                         if current_breach_time is None:
@@ -1004,28 +1004,6 @@ class PositionManager:
                                     profit_pct
                                 ))
                             return
-                    else:
-                        # After grace period with regular stop - exit immediately
-                        if ticker not in self._exits_in_progress:
-                            self._exits_in_progress.add(ticker)
-                            position.stop_loss_triggered = True
-                            logger.warning(
-                                f"🛑 STOP LOSS TRIGGERED (immediate - past grace period)",
-                                ticker=ticker,
-                                current_price=current_price,
-                                stop_loss_price=effective_stop,
-                                entry_price=position.entry_price,
-                                loss_pct=f"{profit_pct*100:.1f}%",
-                                shares=position.shares_remaining,
-                                seconds_since_entry=round(seconds_since_entry, 1),
-                            )
-                            asyncio.create_task(self._execute_exit_async(
-                                position,
-                                position.shares_remaining,
-                                "stop_loss",
-                                profit_pct
-                            ))
-                        return
                 else:
                     # Price recovered above stop - reset breach timers
                     if position.stop_breach_time is not None:

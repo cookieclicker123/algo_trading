@@ -16443,6 +16443,13 @@
     "IOR": {
       "market_cap_millions": 71.40208,
       "float_shares": 358312
+    },
+    "AEAQ": {
+      "market_cap_millions": 309.672416
+    },
+    "NXTS": {
+      "market_cap_millions": 2.334979,
+      "float_shares": 1120855
     }
   }
 }

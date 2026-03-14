@@ -176,5 +176,17 @@
     "permanent": false,
     "created_at": "2026-03-13T12:01:15.086614",
     "last_fp_date": "2026-03-13"
+  },
+  "LASE": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-13T12:33:55.725967",
+    "last_fp_date": "2026-03-13"
+  },
+  "PRZO": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-13T12:57:41.963083",
+    "last_fp_date": "2026-03-13"
   }
 }

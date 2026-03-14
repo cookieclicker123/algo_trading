@@ -141514,5 +141514,9 @@
   "IOR": {
     "industry": "Mortgage Finance",
     "sector": "Financial Services"
+  },
+  "NXTS": {
+    "industry": "Agricultural Inputs",
+    "sector": "Basic Materials"
   }
 }
