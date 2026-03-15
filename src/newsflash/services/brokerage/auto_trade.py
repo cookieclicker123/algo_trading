@@ -451,12 +451,13 @@ POSITION_SIZES_USD = {
 }
 
 # High-conviction headline types (gov/military contracts, major commercial contracts):
-# Statistically proven edge — sized up accordingly.
+# Structural edge — real government/commercial money, less manipulation than biotech.
+# Volume and float in defense headlines is usually sufficient for full fills.
 HC_POSITION_SIZES_USD = {
-    ConvictionLevel.MINIMUM: Decimal("3000.00"),      # AI: SMALL → overridden to MODERATE ($3,000)
-    ConvictionLevel.STANDARD: Decimal("3000.00"),     # AI: MODERATE - $3,000
-    ConvictionLevel.HIGH: Decimal("4000.00"),         # AI: LARGE - $4,000
-    ConvictionLevel.VERY_HIGH: Decimal("5000.00"),    # AI: MAX - $5,000
+    ConvictionLevel.MINIMUM: Decimal("7500.00"),      # AI: SMALL → overridden to MODERATE ($7,500)
+    ConvictionLevel.STANDARD: Decimal("7500.00"),     # AI: MODERATE - $7,500
+    ConvictionLevel.HIGH: Decimal("10000.00"),        # AI: LARGE - $10,000
+    ConvictionLevel.VERY_HIGH: Decimal("12500.00"),   # AI: MAX - $12,500
 }
 
 # Map AI position size strings to ConvictionLevel
