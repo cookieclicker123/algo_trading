@@ -188,5 +188,17 @@
     "permanent": false,
     "created_at": "2026-03-13T12:57:41.963083",
     "last_fp_date": "2026-03-13"
+  },
+  "CTMX": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-16T11:01:36.563770",
+    "last_fp_date": "2026-03-16"
+  },
+  "MTEK": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-16T12:14:46.172627",
+    "last_fp_date": "2026-03-16"
   }
 }

@@ -11326,7 +11326,8 @@
       "market_cap_millions": 507.71776
     },
     "ZJK": {
-      "market_cap_millions": 125.091608
+      "market_cap_millions": 123.815168,
+      "float_shares": 7149688
     },
     "VRAR": {
       "market_cap_millions": 17.080402
@@ -16450,6 +16451,9 @@
     "NXTS": {
       "market_cap_millions": 2.334979,
       "float_shares": 1120855
+    },
+    "MDA": {
+      "market_cap_millions": 3795.651328
     }
   }
 }

@@ -510,22 +510,23 @@ class PositionManager:
             if not symbol or symbol not in self._positions:
                 return
 
-            # Get bid price from quote (we sell at bid)
+            # Get bid and ask prices from quote
             nbbo = event_data.get("nbbo", {})
             bid_price = nbbo.get("bid") if isinstance(nbbo, dict) else getattr(nbbo, "bid", None)
+            ask_price = nbbo.get("ask") if isinstance(nbbo, dict) else getattr(nbbo, "ask", None)
 
             if not bid_price:
                 return
 
-            # Update position's last price
+            # Update position's last price (bid — what we'd get if we sold)
             async with self._lock:
                 if symbol in self._positions:
                     position = self._positions[symbol]
                     position.last_price = bid_price
                     position.last_price_time = datetime.now()
 
-            # Check exit conditions
-            await self._check_position_exit(symbol, bid_price)
+            # Check exit conditions (bid for profit exits, ask for stop loss)
+            await self._check_position_exit(symbol, bid_price, ask_price)
 
             # Check scale-in confirmation (non-blocking, fire-and-forget)
             await self._check_scale_in_confirmation(symbol, bid_price)
@@ -719,8 +720,18 @@ class PositionManager:
                 exit_reason=f"session_end_{session}",
             ))
 
-    async def _check_position_exit(self, ticker: str, current_price: float) -> None:
-        """Check and execute exit for a single position (tiered exits + stop loss)."""
+    async def _check_position_exit(self, ticker: str, current_price: float, ask_price: float = None) -> None:
+        """Check and execute exit for a single position (tiered exits + stop loss).
+
+        Args:
+            current_price: Bid price (what we'd get if we sell)
+            ask_price: Ask price (used for stop loss — entered at ask, stop checks ask)
+        """
+        # Stop loss uses ask price (apples-to-apples: entered at ask, check ask).
+        # Spread widening/tightening in first seconds shouldn't trigger stops.
+        # Falls back to bid if ask unavailable.
+        stop_check_price = ask_price if ask_price else current_price
+
         async with self._lock:
             if ticker not in self._positions:
                 return
@@ -778,9 +789,9 @@ class PositionManager:
                 elif not position.breakeven_stop_active and profit_pct < mega_breakeven_trigger:
                     position.breakeven_trigger_time = None
 
-                # Stop loss check (7.5% or breakeven)
+                # Stop loss check (7.5% or breakeven) — uses ask price (entered at ask, check ask)
                 effective_stop = position.entry_price if position.breakeven_stop_active else position.entry_price * (1 - mega_stop_pct)
-                if current_price <= effective_stop and not position.stop_loss_triggered:
+                if stop_check_price <= effective_stop and not position.stop_loss_triggered:
                     seconds_since_entry = (now - position.entry_time).total_seconds()
                     in_grace = seconds_since_entry <= mega_grace_period
                     breach_time = position.breakeven_breach_time if position.breakeven_stop_active else position.stop_breach_time
@@ -830,7 +841,7 @@ class PositionManager:
                             ))
                         return
                 else:
-                    # Price above stop — reset breach timers
+                    # Ask price above stop — reset breach timers
                     position.stop_breach_time = None
                     position.breakeven_breach_time = None
 
@@ -944,14 +955,14 @@ class PositionManager:
 
             # 🛑 STOP LOSS CHECK with confirmation logic
             # Uses effective_stop_price (breakeven if activated, otherwise -5%/-12%)
-            # ALL stops require confirmation (1.25s normal, 1.25s HC) to filter
-            # transient low bid quotes in thin premarket order books (PRZO lesson).
-            # Grace period still used for HC trades (10s vs 5s normal).
+            # Compares ASK price against stop (entered at ask, check ask — spread
+            # widening/tightening shouldn't trigger stops, only real price decline).
+            # ALL stops require confirmation (1.25s normal, 1.25s HC).
             confirm_seconds = HC_CONFIRMATION_SECONDS if position.is_high_conviction else STOP_LOSS_CONFIRMATION_SECONDS
 
             effective_stop = position.effective_stop_price
             if effective_stop and not position.stop_loss_triggered:
-                if current_price <= effective_stop:
+                if stop_check_price <= effective_stop:
                     seconds_since_entry = (now - position.entry_time).total_seconds()
                     stop_type = "breakeven" if position.breakeven_stop_active else "stop_loss"
                     breach_time_attr = "breakeven_breach_time" if position.breakeven_stop_active else "stop_breach_time"
@@ -973,7 +984,8 @@ class PositionManager:
                             logger.info(
                                 f"⚠️ {stop_type.upper()} BREACH: Starting {confirm_seconds}s confirmation",
                                 ticker=ticker,
-                                current_price=current_price,
+                                ask_price=stop_check_price,
+                                bid_price=current_price,
                                 effective_stop=effective_stop,
                                 profit_pct=f"{profit_pct*100:+.1f}%",
                                 breakeven_active=position.breakeven_stop_active,
@@ -982,7 +994,7 @@ class PositionManager:
 
                         breach_duration = (now - current_breach_time).total_seconds()
                         if breach_duration >= confirm_seconds:
-                            # Confirmed - price stayed below stop
+                            # Confirmed - ask stayed below stop
                             if ticker not in self._exits_in_progress:
                                 self._exits_in_progress.add(ticker)
                                 position.stop_loss_triggered = True
@@ -990,7 +1002,8 @@ class PositionManager:
                                 logger.warning(
                                     f"🛑 {stop_type.upper()} TRIGGERED (confirmed after {breach_duration:.1f}s)",
                                     ticker=ticker,
-                                    current_price=current_price,
+                                    ask_price=stop_check_price,
+                                    bid_price=current_price,
                                     effective_stop=effective_stop,
                                     entry_price=position.entry_price,
                                     pnl_pct=f"{profit_pct*100:+.1f}%",
@@ -1005,20 +1018,20 @@ class PositionManager:
                                 ))
                             return
                 else:
-                    # Price recovered above stop - reset breach timers
+                    # Ask recovered above stop - reset breach timers
                     if position.stop_breach_time is not None:
                         logger.info(
-                            f"✅ STOP BREACH RECOVERED: Price back above stop",
+                            f"✅ STOP BREACH RECOVERED: Ask back above stop",
                             ticker=ticker,
-                            current_price=current_price,
+                            ask_price=stop_check_price,
                             effective_stop=effective_stop,
                         )
                         position.stop_breach_time = None
                     if position.breakeven_breach_time is not None:
                         logger.info(
-                            f"✅ BREAKEVEN BREACH RECOVERED: Price back above entry",
+                            f"✅ BREAKEVEN BREACH RECOVERED: Ask back above entry",
                             ticker=ticker,
-                            current_price=current_price,
+                            ask_price=stop_check_price,
                             entry_price=position.entry_price,
                         )
                         position.breakeven_breach_time = None
@@ -1345,6 +1358,7 @@ class PositionManager:
         for ticker, position in positions_to_check:
             try:
                 current_price = None
+                ask_price = None
                 price_source = None
 
                 # Try WebSocket cache first (fastest)
@@ -1352,12 +1366,15 @@ class PositionManager:
                     quote = await self.stream_manager.get_latest_quote(ticker)
                     if quote:
                         current_price = quote.get("bid")
+                        ask_price = quote.get("ask")
                         price_source = "websocket"
 
-                # Fallback to REST API if WebSocket failed
+                # Fallback to REST API if WebSocket failed — get full NBBO for ask
                 if not current_price and self.quote_fetcher:
-                    current_price = await self.quote_fetcher.get_realtime_price(ticker)
-                    if current_price:
+                    nbbo = await self.quote_fetcher.get_nbbo_snapshot(ticker)
+                    if nbbo:
+                        current_price = nbbo.get("bid")
+                        ask_price = nbbo.get("ask")
                         price_source = "rest_api"
 
                 # CRITICAL: Log warning if we can't get price for stop loss monitoring
@@ -1372,8 +1389,8 @@ class PositionManager:
                     )
                     continue
 
-                # Check exit conditions with valid price
-                await self._check_position_exit(ticker, current_price)
+                # Check exit conditions (bid for profit exits, ask for stop loss)
+                await self._check_position_exit(ticker, current_price, ask_price)
 
                 # Check scale-in confirmation (for no_volume entries awaiting confirmation)
                 await self._check_scale_in_confirmation(ticker, current_price)
