@@ -668,8 +668,13 @@ Summary: {summary}"""
                 AI_BREAKTHROUGH_PREFILTER_TYPES = frozenset({"ai_breakthrough"})
                 is_ai_breakthrough_headline = triage_headline_type in AI_BREAKTHROUGH_PREFILTER_TYPES
 
+                CLINICAL_BREAKTHROUGH_PREFILTER_TYPES = frozenset({"clinical_breakthrough"})
+                is_clinical_breakthrough_headline = triage_headline_type in CLINICAL_BREAKTHROUGH_PREFILTER_TYPES
+
                 if is_high_conviction_headline:
                     effective_spread_threshold = MAX_SPREAD_PCT_HIGH_CONVICTION
+                elif is_clinical_breakthrough_headline:
+                    effective_spread_threshold = 10.0
                 elif is_ai_breakthrough_headline and current_price:
                     if current_price < 0.30:
                         effective_spread_threshold = 10.0

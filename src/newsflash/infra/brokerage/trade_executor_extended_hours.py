@@ -216,10 +216,11 @@ class AlpacaExtendedHoursTradeExecutor:
                 decision_ask = metadata.get("initial_ask") if metadata else None
                 is_mega = metadata.get("is_mega_trade", False) if metadata else False
                 is_high_conviction = metadata.get("is_high_conviction", False) if metadata else False
+                is_clinical_breakthrough = metadata.get("is_clinical_breakthrough", False) if metadata else False
 
                 if decision_ask and decision_ask > 0:
                     execution_slippage_pct = ((initial_ask - decision_ask) / decision_ask) * 100
-                    max_execution_slippage = 12.0 if is_high_conviction else (7.5 if is_mega else 5.0)
+                    max_execution_slippage = 12.0 if (is_high_conviction or is_clinical_breakthrough) else (7.5 if is_mega else 5.0)
                     min_absolute_slippage = 0.05  # $0.05 floor
                     absolute_slippage = abs(initial_ask - decision_ask)
 

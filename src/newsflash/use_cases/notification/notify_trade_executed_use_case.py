@@ -36,7 +36,9 @@ def format_trade_execution_message(
     publication_time: datetime = None,
     spread_info: dict = None,
     instrument_details: dict = None,
-    volume_stats: VolumeSurgeAnalysis = None
+    volume_stats: VolumeSurgeAnalysis = None,
+    is_high_signal: bool = False,
+    headline_type: str = None,
 ) -> str:
     """
     Format trade execution notification message with all details.
@@ -93,7 +95,11 @@ def format_trade_execution_message(
         f"🕐 Session: {session_str.upper()}",
         f"⚙️  Instrument: {trade_request.instrument.value.upper()}",
     ])
-    
+
+    # Add HIGH SIGNAL indicator for high-conviction and clinical breakthrough trades
+    if is_high_signal:
+        message_parts.append(f"🎯 Signal: HIGH SIGNAL ({headline_type or 'unknown'})")
+
     # Add spread information if available
     if spread_info and spread_info.get("bid") and spread_info.get("ask"):
         bid = spread_info.get("bid")
@@ -286,10 +292,13 @@ class NotifyTradeExecutedUseCase:
                         article_id=article_id
                     )
             
-            # Get spread_info and instrument_details from trade_request dict metadata (stored by mapper)
+            # Get spread_info, instrument_details, and signal metadata from trade_request dict
             trade_request_dict = trade_result.trade_request
             spread_info = trade_request_dict.get("_spread_info", {})
             instrument_details = trade_request_dict.get("_instrument_details", {})
+            metadata_dict = trade_request_dict.get("metadata", {})
+            is_high_signal = metadata_dict.get("is_high_conviction", False) or metadata_dict.get("is_clinical_breakthrough", False)
+            headline_type = metadata_dict.get("headline_type")
 
             # SPEED FIX: Skip volume analysis for trade notifications
             # Volume stats were causing 5+ minute delays due to slow API calls
@@ -303,7 +312,9 @@ class NotifyTradeExecutedUseCase:
                 publication_time=publication_time,
                 spread_info=spread_info,
                 instrument_details=instrument_details,
-                volume_stats=volume_stats
+                volume_stats=volume_stats,
+                is_high_signal=is_high_signal,
+                headline_type=headline_type,
             )
             
             # Create notification message

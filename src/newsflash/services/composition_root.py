@@ -346,14 +346,15 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
                     awaiting_confirmation = metadata.get("awaiting_confirmation", False)
                     target_full_shares = metadata.get("target_full_shares", 0.0)
 
-                    # Extract mega trade and high-conviction flags
+                    # Extract mega trade, high-conviction, and clinical breakthrough flags
                     is_mega_trade = metadata.get("is_mega_trade", False)
                     is_high_conviction = metadata.get("is_high_conviction", False)
+                    is_clinical_breakthrough = metadata.get("is_clinical_breakthrough", False)
 
                     # Safety check: HC-sized trade but flag missing = metadata race condition
                     # Normal max is $2,000 — anything above that without HC flag is a bug
                     total_cost = fill_price * shares if fill_price and shares else 0
-                    if total_cost > 2500 and not is_high_conviction and not is_mega_trade:
+                    if total_cost > 2500 and not is_high_conviction and not is_mega_trade and not is_clinical_breakthrough:
                         logger.error(
                             "🚨 METADATA BUG: Large position ($%.0f) but is_high_conviction=False! "
                             "Forcing is_high_conviction=True to prevent wrong stop loss",
@@ -378,6 +379,7 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
                             target_full_shares=target_full_shares,
                             is_mega_trade=is_mega_trade,
                             is_high_conviction=is_high_conviction,
+                            is_clinical_breakthrough=is_clinical_breakthrough,
                         )
                         if is_mega_trade:
                             logger.info(
@@ -398,7 +400,7 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
                                 conviction=conviction.value,
                             )
                         else:
-                            stop_pct = 0.12 if is_high_conviction else 0.05
+                            stop_pct = 0.12 if (is_high_conviction or is_clinical_breakthrough) else 0.05
                             logger.info(
                                 "Position added from TradeExecuted event (stop loss + let winners run)",
                                 ticker=ticker,

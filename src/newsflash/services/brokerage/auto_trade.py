@@ -98,6 +98,12 @@ BLOCKED_HEADLINE_TYPES = frozenset({
 # Cheap stocks with genuine AI breakthroughs have structurally wide spreads that thin rapidly.
 AI_BREAKTHROUGH_HEADLINE_TYPES = frozenset({"ai_breakthrough"})
 
+# Clinical breakthrough headlines get spread leniency (10%) and wider stop loss (12%).
+# Phase 2+ trials with exceptional results for major diseases produce sustained moves.
+# CTMX (+65% peak) was stopped out early with normal 5% stop — 12% is appropriate.
+# All other postfilters remain normal (unlike HC which skips most).
+CLINICAL_BREAKTHROUGH_HEADLINE_TYPES = frozenset({"clinical_breakthrough"})
+
 
 def _ai_breakthrough_spread_threshold(price: float) -> float:
     """Price-tiered spread threshold for AI breakthrough headlines."""
@@ -2075,6 +2081,15 @@ async def process_imminent_article(
         # These headline types (gov/military contracts) reliably produce sustained moves.
         is_high_conviction = headline_type in HIGH_CONVICTION_HEADLINE_TYPES if headline_type else False
         is_ai_breakthrough = headline_type in AI_BREAKTHROUGH_HEADLINE_TYPES if headline_type else False
+        is_clinical_breakthrough = headline_type in CLINICAL_BREAKTHROUGH_HEADLINE_TYPES if headline_type else False
+
+        if is_clinical_breakthrough:
+            logger.info(
+                "🧬 CLINICAL BREAKTHROUGH HEADLINE: Spread=10%, stop=12%, other filters normal",
+                ticker=ticker,
+                headline_type=headline_type,
+                article_id=article_id,
+            )
 
         if is_ai_breakthrough:
             logger.info(
@@ -2317,6 +2332,7 @@ async def process_imminent_article(
         )
         confluence_metadata["is_mega_trade"] = is_mega_trade
         confluence_metadata["is_high_conviction"] = is_high_conviction
+        confluence_metadata["is_clinical_breakthrough"] = is_clinical_breakthrough
         if headline_type:
             confluence_metadata["headline_type"] = headline_type
 
@@ -2388,6 +2404,8 @@ async def process_imminent_article(
         # IINN lesson: 35% spread = untradeable.
         # Tightened to 5% - even 5% spread means instant -5% on entry.
         if is_high_conviction:
+            MAX_SPREAD_PCT = 10.0
+        elif is_clinical_breakthrough:
             MAX_SPREAD_PCT = 10.0
         elif is_ai_breakthrough:
             _ab_price = confluence_metadata.get("initial_ask") or 0
@@ -2569,6 +2587,8 @@ async def process_imminent_article(
         # Fix: If the initial spread was tight (< 3%) and widening is modest (< 3pp),
         # allow it — this is temporary noise, not genuine spread deterioration.
         if is_high_conviction:
+            MAX_FILL_SPREAD_PCT = 10.0
+        elif is_clinical_breakthrough:
             MAX_FILL_SPREAD_PCT = 10.0
         elif is_ai_breakthrough:
             _ab_fill_price = confluence_metadata.get("initial_ask") or 0

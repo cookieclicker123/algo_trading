@@ -185,6 +185,7 @@ class Position:
     # === HIGH-CONVICTION: Wider stop loss + wider tiers + trailing stop ===
     # Gov/military contract headlines: 12% stop, wider tiers (25/40/60%), trailing stop after T1.
     is_high_conviction: bool = False
+    is_clinical_breakthrough: bool = False  # Phase 2+ exceptional trials: 12% stop, normal exits
     trailing_stop_active: bool = False  # Activated after first high-conviction tier exit
     trailing_stop_peak_pct: float = 0.0  # Highest profit % since trailing stop activation
 
@@ -211,7 +212,7 @@ class Position:
         MTEK had -9.99% MAE at T+51s then ran +49%. Normal 5% stop kills these.
         12% gives enough room to survive the market-maker repricing whipsaw.
         """
-        return 0.12 if self.is_high_conviction else STOP_LOSS_PCT
+        return 0.12 if (self.is_high_conviction or self.is_clinical_breakthrough) else STOP_LOSS_PCT
 
     @property
     def stop_loss_price(self) -> Optional[float]:
@@ -352,6 +353,7 @@ class PositionManager:
         target_full_shares: float = 0.0,
         is_mega_trade: bool = False,
         is_high_conviction: bool = False,
+        is_clinical_breakthrough: bool = False,
     ) -> Position:
         """
         Add a new position to track.
@@ -361,6 +363,7 @@ class PositionManager:
             target_full_shares: Full position size to scale into if confirmed
             is_mega_trade: True for mega trades — skips automated exits, manual control via /exit
             is_high_conviction: True for high-conviction headlines — uses mega stop loss but normal exits
+            is_clinical_breakthrough: True for clinical breakthrough — 12% stop, normal exits
         """
         async with self._lock:
             position = Position(
@@ -373,6 +376,7 @@ class PositionManager:
                 initial_nbbo_mid=initial_nbbo_mid,
                 is_mega_trade=is_mega_trade,
                 is_high_conviction=is_high_conviction,
+                is_clinical_breakthrough=is_clinical_breakthrough,
             )
 
             # Scale-in tracking for no_volume entries

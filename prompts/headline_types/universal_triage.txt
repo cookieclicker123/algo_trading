@@ -8,6 +8,7 @@ acquisition_announced
 fda_approval
 fda_clearance
 clinical_trial_positive
+clinical_breakthrough
 clinical_trial_negative
 partnership
 licensing_agreement
@@ -48,6 +49,13 @@ Rules:
   PATH B — AI EXPANSION: Company announces a collaboration, partnership, or expansion that is SPECIFICALLY about building or deploying AI/robotics/ML capabilities. REQUIRES ALL of: (1) a named partner or counterparty, (2) a concrete AI/robotics domain (e.g. "AI tutoring", "robotics education", "ML drug discovery"), (3) clear growth signal (expand, launch, deploy, build, develop, roll out — NOT just "explore" or "evaluate").
   Examples that ARE ai_breakthrough: "Launches AI Agent Revolutionizing Biospecimen Matching" (Path A), "Deploys AI Drug Discovery Platform Achieving 95% Accuracy" (Path A), "Announces Collaboration With Walimaker to Expand AI and Robotics Learning Programs" (Path B — named partner + concrete AI domain + expansion), "Partners With NVIDIA to Build AI-Powered Medical Imaging Pipeline" (Path B), "Begins Collaboration With Tencent to Support AI Tutor Platform With Real-Time Voice" (Path B)
   Examples that are NOT ai_breakthrough (classify as "other" or "partnership"): "Announces AI-Powered Solutions" (no specifics), "Integrating AI Into Platform" (vague), "AI-Driven Revenue Growth" (marketing), "Partners With AI Company" (no domain specifics, unnamed capabilities), "Hiring Chief AI Officer" (staffing), "Exploring AI Opportunities" (no commitment), "Leveraging AI To Enhance Operations" (buzzword)
+- clinical_breakthrough: Phase 2 or later clinical trial with EXCEPTIONAL positive results for a MAJOR disease. REQUIRES ALL of:
+  (1) Phase 2 or Phase 3 (NOT Phase 1 — too early, safety-only)
+  (2) Concrete positive outcome: met primary endpoint, statistically significant results, superiority over standard of care, OR strong response rates with specific numbers
+  (3) Major disease or known therapeutic area: cancer (lung, breast, colorectal, prostate, pancreatic, liver, ovarian, brain/glioblastoma, melanoma, leukemia, lymphoma), Alzheimer's, Parkinson's, ALS, obesity/GLP-1, diabetes, NASH/MASH, heart failure, MS, lupus, rheumatoid arthritis, sickle cell, muscular dystrophy, epinephrine delivery, anaphylaxis
+  MUST NOT be clinical_breakthrough if: Phase 1, safety/tolerability only, extension study, preclinical/in vitro, "potential"/"may"/"could", trial initiation with no results, vague "positive trends" without specifics, unknown/niche disease with no public awareness
+  Examples that ARE clinical_breakthrough: "Phase 2 Study Shows Statistically Significant Tumor Reduction in Colorectal Cancer", "Phase 3 Trial Meets Primary Endpoint in Alzheimer's", "Phase 2 Achieves Superior Epinephrine Delivery vs EpiPen"
+  Examples that are NOT (use clinical_trial_positive): "Phase 1 Safety Data Shows Favorable Profile", "Phase 2 Shows Encouraging Trends", "Positive Data in Rare Enzyme Deficiency" (niche), "Initiates Phase 3 Trial" (no results)
 - If unsure between military_contract and government_contract, prefer military_contract for anything involving armed forces, weapons, or defense systems
 
 Headline: {headline}
