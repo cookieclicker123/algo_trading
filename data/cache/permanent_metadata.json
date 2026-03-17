@@ -141518,5 +141518,9 @@
   "NXTS": {
     "industry": "Agricultural Inputs",
     "sector": "Basic Materials"
+  },
+  "QUCY": {
+    "industry": "Diagnostics & Research",
+    "sector": "Healthcare"
   }
 }

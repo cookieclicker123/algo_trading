@@ -200,5 +200,11 @@
     "permanent": false,
     "created_at": "2026-03-16T12:14:46.172627",
     "last_fp_date": "2026-03-16"
+  },
+  "PMI": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-17T11:09:33.903806",
+    "last_fp_date": "2026-03-17"
   }
 }

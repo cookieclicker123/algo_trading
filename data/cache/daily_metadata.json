@@ -16454,6 +16454,10 @@
     },
     "MDA": {
       "market_cap_millions": 3795.651328
+    },
+    "QUCY": {
+      "market_cap_millions": 8.656858,
+      "float_shares": 3546736
     }
   }
 }

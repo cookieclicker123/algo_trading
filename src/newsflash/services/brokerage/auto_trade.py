@@ -2543,49 +2543,11 @@ async def process_imminent_article(
             await _record_postfilter_skip(article_id, "postfilter_trade_request_build_failed")
             return
 
-        # 🚀 MICROSTRUCTURE CHECK: Ensure there is actually trading activity
-        # "Truly big moves always have volume." - User
-        if market_data_client and StockTradesRequest:
-            try:
-                # Check for any trades since publication
-                trades_start = published_at
-                trades_end = datetime.now(timezone.utc)
-
-                # Use async wrapper to avoid blocking event loop
-                trades = await run_sync_alpaca_call(
-                    market_data_client.get_stock_trades,
-                    StockTradesRequest(
-                        symbol_or_symbols=trade_request.ticker,
-                        start=trades_start,
-                        end=trades_end,
-                        feed=DataFeed.SIP
-                    )
-                )
-
-                total_vol = 0
-                if trades and trades.data and trade_request.ticker in trades.data:
-                    total_vol = sum(t.size for t in trades.data[trade_request.ticker])
-
-                if total_vol == 0:
-                    logger.info(
-                        "⏭️ AUTO-TRADE SKIPPED: Zero volume since publication (Dead Market)",
-                        ticker=trade_request.ticker,
-                        article_id=article_id,
-                        latency_seconds=round((trades_end - trades_start).total_seconds(), 2)
-                    )
-                    await _record_postfilter_skip(article_id, "postfilter_zero_volume")
-                    return
-
-                logger.info(
-                    "📊 MICROSTRUCTURE VERIFIED: Volume detected since publication",
-                    ticker=trade_request.ticker,
-                    volume=total_vol,
-                    article_id=article_id
-                )
-            except Exception as e:
-                logger.error(f"Error checking volume for auto-trade gate: {e}")
-                # Optional: continue anyway or skip? Let's be safe and trade if error (no gate)
-                pass
+        # REMOVED: REST API postfilter volume check (postfilter_zero_volume).
+        # Every trade reaching this point has already passed STRENGTH, SURGE, LATE,
+        # or HC_BYPASS gating — all of which confirm activity via WebSocket data.
+        # The REST check was redundant and could false-negative due to REST API lag
+        # (BIAF: 176 trades via WebSocket, but REST returned zero in the same window).
 
         # ============================================================
         # 📊 PRE-ENTRY SPREAD CHECK: Final spread verification before trade

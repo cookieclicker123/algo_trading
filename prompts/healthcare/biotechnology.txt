@@ -194,12 +194,16 @@ TIER 2 — HIGH EXCITEMENT:
 │   (FDA relaxing to single pivotal trial; priority review vouchers worth $150M+)
 ├─ SICKLE CELL / BLOOD DISORDERS: sickle cell disease, beta thalassemia,
 │   hemophilia (gene therapy cures approved and expanding)
-└─ CARDIOVASCULAR (novel approaches): PCSK9, ANGPTL3, gene editing for heart disease
+├─ CARDIOVASCULAR (novel approaches): PCSK9, ANGPTL3, gene editing for heart disease
+└─ PSYCHEDELICS / PSYCHEDELIC MEDICINE: psilocybin, MDMA, MDMA for PTSD,
+   treatment-resistant depression, psychedelic-assisted therapy, mushroom,
+   psychedelic-based, ketamine, ibogaine, DMT, psychedelic combination therapy
+   (Phase 3 readouts in 2026; FDA head called review a "top priority";
+   real regulatory momentum — not speculative. Patents, clinical data, and
+   partnerships in this space move stocks because the TAM is massive if approved)
 
 TIER 3 — MODERATE EXCITEMENT:
 ├─ DERMATOLOGY (novel mechanisms): atopic dermatitis with degraders or biologics
-├─ PSYCHEDELICS: psilocybin, MDMA for PTSD, treatment-resistant depression
-│   (Phase 3 readouts in 2026; FDA head called review a "top priority")
 └─ INFECTIOUS DISEASE: antivirals, biodefense, pandemic preparedness
 
 ===============================================================================
@@ -266,12 +270,18 @@ ANALYST ACTIONS
 ├─ Price target raised, Upgraded to Buy
 └─ "Raises Price Target to $50" → TRADE SMALL
 
-PATENT HEADLINES (Require specificity)
+PATENT HEADLINES (Require specificity OR hot theme)
 ├─ TRADE: Patent + specific drug/mechanism + commercial implication
-├─ SKIP: Vague "patent granted" without named drug or mechanism
+├─ TRADE: Patent(s) in a HOT THERAPEUTIC AREA or HOT MODALITY → TRADE SMALL
+│   IP protection in high-growth areas signals competitive moat. Multiple patents
+│   or "innovative"/"novel"/"next-generation" patents in a hot area = tradeable.
+│   The hot theme amplifies patent value just like it amplifies clinical data.
+├─ SKIP: Vague "patent granted" without named drug/mechanism AND not in a hot area
 └─ Examples:
    "Patent Granted For Novel CAR-T Manufacturing Process" → TRADE SMALL
-   "Announces Patent Grant" → SKIP (no context)
+   "Publication of Six Innovative Patents for Psychedelic-Based Therapies" → TRADE SMALL (multiple patents + hot area)
+   "Patent Portfolio for Novel GLP-1 Delivery System" → TRADE SMALL (hot modality)
+   "Announces Patent Grant" → SKIP (no context, no hot area)
 
 PUBLICATIONS
 ├─ Publication in peer-reviewed journal with actual data
