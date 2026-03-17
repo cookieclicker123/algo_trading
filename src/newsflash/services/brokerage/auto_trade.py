@@ -2134,6 +2134,19 @@ async def process_imminent_article(
                 position_size=f"${size_dict[ai_conviction]}",
                 article_id=article_id,
             )
+        elif is_clinical_breakthrough:
+            # CLINICAL BREAKTHROUGH: Phase 2+ exceptional trials — sized up like HC
+            # MODERATE=$7,500, LARGE=$10,000, MAX=$12,500
+            ai_conviction = AI_SIZE_TO_CONVICTION.get(ai_position_size, ConvictionLevel.STANDARD)
+            size_dict = HC_POSITION_SIZES_USD
+            logger.info(
+                f"🧬 CB SIZE: ${size_dict[ai_conviction]} (AI: {ai_position_size})",
+                ticker=ticker,
+                ai_position_size=ai_position_size,
+                conviction=ai_conviction.value,
+                position_size=f"${size_dict[ai_conviction]}",
+                article_id=article_id,
+            )
         else:
             # NORMAL TRADES: Use AI-determined position size
             # AI sizes: SMALL=$1000, MODERATE=$1250, LARGE=$1500, MAX=$2000
