@@ -16260,7 +16260,7 @@
       "float_shares": 25229213
     },
     "SMXWW": {
-      "float_shares": 34625
+      "float_shares": 34663
     },
     "LBTYA": {
       "market_cap_millions": 3818.879488,
@@ -16281,7 +16281,7 @@
       "float_shares": 92765717
     },
     "BCTXL": {
-      "float_shares": 1665618
+      "float_shares": 6410373
     },
     "BTG": {
       "market_cap_millions": 7188.42112,
@@ -16317,7 +16317,7 @@
       "float_shares": 13502571
     },
     "ROC": {
-      "market_cap_millions": 109.932064
+      "market_cap_millions": 129.727656
     },
     "FACT": {
       "market_cap_millions": 254.888896
@@ -16331,7 +16331,8 @@
       "float_shares": 14908256
     },
     "XRN": {
-      "float_shares": 12590850
+      "float_shares": 12418373,
+      "market_cap_millions": 929.123712
     },
     "UHT": {
       "market_cap_millions": 611.710464,
@@ -16458,6 +16459,17 @@
     "QUCY": {
       "market_cap_millions": 8.656858,
       "float_shares": 3546736
+    },
+    "SWMR": {
+      "market_cap_millions": 679.17184
+    },
+    "RYZ": {
+      "market_cap_millions": 1071.595712,
+      "float_shares": 44167020
+    },
+    "GHI": {
+      "market_cap_millions": 138.429008,
+      "float_shares": 22688108
     }
   }
 }

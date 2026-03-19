@@ -110,6 +110,9 @@ class RecordManager:
         self._pending_postfilter_reasons: Dict[str, str] = {}
         self._postfilter_reasons_lock = asyncio.Lock()
 
+        self._pending_headline_types: Dict[str, str] = {}
+        self._headline_types_lock = asyncio.Lock()
+
         # Record locations cache (article_id -> (session, date))
         self._record_locations: Dict[str, tuple[str, datetime]] = {}
 
@@ -213,6 +216,34 @@ class RecordManager:
             except Exception as e:
                 logger.warning(
                     "RecordManager: Failed to apply pending postfilter_reason",
+                    article_id=article_id,
+                    error=str(e)
+                )
+
+        # Also apply any pending headline_type
+        pending_headline_type = None
+        async with self._headline_types_lock:
+            pending_headline_type = self._pending_headline_types.get(article_id)
+
+        if pending_headline_type:
+            try:
+                updated = await self.repository.update_recall_record(
+                    article_id=article_id,
+                    updates={"headline_type": pending_headline_type},
+                    session=session,
+                    date=received_at
+                )
+                if updated:
+                    async with self._headline_types_lock:
+                        self._pending_headline_types.pop(article_id, None)
+                    logger.info(
+                        "RecordManager: Applied pending headline_type after record creation",
+                        article_id=article_id,
+                        headline_type=pending_headline_type
+                    )
+            except Exception as e:
+                logger.warning(
+                    "RecordManager: Failed to apply pending headline_type",
                     article_id=article_id,
                     error=str(e)
                 )
@@ -533,8 +564,12 @@ class RecordManager:
         """
         record_loc = self._record_locations.get(article_id)
         if not record_loc:
+            # Queue for later — record may not exist yet (race condition)
+            async with self._headline_types_lock:
+                self._pending_headline_types[article_id] = headline_type
+            self._pending_insert_times[f"ht:{article_id}"] = datetime.now()
             logger.debug(
-                "RecordManager: No record location for headline_type update",
+                "RecordManager: Queued pending headline_type (record not yet created)",
                 article_id=article_id,
                 headline_type=headline_type
             )
@@ -548,8 +583,20 @@ class RecordManager:
         )
 
         if updated:
+            async with self._headline_types_lock:
+                self._pending_headline_types.pop(article_id, None)
             logger.debug(
                 "RecordManager: Updated headline_type",
+                article_id=article_id,
+                headline_type=headline_type
+            )
+        else:
+            # Record location exists but record not in file yet — queue for retry
+            async with self._headline_types_lock:
+                self._pending_headline_types[article_id] = headline_type
+            self._pending_insert_times[f"ht:{article_id}"] = datetime.now()
+            logger.warning(
+                "RecordManager: Failed to update headline_type (record_loc exists but record not in file yet — staying in pending queue)",
                 article_id=article_id,
                 headline_type=headline_type
             )
@@ -615,6 +662,7 @@ class RecordManager:
                 await asyncio.sleep(300)  # 5 minutes
                 await self._retry_pending_filter_reasons()
                 await self._retry_pending_classifications()
+                await self._retry_pending_headline_types()
                 await self._evict_stale_pending()
             except asyncio.CancelledError:
                 break
@@ -659,6 +707,15 @@ class RecordManager:
                 self._pending_insert_times.pop(f"pfr:{aid}", None)
             evicted += len(stale)
 
+        # Evict stale pending headline types
+        async with self._headline_types_lock:
+            stale = [aid for aid in self._pending_headline_types
+                     if now - self._pending_insert_times.get(f"ht:{aid}", now) > self._PENDING_TTL]
+            for aid in stale:
+                self._pending_headline_types.pop(aid, None)
+                self._pending_insert_times.pop(f"ht:{aid}", None)
+            evicted += len(stale)
+
         # Evict stale pending metadata (cancel the task too)
         async with self._metadata_lock:
             stale = [aid for aid, (_, _, inserted_at, task) in self._pending_metadata.items()
@@ -684,6 +741,7 @@ class RecordManager:
                 remaining_classifications=len(self._pending_classifications),
                 remaining_filter_reasons=len(self._pending_filter_reasons),
                 remaining_postfilter_reasons=len(self._pending_postfilter_reasons),
+                remaining_headline_types=len(self._pending_headline_types),
                 remaining_metadata=len(self._pending_metadata),
                 remaining_record_locations=len(self._record_locations),
             )
@@ -740,6 +798,32 @@ class RecordManager:
                     )
             except Exception as e:
                 logger.error("RecordManager: Error retrying classification", article_id=article_id, error=str(e))
+
+    async def _retry_pending_headline_types(self) -> None:
+        """Retry pending headline_type updates."""
+        async with self._headline_types_lock:
+            pending = dict(self._pending_headline_types)
+
+        for article_id, headline_type in pending.items():
+            try:
+                record_loc = self._record_locations.get(article_id)
+                if record_loc:
+                    updated = await self.repository.update_recall_record(
+                        article_id=article_id,
+                        updates={"headline_type": headline_type},
+                        session=record_loc[0],
+                        date=record_loc[1]
+                    )
+                    if updated:
+                        async with self._headline_types_lock:
+                            self._pending_headline_types.pop(article_id, None)
+                else:
+                    await self._search_and_update(
+                        article_id, {"headline_type": headline_type},
+                        self._pending_headline_types, self._headline_types_lock
+                    )
+            except Exception as e:
+                logger.error("RecordManager: Error retrying headline_type", article_id=article_id, error=str(e))
 
     async def _search_and_update(
         self,

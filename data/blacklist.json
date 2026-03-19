@@ -206,5 +206,29 @@
     "permanent": false,
     "created_at": "2026-03-17T11:09:33.903806",
     "last_fp_date": "2026-03-17"
+  },
+  "AIM": {
+    "consecutive_fps": 2,
+    "permanent": false,
+    "created_at": "2026-03-18T12:36:54.345456",
+    "last_fp_date": "2026-03-18"
+  },
+  "VHUB": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-18T20:16:52.438894",
+    "last_fp_date": "2026-03-18"
+  },
+  "TGTX": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-19T11:35:08.401410",
+    "last_fp_date": "2026-03-19"
+  },
+  "BRTX": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-19T12:02:43.964032",
+    "last_fp_date": "2026-03-19"
   }
 }

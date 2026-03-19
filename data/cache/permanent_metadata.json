@@ -141388,8 +141388,8 @@
     "sector": "Financial Services"
   },
   "XRN": {
-    "industry": "",
-    "sector": ""
+    "industry": "REIT - Healthcare Facilities",
+    "sector": "Real Estate"
   },
   "UHT": {
     "industry": "REIT - Healthcare Facilities",
@@ -141522,5 +141522,13 @@
   "QUCY": {
     "industry": "Diagnostics & Research",
     "sector": "Healthcare"
+  },
+  "RYZ": {
+    "industry": "Metal Fabrication",
+    "sector": "Industrials"
+  },
+  "GHI": {
+    "industry": "Mortgage Finance",
+    "sector": "Financial Services"
   }
 }

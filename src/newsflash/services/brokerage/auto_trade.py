@@ -102,7 +102,7 @@ AI_BREAKTHROUGH_HEADLINE_TYPES = frozenset({"ai_breakthrough"})
 # Phase 2+ trials with exceptional results for major diseases produce sustained moves.
 # CTMX (+65% peak) was stopped out early with normal 5% stop — 12% is appropriate.
 # All other postfilters remain normal (unlike HC which skips most).
-CLINICAL_BREAKTHROUGH_HEADLINE_TYPES = frozenset({"clinical_breakthrough"})
+CLINICAL_BREAKTHROUGH_HEADLINE_TYPES = frozenset({"clinical_breakthrough", "cancer_catalyst"})
 
 
 def _ai_breakthrough_spread_threshold(price: float) -> float:
@@ -1711,6 +1711,7 @@ def build_trade_request_for_article(
     conviction: ConvictionLevel = ConvictionLevel.STANDARD,
     confluence_multiplier: float = 1.0,
     is_high_conviction: bool = False,
+    is_clinical_breakthrough: bool = False,
 ) -> Optional[TradeRequest]:
     """
     Build a trade request from an article with conviction-based position sizing.
@@ -1742,7 +1743,7 @@ def build_trade_request_for_article(
     import os
 
     # Use conviction-based position sizing with confluence multiplier
-    size_dict = HC_POSITION_SIZES_USD if is_high_conviction else POSITION_SIZES_USD
+    size_dict = HC_POSITION_SIZES_USD if (is_high_conviction or is_clinical_breakthrough) else POSITION_SIZES_USD
     BASE_SIZE_USD = size_dict.get(conviction, size_dict[ConvictionLevel.STANDARD])
     TRADE_SIZE_USD = Decimal(str(float(BASE_SIZE_USD) * confluence_multiplier))
 
@@ -2085,7 +2086,7 @@ async def process_imminent_article(
 
         if is_clinical_breakthrough:
             logger.info(
-                "🧬 CLINICAL BREAKTHROUGH HEADLINE: Spread=10%, stop=12%, other filters normal",
+                "🧬 CLINICAL BREAKTHROUGH/CANCER CATALYST HEADLINE: Spread=10%, stop=12%, other filters normal",
                 ticker=ticker,
                 headline_type=headline_type,
                 article_id=article_id,
@@ -2163,6 +2164,21 @@ async def process_imminent_article(
             )
 
         # ============================================================
+        # 🏥 EARLY SECTOR LOOKUP: Used for Healthcare bypass below
+        # ============================================================
+        # Healthcare stocks (Biotech, Medical Devices, Diagnostics) get blocky early
+        # action in premarket — the strength/surge/late gate kills too many winners.
+        # VNRX (+31%), AIM (+50%), CTMX (+65%) all blocked by this filter.
+        is_healthcare_sector = False
+        if metadata_cache:
+            try:
+                _early_meta = await metadata_cache.get(ticker)
+                if _early_meta and _early_meta.get("sector") == "Healthcare":
+                    is_healthcare_sector = True
+            except Exception:
+                pass
+
+        # ============================================================
         # 📊 CONFLUENCE CHECK: 2-second window for STRENGTH verification
         # ============================================================
         # Check confluence signals in the 2-second window after publication.
@@ -2220,10 +2236,26 @@ async def process_imminent_article(
         # The headline type IS the catalyst — 12% stop loss protects us. Any activity (score >= 1) is enough.
         has_hc_bypass = is_high_conviction and confluence_score >= 1
 
-        if has_strength or has_high_confluence or has_hc_bypass:
+        # HEALTHCARE BYPASS: Healthcare stocks (Biotech, Medical Devices, Diagnostics) have
+        # structurally blocky premarket activity — the 2s confluence window often sees nothing.
+        # VNRX (+31%), AIM (+50%), CTMX (+65%) were all blocked despite massive subsequent surges.
+        # The AI classification is sufficient confirmation for Healthcare — other safety filters
+        # (spread, pump-and-dump, momentum exhaustion) still protect against bad entries.
+        has_healthcare_bypass = is_healthcare_sector
+
+        if has_strength or has_high_confluence or has_hc_bypass or has_healthcare_bypass:
             # Activity confirmed - use AI conviction for position sizing
             conviction = ai_conviction
-            entry_reason = "HC_BYPASS" if has_hc_bypass and not has_strength and not has_high_confluence else ("STRENGTH" if has_strength else "HIGH_CONFLUENCE")
+            if has_strength:
+                entry_reason = "STRENGTH"
+            elif has_high_confluence:
+                entry_reason = "HIGH_CONFLUENCE"
+            elif has_hc_bypass:
+                entry_reason = "HC_BYPASS"
+            elif has_healthcare_bypass:
+                entry_reason = "HEALTHCARE_BYPASS"
+            else:
+                entry_reason = "UNKNOWN"
             logger.info(
                 f"✅ {entry_reason} CONFIRMED: Confluence score {confluence_score}, excursion {max_excursion_pct:.2f}%",
                 ticker=ticker,
@@ -2379,6 +2411,8 @@ async def process_imminent_article(
                     ticker_industry = ticker_metadata.get("industry", "")
                     confluence_metadata["sector"] = ticker_sector
                     confluence_metadata["industry"] = ticker_industry
+                    confluence_metadata["market_cap_millions"] = ticker_metadata.get("market_cap_millions")
+                    confluence_metadata["float_shares"] = ticker_metadata.get("float_shares")
 
                     # Check if sector is hot (logging only, not blocking yet)
                     from .sector_tracker import is_sector_hot
@@ -2537,6 +2571,7 @@ async def process_imminent_article(
             conviction=conviction,
             confluence_multiplier=confluence_multiplier,
             is_high_conviction=is_high_conviction,
+            is_clinical_breakthrough=is_clinical_breakthrough,
         )
 
         if not trade_request:

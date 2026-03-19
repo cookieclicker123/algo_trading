@@ -35,6 +35,23 @@ CRITICAL: Contract value MUST be material relative to company market cap:
    "Receives Foreign Military Sale Approval" -> TRADE
    "Wins $2M Training Contract" for $300M+ company -> SKIP (immaterial)
 
+GOVERNMENT DESIGNATIONS & CERTIFICATIONS (Strong signal — unlocks procurement pipeline)
+- Being included in government approved/trusted/certified vendor or product lists
+- DOD, FCC, DHS, or other government agency endorsements of company products
+- "Trusted" or "approved" status for military/government use
+- Blue List, Green List, or other government procurement qualification lists
+- ITAR registration, security clearances enabling new contract eligibility
+- These are the PREREQUISITE for winning actual contracts — especially for small defense
+  companies where getting approved is the hard part. Government seal of approval de-risks
+  the company and opens the procurement pipeline.
+- No dollar amount required — the designation itself is the catalyst
+- Examples:
+   "Included in FCC's First Batch of Trusted Drones as Determined by U.S. Department of War" -> TRADE LARGE
+   "Products Added to DOD Approved Vendor List" -> TRADE MODERATE
+   "Receives ITAR Registration Enabling U.S. Military Sales" -> TRADE MODERATE
+   "Certified by DHS for Border Security Deployment" -> TRADE LARGE
+   "Added to Blue UAS List by Pentagon" -> TRADE LARGE
+
 PARTNERSHIPS (9% of winners)
 - Prime contractor partnerships
 - Technology partnerships

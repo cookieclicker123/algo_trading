@@ -80,6 +80,7 @@ CLINICAL DATA (21% of winners - MODALITY-AWARE)
 ├─ STILL SKIP even if hot area or hot modality:
 │   ├─ "In vitro" / "in vivo" (preclinical, NOT human trials — ALWAYS SKIP)
 │   ├─ Trial INITIATION with no results ("Initiates", "to begin", "commence", "doses first patient", "enrolls first patient") — ALWAYS SKIP
+│   │   EXCEPTION: Externally funded study agreements — see EXTERNALLY FUNDED CLINICAL STUDIES below
 │   ├─ Safety/tolerability only (no efficacy signal)
 │   ├─ Extension/continuation studies (not new data)
 │   ├─ Interim without specific numbers
@@ -293,6 +294,28 @@ GOVERNMENT CONTRACTS
 └─ Examples:
    "$34M DOD Contract for Biodefense" → TRADE LARGE
    "Receives BARDA Funding for Pandemic Preparedness" → TRADE MODERATE
+
+EXTERNALLY FUNDED CLINICAL STUDIES (Non-dilutive validation)
+├─ A third party or named institution FULLY FUNDS a clinical study = external validation
+├─ This OVERRIDES the trial initiation skip — the funder's capital commitment IS the signal
+├─ Why it matters: someone independently vetted the science and put capital at risk
+├─ For micro-caps, external funding is often material relative to market cap
+├─ Same logic as government contracts (DOD/BARDA above) but from non-government funders
+├─ REQUIRE ALL THREE to trade:
+│   ├─ "Fully funded" or equivalent (funder bears cost, not the company)
+│   ├─ "Agreement" / "study agreement" (signed and committed, not aspirational)
+│   └─ Named drug candidate or specific asset (not vague "pipeline" or "platform")
+├─ STILL SKIP if:
+│   ├─ Company self-funding its own trial (standard trial initiation = SKIP)
+│   ├─ "Potential" funding, "anticipated" funding, "framework" (not committed)
+│   ├─ CRO or service contract (operational, not validation)
+│   └─ No named drug candidate (too vague to assess)
+└─ Examples:
+   "Third-Party Fully Funded Clinical Study Agreement to Evaluate ART27.13 in Glaucoma" → TRADE SMALL (external validation, signed agreement, named candidate)
+   "Announces Externally Funded Study Agreement with University of X for Drug Y" → TRADE SMALL
+   "Receives External Funding to Support Clinical Studies" → SKIP (no "agreement", no named drug, vague)
+   "Collaboration Framework to Potentially Fund Future Study" → SKIP ("potentially" = not committed, "framework" = not signed)
+   "Company-Funded Phase 2 Trial to Evaluate Drug Z" → SKIP (self-funded = standard trial initiation)
 
 ===============================================================================
 SKIP SIGNALS

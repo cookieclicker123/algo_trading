@@ -30,6 +30,99 @@ from ...services.storage import StorageQueryService
 logger = get_logger(__name__)
 
 
+def _market_cap_category(market_cap_millions: float) -> str:
+    """Categorize market cap for display."""
+    if market_cap_millions < 50:
+        return "micro-cap"
+    elif market_cap_millions < 300:
+        return "small-cap"
+    elif market_cap_millions < 2000:
+        return "mid-cap"
+    return "large-cap"
+
+
+def _format_market_cap(market_cap_millions: float) -> str:
+    """Format market cap for display (e.g. $2.7M, $1.2B)."""
+    if market_cap_millions >= 1000:
+        return f"${market_cap_millions / 1000:.1f}B"
+    return f"${market_cap_millions:.1f}M"
+
+
+def _format_float_shares(float_shares: int) -> str:
+    """Format float shares for display (e.g. 2.8M, 450K)."""
+    if float_shares >= 1_000_000:
+        return f"{float_shares / 1_000_000:.1f}M shares"
+    elif float_shares >= 1_000:
+        return f"{float_shares / 1_000:.0f}K shares"
+    return f"{float_shares} shares"
+
+
+def _build_context_block(metadata: dict) -> list[str]:
+    """Build context block for Telegram notification from trade metadata."""
+    lines = []
+    market_cap_millions = metadata.get("market_cap_millions")
+    industry = metadata.get("industry", "")
+    ai_size = metadata.get("ai_position_size", "")
+    headline_type = metadata.get("headline_type", "")
+    float_shares = metadata.get("float_shares")
+    is_hc = metadata.get("is_high_conviction", False)
+    is_cb = metadata.get("is_clinical_breakthrough", False)
+
+    # Context line: market cap + industry
+    context_parts = []
+    if market_cap_millions:
+        cap_cat = _market_cap_category(market_cap_millions)
+        context_parts.append(f"{_format_market_cap(market_cap_millions)} ({cap_cat})")
+    if industry:
+        context_parts.append(industry)
+    sizing_parts = []
+    if ai_size:
+        sizing_parts.append(f"AI Size: {ai_size}")
+    if headline_type:
+        sizing_parts.append(f"Type: {headline_type}")
+
+    if context_parts or sizing_parts:
+        lines.append("")
+        lines.append("📊 Context:")
+        if context_parts:
+            lines.append(f"   Market Cap: {' | '.join(context_parts)}")
+        if sizing_parts:
+            lines.append(f"   {' | '.join(sizing_parts)}")
+        if float_shares:
+            lines.append(f"   Float: {_format_float_shares(float_shares)}")
+
+    # Hold note
+    hold_parts = []
+    if headline_type in ("cancer_catalyst", "clinical_breakthrough"):
+        hold_parts.append(f"Cancer catalyst ({headline_type})")
+        if market_cap_millions and market_cap_millions < 50:
+            hold_parts.append("Micro-caps often run +50-100%")
+            hold_parts.append("Exit tiers: +15% / +20% / +30%")
+        else:
+            hold_parts.append("Avg biotech winner: +21%")
+            hold_parts.append("Exit tiers: +10% / +15% / +20%")
+    elif is_hc:
+        hold_parts.append(f"High conviction ({headline_type})")
+        hold_parts.append("Exit tiers: +10% / +15% / +20%")
+    elif headline_type == "ai_breakthrough":
+        hold_parts.append("AI breakthrough")
+        hold_parts.append("Exit tiers: +8% / +12% / +15%")
+    else:
+        hold_parts.append("Normal signal")
+        hold_parts.append("Exit tiers: +5% / +8% / +10%")
+
+    if market_cap_millions and market_cap_millions < 50 and headline_type not in ("cancer_catalyst", "clinical_breakthrough"):
+        hold_parts.append(f"Micro-cap ({_format_market_cap(market_cap_millions)}) — volatile")
+
+    if hold_parts:
+        lines.append("")
+        lines.append(f"💡 {hold_parts[0]}")
+        for part in hold_parts[1:]:
+            lines.append(f"   {part}")
+
+    return lines
+
+
 def format_trade_execution_message(
     trade_result: TradeResult,
     article_title: str = None,
@@ -39,6 +132,7 @@ def format_trade_execution_message(
     volume_stats: VolumeSurgeAnalysis = None,
     is_high_signal: bool = False,
     headline_type: str = None,
+    metadata: dict = None,
 ) -> str:
     """
     Format trade execution notification message with all details.
@@ -153,7 +247,13 @@ def format_trade_execution_message(
             "",
             f"📄 Article: {article_title[:100]}..." if len(article_title) > 100 else f"📄 Article: {article_title}"
         ])
-    
+
+    # Add context block with market cap, sizing, float, and hold note
+    if metadata:
+        context_lines = _build_context_block(metadata)
+        if context_lines:
+            message_parts.extend(context_lines)
+
     return "\n".join(message_parts)
 
 
@@ -315,6 +415,7 @@ class NotifyTradeExecutedUseCase:
                 volume_stats=volume_stats,
                 is_high_signal=is_high_signal,
                 headline_type=headline_type,
+                metadata=metadata_dict,
             )
             
             # Create notification message
