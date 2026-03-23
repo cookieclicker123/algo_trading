@@ -69,7 +69,6 @@ Run the FastAPI server with integrated polling:
 ```bash
 # Run server (using python -m to ensure correct environment)
 python -m uvicorn src.server:app --host 127.0.0.1 --port 8000 --reload
-ŹZW1E1WEWEWE3E
 # Alternative: Direct path to uvicorn in virtual environment
 .venv/bin/uvicorn src.server:app --host 127.0.0.1 --port 8000 --reload
 ```

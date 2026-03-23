@@ -277,6 +277,7 @@ INDUSTRY_ALIASES: Dict[str, str] = {
     # =========================================================================
     "Oil & Gas - Equipment & Services": "Oil & Gas Equipment & Services",
     "Oil & Gas - E&P": "Oil & Gas E&P",
+    "Oil & Gas Exploration & Production": "Oil & Gas E&P",
     "Oil & Gas - Midstream": "Oil & Gas Midstream",
     "Oil & Gas - Drilling": "Oil & Gas Drilling",
     "Oil & Gas - Integrated": "Oil & Gas Integrated",

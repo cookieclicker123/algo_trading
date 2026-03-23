@@ -88,10 +88,16 @@ HIGH_CONVICTION_HEADLINE_TYPES = frozenset({
 })
 
 # Headline types that should NEVER be traded.
-# Acquiring company = cash outflow, dilution risk, typically sells off.
-# Only the acquisition TARGET (acquired company) should be traded.
+# Cash outflows (acquisitions), dilution (offerings), and bearish catalysts
+# that would only move a stock DOWN. Safety net in case the AI classifier
+# mistakenly returns IMMINENT on a fundamentally bearish headline.
 BLOCKED_HEADLINE_TYPES = frozenset({
-    "acquisition_announced",  # Company ACQUIRING another — cash outflow, stock usually drops
+    "acquisition_announced",      # Company ACQUIRING another — cash outflow, stock usually drops
+    "offering_announced",         # Dilutive offering — company selling new shares, stock drops
+    "earnings_miss",              # Missed earnings expectations — stock dumps
+    "guidance_cut",               # Lowered forward guidance — stock dumps
+    "clinical_trial_negative",    # Failed clinical trial — stock dumps
+    "analyst_downgrade",          # Analyst downgrade — stock drops
 })
 
 # AI breakthrough headlines get price-tiered spread leniency (only spread, nothing else).
@@ -2062,7 +2068,8 @@ async def process_imminent_article(
         # ============================================================
         # 🚫 BLOCKED HEADLINE TYPE CHECK
         # ============================================================
-        # Some headline types are never worth trading (e.g. acquirer = cash outflow).
+        # Some headline types are never worth trading — cash outflows, dilution,
+        # and bearish catalysts that would only move a stock DOWN.
         headline_type = event_headline_type
         if headline_type in BLOCKED_HEADLINE_TYPES:
             logger.info(
@@ -2070,7 +2077,7 @@ async def process_imminent_article(
                 ticker=ticker,
                 headline_type=headline_type,
                 article_id=article_id,
-                reason="Acquiring company trades are cash outflow — only targets are tradeable",
+                reason=f"Bearish/outflow headline type '{headline_type}' — never traded",
             )
             await _record_postfilter_skip(article_id, f"postfilter_blocked_headline_type:{headline_type}")
             return

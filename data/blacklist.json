@@ -105,10 +105,10 @@
     "last_win_date": "2026-03-06T23:20:09.446191"
   },
   "BURU": {
-    "consecutive_fps": 1,
+    "consecutive_fps": 2,
     "permanent": false,
     "created_at": "2026-03-09T11:48:32.803922",
-    "last_fp_date": "2026-03-09"
+    "last_fp_date": "2026-03-20"
   },
   "VRTX": {
     "consecutive_fps": 0,
@@ -230,5 +230,11 @@
     "permanent": false,
     "created_at": "2026-03-19T12:02:43.964032",
     "last_fp_date": "2026-03-19"
+  },
+  "JZXN": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-23T11:19:19.799345",
+    "last_fp_date": "2026-03-23"
   }
 }

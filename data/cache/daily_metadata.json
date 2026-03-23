@@ -16470,6 +16470,21 @@
     "GHI": {
       "market_cap_millions": 138.429008,
       "float_shares": 22688108
+    },
+    "DMRA": {
+      "market_cap_millions": 1156.609408,
+      "float_shares": 1047343
+    },
+    "GNE": {
+      "market_cap_millions": 370.185472,
+      "float_shares": 20621818
+    },
+    "LPG": {
+      "market_cap_millions": 1444.323328,
+      "float_shares": 36823617
+    },
+    "BLUWU": {
+      "float_shares": 25553043
     }
   }
 }

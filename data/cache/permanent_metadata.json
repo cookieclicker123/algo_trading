@@ -141530,5 +141530,25 @@
   "GHI": {
     "industry": "Mortgage Finance",
     "sector": "Financial Services"
+  },
+  "DMRA": {
+    "industry": "Biotechnology",
+    "sector": "Healthcare"
+  },
+  "GNE": {
+    "industry": "Utilities - Regulated Electric",
+    "sector": "Utilities"
+  },
+  "LPG": {
+    "industry": "Oil & Gas Midstream",
+    "sector": "Energy"
+  },
+  "BHAVU": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
+  },
+  "BLUWU": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
   }
 }
