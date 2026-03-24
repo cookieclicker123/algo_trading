@@ -224,10 +224,17 @@ OPERATIONAL MILESTONES (Planned events, not surprises)
 ├─ "Begins production", "commences operations", "adds capacity" = operational
 ├─ These are scheduled events the market already expects - no surprise value
 ├─ Without NEW revenue, customers, or dollar amounts = not a catalyst
+├─ CONTRACT FULFILLMENT/DELIVERY = SKIP: Shipping/delivering products under an
+│  EXISTING contract is NOT a new catalyst. The market priced in the contract at
+│  award time. "Advances Contract with Shipment of...", "Ships First Unit Under
+│  Contract", "Delivers on [Agency] Contract" = operational execution = SKIP.
+│  Even if the headline mentions a prestigious government agency (DHS, DOD, etc.),
+│  the shipment itself is expected — NOT new information.
 └─ Examples:
    "Begins Production At New Facility" → SKIP (planned, no $ value)
    "Adds 50 MW Capacity To Data Center" → SKIP (operational expansion)
    "Commences Shipments" without customer/$ → SKIP
+   "Advances U.S. Homeland Security Contract with Shipment of First PowerBuoy" → SKIP (delivery milestone, not new contract)
    "New Facility Secures $30M Annual Contract" → TRADE ($ attached)
 
 IMMATERIAL DOLLAR AMOUNTS (Too small to move the stock)

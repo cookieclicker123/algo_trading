@@ -2155,6 +2155,20 @@ async def process_imminent_article(
                 position_size=f"${size_dict[ai_conviction]}",
                 article_id=article_id,
             )
+        elif headline_type == "stock_buyback":
+            # STOCK BUYBACK: HC sizing (structural edge — company is the buyer)
+            # but normal safety filters still apply (no HC filter bypasses).
+            # Fixed $10,000 position — buybacks are binary (real demand from company).
+            ai_conviction = ConvictionLevel.HIGH
+            size_dict = HC_POSITION_SIZES_USD
+            logger.info(
+                f"💰 BUYBACK SIZE: ${size_dict[ai_conviction]} (fixed LARGE)",
+                ticker=ticker,
+                ai_position_size=ai_position_size,
+                conviction=ai_conviction.value,
+                position_size=f"${size_dict[ai_conviction]}",
+                article_id=article_id,
+            )
         else:
             # NORMAL TRADES: Use AI-determined position size
             # AI sizes: SMALL=$1000, MODERATE=$1250, LARGE=$1500, MAX=$2000
