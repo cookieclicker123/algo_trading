@@ -97,6 +97,16 @@ EARNINGS (Do NOT trade - too unpredictable)
 - EPS beats/misses, Revenue beats/misses
 - Order trends, Backlog
 - ANY earnings-related headline -> SKIP
+   EXCEPTION: If the headline contains SPECIFIC numbers showing EXCEPTIONAL
+   performance (>100% revenue/sales growth, profit swing from loss to profit,
+   or similarly extraordinary concrete metrics), TRADE SMALL. The numbers must
+   be IN the headline itself — not vague "beats estimates" but actual figures
+   like "171% Revenue Growth" or "Sales Surged 146%".
+   ✓ "171% YoY Revenue Growth, $2.7M Net Profit" -> TRADE SMALL (extraordinary)
+   ✓ "Unit Sales Surged 146% Year-Over-Year" -> TRADE SMALL (extraordinary)
+   ✗ "Q4 EPS Beats Estimate" -> SKIP (no extraordinary numbers)
+   ✗ "Reports Record Revenue" -> SKIP (vague, no specific growth rate)
+   ✗ "Revenue Up 15% YoY" -> SKIP (solid but not extraordinary)
 - Examples:
    "Q4 EPS Beats On Pharma Strength" -> SKIP
    "Reports Strong Order Growth" -> SKIP

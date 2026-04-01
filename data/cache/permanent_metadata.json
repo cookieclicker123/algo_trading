@@ -141570,5 +141570,9 @@
   "CYAB": {
     "industry": "Software - Infrastructure",
     "sector": "Technology"
+  },
+  "MAKO": {
+    "industry": "Gold",
+    "sector": "Basic Materials"
   }
 }

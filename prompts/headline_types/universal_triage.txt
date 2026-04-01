@@ -5,6 +5,7 @@ military_contract
 defense_order
 acquisition_target
 acquisition_announced
+merger_agreement
 fda_approval
 fda_clearance
 clinical_trial_positive
@@ -38,8 +39,15 @@ other
 
 Rules:
 
+PRIORITY RULE — MERGER vs ACQUISITION (DIFFERENT EVENTS):
+A "Merger Agreement" between two companies is NOT an acquisition. In a merger, two companies COMBINE — neither is spending cash to buy the other. This is fundamentally different from "Company A acquires Company B" (cash outflow). Classify correctly:
+  merger_agreement: "Announce Merger Agreement", "Enter Into Merger Agreement", "Agree to Merge", "Merger of Equals", "Sign Definitive Merger Agreement", "All-Stock Merger". Two named companies combining.
+  acquisition_announced: "Acquires", "To Acquire", "Closes Acquisition", "Signs LOI to Acquire", "Secures Ownership Of", "Completes Purchase Of". One company BUYING another — cash outflow, bearish for acquirer.
+  acquisition_target: "To Be Acquired", "Agrees to Be Acquired", "Receives Buyout Offer". Company BEING bought — bullish.
+  CRITICAL: "Merger Agreement" → merger_agreement. "Acquires" → acquisition_announced. Do NOT classify mergers as acquisitions.
+
 PRIORITY RULE — ACQUISITION OVERRIDES EVERYTHING:
-If the headline contains ANY acquisition language ("acquires", "acquisition of", "to acquire", "re-activates acquisition", "closes acquisition", "signs LOI to acquire", "secures ownership of", "completes purchase of"), it MUST be classified as acquisition_announced or acquisition_target — NEVER as major_contract, government_contract, defense_order, or any other type, regardless of revenue targets, dollar amounts, defense context, or any other details in the headline. An acquisition is a CASH OUTFLOW (company spending money to buy another entity) — it is fundamentally different from a contract (company receiving money for services). Check for acquisition language FIRST before considering any other classification.
+If the headline contains ANY acquisition language ("acquires", "acquisition of", "to acquire", "re-activates acquisition", "closes acquisition", "signs LOI to acquire", "secures ownership of", "completes purchase of"), it MUST be classified as acquisition_announced or acquisition_target — NEVER as major_contract, government_contract, defense_order, or any other type, regardless of revenue targets, dollar amounts, defense context, or any other details in the headline. An acquisition is a CASH OUTFLOW (company spending money to buy another entity) — it is fundamentally different from a contract (company receiving money for services). Check for acquisition language FIRST before considering any other classification. NOTE: "Merger Agreement" is NOT acquisition — see MERGER vs ACQUISITION rule above.
 
 PRIORITY RULE — BUYBACK vs OFFERING (OPPOSITE EVENTS — DO NOT CONFUSE):
 A "self tender offer to purchase shares" or "tender offer to purchase shares" = the company BUYING BACK its own stock = stock_buyback (BULLISH). An "offering" = the company SELLING new shares = offering_announced (BEARISH/dilutive). These are OPPOSITE events. The word "offer" appears in both but they mean completely different things. Check the DIRECTION: is the company PURCHASING/BUYING BACK shares (stock_buyback) or SELLING/ISSUING new shares (offering_announced)?

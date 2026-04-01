@@ -703,10 +703,18 @@ Summary: {summary}"""
                 CLINICAL_BREAKTHROUGH_PREFILTER_TYPES = frozenset({"clinical_breakthrough"})
                 is_clinical_breakthrough_headline = triage_headline_type in CLINICAL_BREAKTHROUGH_PREFILTER_TYPES
 
+                # MERGER AGREEMENT: Definitive merger between two companies (not acquisition).
+                # Wide spreads are normal for small-cap biotechs announcing mergers.
+                MERGER_PREFILTER_TYPES = frozenset({"merger_agreement"})
+                is_merger_headline = triage_headline_type in MERGER_PREFILTER_TYPES
+                MAX_SPREAD_PCT_MERGER = 7.5
+
                 if is_high_conviction_headline:
                     effective_spread_threshold = MAX_SPREAD_PCT_HIGH_CONVICTION
                 elif is_clinical_breakthrough_headline:
                     effective_spread_threshold = 10.0
+                elif is_merger_headline:
+                    effective_spread_threshold = MAX_SPREAD_PCT_MERGER
                 elif is_ai_breakthrough_headline and current_price:
                     if current_price < 0.30:
                         effective_spread_threshold = 10.0
@@ -714,6 +722,16 @@ Summary: {summary}"""
                         effective_spread_threshold = 7.5
                 else:
                     effective_spread_threshold = MAX_SPREAD_PCT_PREFILTER
+
+                if is_merger_headline and spread_pct and spread_pct > MAX_SPREAD_PCT_PREFILTER:
+                    logger.info(
+                        f"🤝 MERGER AGREEMENT: Relaxing spread prefilter (4.5% → {MAX_SPREAD_PCT_MERGER}%)",
+                        article_id=request_data.article_id,
+                        ticker=primary_ticker,
+                        spread_pct=round(spread_pct, 2),
+                        headline_type=triage_headline_type,
+                        effective_threshold=MAX_SPREAD_PCT_MERGER,
+                    )
 
                 if is_high_conviction_headline and spread_pct and spread_pct > MAX_SPREAD_PCT_PREFILTER:
                     logger.info(

@@ -2170,6 +2170,20 @@ async def process_imminent_article(
                 position_size=f"${size_dict[ai_conviction]}",
                 article_id=article_id,
             )
+        elif headline_type == "merger_agreement":
+            # MERGER AGREEMENT: HC sizing — definitive merger between two companies.
+            # Not an acquisition (cash outflow) — a combination. Use AI size with HC dollars.
+            # Normal safety filters still apply (no HC filter bypasses).
+            ai_conviction = AI_SIZE_TO_CONVICTION.get(ai_position_size, ConvictionLevel.STANDARD)
+            size_dict = HC_POSITION_SIZES_USD
+            logger.info(
+                f"🤝 MERGER SIZE: ${size_dict[ai_conviction]} (AI: {ai_position_size})",
+                ticker=ticker,
+                ai_position_size=ai_position_size,
+                conviction=ai_conviction.value,
+                position_size=f"${size_dict[ai_conviction]}",
+                article_id=article_id,
+            )
         else:
             # NORMAL TRADES: Use AI-determined position size
             # AI sizes: SMALL=$1000, MODERATE=$1250, LARGE=$1500, MAX=$2000
