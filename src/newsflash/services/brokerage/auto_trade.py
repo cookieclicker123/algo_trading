@@ -2,15 +2,16 @@
 Auto-trade service - subscribes to domain events and handles trading logic.
 
 AI-BASED POSITION SIZING (Immediate entry on classification):
+SCALED DOWN 100x FOR VALIDATION — multiply by 100 to restore full sizes.
 Regular path:
-- SMALL: $1,000 position (weak headline, vague, unknown partner)
-- MODERATE: $1,250 position (decent headline, some specificity)
-- LARGE: $1,500 position (strong headline, specific details)
-- MAX: $2,000 position (transformational headline, >50% of market cap deal)
+- SMALL: $10 position (was $1,000)
+- MODERATE: $12.50 position (was $1,250)
+- LARGE: $15 position (was $1,500)
+- MAX: $20 position (was $2,000)
 High-conviction headline types (gov/military contracts, major commercial contracts):
-- SMALL/MODERATE: $3,000 position
-- LARGE: $4,000 position
-- MAX: $5,000 position
+- SMALL/MODERATE: $75 position (was $7,500)
+- LARGE: $100 position (was $10,000)
+- MAX: $125 position (was $12,500)
 
 The AI determines position size based on:
 1. Headline concreteness (specific $ amounts, named parties, definitive terms)
@@ -144,7 +145,7 @@ TICKER_COOLDOWN_LOSS_MINUTES = 30     # Wait 30 min after a loss
 
 _skipped_tickers: dict = {}  # ticker -> skip_time
 SKIPPED_TICKER_WINDOW_MINUTES = 10  # Remember skips for 10 minutes
-SKIPPED_TICKER_MAX_POSITION_USD = 5000  # Cap at $5k for recently skipped tickers
+SKIPPED_TICKER_MAX_POSITION_USD = 50  # Cap at $50 for recently skipped tickers (scaled down 100x from $5,000)
 
 # Housekeeping: last time we swept stale entries from module-level dicts
 _last_cleanup_time: Optional[datetime] = None
@@ -456,20 +457,20 @@ def cleanup_stale_tracking() -> None:
 # REDUCED 10x from normal sizes while testing/validating filters
 # Paper shadow trades use 50x these amounts for meaningful stats
 POSITION_SIZES_USD = {
-    ConvictionLevel.MINIMUM: Decimal("1000.00"),      # AI: SMALL - $1,000
-    ConvictionLevel.STANDARD: Decimal("1250.00"),     # AI: MODERATE - $1,250
-    ConvictionLevel.HIGH: Decimal("1500.00"),         # AI: LARGE - $1,500
-    ConvictionLevel.VERY_HIGH: Decimal("2000.00"),    # AI: MAX - $2,000
+    ConvictionLevel.MINIMUM: Decimal("10.00"),        # AI: SMALL - $10 (scaled down 100x from $1,000)
+    ConvictionLevel.STANDARD: Decimal("12.50"),       # AI: MODERATE - $12.50 (scaled down 100x from $1,250)
+    ConvictionLevel.HIGH: Decimal("15.00"),           # AI: LARGE - $15 (scaled down 100x from $1,500)
+    ConvictionLevel.VERY_HIGH: Decimal("20.00"),      # AI: MAX - $20 (scaled down 100x from $2,000)
 }
 
 # High-conviction headline types (gov/military contracts, major commercial contracts):
 # Structural edge — real government/commercial money, less manipulation than biotech.
 # Volume and float in defense headlines is usually sufficient for full fills.
 HC_POSITION_SIZES_USD = {
-    ConvictionLevel.MINIMUM: Decimal("7500.00"),      # AI: SMALL → overridden to MODERATE ($7,500)
-    ConvictionLevel.STANDARD: Decimal("7500.00"),     # AI: MODERATE - $7,500
-    ConvictionLevel.HIGH: Decimal("10000.00"),        # AI: LARGE - $10,000
-    ConvictionLevel.VERY_HIGH: Decimal("12500.00"),   # AI: MAX - $12,500
+    ConvictionLevel.MINIMUM: Decimal("75.00"),        # AI: SMALL → overridden to MODERATE ($75, scaled down 100x from $7,500)
+    ConvictionLevel.STANDARD: Decimal("75.00"),       # AI: MODERATE - $75 (scaled down 100x from $7,500)
+    ConvictionLevel.HIGH: Decimal("100.00"),          # AI: LARGE - $100 (scaled down 100x from $10,000)
+    ConvictionLevel.VERY_HIGH: Decimal("125.00"),     # AI: MAX - $125 (scaled down 100x from $12,500)
 }
 
 # Map AI position size strings to ConvictionLevel
@@ -539,7 +540,7 @@ MIN_ABSOLUTE_VOLUME = 2000            # Absolute minimum volume (even if prior i
 MIN_ABSOLUTE_TRADES = 20              # Absolute minimum trades (even if prior is 0)
 
 # Late entry monitoring: extended window after initial STRENGTH/SURGE checks fail
-LATE_ENTRY_MAX_SECONDS = 90.0         # Max seconds from publication for late entry
+LATE_ENTRY_MAX_SECONDS = 45.0         # Max seconds from publication for late entry (was 90s — too generous, catches noise/decay)
 LATE_ENTRY_POLL_INTERVAL = 1.0        # Check every 1s (WebSocket data is instant)
 LATE_STRENGTH_MIN_TRADES = 5          # Min trades to confirm real activity
 
@@ -2185,21 +2186,6 @@ async def process_imminent_article(
             )
 
         # ============================================================
-        # 🏥 EARLY SECTOR LOOKUP: Used for Healthcare bypass below
-        # ============================================================
-        # Healthcare stocks (Biotech, Medical Devices, Diagnostics) get blocky early
-        # action in premarket — the strength/surge/late gate kills too many winners.
-        # VNRX (+31%), AIM (+50%), CTMX (+65%) all blocked by this filter.
-        is_healthcare_sector = False
-        if metadata_cache:
-            try:
-                _early_meta = await metadata_cache.get(ticker)
-                if _early_meta and _early_meta.get("sector") == "Healthcare":
-                    is_healthcare_sector = True
-            except Exception:
-                pass
-
-        # ============================================================
         # 📊 CONFLUENCE CHECK: 2-second window for STRENGTH verification
         # ============================================================
         # Check confluence signals in the 2-second window after publication.
@@ -2257,14 +2243,34 @@ async def process_imminent_article(
         # The headline type IS the catalyst — 12% stop loss protects us. Any activity (score >= 1) is enough.
         has_hc_bypass = is_high_conviction and confluence_score >= 1
 
-        # HEALTHCARE BYPASS: Healthcare stocks (Biotech, Medical Devices, Diagnostics) have
-        # structurally blocky premarket activity — the 2s confluence window often sees nothing.
-        # VNRX (+31%), AIM (+50%), CTMX (+65%) were all blocked despite massive subsequent surges.
-        # The AI classification is sufficient confirmation for Healthcare — other safety filters
-        # (spread, pump-and-dump, momentum exhaustion) still protect against bad entries.
-        has_healthcare_bypass = is_healthcare_sector
+        # TIGHT SPREAD BYPASS: For HC headlines only (gov/military contracts),
+        # a tight initial spread (≤ 2.5%) means limited downside risk from spread alone.
+        # Trade regardless of market activity — contract authenticity check is the guardrail.
+        # CGNT ($535M, 0.62% spread, gov contract) moved +8.7% with zero initial activity.
+        # clinical_breakthrough REMOVED from bypass — LLM misclassification risk too high,
+        # late entry monitoring (45s) catches real catalysts that start slow (BEAM pattern).
+        TIGHT_SPREAD_BYPASS_PCT = 2.5
+        has_tight_spread_bypass = False
+        if is_high_conviction:
+            _bypass_initial_spread = confluence_metadata.get("initial_spread")
+            _bypass_initial_ask = confluence_metadata.get("initial_ask")
+            if _bypass_initial_spread and _bypass_initial_ask and _bypass_initial_ask > 0:
+                _bypass_initial_mid = _bypass_initial_ask - (_bypass_initial_spread / 2)
+                if _bypass_initial_mid > 0:
+                    _bypass_spread_pct = (_bypass_initial_spread / _bypass_initial_mid) * 100
+                    if _bypass_spread_pct <= TIGHT_SPREAD_BYPASS_PCT:
+                        has_tight_spread_bypass = True
+                        logger.info(
+                            f"🎯 TIGHT SPREAD BYPASS: High-signal headline with {_bypass_spread_pct:.2f}% spread ≤ {TIGHT_SPREAD_BYPASS_PCT}% — activity confirmation not required",
+                            ticker=ticker,
+                            spread_pct=round(_bypass_spread_pct, 2),
+                            headline_type=headline_type,
+                            is_high_conviction=is_high_conviction,
+                            is_clinical_breakthrough=is_clinical_breakthrough,
+                            article_id=article_id,
+                        )
 
-        if has_strength or has_high_confluence or has_hc_bypass or has_healthcare_bypass:
+        if has_strength or has_high_confluence or has_hc_bypass or has_tight_spread_bypass:
             # Activity confirmed - use AI conviction for position sizing
             conviction = ai_conviction
             if has_strength:
@@ -2273,8 +2279,8 @@ async def process_imminent_article(
                 entry_reason = "HIGH_CONFLUENCE"
             elif has_hc_bypass:
                 entry_reason = "HC_BYPASS"
-            elif has_healthcare_bypass:
-                entry_reason = "HEALTHCARE_BYPASS"
+            elif has_tight_spread_bypass:
+                entry_reason = "TIGHT_SPREAD_BYPASS"
             else:
                 entry_reason = "UNKNOWN"
             logger.info(
@@ -2298,10 +2304,10 @@ async def process_imminent_article(
             # Fall through to surge check
             has_strength = False
 
-        # If no STRENGTH or HIGH CONFLUENCE, check for SURGE (8-second window with strict criteria)
+        # If no STRENGTH or HIGH CONFLUENCE (and no bypass), check for SURGE (8-second window with strict criteria)
         is_surge_trade = False
         is_late_trade = False
-        if not has_strength and not has_high_confluence:
+        if not has_strength and not has_high_confluence and not has_hc_bypass and not has_tight_spread_bypass:
             logger.info(
                 f"🔍 CHECKING SURGE: No STRENGTH found (score={confluence_score}, excursion={max_excursion_pct:.2f}%)",
                 ticker=ticker,
@@ -3063,12 +3069,12 @@ async def process_imminent_article(
         # 🎯 LATE ENTRY FILTER
         # ============================================================
         # If we're trying to trade too late after publication, skip.
-        # For late trades (confirmed via monitor_for_late_entry), allow up to 35s.
+        # For late trades (confirmed via monitor_for_late_entry), allow up to 50s.
         # For normal trades, max 15s from publication (many arrive in 10-15s batches).
         if is_high_conviction:
             max_entry_delay = 25.0  # High-conviction: 25s (10s extra over normal — moves last long enough, pump-and-dump protects)
         elif is_late_trade:
-            max_entry_delay = 95.0
+            max_entry_delay = 50.0  # Late entry window is 45s + ~5s for order submission (was 95s — way too late, edge decayed)
         else:
             max_entry_delay = 15.0
         now_utc = datetime.now(timezone.utc)

@@ -1,5 +1,5 @@
 {
-  "date": "2026-03-13",
+  "date": "2026-04-01",
   "data": {
     "ORCL": {
       "market_cap_millions": 459538.399232
@@ -16317,7 +16317,7 @@
       "float_shares": 13502571
     },
     "ROC": {
-      "market_cap_millions": 129.727656
+      "market_cap_millions": 129.632544
     },
     "FACT": {
       "market_cap_millions": 254.888896
@@ -16488,6 +16488,23 @@
     },
     "VOOG": {
       "market_cap_millions": 7033.189888
+    },
+    "PTA": {
+      "market_cap_millions": 1022.006208
+    },
+    "TANH": {
+      "market_cap_millions": 4.167465,
+      "float_shares": 1407609
+    },
+    "GRML": {
+      "float_shares": 61339228
+    },
+    "GMEX": {
+      "market_cap_millions": 1.049185,
+      "float_shares": 126738
+    },
+    "CYAB": {
+      "market_cap_millions": 46.915148
     }
   }
 }

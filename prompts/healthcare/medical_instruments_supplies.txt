@@ -98,11 +98,60 @@ SHARE REPURCHASE (Bullish signal)
 ├─ Company buying back shares = confidence in undervaluation
 ├─ Reduces float, increases EPS = bullish
 ├─ NOTE: "Capital Allocation Strategy" with share repurchase = TRADE (not defensive)
-├─ EXCEPTION: Share repurchase announced AS PART OF earnings/financial results = SKIP (earnings take precedence)
 └─ Examples:
    "Announces Share Repurchase Program" → TRADE
    "Board Authorizes Stock Buyback" → TRADE
-   "Reports Q4 Results; Announces $1.5B Share Repurchase" → SKIP (earnings headline)
+   "Reports Q4 Results; Announces $1.5B Share Repurchase" → TRADE SMALL (buyback is always bullish, even alongside earnings)
+
+═══════════════════════════════════════════════════════════════════════════════
+ENTITY-RICH PARTNERSHIPS (Signal Density Override)
+═══════════════════════════════════════════════════════════════════════════════
+
+Some headlines lack a literal partner name but compensate with MULTIPLE
+concrete signals. When 4+ of these entity signals are present, TRADE even
+if the partner is described by tier rather than by name.
+
+ENTITY SIGNALS (count how many are present):
+├─ (1) Definitive agreement language ("commercial agreement", "licensing
+│      agreement", "signed", "definitive" — NOT "framework", "potential")
+├─ (2) Tiered or named major partner ("Top 5/10/20 Pharmaceutical",
+│      "Fortune 500", "Major Global" — NDA-restricted naming, not vagueness)
+├─ (3) AI/ML as core function ("AI drug discovery", "AI-powered",
+│      "machine learning", "identify therapeutic targets")
+├─ (4) Named major disease with massive TAM (depression, cancer, diabetes,
+│      obesity, Alzheimer's, heart disease, autoimmune, Parkinson's, ALS
+│      — household-name conditions the general public knows and fears)
+├─ (5) Specific deliverable or function ("identify and prioritize
+│      therapeutic targets", "develop companion diagnostic", etc.)
+└─ (6) Dollar amount stated
+
+SCORING:
+├─ 4+ signals → TRADE MODERATE
+├─ 5+ signals → TRADE LARGE
+└─ 3 signals with AI/ML core + tiered major partner → TRADE SMALL
+
+WHY: "Top 5 Global Pharmaceutical Company" is NDA-restricted naming, not
+vagueness. Companies working with Pfizer/Novartis/Roche often cannot name
+the partner pre-announcement. The tier descriptor + definitive agreement
+language + specific disease + specific deliverable = compound conviction
+that overrides the missing literal name.
+
+STILL SKIP even with high entity count:
+├─ "Framework" / "Potential" / "Anticipates" = non-committal, invalidates all
+├─ No disease AND no deliverable AND no $ (AI + partner tier alone = too thin)
+└─ "Explores" / "Evaluates" / "In discussions" = no commitment
+
+Examples:
+   "Commercial Agreement with Top 5 Global Pharmaceutical Company to Identify
+    and Prioritize Therapeutic Target in Major Depressive Disorder"
+    → TRADE LARGE (5 signals: agreement ✓, tiered partner ✓, AI function ✓,
+      major disease ✓, specific deliverable ✓)
+   "Agreement with Top 10 Pharma to Deploy AI for Oncology Drug Discovery"
+    → TRADE MODERATE (4 signals: agreement, tiered partner, AI, major disease)
+   "Framework with Top 5 Pharmaceutical to Explore AI Applications"
+    → SKIP ("Framework" + "Explore" = non-committal, invalidates all)
+   "AI Partnership with Unknown Biotech for Data Analysis"
+    → SKIP (no partner tier, no disease, no specific deliverable)
 
 ═══════════════════════════════════════════════════════════════════════════════
 SKIP SIGNALS
@@ -236,6 +285,11 @@ VAGUE PARTNERSHIPS (No concrete deliverables)
 ├─ "Strategic collaboration" without specifics = corporate fluff
 ├─ Unknown counterparties with no dollar amounts = not credible
 ├─ REQUIRE: Named customer/partner + (specific product OR dollar amount)
+├─ EXCEPTION — TIERED PARTNERS: "Top 5/10/20 Pharmaceutical", "Top-Tier
+│   Pharma", "Major Global Company", "Fortune 500" descriptors are NDA-
+│   restricted naming, NOT vagueness. Treat as valid partner signal when
+│   combined with definitive agreement language + additional entity signals.
+│   See ENTITY-RICH PARTNERSHIPS in TRADE SIGNALS above.
 └─ Examples:
    "Partnership With Unknown Company For Innovation" → SKIP (vague)
    "Strategic Collaboration To Explore Opportunities" → SKIP (no specifics)

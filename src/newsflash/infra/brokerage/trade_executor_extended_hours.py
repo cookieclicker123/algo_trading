@@ -33,12 +33,12 @@ class AlpacaExtendedHoursTradeExecutor:
     """
     Executes stock trades during extended hours.
 
-    Entry (BUY) Strategy - Chase-the-Ask:
-    - Place limit order at current ask (no premium)
-    - If not filled in 500ms, re-check NBBO and place at new ask
+    Entry (BUY) Strategy - Mid-then-Chase-the-Ask:
+    - Attempt 1: place limit at mid price for a better fill (500ms)
+    - If not filled in 500ms, switch to ask and chase every 500ms
     - Repeat up to 10 times (5 seconds total)
     - Abort if price exceeds 5% above initial ask (price collar)
-    - This saves premium on normal fills while catching runners
+    - Mid-first saves half the spread on calm fills while ask-chase catches runners
 
     Exit (SELL) Strategy - Chase-the-Bid:
     - Place limit order at current bid (no discount)
@@ -418,11 +418,19 @@ class AlpacaExtendedHoursTradeExecutor:
                         await self._publish_failed_event(trade_request, error_result["error"], error_result)
                         return error_result
 
-                    # Place limit order at current ask (no premium)
-                    limit_price = round(current_ask, 2)
+                    # Attempt 1: try mid for a better fill, then chase ask from attempt 2+
+                    if attempt == 1:
+                        initial_mid = nbbo_snapshot.get("mid")
+                        if initial_mid and initial_mid > 0:
+                            limit_price = round(initial_mid, 2)
+                        else:
+                            limit_price = round(current_ask, 2)
+                    else:
+                        limit_price = round(current_ask, 2)
 
+                    price_target = "mid" if attempt == 1 and limit_price != round(current_ask, 2) else "ask"
                     logger.info(
-                        f"📈 {phase_name} attempt {attempt}: Placing limit at ask",
+                        f"📈 {phase_name} attempt {attempt}: Placing limit at {price_target}",
                         ticker=trade_request.ticker,
                         limit_price=limit_price,
                         initial_ask=initial_ask,

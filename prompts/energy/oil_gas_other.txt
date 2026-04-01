@@ -69,13 +69,12 @@ PRODUCTION / FACILITY MILESTONES
    "Refinery Reaches Full Capacity" -> TRADE MODERATE
 
 SHARE REPURCHASE
-├─ EXCEPTION: Share repurchase announced AS PART OF earnings/financial results = SKIP (earnings take precedence)
 ├─ SIZE BY MARKET CAP PERCENTAGE:
 │   - >25% = TRADE MAX, 10-25% = TRADE LARGE
 │   - 5-10% = TRADE MODERATE, <5% = TRADE SMALL
 └─ Examples:
    "Board Authorizes $50M Stock Buyback" → TRADE (sized by mkt cap %)
-   "Reports Q4 Results; Announces $1.5B Share Repurchase" → SKIP (earnings headline)
+   "Reports Q4 Results; Announces $1.5B Share Repurchase" → TRADE SMALL (buyback is always bullish, even alongside earnings)
 
 SKIP SIGNALS
 ===============================================================================

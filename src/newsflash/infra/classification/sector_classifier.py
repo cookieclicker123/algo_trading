@@ -1,5 +1,5 @@
 """
-Multi-sector headline classifier using industry-specific Groq LLM prompts.
+Multi-sector headline classifier using industry-specific Anthropic Claude prompts.
 
 Simple flow: headline → sector check → industry check → LLM classification → TRADE/SKIP
 
@@ -23,7 +23,7 @@ from typing import Optional, Dict, Tuple
 
 from datetime import datetime
 
-from groq import AsyncGroq
+from anthropic import AsyncAnthropic
 
 from ...utils.logging_config import get_logger
 
@@ -310,22 +310,22 @@ class SectorClassifier:
         self,
         api_key: str,
         metadata_cache,  # MetadataCache instance for sector/industry lookup
-        model: str = "llama-3.3-70b-versatile",
+        model: str = "claude-haiku-4-5-20251001",
     ):
         """
         Initialize multi-sector classifier.
 
         Args:
-            api_key: Groq API key
+            api_key: Anthropic API key
             metadata_cache: MetadataCache instance for instant sector/industry lookup
-            model: Groq model to use (default: llama-3.3-70b-versatile)
+            model: Anthropic model to use (default: Claude Sonnet 4.6)
         """
         self.api_key = api_key
         self.metadata_cache = metadata_cache
         self.model = model
 
-        # Groq client
-        self.client = AsyncGroq(api_key=api_key) if api_key else None
+        # Anthropic client
+        self.client = AsyncAnthropic(api_key=api_key, timeout=15.0) if api_key else None
 
         # Cache loaded prompts (load once, reuse)
         # Key format: "{sector}/{industry}"
@@ -465,10 +465,10 @@ class SectorClassifier:
             self._stats["errors"] += 1
             return "SKIP", sector, industry, latency_ms, None
 
-        # Step 5: Call Groq LLM for classification
+        # Step 5: Call Anthropic Claude for classification
         if not self.client:
             latency_ms = (datetime.now() - start_time).total_seconds() * 1000
-            logger.error("Groq client not initialized")
+            logger.error("Anthropic client not initialized")
             self._stats["errors"] += 1
             return "SKIP", sector, industry, latency_ms, None
 
@@ -508,10 +508,10 @@ Respond: TRADE or SKIP"""
                 # Fallback to headline-only if no metadata
                 user_message = headline
 
-            response = await self.client.chat.completions.create(
+            response = await self.client.messages.create(
                 model=self.model,
+                system=prompt,
                 messages=[
-                    {"role": "system", "content": prompt},
                     {"role": "user", "content": user_message}
                 ],
                 temperature=0.0,  # Deterministic for consistency
@@ -519,7 +519,7 @@ Respond: TRADE or SKIP"""
             )
 
             # Parse response
-            result = response.choices[0].message.content.strip().upper()
+            result = response.content[0].text.strip().upper()
 
             # Extract position size from response (TRADE SMALL, TRADE MODERATE, TRADE LARGE, TRADE MAX)
             position_size = None
@@ -569,7 +569,7 @@ Respond: TRADE or SKIP"""
         except Exception as e:
             latency_ms = (datetime.now() - start_time).total_seconds() * 1000
             logger.error(
-                "Groq API error",
+                "Anthropic API error",
                 ticker=ticker,
                 sector=sector,
                 error=str(e),

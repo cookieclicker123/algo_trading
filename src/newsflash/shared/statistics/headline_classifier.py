@@ -190,7 +190,7 @@ class HeadlineTypeClassifier:
     async def triage(
         self,
         headline: str,
-        timeout: float = 3.0,
+        timeout: float = 5.0,
     ) -> Optional[str]:
         """
         Universal headline triage — sector-agnostic classification.
@@ -228,7 +228,7 @@ class HeadlineTypeClassifier:
             client = AsyncGroq(api_key=self.api_key)
 
             response = await client.chat.completions.create(
-                model="llama-3.1-8b-instant",
+                model="llama-3.3-70b-versatile",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.0,
                 max_tokens=20,

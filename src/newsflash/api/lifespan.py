@@ -116,6 +116,9 @@ async def cleanup_background_tasks() -> None:
             except Exception as e:
                 logger.error(f"Task exception during cleanup", error=str(e))
                 
+    except asyncio.CancelledError:
+        # Uvicorn may cancel the lifespan task during shutdown — suppress gracefully
+        logger.debug("Task cleanup interrupted by shutdown cancellation")
     except Exception as e:
         logger.error(f"Error during task cleanup", error=str(e))
 
@@ -288,6 +291,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         
         logger.info("API server shutdown completed")
         
+    except asyncio.CancelledError:
+        logger.info("Shutdown interrupted by event loop cancellation — cleanup completed")
     except Exception as e:
         logger.error("Error during API server shutdown", error=str(e))
         # Don't raise - we want to ensure cleanup completes even if there are errors

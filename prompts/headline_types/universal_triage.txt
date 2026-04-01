@@ -66,6 +66,7 @@ THE FOLLOWING ARE NEVER government_contract, military_contract, defense_order, O
   (j) FOREIGN DEVELOPING-NATION DEALS: Without a specific dollar amount, government deals from developing nations (Liberia, Nigeria, small island nations, etc.) are NOT credible contract catalysts — classify as "other".
   (k) EXPLORATION/MINING/RESOURCE RIGHTS: Licenses, blocks, concessions, exploration rights = company SPENDING to explore, not receiving revenue.
   (l) CERTIFICATIONS/DESIGNATIONS alone without a contract award: "Added to Approved Vendor List" = "other" at triage level (the sector prompt may still trade these).
+  (m) PURCHASE ORDERS FROM PRIVATE/UNKNOWN COMPANIES: A "purchase order" from a non-government, non-military, non-Fortune 500 company is NOT government_contract, military_contract, or defense_order. If the counterparty is not a recognized government agency, military branch, or well-known major institution, classify as "other". "Receives Purchase Order from [Unknown Company]" = "other". Only classify as major_contract if $ amount AND well-known counterparty are both present.
 
 - government_contract: Company has been NEWLY AWARDED or WON a concrete contract from a US federal/state agency, NASA, DARPA, DoD, or well-known international agency (NATO, UN, major allied nations). Must be a NEW deal the market has not seen before, with the company RECEIVING revenue for delivering products or services. Look for award language: "awarded", "wins", "receives contract", "selected for contract", "secures contract". Verify it passes the CONTRACT AUTHENTICITY CHECK above — if it fails ANY of (a)-(l), classify as "other" instead.
 - military_contract: Company has been NEWLY AWARDED a contract from a military branch (Army, Navy, Air Force, Space Force, Marines) or for military products (weapons, drones, munitions, counter-UAS, satellites for defense, foreign military sales). Same CONTRACT AUTHENTICITY CHECK applies — must be a NEW award.
@@ -86,6 +87,7 @@ THE FOLLOWING ARE NEVER government_contract, military_contract, defense_order, O
     "In Discussions With DoD for Potential Contract" → other (preliminary)
     "Ships First Drone System Under Army Contract" → other (delivery milestone)
     "Secures New Multifamily Deployment" → other (no $ amount, no named customer)
+    "Receives $1.9 Million First Purchase Order from Luminia" → other (purchase order from unknown private company, not government/military/Fortune 500)
     "Announces New Enterprise Partnership With Prominent Company" → other (unnamed)
     "Secures $500M in Non-Dilutive Capital from Blue Owl" → debt_restructuring (financing)
     "Re-Activates 70% Acquisition of Tekne, Advancing Defense Platform Targeting €100M+ Revenue" → acquisition_announced

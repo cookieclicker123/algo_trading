@@ -1,5 +1,5 @@
 """
-Healthcare headline classifier using industry-specific Groq LLM prompts.
+Healthcare headline classifier using industry-specific Anthropic Claude prompts.
 
 Simple flow: headline → sector check → industry check → LLM classification → TRADE/SKIP
 
@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Optional, Dict, Tuple
 from datetime import datetime
 
-from groq import AsyncGroq
+from anthropic import AsyncAnthropic
 
 from ...utils.logging_config import get_logger
 
@@ -44,22 +44,22 @@ class HealthcareClassifier:
         self,
         api_key: str,
         metadata_cache,  # MetadataCache instance for sector/industry lookup
-        model: str = "llama-3.3-70b-versatile",
+        model: str = "claude-haiku-4-5-20251001",
     ):
         """
         Initialize Healthcare classifier.
 
         Args:
-            api_key: Groq API key
+            api_key: Anthropic API key
             metadata_cache: MetadataCache instance for instant sector/industry lookup
-            model: Groq model to use (default: llama-3.3-70b-versatile)
+            model: Anthropic model to use (default: Claude Sonnet 4.6)
         """
         self.api_key = api_key
         self.metadata_cache = metadata_cache
         self.model = model
 
-        # Groq client
-        self.client = AsyncGroq(api_key=api_key) if api_key else None
+        # Anthropic client
+        self.client = AsyncAnthropic(api_key=api_key, timeout=15.0) if api_key else None
 
         # Cache loaded prompts (load once, reuse)
         self._prompts: Dict[str, str] = {}
@@ -183,19 +183,19 @@ class HealthcareClassifier:
             self._stats["errors"] += 1
             return "SKIP", industry, latency_ms
 
-        # Step 5: Call Groq LLM for classification
+        # Step 5: Call Anthropic Claude for classification
         if not self.client:
             latency_ms = (datetime.now() - start_time).total_seconds() * 1000
-            logger.error("Groq client not initialized")
+            logger.error("Anthropic client not initialized")
             self._stats["errors"] += 1
             return "SKIP", industry, latency_ms
 
         try:
             # Simple prompt: just the headline
-            response = await self.client.chat.completions.create(
+            response = await self.client.messages.create(
                 model=self.model,
+                system=prompt,
                 messages=[
-                    {"role": "system", "content": prompt},
                     {"role": "user", "content": headline}
                 ],
                 temperature=0.0,  # Deterministic for consistency
@@ -203,7 +203,7 @@ class HealthcareClassifier:
             )
 
             # Parse response
-            result = response.choices[0].message.content.strip().upper()
+            result = response.content[0].text.strip().upper()
 
             # Normalize to TRADE or SKIP
             if "TRADE" in result:
@@ -235,7 +235,7 @@ class HealthcareClassifier:
         except Exception as e:
             latency_ms = (datetime.now() - start_time).total_seconds() * 1000
             logger.error(
-                "Groq API error",
+                "Anthropic API error",
                 ticker=ticker,
                 error=str(e),
                 headline=headline[:50]

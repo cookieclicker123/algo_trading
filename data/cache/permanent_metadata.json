@@ -141550,5 +141550,25 @@
   "BLUWU": {
     "industry": "Shell Companies",
     "sector": "Financial Services"
+  },
+  "PTA": {
+    "industry": "Asset Management",
+    "sector": "Financial Services"
+  },
+  "TANH": {
+    "industry": "Household & Personal Products",
+    "sector": "Consumer Defensive"
+  },
+  "GRML": {
+    "industry": "Other Precious Metals & Mining",
+    "sector": "Basic Materials"
+  },
+  "GMEX": {
+    "industry": "Consumer Electronics",
+    "sector": "Technology"
+  },
+  "CYAB": {
+    "industry": "Software - Infrastructure",
+    "sector": "Technology"
   }
 }

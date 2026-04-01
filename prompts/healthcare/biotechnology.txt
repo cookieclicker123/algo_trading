@@ -215,6 +215,10 @@ ONLY trade partnerships with MAJOR PHARMA or GOVERNMENT:
 ├─ BIG PHARMA: Pfizer, AstraZeneca, Novartis, Merck, Lilly, Roche, J&J,
 │   AbbVie, Sanofi, GSK, BMS, Amgen, Gilead, Biogen, Novo Nordisk, Bayer,
 │   Regeneron, Vertex, Moderna, BioNTech
+├─ TIERED PARTNERS: "Top 5/10/20 Pharmaceutical", "Top-Tier Pharma",
+│   "Major Global Pharmaceutical" = NDA-restricted naming of a big pharma
+│   company. Treat as MAJOR PHARMA when combined with definitive agreement
+│   language. NOT the same as "unknown firm" — see ENTITY-RICH PARTNERSHIPS.
 ├─ BIG TECH (AI/drug discovery): Nvidia, Google (DeepMind/Calico)
 ├─ GOVERNMENT: DOD, BARDA, DTRA, NIH (non-dilutive funding + validation)
 │   (Tonix +570% driven partly by $34M DOD contract)
@@ -227,6 +231,56 @@ ONLY trade partnerships with MAJOR PHARMA or GOVERNMENT:
    "$34M DOD Contract for Antiviral" → TRADE LARGE (government + $)
    "Collaboration with Nvidia for AI Drug Discovery" → TRADE MODERATE
    "Partners with Unknown Firm for IND Readiness" → SKIP
+
+===============================================================================
+ENTITY-RICH PARTNERSHIPS (Signal Density Override)
+===============================================================================
+
+Some headlines lack a literal partner name but compensate with MULTIPLE
+concrete signals. When 4+ of these entity signals are present, TRADE even
+if the partner is described by tier rather than by name.
+
+ENTITY SIGNALS (count how many are present):
+├─ (1) Definitive agreement language ("commercial agreement", "licensing
+│      agreement", "signed", "definitive" — NOT "framework", "potential")
+├─ (2) Tiered or named major partner ("Top 5/10/20 Pharmaceutical",
+│      "Fortune 500", "Major Global" — NDA-restricted naming, not vagueness)
+├─ (3) AI/ML as core function ("AI drug discovery", "AI-powered",
+│      "machine learning", "identify therapeutic targets")
+├─ (4) Named major disease with massive TAM (depression, cancer, diabetes,
+│      obesity, Alzheimer's, heart disease, autoimmune, Parkinson's, ALS
+│      — household-name conditions the general public knows and fears)
+├─ (5) Specific deliverable or function ("identify and prioritize
+│      therapeutic targets", "develop companion diagnostic", etc.)
+└─ (6) Dollar amount stated
+
+SCORING:
+├─ 4+ signals → TRADE MODERATE
+├─ 5+ signals → TRADE LARGE
+└─ 3 signals with AI/ML core + tiered major partner → TRADE SMALL
+
+WHY: "Top 5 Global Pharmaceutical Company" is NDA-restricted naming, not
+vagueness. Companies working with Pfizer/Novartis/Roche often cannot name
+the partner pre-announcement. The tier descriptor + definitive agreement
+language + specific disease + specific deliverable = compound conviction
+that overrides the missing literal name.
+
+STILL SKIP even with high entity count:
+├─ "Framework" / "Potential" / "Anticipates" = non-committal, invalidates all
+├─ No disease AND no deliverable AND no $ (AI + partner tier alone = too thin)
+└─ "Explores" / "Evaluates" / "In discussions" = no commitment
+
+Examples:
+   "Commercial Agreement with Top 5 Global Pharmaceutical Company to Identify
+    and Prioritize Therapeutic Target in Major Depressive Disorder"
+    → TRADE LARGE (5 signals: agreement ✓, tiered partner ✓, AI function ✓,
+      major disease ✓, specific deliverable ✓)
+   "Agreement with Top 10 Pharma to Deploy AI for Oncology Drug Discovery"
+    → TRADE MODERATE (4 signals: agreement, tiered partner, AI, major disease)
+   "Framework with Top 5 Pharmaceutical to Explore AI Applications"
+    → SKIP ("Framework" + "Explore" = non-committal, invalidates all)
+   "AI Partnership with Unknown Biotech for Data Analysis"
+    → SKIP (no partner tier, no disease, no specific deliverable)
 
 ===============================================================================
 M&A (Strongest single catalyst for target company)
@@ -258,14 +312,15 @@ STRATEGIC ALTERNATIVES / ACQUISITION TARGET (Very strong — company is being pu
 
 ===============================================================================
 OTHER TRADE SIGNALS
-SHARE REPURCHASE (Bullish signal)
+SHARE REPURCHASE (Bullish signal — ALWAYS TRADE, no exceptions except earnings)
 ├─ Share repurchase/buyback = confidence in undervaluation
 ├─ Reduces float, increases EPS = bullish
-├─ EXCEPTION: Share repurchase announced AS PART OF earnings/financial results = SKIP (earnings take precedence)
+├─ "Reactivates" / "Resumes" / "Reinstates" share repurchase = TRADE (restarting = bullish)
 └─ Examples:
    "Announces Share Repurchase Program" → TRADE MODERATE
    "Board Authorizes $10M Stock Buyback" → TRADE MODERATE
-   "Reports Q4 Results; Announces $1.5B Share Repurchase" → SKIP (earnings headline)
+   "Reactivates Share Repurchase Program, Underscoring Confidence" → TRADE MODERATE
+   "Reports Q4 Results; Announces $1.5B Share Repurchase" → TRADE SMALL (buyback is always bullish, even alongside earnings)
 
 ANALYST ACTIONS
 ├─ Price target raised, Upgraded to Buy
@@ -284,9 +339,12 @@ PATENT HEADLINES (Require specificity OR hot theme)
    "Patent Portfolio for Novel GLP-1 Delivery System" → TRADE SMALL (hot modality)
    "Announces Patent Grant" → SKIP (no context, no hot area)
 
-PUBLICATIONS
-├─ Publication in peer-reviewed journal with actual data
-└─ "Announces Publication In Nature Medicine" → TRADE SMALL
+PUBLICATIONS (Only EFFICACY data in top-tier journals)
+├─ Publication must contain CLINICAL EFFICACY data (response rates, survival, endpoints)
+├─ Mechanistic data (receptor binding, selectivity, PK/PD) = SKIP (see SKIP section)
+├─ Must be in a recognizable top-tier journal (Nature, NEJM, Lancet, JAMA, JCO)
+├─ Niche/specialty journals with non-efficacy data = SKIP
+└─ "Publication In Nature Medicine Showing 40% Response Rate" → TRADE SMALL
 
 GOVERNMENT CONTRACTS
 ├─ DOD, BARDA, DTRA contracts = non-dilutive funding + government validation
@@ -334,11 +392,15 @@ OFFERINGS/FINANCING → SKIP ALL
 ├─ "At-the-market offering", "Gross/net proceeds"
 └─ ANY offering/dilution headline → SKIP
 
-CONFERENCES (Most common loser pattern)
+CONFERENCES / CALLS / HIGHLIGHTS (Most common loser pattern)
 ├─ "To present at", "Will participate in", "To host conference call"
+├─ "Business Update Call to Highlight", "Call to Discuss", "Webcast to Review"
 ├─ J.P. Morgan, ASCO, ASH, AACR, investor day
 ├─ NOTE: If ACTUAL DATA is presented → see Clinical Data section
-└─ ANY future presentation ANNOUNCEMENT → SKIP
+├─ NOTE: "Call to Highlight" OLD data is NOT new data — it's marketing old results
+├─ CRITICAL: A headline that says "Call to Highlight 80% ORR" is a CONFERENCE,
+│   not a clinical data readout. The 80% ORR was already known. SKIP.
+└─ ANY future presentation, call, or webcast ANNOUNCEMENT → SKIP
 
 LEGAL/LAWSUITS
 ├─ Class action, Securities fraud, Lawsuit
@@ -370,6 +432,43 @@ SERVICE/CONSULTING PARTNERSHIPS
 ├─ "IND readiness", "regulatory support", "clinical trial design"
 ├─ "Engages", "Retains", "Hires"
 └─ ANY service relationship → SKIP
+
+NON-CLINICAL / PRE-CLINICAL AGREEMENTS (NOT clinical data)
+├─ "Non-Clinical Evaluation Agreement" = PRECLINICAL (no human data, ALWAYS SKIP)
+├─ "Preclinical collaboration", "Preclinical study agreement"
+├─ "Evaluation agreement" without clinical trial results = no catalyst
+├─ Even if the funder is prestigious (NIH, NIAID, BARDA), a NON-CLINICAL evaluation
+│   agreement is NOT a clinical trial result and NOT a contract award — it's early-stage
+│   research with no tradeable signal.
+└─ Examples:
+   "Secures NIAID Non-Clinical Evaluation Agreement for Entolimod" → SKIP (non-clinical)
+   "Enters Preclinical Collaboration with NIH" → SKIP (preclinical)
+
+PROCEDURE COMPLETIONS / CASE REPORTS (NOT clinical trial results)
+├─ "Successfully Completes Procedure", "First Procedure Using", "First Case"
+├─ These are individual procedure reports, NOT clinical trial endpoints
+├─ A hospital using a device ≠ clinical data (no cohort, no stats, no endpoint)
+└─ Examples:
+   "Hospital Successfully Completes Robotic Procedures using Company's System" → SKIP
+   "First Patient Treated Using New Surgical Robot" → SKIP (case report, not trial data)
+
+STATISTICAL / METHODOLOGICAL ANNOUNCEMENTS (NOT results)
+├─ "Confirms Statistical Power", "Statistical Design", "Study Design Update"
+├─ These describe trial methodology, NOT efficacy or safety outcomes
+├─ "BLA Submission on Track" = future announcement, no results
+└─ Examples:
+   "Confirms Statistical Power in Pivotal Trial" → SKIP (methodology, not results)
+   "Provides Study Design Update for Phase 3" → SKIP (design, not data)
+
+PUBLICATIONS OF MECHANISTIC / NON-EFFICACY DATA
+├─ Journal publications about receptor binding, selectivity, pharmacokinetics,
+│   mechanism of action, or safety profiles are NOT efficacy data
+├─ Only trade publications with CLINICAL EFFICACY data (response rates, endpoints met)
+├─ "Publication Linking Receptor Selectivity to Low Nausea Rates" = mechanism, not efficacy
+└─ Examples:
+   "Publication in Nature Medicine Showing 40% Tumor Response" → TRADE SMALL (efficacy)
+   "Publication Linking Receptor Selectivity to Low Nausea" → SKIP (mechanism, not efficacy)
+   "Announces Publication of Pharmacokinetic Data" → SKIP (PK, not efficacy)
 
 WEAK CLINICAL DATA (Looks like news but isn't material)
 ├─ "Extension study" / "extension trial" (continuation, not new)
@@ -462,6 +561,11 @@ VAGUE PARTNERSHIPS
 ├─ No named partner, no dollar amount, no specific product
 ├─ "Strategic collaboration to explore" = fluff
 ├─ REQUIRE: Named MAJOR PHARMA partner + (specific product OR dollar amount)
+├─ EXCEPTION — TIERED PARTNERS: "Top 5/10/20 Pharmaceutical", "Top-Tier
+│   Pharma", "Major Global Pharmaceutical" = NDA-restricted naming, NOT
+│   vagueness. Treat as valid major pharma when combined with definitive
+│   agreement language + additional entity signals. See ENTITY-RICH
+│   PARTNERSHIPS section above.
 ├─ Unknown or small pharma partners (not on the major pharma list) = SKIP
 │   unless the deal has a SIGNED definitive agreement with concrete terms
 ├─ Biotech-specific trap: Small biotechs issue partnership PRs with inflated

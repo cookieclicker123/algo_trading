@@ -63,35 +63,38 @@ class ClassificationMicroservice:
 
 async def initialize_classification_microservice(
     event_bus: AsyncEventBus,
-    api_key: str,
-    model: str,
+    groq_api_key: str,
+    anthropic_api_key: str,
+    anthropic_model: str,
     enabled: bool,
     metrics_service,  # Required - injected via DI
 ) -> ClassificationMicroservice:
     """
     Initialize classification microservice independently.
-    
+
     This function knows ONLY about classification microservice.
     It doesn't know about other microservices.
-    
+
     Args:
         event_bus: Event bus instance (shared dependency)
-        api_key: GROQ API key (injected via DI)
-        model: GROQ model name (injected via DI)
+        groq_api_key: Groq API key for triage (Llama 70B headline type detection)
+        anthropic_api_key: Anthropic API key for sector classification (Claude Sonnet)
+        anthropic_model: Anthropic model name for sector classification
         enabled: Whether classification is enabled (injected via DI)
         metrics_service: Optional metrics service (injected via DI)
-        
+
     Returns:
         ClassificationMicroservice: Initialized classification microservice
     """
     logger.info("Initializing classification microservice...")
-    
+
     # Step 1: Infrastructure layer
     infra = ClassificationInfrastructureService(
         event_bus=event_bus,
-        api_key=api_key,
+        groq_api_key=groq_api_key,
+        anthropic_api_key=anthropic_api_key,
+        anthropic_model=anthropic_model,
         metrics_service=metrics_service,  # ✅ Pass metrics service
-        model=model,
         enabled=enabled,
     )
     logger.info("Classification infrastructure initialized")

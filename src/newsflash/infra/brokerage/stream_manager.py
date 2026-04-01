@@ -185,9 +185,14 @@ class AlpacaMarketDataStreamManager:
                 # Stop WebSocket connection (stop is sync, close is async)
                 self.stream.stop()  # Stop the stream (synchronous)
                 await self.stream.close()  # Close the connection (async - must await)
-                self.stream = None
+            except RuntimeError as e:
+                # uvloop + websockets compatibility issue: "await wasn't used with future"
+                # Harmless during shutdown — the connection is already being torn down.
+                logger.debug(f"Ignoring websocket close RuntimeError: {e}")
             except Exception as e:
                 logger.debug(f"Error stopping stream: {e}")
+            finally:
+                self.stream = None
         
         # Clear caches (thread-safe locks)
         with self._quote_cache_lock:

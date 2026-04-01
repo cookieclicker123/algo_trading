@@ -138,8 +138,9 @@ class ApplicationContainer(containers.DeclarativeContainer):
     classification_microservice = providers.Factory(
         initialize_classification_microservice,
         event_bus=shared.event_bus,
-        api_key=config.groq_api_key,
-        model=config.groq_model,
+        groq_api_key=config.groq_api_key,
+        anthropic_api_key=config.anthropic_api_key,
+        anthropic_model=config.anthropic_model,
         enabled=config.classification_enabled,
         metrics_service=shared.metrics_service,  # ✅ Inject metrics service
     )

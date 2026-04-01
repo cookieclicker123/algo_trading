@@ -28,8 +28,12 @@ TELEGRAM_BOT_TOKEN_2 = os.getenv("TELEGRAM_BOT_TOKEN_2", "")
 TELEGRAM_CHAT_ID_2 = os.getenv("TELEGRAM_CHAT_ID_2", "")
 
 # AI Classification Configuration
+# Groq: used for fast triage classification (Llama 70B — headline type detection)
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-GROQ_MODEL = "llama-3.3-70b-versatile"
+GROQ_TRIAGE_MODEL = "llama-3.3-70b-versatile"
+# Anthropic: used for sector classification (Claude Sonnet — TRADE/SKIP decision)
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+ANTHROPIC_MODEL = "claude-haiku-4-5-20251001"
 CLASSIFICATION_ENABLED = os.getenv("CLASSIFICATION_ENABLED", "true").lower() == "true"
 
 # Benzinga Direct WebSocket Configuration
@@ -94,6 +98,8 @@ def get_classification_config() -> dict:
     """Get AI classification configuration."""
     return {
         "enabled": CLASSIFICATION_ENABLED,
-        "api_key": GROQ_API_KEY,
-        "model": GROQ_MODEL,
+        "groq_api_key": GROQ_API_KEY,
+        "groq_triage_model": GROQ_TRIAGE_MODEL,
+        "anthropic_api_key": ANTHROPIC_API_KEY,
+        "anthropic_model": ANTHROPIC_MODEL,
     }

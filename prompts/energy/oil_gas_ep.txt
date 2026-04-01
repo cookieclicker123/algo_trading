@@ -82,7 +82,6 @@ HEDGING / PRICE PROTECTION (Bullish signal for small E&P)
 SHARE REPURCHASE / SHAREHOLDER DEFENSE
 ├─ Share repurchase/buyback = TRADE
 ├─ Shareholder rights plans (defending against activists) = TRADE SMALL
-├─ EXCEPTION: Share repurchase announced AS PART OF earnings/financial results = SKIP (earnings take precedence)
 ├─ SIZE BY MARKET CAP PERCENTAGE:
 │   - >25% of market cap = TRADE MAX
 │   - 10-25% = TRADE LARGE
@@ -91,7 +90,7 @@ SHARE REPURCHASE / SHAREHOLDER DEFENSE
 └─ Examples:
    "Adopts Shareholder Rights Plan Against Activist" → TRADE SMALL
    "$50M Repurchase Program" for $200M company → TRADE LARGE
-   "Reports Q4 Results; Announces $1.5B Share Repurchase" → SKIP (earnings headline)
+   "Reports Q4 Results; Announces $1.5B Share Repurchase" → TRADE SMALL (buyback is always bullish, even alongside earnings)
 
 SKIP SIGNALS
 ===============================================================================

@@ -248,5 +248,65 @@
     "permanent": false,
     "created_at": "2026-03-24T12:30:23.999134",
     "last_fp_date": "2026-03-24"
+  },
+  "SRPT": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-25T12:06:18.107895",
+    "last_fp_date": "2026-03-25"
+  },
+  "EBS": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-25T20:42:02.698555",
+    "last_fp_date": "2026-03-25"
+  },
+  "IBRX": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-26T11:31:23.513476",
+    "last_fp_date": "2026-03-26"
+  },
+  "WVE": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-26T11:32:07.395641",
+    "last_fp_date": "2026-03-26"
+  },
+  "MDCX": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-26T11:39:05.031661",
+    "last_fp_date": "2026-03-26"
+  },
+  "TIVC": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-26T12:30:31.464211",
+    "last_fp_date": "2026-03-26"
+  },
+  "MBOT": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-26T12:30:36.061952",
+    "last_fp_date": "2026-03-26"
+  },
+  "ACHV": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-26T12:31:18.884573",
+    "last_fp_date": "2026-03-26"
+  },
+  "PESI": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-26T12:31:41.638703",
+    "last_fp_date": "2026-03-26"
+  },
+  "NEOV": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-03-26T12:33:02.881665",
+    "last_fp_date": "2026-03-26"
   }
 }

@@ -113,8 +113,15 @@ class PriceMonitor:
                 return
 
             initial_nbbo = initial_nbbos[target_ticker]
+            # Use ASK as entry price (we buy at ask, not mid).
+            # Mid is misleading for wide-spread stocks (STRS: 89% spread, mid=$22 but ask=$32).
             entry_price = initial_nbbo.get("ask") or initial_nbbo.get("mid")
             if not entry_price or entry_price <= 0:
+                return
+
+            # Skip monitoring for absurdly wide spreads — the price data is meaningless noise
+            spread_pct = initial_nbbo.get("spread_pct", 0)
+            if spread_pct > 20:
                 return
 
             # Get monitoring start time
@@ -143,7 +150,7 @@ class PriceMonitor:
             if not price_check:
                 return
 
-            # Ensure highest price is at least 10-minute ask
+            # Ensure highest price is at least 10-minute mid
             highest_price_data = self._reconcile_highest_price(
                 highest_price_data, price_check, entry_price, target_ticker, article_id
             )
@@ -525,28 +532,27 @@ class PriceMonitor:
         ticker: str,
         article_id: str
     ) -> Optional[Dict[str, Any]]:
-        """Ensure highest price is at least the 10-minute ask."""
-        final_ask = price_check.get("ask")
-        if not final_ask:
+        """Ensure highest price is at least the 10-minute mid (spread-resistant)."""
+        final_mid = price_check.get("mid")
+        if not final_mid:
             return highest_price_data
 
         current_highest = highest_price_data.get("price") if highest_price_data else None
 
-        if current_highest is None or final_ask > current_highest:
-            # Update to use 10-minute ask
-            highest_gain_pct = ((final_ask - entry_price) / entry_price) * 100
+        if current_highest is None or final_mid > current_highest:
+            highest_gain_pct = ((final_mid - entry_price) / entry_price) * 100
             price_check_time = datetime.now(timezone.utc)
 
             logger.debug(
-                "PriceMonitor: Updated highest price to match 10-minute ask",
+                "PriceMonitor: Updated highest price to match 10-minute mid",
                 article_id=article_id,
                 ticker=ticker,
                 previous=current_highest,
-                new=final_ask
+                new=final_mid
             )
 
             return {
-                "price": final_ask,
+                "price": final_mid,
                 "timestamp": price_check_time.isoformat(),
                 "percent_gain_from_entry": round(highest_gain_pct, 2),
                 "minute": price_check_time.minute,

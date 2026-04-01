@@ -66,13 +66,14 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
     def __init__(
         self,
         event_bus: AsyncEventBus,
-        api_key: str,
-        metrics_service,  # Required - injected via DI
+        groq_api_key: str,
+        anthropic_api_key: str,
+        anthropic_model: str = "claude-sonnet-4-6-20250514",
+        metrics_service=None,  # Required - injected via DI
         ticker_validator=None,  # Will be injected after brokerage is initialized
         market_data_validator=None,  # Will be injected after brokerage is initialized
         quote_fetcher=None,  # Will be injected after brokerage is initialized
         metadata_cache=None,  # Will be injected after cache is initialized
-        model: str = "llama-3.3-70b-versatile",
         enabled: bool = True,
     ):
         """
@@ -80,8 +81,9 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
 
         Args:
             event_bus: Event bus instance for publishing/subscribing to events
-            api_key: Groq API key
-            model: Groq model name to use
+            groq_api_key: Groq API key for triage (Llama 70B headline type detection)
+            anthropic_api_key: Anthropic API key for sector classification (Claude Sonnet)
+            anthropic_model: Anthropic model name for sector classification
             enabled: Whether classification is enabled
             metrics_service: Optional metrics service for statistics (injected via DI)
             ticker_validator: TickerValidator instance for exchange validation (injected via DI)
@@ -90,8 +92,12 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
             metadata_cache: MetadataCache instance for sector/industry lookup (injected via DI)
         """
         self.enabled = enabled
-        self.model = model
-        self.api_key = api_key
+        self.groq_api_key = groq_api_key
+        self.anthropic_api_key = anthropic_api_key
+        self.anthropic_model = anthropic_model
+        # Legacy: keep api_key reference for triage and any code that reads self.api_key
+        self.api_key = groq_api_key
+        self.model = anthropic_model
         self.metrics_service = metrics_service  # ✅ Injected metrics service
         self.ticker_validator = ticker_validator  # ✅ Injected ticker validator
         self.market_data_validator = market_data_validator  # ✅ Injected market data validator
@@ -106,13 +112,17 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
         # Auto-evicts oldest entries when size > 50 (prevents memory leak from skipped articles).
         self._triage_cache: dict = {}
 
-        # Stateful: Groq client (initialized if enabled)
+        # Legacy Groq client (kept for _classify_via_groq fallback path)
         self.client: Optional[AsyncGroq] = None
-        if enabled and api_key:
-            self.client = AsyncGroq(api_key=api_key)
-            logger.info("ClassificationInfrastructureService: Groq client initialized", model=model)
+        if enabled and groq_api_key:
+            self.client = AsyncGroq(api_key=groq_api_key)
+            logger.info(
+                "ClassificationInfrastructureService initialized",
+                triage_model="llama-3.3-70b-versatile (Groq)",
+                sector_model=f"{anthropic_model} (Anthropic)",
+            )
         else:
-            logger.info("ClassificationInfrastructureService: Disabled or no API key provided")
+            logger.info("ClassificationInfrastructureService: Disabled or no API keys provided")
         
         # Stateful: System prompt (cached, loaded once)
         self.system_prompt = self._load_prompt()
@@ -124,9 +134,10 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
         
         logger.info(
             "ClassificationInfrastructureService initialized",
-            model=model,
+            sector_model=anthropic_model,
             enabled=enabled,
-            has_api_key=bool(api_key),
+            has_groq_key=bool(groq_api_key),
+            has_anthropic_key=bool(anthropic_api_key),
             has_ticker_validator=ticker_validator is not None,
             has_market_data_validator=market_data_validator is not None,
             has_quote_fetcher=quote_fetcher is not None,
@@ -164,9 +175,9 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
         """
         if self._sector_classifier is None and self.metadata_cache is not None:
             self._sector_classifier = SectorClassifier(
-                api_key=self.api_key,
+                api_key=self.anthropic_api_key,
                 metadata_cache=self.metadata_cache,
-                model=self.model,
+                model=self.anthropic_model,
             )
             logger.info(
                 "SectorClassifier initialized",
@@ -318,10 +329,15 @@ Summary: {summary}"""
             # Skip articles if websocket delivery was too slow (> 10 seconds after publication).
             # Late-arriving articles have missed the initial momentum opportunity and
             # are more likely to result in chasing rather than catching the move.
-            # Extended to 15s - safety filters (spread, pump-and-dump, momentum exhaustion)
-            # prevent bad late entries, so we can afford a wider reception window.
+            # Raised to 30s — the real safeguard is the postfilter pub-to-recv price
+            # movement check (max 3% ask change), NOT the time elapsed. VNRX arrived
+            # 21s late but the stock hadn't moved yet → missed +28.66%.
+            # Postfilter catches actual late-to-move entries via price checks:
+            #   - pub_to_recv: max 3% ask change (8% mega)
+            #   - momentum_exhaustion: max 5% runup
+            #   - pump_and_dump: max 5.5% ask vs VWAP
             # ====================================================================
-            MAX_WEBSOCKET_LATENCY_SECONDS = 15.0
+            MAX_WEBSOCKET_LATENCY_SECONDS = 15.0  # Was 30s — too stale. 15s gives late entry monitoring room to work (was originally 10s)
 
             if request_data.article_published_at_iso:
                 try:
@@ -531,7 +547,11 @@ Summary: {summary}"""
                     # Captures 93% of winners while filtering 62% of losers
                     # EXCEPTION: Healthcare Biotechnology and Medical Devices are exempt
                     # — larger biotechs are more established with real drugs/revenue
+                    # EXCEPTION: HC / Clinical Breakthrough headlines get $1B cap
+                    # — high-signal headlines (gov contracts, clinical breakthroughs) move
+                    #   stocks reliably even at larger market caps (CGNT $535M +8.7%)
                     MAX_MARKET_CAP_MILLIONS = 500
+                    MAX_MARKET_CAP_HIGH_SIGNAL_MILLIONS = 1000
 
                     sector = metadata.get("sector", "")
                     industry = metadata.get("industry", "")
@@ -540,13 +560,25 @@ Summary: {summary}"""
                         and industry in ("Biotechnology", "Medical Devices")
                     )
 
-                    if market_cap and market_cap > MAX_MARKET_CAP_MILLIONS and not healthcare_exempt:
+                    # HC and clinical breakthrough headline types use relaxed $1B cap
+                    HIGH_SIGNAL_PREFILTER_TYPES = frozenset({
+                        "government_contract", "military_contract", "defense_order",
+                        "major_contract", "clinical_breakthrough", "cancer_catalyst",
+                    })
+                    is_high_signal_headline = triage_headline_type in HIGH_SIGNAL_PREFILTER_TYPES
+
+                    effective_market_cap_limit = (
+                        MAX_MARKET_CAP_HIGH_SIGNAL_MILLIONS if is_high_signal_headline
+                        else MAX_MARKET_CAP_MILLIONS
+                    )
+
+                    if market_cap and market_cap > effective_market_cap_limit and not healthcare_exempt:
                         logger.info(
                             "⏭️ MICROSTRUCTURE FILTER: Market cap too high for news-driven trade",
                             article_id=request_data.article_id,
                             ticker=primary_ticker,
                             market_cap_millions=round(market_cap, 1),
-                            threshold_millions=MAX_MARKET_CAP_MILLIONS,
+                            threshold_millions=effective_market_cap_limit,
                             reason="Large-caps don't move significantly on news (statistical edge lost)"
                         )
                         await self._publish_skipped_event(infra_event, f"market_cap_too_high:{round(market_cap)}M", headline_type=triage_headline_type)
@@ -990,6 +1022,40 @@ Summary: {summary}"""
             return
 
         try:
+            # STOCK BUYBACK BYPASS: Always trade buybacks regardless of sector/industry.
+            # Buybacks are structurally bullish (company is the buyer, reduces float).
+            # Skip sector LLM entirely — auto_trade.py applies HC LARGE sizing.
+            if triage_headline_type == "stock_buyback":
+                logger.info(
+                    "💰 BUYBACK BYPASS: Skipping sector LLM — always trade stock buybacks",
+                    article_id=request_data.article_id,
+                    ticker=primary_ticker,
+                    headline=headline[:60],
+                )
+
+                response_data = InfrastructureClassificationResponseData(
+                    classification="imminent",
+                    confidence="HIGH",
+                    reasoning="stock_buyback - sector LLM bypassed (always trade)",
+                    position_size="LARGE",
+                    headline_type="stock_buyback",
+                )
+
+                completed_event = ClassificationCompletedInfrastructureEvent(
+                    request_data=request_data,
+                    response_data=response_data,
+                    completed_at=datetime.now(),
+                    latency_ms=0.0,
+                    success=True,
+                    source="buyback_bypass"
+                )
+
+                await self.event_bus.publish(
+                    InfrastructureEventType.CLASSIFICATION_COMPLETED,
+                    completed_event.model_dump()
+                )
+                return
+
             # Classify via multi-sector classifier
             classification, sector, industry, latency_ms, position_size = await self.sector_classifier.classify(
                 headline=headline,

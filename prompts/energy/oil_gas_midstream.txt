@@ -72,11 +72,10 @@ DATA CENTER / AI POWER DEMAND (Emerging 2025-2026 catalyst)
 SHARE REPURCHASE / DISTRIBUTION INCREASES
 ├─ Distribution/dividend increases = TRADE MODERATE
 ├─ Share repurchase = TRADE (sized by % of market cap)
-├─ EXCEPTION: Share repurchase announced AS PART OF earnings/financial results = SKIP (earnings take precedence)
 └─ Examples:
    "Raises Quarterly Distribution By 5%" → TRADE MODERATE
    "$100M Buyback Program" for $500M company → TRADE LARGE
-   "Reports Q4 Results; Announces $1.5B Share Repurchase" → SKIP (earnings headline)
+   "Reports Q4 Results; Announces $1.5B Share Repurchase" → TRADE SMALL (buyback is always bullish, even alongside earnings)
 
 SKIP SIGNALS
 ===============================================================================

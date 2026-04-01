@@ -27,7 +27,9 @@ class ConfigurationContainer(containers.DeclarativeContainer):
     
     # Direct config values
     groq_api_key = providers.Callable(lambda: settings.GROQ_API_KEY)
-    groq_model = providers.Callable(lambda: settings.GROQ_MODEL)
+    groq_triage_model = providers.Callable(lambda: settings.GROQ_TRIAGE_MODEL)
+    anthropic_api_key = providers.Callable(lambda: settings.ANTHROPIC_API_KEY)
+    anthropic_model = providers.Callable(lambda: settings.ANTHROPIC_MODEL)
     classification_enabled = providers.Callable(lambda: settings.CLASSIFICATION_ENABLED)
     benzinga_api_key = providers.Callable(lambda: settings.BENZINGA_API_KEY)
     benzinga_websocket_enabled = providers.Callable(lambda: settings.BENZINGA_WEBSOCKET_ENABLED)

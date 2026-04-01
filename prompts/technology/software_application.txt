@@ -86,7 +86,6 @@ SHARE REPURCHASE (Bullish signal - size based on % of market cap)
 ├─ Company buying back shares = confidence in undervaluation
 ├─ Reduces float, increases EPS = bullish for price
 ├─ NOTE: "Capital Allocation Strategy" with share repurchase = TRADE (not defensive)
-├─ EXCEPTION: Share repurchase announced AS PART OF earnings/financial results = SKIP (earnings take precedence)
 ├─ NOTE: "Authorizes" share repurchase = TRADE (same as "Announces")
 ├─ SIZE BY MARKET CAP PERCENTAGE (context provided):
 │   - >25% of market cap = TRADE MAX (transformational)
@@ -99,7 +98,7 @@ SHARE REPURCHASE (Bullish signal - size based on % of market cap)
    "Announces Share Repurchase Program" (no $ amount) → TRADE SMALL
    "Board Authorizes Stock Buyback" → TRADE SMALL
    "Authorizes $2M Share Repurchase as Capital Allocation Strategy" → TRADE (not defensive)
-   "Reports Q4 Results; Announces $1.5B Share Repurchase" → SKIP (earnings headline)
+   "Reports Q4 Results; Announces $1.5B Share Repurchase" → TRADE SMALL (buyback is always bullish, even alongside earnings)
 
 SKIP SIGNALS
 ===============================================================================
