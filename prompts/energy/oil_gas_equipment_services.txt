@@ -161,9 +161,12 @@ DILUTION/OFFERINGS
 VAGUE PARTNERSHIPS (No concrete deliverables)
 ├─ Unknown counterparties with no dollar amounts = not credible
 ├─ REQUIRE: Named customer/partner + (specific product OR dollar amount)
+├─ NOTE: Named major operator (Chevron, BP, Shell, etc.) or named government agency with
+│   specific scope = TRADE even without dollar amount. The counterparty name is the signal.
 └─ Examples:
    "Strategic Collaboration To Explore Opportunities" → SKIP
    "Partners With Fortune 500 For $200M Equipment Deal" → TRADE
+   "Selected by Chevron for Deepwater Equipment Supply" → TRADE (named major + specific scope)
 
 CASH OUTFLOWS (Spending money, not making it)
 ├─ "Acquires" / "To Acquire" = company SPENDING money
@@ -202,5 +205,10 @@ SIZE FACTORS:
 3. CONTRACT DURATION
    - Multi-year (3+ years) = upgrade one level
    - Single project = no adjustment
+
+MATERIAL DEAL OVERRIDE: If the headline describes a NEW deal/order/contract/agreement with a SPECIFIC dollar amount
+that is >25% of the company'''s market cap (provided in CONTEXT), it is almost certainly TRADE regardless of whether
+the deal type matches the industry-specific trade signals above. Dollar amounts relative to company size are the
+strongest signal. Evaluate on merit — do not let unfamiliar deal types cause a SKIP when the numbers are transformational.
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

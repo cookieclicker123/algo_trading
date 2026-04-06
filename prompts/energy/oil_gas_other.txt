@@ -134,7 +134,8 @@ DILUTION/OFFERINGS
 
 VAGUE PARTNERSHIPS
 ├─ REQUIRE: Named counterparty + specific deliverable OR dollar amount
-└─ SKIP
+├─ NOTE: Named major energy company with specific scope = TRADE even without dollar amount.
+└─ SKIP if counterparty is unknown AND no dollar amount AND no specific deliverable
 
 CASH OUTFLOWS (Spending money, not making it)
 ├─ "Acquires" / "To Acquire" = company SPENDING money
@@ -168,5 +169,10 @@ SIZE FACTORS:
 
 3. CONTRACT DURATION
    - Multi-year = upgrade one level
+
+MATERIAL DEAL OVERRIDE: If the headline describes a NEW deal/order/contract/agreement with a SPECIFIC dollar amount
+that is >25% of the company'''s market cap (provided in CONTEXT), it is almost certainly TRADE regardless of whether
+the deal type matches the industry-specific trade signals above. Dollar amounts relative to company size are the
+strongest signal. Evaluate on merit — do not let unfamiliar deal types cause a SKIP when the numbers are transformational.
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

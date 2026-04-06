@@ -581,9 +581,15 @@ VAGUE PARTNERSHIPS
 ├─ Biotech-specific trap: Small biotechs issue partnership PRs with inflated
 │   milestone numbers to pump their stock. The partner is often unknown,
 │   the deal is a "framework" not a contract, and the $ are "potential"
+├─ NOTE: A dollar amount is NOT required when the partner is a named major pharma
+│   (Pfizer, Merck, Roche, Novartis, AbbVie, J&J, Lilly, AstraZeneca, GSK, BMS,
+│   Sanofi, Amgen, Gilead, Regeneron, Biogen) AND the headline describes a specific
+│   product, therapeutic area, or scope. The partner name IS the signal — major pharma
+│   validation is transformational for small-cap biotechs even without disclosed $ terms.
 └─ Examples:
    "Collaboration Framework with [Unknown Pharma] Anticipating $60M" → SKIP (not major pharma, framework not contract, $ are potential)
    "Licensing Agreement with Pfizer for $200M Upfront" → TRADE LARGE (major pharma, signed, upfront $)
+   "Licenses Oncology Platform to Merck for Global Rights" → TRADE (named major pharma + specific scope, no $ needed)
    "Exclusive Agreement with Molteni for European Distribution" → SKIP (unknown partner, no definitive terms)
 
 IMMATERIAL DOLLAR AMOUNTS
@@ -662,5 +668,10 @@ RED FLAGS (weaken any headline):
 - "License partner" = indirect
 - "Open-label" = weaker evidence
 - "In vitro" / "in vivo" = ALWAYS SKIP (preclinical)
+
+MATERIAL DEAL OVERRIDE: If the headline describes a NEW deal/order/contract/agreement with a SPECIFIC dollar amount
+that is >25% of the company'''s market cap (provided in CONTEXT), it is almost certainly TRADE regardless of whether
+the deal type matches the industry-specific trade signals above. Dollar amounts relative to company size are the
+strongest signal. Evaluate on merit — do not let unfamiliar deal types cause a SKIP when the numbers are transformational.
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

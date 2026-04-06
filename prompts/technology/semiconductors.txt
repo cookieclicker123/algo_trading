@@ -14,15 +14,19 @@ INDUSTRY CONTEXT:
 TRADE SIGNALS
 ===============================================================================
 
-CONTRACTS/DESIGN WINS (17% of winners)
+CONTRACTS/DESIGN WINS/ORDERS (17% of winners)
 - Design wins with major OEMs
 - Supply agreements with tech giants
 - Automotive chip contracts
 - AI/GPU supply deals
+- Government/security/defense technology orders (TSA, DHS, DoD, airport security, border security, military systems)
+- ANY new order/contract with a specific dollar amount — the contract type does not need to match traditional chip catalysts. Semiconductor companies sell technology into diverse end markets (security, medical, industrial, automotive, aerospace). If the headline has a concrete $ amount AND the company is receiving revenue, evaluate it as a contract.
 - Examples:
    "Secures Design Win With Major Smartphone OEM" -> TRADE
    "Announces AI Chip Supply Agreement" -> TRADE
    "Wins Automotive Semiconductor Contract" -> TRADE
+   "Secures $3.2M Order for Technology Used in TSA Airport Security Scanners" -> TRADE (government end-user, specific $, revenue-generating)
+   "Receives $5M Order for Sensor Technology Used in Defense Systems" -> TRADE (defense application, specific $)
 - CONTRACT QUALITY FILTERS (apply to ALL contract headlines):
    - NEW contract/order/agreement = TRADE (if material)
    - Contract RENEWAL or EXTENSION = SKIP (priced in, not new business)
@@ -183,8 +187,14 @@ SECTOR MISMATCH (Company doing something outside their business)
 ├─ If a company announces news completely unrelated to their industry
 ├─ This often signals desperation or pump scheme
 ├─ E.g., Internet Retail company doing submarines, Solar company doing AI
+├─ EXCEPTION: Semiconductor companies sell technology into MANY end markets (security,
+│   defense, medical, automotive, industrial, aerospace). An order for chip/sensor/RF
+│   technology used in security scanners, military systems, medical devices, etc. is NOT
+│   a mismatch — semiconductors are a foundational technology layer. Only flag mismatch
+│   when the company is entering an entirely unrelated business (e.g., opening restaurants).
 └─ Examples:
    "E-commerce Company Enters Defense Sector" → SKIP (mismatch)
+   "Semiconductor Company Receives Order for Airport Security Scanner Technology" → TRADE (normal end market)
 
 CASH OUTFLOWS (Spending money, not making it)
 ├─ "Acquires" / "To Acquire" = company SPENDING money
@@ -213,10 +223,17 @@ VAGUE PARTNERSHIPS (No concrete deliverables)
 ├─ "Strategic collaboration" without specifics = corporate fluff
 ├─ Unknown counterparties with no dollar amounts = not credible
 ├─ REQUIRE: Named customer/partner + (specific product OR dollar amount)
+├─ NOTE: A dollar amount is NOT required when the counterparty is a Fortune 500,
+│   major government agency, or well-known institution AND the headline describes a
+│   specific product, function, or scope. The counterparty name IS the signal for
+│   small-cap companies — a named Pfizer/NVIDIA/DoD partnership is transformational
+│   even without disclosed dollar terms.
 └─ Examples:
    "Partnership With Unknown Company For Innovation" → SKIP (vague)
    "Strategic Collaboration To Explore Opportunities" → SKIP (no specifics)
-   "Partners With Fortune 500 For $20M Platform Deal" → TRADE (specific)
+   "Partners With Fortune 500 For $20M Platform Deal" → TRADE (specific $)
+   "Partners With NVIDIA to Deploy AI Analytics Platform" → TRADE (Fortune 100 + specific product, no $ needed)
+   "Licenses Drug Compound to Pfizer for Oncology" → TRADE (Fortune 10 pharma + specific scope)
 
 OPERATIONAL MILESTONES (Planned events, not surprises)
 ├─ "Begins production", "commences operations", "adds capacity" = operational
@@ -298,10 +315,17 @@ DECISION RULES
 1. AI/GPU-related design wins = very strong TRADE
 2. Major OEM design wins = TRADE
 3. Foundry partnerships = TRADE
-4. Contract renewals/extensions = always SKIP
-5. Share repurchase/buyback programs = always TRADE (never defensive)
-6. Earnings = always SKIP
-7. Industry commentary = always SKIP
-8. Conference attendance = always SKIP
+4. Government/security/defense technology orders with specific $ = TRADE
+5. ANY new order with specific $ amount material to market cap = TRADE (even if end market is non-traditional for semiconductors)
+6. Contract renewals/extensions = always SKIP
+7. Share repurchase/buyback programs = always TRADE (never defensive)
+8. Earnings = always SKIP
+9. Industry commentary = always SKIP
+10. Conference attendance = always SKIP
+
+MATERIAL DEAL OVERRIDE: If the headline describes a NEW deal/order/contract/agreement with a SPECIFIC dollar amount
+that is >25% of the company'''s market cap (provided in CONTEXT), it is almost certainly TRADE regardless of whether
+the deal type matches the industry-specific trade signals above. Dollar amounts relative to company size are the
+strongest signal. Evaluate on merit — do not let unfamiliar deal types cause a SKIP when the numbers are transformational.
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

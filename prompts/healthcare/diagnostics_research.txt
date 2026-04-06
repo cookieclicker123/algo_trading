@@ -31,6 +31,14 @@ SCIENTIFIC/RESEARCH FINDINGS
    "To Be Granted US Patent For Radio Frequency Applicator" → TRADE
    "Highlights Urgent Need For Better Diagnosis After Study Shows" → TRADE
 
+PRODUCT/TEST LAUNCHES
+├─ New diagnostic test, assay, or platform launches with concrete traction
+├─ Must have at least ONE of: specific revenue, named customer/health system, regulatory clearance, or volume figures
+└─ Examples:
+   "Launches New Rapid COVID-Flu Combo Test, Ships 500K Units in First Week" → TRADE (concrete volume)
+   "Deploys New Liquid Biopsy Platform With 3 Major Hospital Systems" → TRADE (named customers)
+   "Introduces Updated Test Panel" → SKIP (no traction, no specifics)
+
 FDA/REGULATORY
 ├─ FDA 510(k) for diagnostic test
 ├─ FDA clearance for new test
@@ -258,9 +266,16 @@ VAGUE PARTNERSHIPS (No concrete deliverables)
 │   restricted naming, NOT vagueness. Treat as valid partner signal when
 │   combined with definitive agreement language + additional entity signals.
 │   See ENTITY-RICH PARTNERSHIPS in TRADE SIGNALS above.
+├─ NOTE: A dollar amount is NOT required when the partner is a named major company
+│   (Fortune 500, major pharma, major health system, government agency) AND the headline
+│   describes a specific product, therapeutic area, or scope. The partner name IS the signal
+│   — major partner validation is transformational for small-cap companies even without
+│   disclosed dollar terms.
 └─ Examples:
    "Partnership With Unknown Company For Innovation" → SKIP (vague)
    "Strategic Collaboration To Explore Opportunities" → SKIP (no specifics)
+   "Licenses Technology to Medtronic for Cardiac Monitoring" → TRADE (named major + specific scope, no $ needed)
+   "Partners With Mayo Clinic for Clinical Validation Study" → TRADE (named major institution + specific scope)
    "Partners With Fortune 500 For $20M Platform Deal" → TRADE (specific)
 
 OPERATIONAL MILESTONES (Planned events, not surprises)
@@ -345,5 +360,10 @@ DECISION RULES
 4. "To report" or "To present" = always SKIP
 5. Earnings = always SKIP
 6. Lower volatility than biotech - focus on concrete results
+
+MATERIAL DEAL OVERRIDE: If the headline describes a NEW deal/order/contract/agreement with a SPECIFIC dollar amount
+that is >25% of the company'''s market cap (provided in CONTEXT), it is almost certainly TRADE regardless of whether
+the deal type matches the industry-specific trade signals above. Dollar amounts relative to company size are the
+strongest signal. Evaluate on merit — do not let unfamiliar deal types cause a SKIP when the numbers are transformational.
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

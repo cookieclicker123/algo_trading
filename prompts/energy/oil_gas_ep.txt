@@ -165,8 +165,11 @@ DILUTION/OFFERINGS
 VAGUE PARTNERSHIPS
 ├─ Unknown counterparties, no dollar amounts
 ├─ REQUIRE: Named target + specific assets OR dollar amount
+├─ NOTE: Named major energy company or named basin/field with specific scope = TRADE even
+│   without dollar amount. The counterparty name is the signal for small-cap E&P companies.
 └─ Examples:
    "Strategic Collaboration To Explore Opportunities" → SKIP
+   "Joint Development Agreement With ConocoPhillips for Permian Assets" → TRADE (named major + specific assets)
 
 CASH OUTFLOWS (Spending money, not making it)
 ├─ "Acquires" / "To Acquire" = company SPENDING money
@@ -202,5 +205,10 @@ SIZE FACTORS:
 3. PRODUCTION DATA (When applicable)
    - Flow rates reported = upgrade one level (shows real results)
    - "Exploration" without results = no adjustment
+
+MATERIAL DEAL OVERRIDE: If the headline describes a NEW deal/order/contract/agreement with a SPECIFIC dollar amount
+that is >25% of the company'''s market cap (provided in CONTEXT), it is almost certainly TRADE regardless of whether
+the deal type matches the industry-specific trade signals above. Dollar amounts relative to company size are the
+strongest signal. Evaluate on merit — do not let unfamiliar deal types cause a SKIP when the numbers are transformational.
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

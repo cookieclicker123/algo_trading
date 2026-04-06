@@ -526,14 +526,12 @@ class MarketHoursScheduler:
 
         1. Daily Analytics: Full stats with all features for ML/backtesting
         2. Winners Summary: Human-readable list for pattern recognition
-        3. Trade Classification: Confusion matrix (TP/FP/FN/TN) with tick simulation
-        4. Weekly Aggregation: Aggregate current week's data (runs daily to stay current)
-        5. All-Time Aggregation: Aggregate all weeks for cumulative stats
+        3. Daily Performance: Unified report of ALL decisions and outcomes (replaces trade classification)
         """
         try:
             from ...jobs.daily_analytics import DailyAnalyticsJob
             from ...jobs.winners_summary import WinnersSummaryJob
-            from ...jobs.trade_classification import TradeClassificationJob, WeeklyAggregationJob
+            from ...jobs.daily_performance import DailyPerformanceJob
 
             logger.info("MarketHoursScheduler: Running daily analytics job")
 
@@ -581,61 +579,29 @@ class MarketHoursScheduler:
             except Exception as e:
                 logger.warning(f"Winners summary failed: {e}")
 
-            # Run trade classification (confusion matrix)
+            # Run daily performance report (unified view of all decisions & outcomes)
             try:
-                classification_job = TradeClassificationJob()
-                classification_result = await classification_job.run()
-                if classification_result:
-                    counts = classification_result.get("counts", {})
+                perf_job = DailyPerformanceJob()
+                perf_report = await perf_job.run()
+                if perf_report:
+                    s = perf_report["summary"]
                     await self._send_notification(
-                        f"📊 Trade Classification Complete\n"
-                        f"✅ TP: {counts.get('true_positive', 0)} | "
-                        f"❌ FP: {counts.get('false_positive', 0)}\n"
-                        f"⚠️ FN: {counts.get('false_negative', 0)} | "
-                        f"✓ TN: {counts.get('true_negative', 0)}\n"
-                        f"📈 Precision: {classification_result.get('precision', 'N/A')}\n"
-                        f"🎯 Recall: {classification_result.get('recall', 'N/A')}\n"
-                        f"📐 F1: {classification_result.get('f1_score', 'N/A')}"
+                        f"📋 Daily Performance Report\n"
+                        f"📅 {s['date']}\n"
+                        f"🎯 Traded: {s['traded']} ({s['traded_well']}W/{s['traded_poorly']}L)\n"
+                        f"💰 P&L: ${s['total_pnl_usd']:+.2f}\n"
+                        f"⚠️ Missed Winners: {s['missed_winners']} (best: +{s['best_missed_pct']}%)\n"
+                        f"✅ Correctly Skipped: {s['correctly_skipped']}\n"
+                        f"❌ Failed Execution: {s['failed_execution']}"
                     )
                     logger.info(
-                        "MarketHoursScheduler: Trade classification complete",
-                        precision=classification_result.get("precision"),
-                        recall=classification_result.get("recall"),
-                        f1=classification_result.get("f1_score"),
+                        "MarketHoursScheduler: Daily performance report complete",
+                        traded=s["traded"],
+                        missed=s["missed_winners"],
+                        skipped=s["correctly_skipped"],
                     )
             except Exception as e:
-                logger.warning(f"Trade classification failed: {e}")
-
-            # Run weekly aggregation daily (keeps current week's data up-to-date)
-            try:
-                from ...jobs.trade_classification import AllTimeAggregationJob
-                weekly_job = WeeklyAggregationJob()
-                weekly_result = await weekly_job.run()
-                if weekly_result:
-                    totals = weekly_result.get('totals', {})
-                    logger.info(
-                        "MarketHoursScheduler: Weekly aggregation complete",
-                        week=weekly_result.get("week"),
-                        fn=totals.get('false_negative', 0),
-                        tp=totals.get('true_positive', 0),
-                    )
-            except Exception as e:
-                logger.warning(f"Weekly aggregation failed: {e}")
-
-            # Run all-time aggregation daily
-            try:
-                alltime_job = AllTimeAggregationJob()
-                alltime_result = await alltime_job.run()
-                if alltime_result:
-                    totals = alltime_result.get('totals', {})
-                    logger.info(
-                        "MarketHoursScheduler: All-time aggregation complete",
-                        weeks=len(alltime_result.get('weeks_included', [])),
-                        fn=totals.get('false_negative', 0),
-                        tp=totals.get('true_positive', 0),
-                    )
-            except Exception as e:
-                logger.warning(f"All-time aggregation failed: {e}")
+                logger.warning(f"Daily performance report failed: {e}")
 
         except Exception as e:
             logger.error(

@@ -189,4 +189,9 @@ KEY RULE: Only trade headlines that are SURPRISING and TRANSFORMATIONAL
 ✓ TRADE: M&A, major partnerships, automation/robotics, material contracts
 ✗ SKIP: Earnings, store openings, operational updates, vague language
 
+MATERIAL DEAL OVERRIDE: If the headline describes a NEW deal/order/contract/agreement with a SPECIFIC dollar amount
+that is >25% of the company'''s market cap (provided in CONTEXT), it is almost certainly TRADE regardless of whether
+the deal type matches the industry-specific trade signals above. Dollar amounts relative to company size are the
+strongest signal. Evaluate on merit — do not let unfamiliar deal types cause a SKIP when the numbers are transformational.
+
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

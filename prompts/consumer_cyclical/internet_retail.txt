@@ -66,6 +66,15 @@ STRATEGIC ALTERNATIVES / ACQUISITION TARGET (Very strong — company is being pu
    "Board Evaluating Strategic Alternatives" (no bank named) -> TRADE SMALL
    "Exploring Strategic Options" (in earnings context) -> SKIP (defensive)
 
+PRODUCT/SERVICE LAUNCHES (New revenue streams)
+- New product, service, or business division launches with CONCRETE results
+- Must have at least ONE of: specific revenue/transaction figures, named customers, or specific product description
+- "AI-enabled" or tech-enhanced division launches with revenue figures = TRADE (company creating new revenue streams)
+- Examples:
+   "Launches AI-Enabled MICE Division, Achieves $2M in First Two Months" -> TRADE (concrete revenue)
+   "Launches New Marketplace Platform With 500 Active Merchants" -> TRADE (concrete traction)
+   "Introduces Premium Subscription Tier" -> SKIP (no revenue figures, no traction data)
+
 EXPANSION
 - New market entry
 - International expansion
@@ -170,8 +179,13 @@ SECTOR MISMATCH (Company doing something outside their business)
 ├─ If a company announces news completely unrelated to their industry
 ├─ This often signals desperation or pump scheme
 ├─ E.g., Internet Retail company doing submarines, Solar company doing AI
+├─ EXCEPTION: If the headline has a SPECIFIC dollar amount that is material relative
+│   to the company's market cap (>10% — see CONTEXT section) and the company is clearly
+│   RECEIVING revenue, it is NOT a mismatch. Small-cap companies regularly diversify
+│   into adjacent markets. A concrete dollar amount is evidence of a real deal.
 └─ Examples:
-   "E-commerce Company Enters Defense Sector" → SKIP (mismatch)
+   "E-commerce Company Enters Defense Sector" → SKIP (mismatch, no dollar amount)
+   "Tech Company Signs $12M Security Services Contract" → TRADE (specific $, receiving revenue)
 
 CASH OUTFLOWS (Spending money, not making it)
 ├─ "Acquires" / "To Acquire" = company SPENDING money
@@ -200,10 +214,17 @@ VAGUE PARTNERSHIPS (No concrete deliverables)
 ├─ "Strategic collaboration" without specifics = corporate fluff
 ├─ Unknown counterparties with no dollar amounts = not credible
 ├─ REQUIRE: Named customer/partner + (specific product OR dollar amount)
+├─ NOTE: A dollar amount is NOT required when the counterparty is a Fortune 500,
+│   major government agency, or well-known institution AND the headline describes a
+│   specific product, function, or scope. The counterparty name IS the signal for
+│   small-cap companies — a named Pfizer/NVIDIA/DoD partnership is transformational
+│   even without disclosed dollar terms.
 └─ Examples:
    "Partnership With Unknown Company For Innovation" → SKIP (vague)
    "Strategic Collaboration To Explore Opportunities" → SKIP (no specifics)
-   "Partners With Fortune 500 For $20M Platform Deal" → TRADE (specific)
+   "Partners With Fortune 500 For $20M Platform Deal" → TRADE (specific $)
+   "Partners With NVIDIA to Deploy AI Analytics Platform" → TRADE (Fortune 100 + specific product, no $ needed)
+   "Licenses Drug Compound to Pfizer for Oncology" → TRADE (Fortune 10 pharma + specific scope)
 
 OPERATIONAL MILESTONES (Planned events, not surprises)
 ├─ "Begins production", "commences operations", "adds capacity" = operational
@@ -285,9 +306,15 @@ DECISION RULES
 1. Brand partnerships = TRADE
 2. Platform deals = TRADE
 3. New market entry = TRADE
-4. Contract renewals/extensions = always SKIP
-5. Share repurchase/buyback programs = always TRADE (never defensive)
-6. Earnings = always SKIP
-7. Sales promotions = SKIP
+4. Product/service launches with concrete revenue or traction = TRADE
+5. Contract renewals/extensions = always SKIP
+6. Share repurchase/buyback programs = always TRADE (never defensive)
+7. Earnings = always SKIP
+8. Sales promotions = SKIP
+
+MATERIAL DEAL OVERRIDE: If the headline describes a NEW deal/order/contract/agreement with a SPECIFIC dollar amount
+that is >25% of the company'''s market cap (provided in CONTEXT), it is almost certainly TRADE regardless of whether
+the deal type matches the industry-specific trade signals above. Dollar amounts relative to company size are the
+strongest signal. Evaluate on merit — do not let unfamiliar deal types cause a SKIP when the numbers are transformational.
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)

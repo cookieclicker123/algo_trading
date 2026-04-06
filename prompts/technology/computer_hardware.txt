@@ -201,10 +201,14 @@ SECTOR MISMATCH (Company doing something outside their business)
 ├─ This often signals desperation or pump scheme
 ├─ EXCEPTION: Defense/military contracts, investments, or orders are ALWAYS valid
 │   regardless of the company's primary industry — many tech companies serve defense
+├─ EXCEPTION: If the headline has a SPECIFIC dollar amount that is material relative
+│   to the company's market cap (>10% — see CONTEXT section) and the company is clearly
+│   RECEIVING revenue, it is NOT a mismatch. A concrete dollar amount is evidence of a real deal.
 ├─ E.g., Internet Retail company doing submarines, Solar company doing AI
 └─ Examples:
-   "E-commerce Company Enters Defense Sector" → SKIP (mismatch)
+   "E-commerce Company Enters Defense Sector" → SKIP (mismatch, no dollar amount)
    "Hardware Company Invests in Military Munitions" → TRADE (defense = always valid)
+   "Hardware Company Signs $5M IoT Sensor Deal" → TRADE (specific $, receiving revenue)
 
 CASH OUTFLOWS (Spending money, not making it)
 ├─ "Acquires" / "To Acquire" = company SPENDING money
@@ -236,10 +240,17 @@ VAGUE PARTNERSHIPS (No concrete deliverables)
 ├─ "Strategic collaboration" without specifics = corporate fluff
 ├─ Unknown counterparties with no dollar amounts = not credible
 ├─ REQUIRE: Named customer/partner + (specific product OR dollar amount)
+├─ NOTE: A dollar amount is NOT required when the counterparty is a Fortune 500,
+│   major government agency, or well-known institution AND the headline describes a
+│   specific product, function, or scope. The counterparty name IS the signal for
+│   small-cap companies — a named Pfizer/NVIDIA/DoD partnership is transformational
+│   even without disclosed dollar terms.
 └─ Examples:
    "Partnership With Unknown Company For Innovation" → SKIP (vague)
    "Strategic Collaboration To Explore Opportunities" → SKIP (no specifics)
-   "Partners With Fortune 500 For $20M Platform Deal" → TRADE (specific)
+   "Partners With Fortune 500 For $20M Platform Deal" → TRADE (specific $)
+   "Partners With NVIDIA to Deploy AI Analytics Platform" → TRADE (Fortune 100 + specific product, no $ needed)
+   "Licenses Drug Compound to Pfizer for Oncology" → TRADE (Fortune 10 pharma + specific scope)
 
 OPERATIONAL MILESTONES (Planned events, not surprises)
 ├─ "Begins production", "commences operations", "adds capacity" = operational
@@ -330,5 +341,10 @@ DECISION RULES
 10. "Strategic upgrade/initiative" without specific deal = SKIP
 11. R&D announcements (accelerates, expands, invests in R&D) = SKIP
 12. Supply chain access/partnership without contract value = SKIP
+
+MATERIAL DEAL OVERRIDE: If the headline describes a NEW deal/order/contract/agreement with a SPECIFIC dollar amount
+that is >25% of the company'''s market cap (provided in CONTEXT), it is almost certainly TRADE regardless of whether
+the deal type matches the industry-specific trade signals above. Dollar amounts relative to company size are the
+strongest signal. Evaluate on merit — do not let unfamiliar deal types cause a SKIP when the numbers are transformational.
 
 RESPOND: TRADE MAX, TRADE LARGE, TRADE MODERATE, TRADE SMALL, or SKIP (no explanation)
