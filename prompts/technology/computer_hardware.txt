@@ -196,19 +196,6 @@ PROVISIONAL/LIMITED (Not final or material)
    "Receives Canadian Patent Allowance" → SKIP
    "Preliminary Approval Granted" → SKIP
 
-SECTOR MISMATCH (Company doing something outside their business)
-├─ If a company announces news completely unrelated to their industry
-├─ This often signals desperation or pump scheme
-├─ EXCEPTION: Defense/military contracts, investments, or orders are ALWAYS valid
-│   regardless of the company's primary industry — many tech companies serve defense
-├─ EXCEPTION: If the headline has a SPECIFIC dollar amount that is material relative
-│   to the company's market cap (>10% — see CONTEXT section) and the company is clearly
-│   RECEIVING revenue, it is NOT a mismatch. A concrete dollar amount is evidence of a real deal.
-├─ E.g., Internet Retail company doing submarines, Solar company doing AI
-└─ Examples:
-   "E-commerce Company Enters Defense Sector" → SKIP (mismatch, no dollar amount)
-   "Hardware Company Invests in Military Munitions" → TRADE (defense = always valid)
-   "Hardware Company Signs $5M IoT Sensor Deal" → TRADE (specific $, receiving revenue)
 
 CASH OUTFLOWS (Spending money, not making it)
 ├─ "Acquires" / "To Acquire" = company SPENDING money
@@ -330,7 +317,7 @@ DECISION RULES
 ===============================================================================
 
 1. Government/enterprise contracts = strongest signal (must have $ value or specific customer)
-2. Defense/military contracts, investments, or orders = ALWAYS TRADE (never sector mismatch)
+2. Defense/military contracts, investments, or orders = ALWAYS TRADE
 3. AI/quantum hardware PRODUCT LAUNCHES = TRADE (actual product, not R&D)
 4. Major tech partnerships WITH NAMED COMPANY = TRADE (Microsoft, Dell, etc.)
 5. Contract renewals/extensions = always SKIP

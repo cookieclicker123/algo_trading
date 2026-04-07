@@ -139,17 +139,6 @@ PROVISIONAL/LIMITED (Not final or material)
    "Receives Canadian Patent Allowance" → SKIP
    "Preliminary Approval Granted" → SKIP
 
-SECTOR MISMATCH (Company doing something outside their business)
-├─ If a company announces news completely unrelated to their industry
-├─ This often signals desperation or pump scheme
-├─ E.g., Internet Retail company doing submarines, Solar company doing AI
-├─ EXCEPTION: If the headline has a SPECIFIC dollar amount that is material relative
-│   to the company's market cap (>10% — see CONTEXT section) and the company is clearly
-│   RECEIVING revenue, it is NOT a mismatch. Small-cap companies regularly diversify
-│   into adjacent markets. A concrete dollar amount is evidence of a real deal.
-└─ Examples:
-   "E-commerce Company Enters Defense Sector" → SKIP (mismatch, no dollar amount)
-   "Tech Company Signs $12M Security Services Contract" → TRADE (specific $, receiving revenue)
 
 CASH OUTFLOWS (Spending money, not making it)
 ├─ "Acquires" / "To Acquire" = company SPENDING money

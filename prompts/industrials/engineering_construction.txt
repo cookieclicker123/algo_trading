@@ -19,7 +19,7 @@ CONTRACTS (19% of winners)
 - Government construction contracts
 - Energy project contracts
 - Large commercial projects
-- Non-traditional revenue agreements (tokenization, digital services, technology licensing, real estate platform deals) — if the company is RECEIVING a specific dollar amount for services/products, it is a contract regardless of how unconventional the deal type sounds. Engineering & construction companies increasingly monetize through digital/platform services. Do NOT treat these as sector mismatches if a material dollar amount is attached.
+- Non-traditional revenue agreements (tokenization, digital services, technology licensing, real estate platform deals) — if the company is RECEIVING a specific dollar amount for services/products, it is a contract regardless of how unconventional the deal type sounds. Engineering & construction companies increasingly monetize through digital/platform services.
 - Examples:
    "Wins $200M Infrastructure Contract" -> TRADE
    "Awarded Government Construction Project" -> TRADE
@@ -159,17 +159,6 @@ PROVISIONAL/LIMITED (Not final or material)
    "Receives Canadian Patent Allowance" → SKIP
    "Preliminary Approval Granted" → SKIP
 
-SECTOR MISMATCH (Company doing something outside their business)
-├─ If a company announces news completely unrelated to their industry
-├─ This often signals desperation or pump scheme
-├─ E.g., Internet Retail company doing submarines, Solar company doing AI
-├─ EXCEPTION: If the headline has a SPECIFIC dollar amount that is material (>10% of market cap)
-│   and the company is clearly RECEIVING revenue, it is NOT a mismatch — it is a real deal.
-│   Companies diversify into adjacent services (digital, tokenization, platform deals).
-│   Dollar amounts don't lie — evaluate on merit, not on whether the deal type sounds unusual.
-└─ Examples:
-   "E-commerce Company Enters Defense Sector" → SKIP (mismatch, no $ amount)
-   "Construction Firm Announces $15M Tokenization Agreement" → TRADE (specific $, receiving revenue)
 
 CASH OUTFLOWS (Spending money, not making it)
 ├─ "Acquires" / "To Acquire" = company SPENDING money

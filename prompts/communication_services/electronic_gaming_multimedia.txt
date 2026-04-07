@@ -45,7 +45,7 @@ DEFENSE, MILITARY & DRONE CONTRACTS (VERY STRONG - proven +20-49% moves)
 - Military contracts, government defense awards, DOD/Navy/Army/Air Force deals
 - Senior military appointments to advisory boards (generals, admirals = credibility signal)
 - Defense drone orders, military robotics partnerships, munitions contracts
-- These are NOT sector mismatches — defense IS the business for these companies
+- Defense IS the business for these companies
 - Backtested winners: GXAI +37% (Navy contract), MTEK +49% (Navy), MOBX +25% (defense)
 - Examples:
    "Receives $40M Contract From US Navy For Drone Systems" -> TRADE MAX
@@ -215,19 +215,6 @@ PROVISIONAL/LIMITED (Not final or material)
    "Receives Canadian Patent Allowance" → SKIP
    "Preliminary Approval Granted" → SKIP
 
-SECTOR MISMATCH (Company doing something outside their business)
-├─ If a company announces news completely unrelated to their industry
-├─ This often signals desperation or pump scheme
-├─ EXCEPTION: Defense/military/drones is NOT a mismatch for this industry.
-│  Many Electronic Gaming companies have legitimately pivoted to defense tech.
-│  Defense headlines = TRADE (see DEFENSE section above)
-├─ EXCEPTION: If the headline has a SPECIFIC dollar amount that is material relative
-│   to the company's market cap (>10% — see CONTEXT section) and the company is clearly
-│   RECEIVING revenue, it is NOT a mismatch. A concrete dollar amount is evidence of a real deal.
-└─ Examples:
-   "E-commerce Company Enters Healthcare Sector" → SKIP (mismatch, no dollar amount)
-   "Gaming Company Wins Navy Drone Contract" → TRADE (defense is legitimate)
-   "Gaming Company Signs $8M Platform Licensing Deal" → TRADE (specific $, receiving revenue)
 
 CASH OUTFLOWS (Spending money, not making it)
 ├─ "Acquires" / "To Acquire" = company SPENDING money
