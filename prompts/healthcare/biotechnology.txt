@@ -541,7 +541,6 @@ NON-COMMITTAL LANGUAGE (100% losers in backtesting)
 │   numbers to generate press releases. The actual deal often never materialises.
 └─ Examples:
    "Signs Non-binding Letter of Intent" → SKIP
-   "Enters Into Strategic Agreement" → SKIP (no details)
    "Signs Collaboration Framework Anticipating $60M in Potential Royalties upon Definitive Agreement" → SKIP (framework, not deal; "anticipates" = speculative; definitive agreement doesn't exist)
    "Signs Exclusive Framework with [Unknown Pharma] for $X Million in Milestones" → SKIP (framework ≠ contract, unknown partner, milestone $ = contingent)
 
@@ -552,50 +551,6 @@ LETTER OF INTENT — NUANCED (50+ winners in backtest)
    "LOI To Acquire Majority Stake in ABC Corp" → TRADE (specific)
    "Signs Letter of Intent With Major Partner" → SKIP (no target)
 
-DEFENSIVE/DISTRESSED LANGUAGE
-├─ "Restructuring", "Strengthens Financial Position"
-├─ NOTE: Share repurchase/buyback ≠ defensive (even with "Capital Allocation" language)
-└─ SKIP (bad news disguised as good)
-
-CASH OUTFLOWS
-├─ "Acquires" / "To Acquire" = company SPENDING money
-├─ EXCEPTION: Being acquired (target) → TRADE
-└─ "To Acquire Startup" → SKIP; "To Be Acquired" → TRADE
-
-DILUTION/OFFERINGS
-├─ "Securities purchase agreement", "Prices offering"
-├─ "Registered direct", "ATM offering", "PIPE"
-└─ ANY offering → SKIP
-
-VAGUE PARTNERSHIPS
-├─ No named partner, no dollar amount, no specific product
-├─ "Strategic collaboration to explore" = fluff
-├─ REQUIRE: Named MAJOR PHARMA partner + (specific product OR dollar amount)
-├─ EXCEPTION — TIERED PARTNERS: "Top 5/10/20 Pharmaceutical", "Top-Tier
-│   Pharma", "Major Global Pharmaceutical" = NDA-restricted naming, NOT
-│   vagueness. Treat as valid major pharma when combined with definitive
-│   agreement language + additional entity signals. See ENTITY-RICH
-│   PARTNERSHIPS section above.
-├─ Unknown or small pharma partners (not on the major pharma list) = SKIP
-│   unless the deal has a SIGNED definitive agreement with concrete terms
-├─ Biotech-specific trap: Small biotechs issue partnership PRs with inflated
-│   milestone numbers to pump their stock. The partner is often unknown,
-│   the deal is a "framework" not a contract, and the $ are "potential"
-├─ NOTE: A dollar amount is NOT required when the partner is a named major pharma
-│   (Pfizer, Merck, Roche, Novartis, AbbVie, J&J, Lilly, AstraZeneca, GSK, BMS,
-│   Sanofi, Amgen, Gilead, Regeneron, Biogen) AND the headline describes a specific
-│   product, therapeutic area, or scope. The partner name IS the signal — major pharma
-│   validation is transformational for small-cap biotechs even without disclosed $ terms.
-└─ Examples:
-   "Collaboration Framework with [Unknown Pharma] Anticipating $60M" → SKIP (not major pharma, framework not contract, $ are potential)
-   "Licensing Agreement with Pfizer for $200M Upfront" → TRADE LARGE (major pharma, signed, upfront $)
-   "Licenses Oncology Platform to Merck for Global Rights" → TRADE (named major pharma + specific scope, no $ needed)
-   "Exclusive Agreement with Molteni for European Distribution" → SKIP (unknown partner, no definitive terms)
-
-IMMATERIAL DOLLAR AMOUNTS
-├─ Contracts/deals < 3% of market cap rarely move stocks
-├─ Check: "Would this news materially change the company's value?"
-└─ "$2M contract" for $300M company → SKIP (immaterial)
 
 ===============================================================================
 POSITION SIZING

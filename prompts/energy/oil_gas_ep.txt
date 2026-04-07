@@ -143,33 +143,6 @@ LETTER OF INTENT (LOI) - NUANCED
    "LOI To Acquire 2 Producing Wells With $850K Cash" → TRADE (specific)
    "Signs Letter of Intent For Potential Investment" → SKIP (vague)
 
-DEFENSIVE/DISTRESSED LANGUAGE
-├─ "Restructuring", "Strengthens Financial Position" = trouble
-├─ NOTE: Buyback ≠ defensive
-└─ Examples:
-   "Restructures Debt" → SKIP
-
-MACRO NARRATIVE WITHOUT NEW INFORMATION
-├─ "Positioned to benefit from..." = not real news
-├─ Company PR tying existing operations to current events = no new catalyst
-└─ Examples:
-   "Positioned To Benefit From Energy Transition" → SKIP
-   "Helps Customers Navigate Price Volatility" → SKIP
-
-DILUTION/OFFERINGS
-├─ "Prices offering", "Registered direct offering", "Private placement"
-└─ Examples:
-   "Offers Securities Up To $50M" → SKIP
-   "Announces Registered Direct Offering" → SKIP
-
-VAGUE PARTNERSHIPS
-├─ Unknown counterparties, no dollar amounts
-├─ REQUIRE: Named target + specific assets OR dollar amount
-├─ NOTE: Named major energy company or named basin/field with specific scope = TRADE even
-│   without dollar amount. The counterparty name is the signal for small-cap E&P companies.
-└─ Examples:
-   "Strategic Collaboration To Explore Opportunities" → SKIP
-   "Joint Development Agreement With ConocoPhillips for Permian Assets" → TRADE (named major + specific assets)
 
 CASH OUTFLOWS (Spending money, not making it)
 ├─ "Acquires" / "To Acquire" = company SPENDING money
@@ -178,11 +151,6 @@ CASH OUTFLOWS (Spending money, not making it)
 └─ Examples:
    "To Acquire AI Startup" → SKIP (spending money)
    "To Be Acquired For $X Per Share" → TRADE (being acquired)
-
-IMMATERIAL DOLLAR AMOUNTS
-├─ Deals < 3% of market cap rarely move stocks
-└─ Examples:
-   "$1M deal" for $200M company → SKIP
 
 
 ===============================================================================

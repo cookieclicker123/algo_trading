@@ -25,15 +25,13 @@ CONTRACTS (16% of winners)
    "Awarded Government Security Contract" -> TRADE
 - CONTRACT QUALITY FILTERS (apply to ALL contract headlines):
    - NEW contract/order/agreement = TRADE (if material)
-   - Contract RENEWAL or EXTENSION = SKIP (priced in, not new business)
+   - Contract RENEWAL or EXTENSION = SKIP (unless significantly expanded with material dollar amount)
    - "Follow-on order" without significant expansion = SKIP
    - Must have SPECIFIC counterparty name OR dollar amount (vague = SKIP)
    - Company must be RECEIVING revenue (not spending/acquiring)
    - PRV sales, royalty agreements, asset purchases = SKIP (financial transactions, not contracts)
-   - "Framework agreement" or "anticipates upon execution" = SKIP (conditional, not definitive)
    - Examples:
       "Renews Supply Agreement" -> SKIP (renewal, not new)
-      "Signs Framework Agreement For Future Orders" -> SKIP (conditional)
 
 PARTNERSHIPS (15% of winners)
 - Cloud provider partnerships (AWS, Azure, GCP)
@@ -143,11 +141,9 @@ UNIVERSAL SKIP SIGNALS (Bad language patterns - applies to all headlines)
 
 NON-COMMITTAL LANGUAGE (100% losers in backtesting)
 ├─ "Non-binding" = not a real deal, frequently falls through
-├─ "Enters Into" without specifics = meaningless corporate speak
 ├─ "Memorandum of Understanding" without $ = preliminary, no commitment
 └─ Examples:
    "Signs Non-binding Letter of Intent" → SKIP
-   "Enters Into Strategic Agreement" → SKIP (no details)
    "Signs MOU for Future Cooperation" → SKIP (vague)
 
 LETTER OF INTENT (LOI) - NUANCED (50+ winners in backtest)
@@ -160,24 +156,6 @@ LETTER OF INTENT (LOI) - NUANCED (50+ winners in backtest)
    "Signs LOI For Strategic Acquisition of XYZ" → TRADE (named target)
    "Signs Letter of Intent With Major Partner" → SKIP (no target named)
    "Enters Into LOI For Potential Investment" → SKIP (vague, no specifics)
-
-DEFENSIVE/DISTRESSED LANGUAGE (Often bad news disguised as good)
-├─ "Restructuring" (debt, financing) = company in trouble
-├─ "Strengthens Financial Position" = defensive language
-├─ "Improves Financial Flexibility" = euphemism for distress
-├─ These phrases often mean: "we were in trouble, now less so"
-├─ NOTE: Share repurchase/buyback ≠ defensive (even with "Capital Allocation" language)
-└─ Examples:
-   "Restructures Debt Through Bank Financing" → SKIP
-   "Strengthens Financial Position Through Agreement" → SKIP
-
-PROVISIONAL/LIMITED (Not final or material)
-├─ "Allowance" (patent/regulatory) = not final grant
-├─ "Canadian" only = limited geography (unless US/global also mentioned)
-├─ "Preliminary" approval/results = can change
-└─ Examples:
-   "Receives Canadian Patent Allowance" → SKIP
-   "Preliminary Approval Granted" → SKIP
 
 
 CASH OUTFLOWS (Spending money, not making it)
@@ -203,45 +181,20 @@ DILUTION/OFFERINGS (Company raising cash = stock goes DOWN)
    "Closes Private Placement" → SKIP (dilution)
 
 VAGUE PARTNERSHIPS (No concrete deliverables)
-├─ "Partnership for innovation" = vague, no specific product or revenue
-├─ "Strategic collaboration" without specifics = corporate fluff
-├─ Unknown counterparties with no dollar amounts = not credible
-├─ REQUIRE: Named customer/partner + (specific product OR dollar amount)
-├─ NOTE: A dollar amount is NOT required when the counterparty is a Fortune 500,
-│   major government agency, or well-known institution AND the headline describes a
-│   specific product, function, or scope. The counterparty name IS the signal for
-│   small-cap companies — a named Pfizer/NVIDIA/DoD partnership is transformational
-│   even without disclosed dollar terms.
+├─ Only SKIP partnerships that have ZERO specifics: no named partner, no product, no dollar amount
+├─ If the headline has ANY concrete signal (named partner, specific product, dollar amount,
+│   government agency, or well-known institution), lean TRADE and let position size reflect conviction
 └─ Examples:
-   "Partnership With Unknown Company For Innovation" → SKIP (vague)
-   "Strategic Collaboration To Explore Opportunities" → SKIP (no specifics)
-   "Partners With Fortune 500 For $20M Platform Deal" → TRADE (specific $)
-   "Partners With NVIDIA to Deploy AI Analytics Platform" → TRADE (Fortune 100 + specific product, no $ needed)
-   "Licenses Drug Compound to Pfizer for Oncology" → TRADE (Fortune 10 pharma + specific scope)
+   "Partnership With Unknown Company For Innovation" → SKIP (zero specifics)
+   "Strategic Collaboration To Explore Opportunities" → SKIP (zero specifics)
+   "Partners With Fortune 500 For $20M Platform Deal" → TRADE LARGE
+   "Partners With NVIDIA to Deploy AI Analytics Platform" → TRADE (named partner + specific product)
+   "Selected by U.S. Navy for Defense Systems" → TRADE (government agency = concrete)
 
-OPERATIONAL MILESTONES (Planned events, not surprises)
-├─ "Begins production", "commences operations", "adds capacity" = operational
-├─ These are scheduled events the market already expects - no surprise value
-├─ Without NEW revenue, customers, or dollar amounts = not a catalyst
-└─ Examples:
-   "Begins Production At New Facility" → SKIP (planned, no $ value)
-   "Adds 50 MW Capacity To Data Center" → SKIP (operational expansion)
-   "Commences Shipments" without customer/$ → SKIP
-   "New Facility Secures $30M Annual Contract" → TRADE ($ attached)
 
-IMMATERIAL DOLLAR AMOUNTS (Too small to move the stock)
-├─ Dollar amounts must be MATERIAL relative to company market cap
-├─ Contracts/deals < 3% of market cap rarely move stocks significantly
-├─ Even "wins contract" headlines need material value to trade
-├─ Check: "Would this news materially change the company's value?"
-└─ Examples:
-   "$2M contract" for $300M company (0.7%) → SKIP (immaterial)
-   "$15M deal" for $100M company (15%) → TRADE (material)
-   "$50M partnership" for $30M company (167%) → TRADE MAX (transformational)
-
-KEY RULE: Only trade headlines that are SURPRISING and TRANSFORMATIONAL
-✓ TRADE: Specific dollar amounts (>3% of mkt cap), named customers, definitive agreements
-✗ SKIP: Vague language, operational milestones, immaterial amounts, non-binding terms
+KEY RULE: When uncertain, lean TRADE SMALL rather than SKIP.
+Position sizing handles conviction — use SMALL for marginal headlines.
+Only SKIP headlines that are clearly not catalysts (earnings, offerings, conferences, dilution, non-binding).
 
 
 ===============================================================================
@@ -299,7 +252,6 @@ DECISION RULES
 1. Government/federal contracts = strong TRADE signal
 2. Cloud provider partnerships = TRADE
 3. Acquisition announcements = TRADE
-4. Contract renewals/extensions = always SKIP
 5. Share repurchase/buyback programs = always TRADE (never defensive)
 6. Earnings = always SKIP
 7. Security certifications alone = SKIP

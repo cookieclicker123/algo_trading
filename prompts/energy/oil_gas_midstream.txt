@@ -136,31 +136,6 @@ LETTER OF INTENT (LOI) - NUANCED
    "LOI To Acquire Pipeline Assets From ABC Corp" → TRADE
    "Signs Letter of Intent For Potential Deal" → SKIP
 
-DEFENSIVE/DISTRESSED LANGUAGE
-├─ "Forbearance talks", "Restructuring" = company in trouble
-├─ NOTE: Buyback/distribution increase ≠ defensive
-└─ Examples:
-   "In Forbearance Talks As Debt Deadline Looms" → SKIP
-   "Restructures Debt" → SKIP
-
-MACRO NARRATIVE WITHOUT NEW INFORMATION
-├─ "Positioned to benefit from..." = not real news
-└─ Examples:
-   "Positioned To Benefit From LNG Demand Growth" → SKIP
-
-DILUTION/OFFERINGS
-├─ "Prices offering", "Registered direct offering"
-└─ Examples:
-   "Prices Public Offering Of 5M Shares" → SKIP
-   "Announces Registered Direct Offering" → SKIP
-
-VAGUE PARTNERSHIPS
-├─ REQUIRE: Named counterparty + specific asset/contract
-├─ NOTE: Named major energy company (Chevron, ExxonMobil, etc.) or named pipeline/terminal
-│   with specific scope = TRADE even without dollar amount. The counterparty name is the signal.
-└─ Examples:
-   "Explores Strategic Options" → SKIP
-   "Signs LNG Supply Agreement With Shell for Gulf Coast Terminal" → TRADE (named major + specific asset)
 
 CASH OUTFLOWS (Spending money, not making it)
 ├─ "Acquires" / "To Acquire" = company SPENDING money
@@ -169,11 +144,6 @@ CASH OUTFLOWS (Spending money, not making it)
 └─ Examples:
    "To Acquire AI Startup" → SKIP (spending money)
    "To Be Acquired For $X Per Share" → TRADE (being acquired)
-
-IMMATERIAL DOLLAR AMOUNTS
-├─ Deals < 3% of market cap
-└─ Examples:
-   "$500K contract" for $100M company → SKIP
 
 
 ===============================================================================

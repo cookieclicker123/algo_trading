@@ -121,11 +121,9 @@ UNIVERSAL SKIP SIGNALS (Bad language patterns - applies to all headlines)
 
 NON-COMMITTAL LANGUAGE (100% losers in backtesting)
 ├─ "Non-binding" = not a real deal, frequently falls through
-├─ "Enters Into" without specifics = meaningless corporate speak
 ├─ "Memorandum of Understanding" without $ = preliminary, no commitment
 └─ Examples:
    "Signs Non-binding Letter of Intent" → SKIP
-   "Enters Into Strategic Agreement" → SKIP (no details)
    "Signs MOU for Future Cooperation" → SKIP (vague)
 
 LETTER OF INTENT (LOI) - NUANCED
@@ -135,28 +133,6 @@ LETTER OF INTENT (LOI) - NUANCED
    "LOI To Acquire Majority Stake in ABC Corp" → TRADE (specific target)
    "Signs Letter of Intent With Major Partner" → SKIP (no target named)
 
-DEFENSIVE/DISTRESSED LANGUAGE
-├─ "Restructuring" (debt, financing) = company in trouble
-├─ "Strengthens Financial Position" = defensive language
-├─ NOTE: Share repurchase/buyback ≠ defensive
-└─ Examples:
-   "Restructures Debt Through Bank Financing" → SKIP
-   "Strengthens Financial Position Through Agreement" → SKIP
-
-MACRO NARRATIVE WITHOUT NEW INFORMATION
-├─ "Company positioned to benefit from..." = not real news
-├─ "Helps customers deal with market volatility" = PR fluff
-├─ Repackaging old news in context of current events = not a catalyst
-└─ Examples:
-   "Positioned To Benefit From Rising Oil Prices" → SKIP
-   "Helps Operators Navigate Market Uncertainty" → SKIP
-
-DILUTION/OFFERINGS
-├─ "Prices offering", "Closes offering", "Registered direct offering"
-├─ "Private placement", "Gross proceeds", "Net proceeds"
-└─ Examples:
-   "Prices Public Offering Of 6.5M Shares" → SKIP
-   "Announces Registered Direct Offering" → SKIP
 
 VAGUE PARTNERSHIPS (No concrete deliverables)
 ├─ Unknown counterparties with no dollar amounts = not credible
@@ -175,12 +151,6 @@ CASH OUTFLOWS (Spending money, not making it)
 └─ Examples:
    "To Acquire AI Startup" → SKIP (spending money)
    "To Be Acquired For $X Per Share" → TRADE (being acquired)
-
-IMMATERIAL DOLLAR AMOUNTS (Too small to move the stock)
-├─ Contracts/deals < 3% of market cap rarely move stocks significantly
-└─ Examples:
-   "$2M contract" for $300M company (0.7%) → SKIP
-   "$50M contract" for $100M company (50%) → TRADE LARGE
 
 
 ===============================================================================

@@ -71,15 +71,13 @@ CONTRACTS & SUPPLY DEALS
    "Signs Exclusive Supply Agreement With [Major Brand]" → TRADE MODERATE
 - CONTRACT QUALITY FILTERS (apply to ALL contract headlines):
    - NEW contract/order/agreement = TRADE (if material)
-   - Contract RENEWAL or EXTENSION = SKIP (priced in, not new business)
+   - Contract RENEWAL or EXTENSION = SKIP (unless significantly expanded with material dollar amount)
    - "Follow-on order" without significant expansion = SKIP
    - Must have SPECIFIC counterparty name OR dollar amount (vague = SKIP)
    - Company must be RECEIVING revenue (not spending/acquiring)
    - PRV sales, royalty agreements, asset purchases = SKIP (financial transactions, not contracts)
-   - "Framework agreement" or "anticipates upon execution" = SKIP (conditional, not definitive)
    - Examples:
       "Renews Supply Agreement" -> SKIP (renewal, not new)
-      "Signs Framework Agreement For Future Orders" -> SKIP (conditional)
 
 SHARE REPURCHASE (Bullish signal - size based on % of market cap)
 ├─ Share repurchase/buyback announcements = TRADE
@@ -151,20 +149,7 @@ NON-COMMITTAL LANGUAGE
 ├─ "Memorandum of Understanding" without $ = preliminary
 └─ Examples:
    "Signs Non-binding Letter of Intent" → SKIP
-   "Enters Into Strategic Agreement" → SKIP (no details)
 
-DEFENSIVE/DISTRESSED LANGUAGE
-├─ "Restructuring", "Strengthens Financial Position"
-├─ "Cost reduction initiative" (defensive)
-├─ NOTE: Share repurchase/buyback ≠ defensive (even with "Capital Allocation" language)
-└─ Examples:
-   "Restructures Debt" → SKIP
-   "Strengthens Balance Sheet" → SKIP
-
-DILUTION/OFFERINGS
-├─ "Prices offering", "Closes placement", "PIPE"
-├─ "Securities purchase agreement"
-└─ ANY offering/dilution headline → SKIP
 
 ===============================================================================
 POSITION SIZING
@@ -183,11 +168,9 @@ SIZE FACTORS:
    - MODERATE: Named contracts with $ amounts, specific tech partnerships
    - SMALL: Weaker but still tradeable catalysts
 
-Contract renewals/extensions = always SKIP
-
-KEY RULE: Only trade headlines that are SURPRISING and TRANSFORMATIONAL
-✓ TRADE: M&A, major partnerships, automation/robotics, material contracts
-✗ SKIP: Earnings, store openings, operational updates, vague language
+KEY RULE: When uncertain, lean TRADE SMALL rather than SKIP.
+Position sizing handles conviction — use SMALL for marginal headlines.
+Only SKIP headlines that are clearly not catalysts (earnings, offerings, conferences, dilution, non-binding).
 
 MATERIAL DEAL OVERRIDE: If the headline describes a NEW deal/order/contract/agreement with a SPECIFIC dollar amount
 that is >25% of the company'''s market cap (provided in CONTEXT), it is almost certainly TRADE regardless of whether

@@ -247,11 +247,9 @@ UNIVERSAL SKIP SIGNALS (Bad language patterns - applies to all headlines)
 
 NON-COMMITTAL LANGUAGE (100% losers in backtesting)
 ├─ "Non-binding" = not a real deal, frequently falls through
-├─ "Enters Into" without specifics = meaningless corporate speak
 ├─ "Memorandum of Understanding" without $ = preliminary, no commitment
 └─ Examples:
    "Signs Non-binding Letter of Intent" → SKIP
-   "Enters Into Strategic Agreement" → SKIP (no details)
    "Signs MOU for Future Cooperation" → SKIP (vague)
 
 LETTER OF INTENT (LOI) - NUANCED (50+ winners in backtest)
@@ -265,34 +263,6 @@ LETTER OF INTENT (LOI) - NUANCED (50+ winners in backtest)
    "Signs Letter of Intent With Major Partner" → SKIP (no target named)
    "Enters Into LOI For Potential Investment" → SKIP (vague, no specifics)
 
-DEFENSIVE/DISTRESSED LANGUAGE (Often bad news disguised as good)
-├─ "Restructuring" (debt, financing) = company in trouble
-├─ "Strengthens Financial Position" = defensive language
-├─ NOTE: Share repurchase/buyback ≠ defensive (even with "Capital Allocation" language)
-└─ Examples:
-   "Restructures Debt Through Bank Financing" → SKIP
-   "Strengthens Financial Position" → SKIP
-
-LINE EXTENSIONS / LABEL EXPANSIONS (Not breakthrough - incremental value)
-├─ Drug approved for one indication, now testing for new body parts/populations
-├─ "Extremities", "Trunk", "Neck", "Torso", "Limbs" = body part expansion
-├─ "Supplemental NDA (sNDA)" = adding to existing approval
-├─ "Label expansion" / "Additional indication" / "Expand Label" for EXISTING drug
-├─ "Initiate trial seeking to expand label" = label expansion trial (NOT new drug)
-├─ Market doesn't react strongly - already priced in, not transformational
-├─ Even "Phase 3" doesn't matter if it's for label expansion of existing drug
-└─ Examples:
-   "Phase 3 Results for Drug on Extremities, Neck, and Trunk" → SKIP
-   "To Initiate Phase 3 Trial Seeking to Expand Label to Include [Indication]" → SKIP
-   "Label Expansion for Existing Drug" → SKIP
-   "sNDA for Additional Indication" → SKIP
-   "NEW Drug Approval (first indication)" → TRADE (not line extension)
-
-PROVISIONAL/LIMITED (Not final or material)
-├─ "Allowance" (patent/regulatory) = not final grant
-├─ "Canadian" only = limited geography
-└─ Examples:
-   "Receives Canadian Patent Allowance" → SKIP
 
 CASH OUTFLOWS (Spending money, not making it)
 ├─ "Acquires" / "To Acquire" = company SPENDING money
@@ -338,29 +308,10 @@ VAGUE PARTNERSHIPS (No concrete deliverables)
    "Partners With Mayo Clinic for Clinical Validation Study" → TRADE (named major institution + specific scope)
    "Partners With Fortune 500 For $20M Platform Deal" → TRADE (specific)
 
-OPERATIONAL MILESTONES (Planned events, not surprises)
-├─ "Begins production", "commences operations", "adds capacity" = operational
-├─ These are scheduled events the market already expects - no surprise value
-├─ Without NEW revenue, customers, or dollar amounts = not a catalyst
-└─ Examples:
-   "Begins Production At New Facility" → SKIP (planned, no $ value)
-   "Adds 50 MW Capacity To Data Center" → SKIP (operational expansion)
-   "Commences Shipments" without customer/$ → SKIP
-   "New Facility Secures $30M Annual Contract" → TRADE ($ attached)
 
-IMMATERIAL DOLLAR AMOUNTS (Too small to move the stock)
-├─ Dollar amounts must be MATERIAL relative to company market cap
-├─ Contracts/deals < 3% of market cap rarely move stocks significantly
-├─ Even "wins contract" headlines need material value to trade
-├─ Check: "Would this news materially change the company's value?"
-└─ Examples:
-   "$2M contract" for $300M company (0.7%) → SKIP (immaterial)
-   "$15M deal" for $100M company (15%) → TRADE (material)
-   "$50M partnership" for $30M company (167%) → TRADE MAX (transformational)
-
-KEY RULE: Only trade headlines that are SURPRISING and TRANSFORMATIONAL
-✓ TRADE: Specific dollar amounts (>3% of mkt cap), named customers, definitive agreements
-✗ SKIP: Vague language, operational milestones, immaterial amounts, non-binding terms
+KEY RULE: When uncertain, lean TRADE SMALL rather than SKIP.
+Position sizing handles conviction — use SMALL for marginal headlines.
+Only SKIP headlines that are clearly not catalysts (earnings, offerings, conferences, dilution, non-binding).
 
 ===============================================================================
 POSITION SIZING (Output: TRADE SMALL, TRADE MODERATE, TRADE LARGE, TRADE MAX, or SKIP)
