@@ -305,12 +305,17 @@ class BenzingaWebSocketMicroservice:
             ) as ws:
                 self.websocket = ws
 
-                # Connection opened
+                # Connection opened — reset all ping/pong state so monitor
+                # doesn't see stale timestamps from a previous dead connection
                 logger.info("WebSocket connection opened")
-                self._operational_stats["connection_verified_at"] = datetime.now()
+                now = datetime.now()
+                self._operational_stats["connection_verified_at"] = now
+                self._operational_stats["last_ping_sent"] = now
+                self._operational_stats["last_pong_received"] = now
+                self._operational_stats["missed_pongs"] = 0
                 self._reconnect_attempts = 0
                 self._reconnect_delay = 5.0
-                self._startup_time = datetime.now()
+                self._startup_time = now
 
                 # Publish connected event
                 await self._publish_connected()

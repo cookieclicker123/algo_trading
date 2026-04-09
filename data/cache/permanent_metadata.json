@@ -141574,5 +141574,33 @@
   "MAKO": {
     "industry": "Gold",
     "sector": "Basic Materials"
+  },
+  "HSLV": {
+    "industry": "Silver",
+    "sector": "Basic Materials"
+  },
+  "VIVO": {
+    "industry": "Software - Infrastructure",
+    "sector": "Technology"
+  },
+  "GLND": {
+    "industry": "Oil & Gas E&P",
+    "sector": "Energy"
+  },
+  "ACAAU": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
+  },
+  "AACOU": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
+  },
+  "MGIH": {
+    "industry": "Packaging & Containers",
+    "sector": "Consumer Cyclical"
+  },
+  "ACGCU": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
   }
 }

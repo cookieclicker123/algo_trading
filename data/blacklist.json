@@ -314,5 +314,11 @@
     "permanent": false,
     "created_at": "2026-04-06T13:18:22.784236",
     "last_fp_date": "2026-04-06"
+  },
+  "CYCU": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-04-08T13:40:07.578099",
+    "last_fp_date": "2026-04-08"
   }
 }

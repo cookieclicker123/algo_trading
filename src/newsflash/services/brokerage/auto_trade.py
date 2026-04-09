@@ -457,20 +457,20 @@ def cleanup_stale_tracking() -> None:
 # REDUCED 10x from normal sizes while testing/validating filters
 # Paper shadow trades use 50x these amounts for meaningful stats
 POSITION_SIZES_USD = {
-    ConvictionLevel.MINIMUM: Decimal("10.00"),        # AI: SMALL - $10 (scaled down 100x from $1,000)
-    ConvictionLevel.STANDARD: Decimal("12.50"),       # AI: MODERATE - $12.50 (scaled down 100x from $1,250)
-    ConvictionLevel.HIGH: Decimal("15.00"),           # AI: LARGE - $15 (scaled down 100x from $1,500)
-    ConvictionLevel.VERY_HIGH: Decimal("20.00"),      # AI: MAX - $20 (scaled down 100x from $2,000)
+    ConvictionLevel.MINIMUM: Decimal("50.00"),        # AI: SMALL - $50 (5x scale-up)
+    ConvictionLevel.STANDARD: Decimal("62.50"),       # AI: MODERATE - $62.50 (5x scale-up)
+    ConvictionLevel.HIGH: Decimal("75.00"),           # AI: LARGE - $75 (5x scale-up)
+    ConvictionLevel.VERY_HIGH: Decimal("100.00"),     # AI: MAX - $100 (5x scale-up)
 }
 
 # High-conviction headline types (gov/military contracts, major commercial contracts):
 # Structural edge — real government/commercial money, less manipulation than biotech.
 # Volume and float in defense headlines is usually sufficient for full fills.
 HC_POSITION_SIZES_USD = {
-    ConvictionLevel.MINIMUM: Decimal("75.00"),        # AI: SMALL → overridden to MODERATE ($75, scaled down 100x from $7,500)
-    ConvictionLevel.STANDARD: Decimal("75.00"),       # AI: MODERATE - $75 (scaled down 100x from $7,500)
-    ConvictionLevel.HIGH: Decimal("100.00"),          # AI: LARGE - $100 (scaled down 100x from $10,000)
-    ConvictionLevel.VERY_HIGH: Decimal("125.00"),     # AI: MAX - $125 (scaled down 100x from $12,500)
+    ConvictionLevel.MINIMUM: Decimal("375.00"),       # AI: SMALL → overridden to MODERATE ($375, 5x scale-up)
+    ConvictionLevel.STANDARD: Decimal("375.00"),      # AI: MODERATE - $375 (5x scale-up)
+    ConvictionLevel.HIGH: Decimal("500.00"),          # AI: LARGE - $500 (5x scale-up)
+    ConvictionLevel.VERY_HIGH: Decimal("625.00"),     # AI: MAX - $625 (5x scale-up)
 }
 
 # Map AI position size strings to ConvictionLevel
@@ -2717,11 +2717,14 @@ async def process_imminent_article(
         # This means the move already happened - we're entering as exit liquidity.
         #
         # Two-leg filter:
-        # 1. pub → recv: Max 3% ask change (if already moved, we're late)
-        # 2. recv → fill: Max 3% ask change (if moving during our checks, too volatile)
+        # 1. pub → recv: Max 7.5% ask change (if already moved, we're late)
+        # 2. recv → fill: Max 7.5% ask change (if moving during our checks, too volatile)
         #
         # This catches both front-running (pub→recv) and chase scenarios (recv→fill).
-        MAX_ASK_CHANGE_PER_LEG_PCT = 3.0
+        # Raised from 3% → 7.5%: big winners are volatile from the jump. The LLM
+        # already validated the headline — fast movers are a buy signal, not front-running.
+        # OMEX merger moved 6.6% in 2.8s and was a +80% winner killed at 3%.
+        MAX_ASK_CHANGE_PER_LEG_PCT = 7.5
         MIN_ABSOLUTE_ASK_MOVE = 0.05  # $0.05 minimum move to trigger filter (penny stock protection)
         initial_ask = confluence_metadata.get("initial_ask")  # Ask at reception/confluence time
 
