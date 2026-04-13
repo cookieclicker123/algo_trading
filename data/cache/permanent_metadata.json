@@ -141602,5 +141602,21 @@
   "ACGCU": {
     "industry": "Shell Companies",
     "sector": "Financial Services"
+  },
+  "CSHR": {
+    "industry": "Capital Markets",
+    "sector": "Financial Services"
+  },
+  "HQWWW": {
+    "industry": "",
+    "sector": ""
+  },
+  "HQ": {
+    "industry": "Software - Infrastructure",
+    "sector": "Technology"
+  },
+  "MLAA": {
+    "industry": "",
+    "sector": ""
   }
 }

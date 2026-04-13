@@ -16530,6 +16530,21 @@
     "MGIH": {
       "market_cap_millions": 15.8625,
       "float_shares": 1249988
+    },
+    "CSHR": {
+      "market_cap_millions": 443.04144,
+      "float_shares": 51747182
+    },
+    "HQWWW": {
+      "float_shares": 5586560
+    },
+    "HQ": {
+      "market_cap_millions": 428.515296,
+      "float_shares": 5586560
+    },
+    "MLAA": {
+      "market_cap_millions": 256.562992,
+      "float_shares": 36440140
     }
   }
 }

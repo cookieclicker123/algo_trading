@@ -86,6 +86,8 @@ HIGH_CONVICTION_HEADLINE_TYPES = frozenset({
     "military_contract",     # Any military/defense deal (Army, Navy, Air Force, weapons, drones, munitions)
     "defense_order",         # Orders from defense companies or for defense products
     "major_contract",        # Commercial contracts — micro-cap + material deal size = sustained moves
+    "stock_buyback",         # Company buying own shares — structural demand, reduces float
+    "merger_agreement",      # Definitive merger — creates price floor, sustained buying
 })
 
 # Headline types that should NEVER be traded.
@@ -457,20 +459,20 @@ def cleanup_stale_tracking() -> None:
 # REDUCED 10x from normal sizes while testing/validating filters
 # Paper shadow trades use 50x these amounts for meaningful stats
 POSITION_SIZES_USD = {
-    ConvictionLevel.MINIMUM: Decimal("50.00"),        # AI: SMALL - $50 (5x scale-up)
-    ConvictionLevel.STANDARD: Decimal("62.50"),       # AI: MODERATE - $62.50 (5x scale-up)
-    ConvictionLevel.HIGH: Decimal("75.00"),           # AI: LARGE - $75 (5x scale-up)
-    ConvictionLevel.VERY_HIGH: Decimal("100.00"),     # AI: MAX - $100 (5x scale-up)
+    ConvictionLevel.MINIMUM: Decimal("300.00"),       # AI: SMALL - $300
+    ConvictionLevel.STANDARD: Decimal("375.00"),      # AI: MODERATE - $375
+    ConvictionLevel.HIGH: Decimal("450.00"),          # AI: LARGE - $450
+    ConvictionLevel.VERY_HIGH: Decimal("600.00"),     # AI: MAX - $600
 }
 
 # High-conviction headline types (gov/military contracts, major commercial contracts):
 # Structural edge — real government/commercial money, less manipulation than biotech.
 # Volume and float in defense headlines is usually sufficient for full fills.
 HC_POSITION_SIZES_USD = {
-    ConvictionLevel.MINIMUM: Decimal("375.00"),       # AI: SMALL → overridden to MODERATE ($375, 5x scale-up)
-    ConvictionLevel.STANDARD: Decimal("375.00"),      # AI: MODERATE - $375 (5x scale-up)
-    ConvictionLevel.HIGH: Decimal("500.00"),          # AI: LARGE - $500 (5x scale-up)
-    ConvictionLevel.VERY_HIGH: Decimal("625.00"),     # AI: MAX - $625 (5x scale-up)
+    ConvictionLevel.MINIMUM: Decimal("750.00"),       # AI: SMALL → overridden to MODERATE ($750, 10x scale-up)
+    ConvictionLevel.STANDARD: Decimal("750.00"),      # AI: MODERATE - $750 (10x scale-up)
+    ConvictionLevel.HIGH: Decimal("1000.00"),         # AI: LARGE - $1000 (10x scale-up)
+    ConvictionLevel.VERY_HIGH: Decimal("1250.00"),    # AI: MAX - $1250 (10x scale-up)
 }
 
 # Map AI position size strings to ConvictionLevel
@@ -2130,7 +2132,7 @@ async def process_imminent_article(
 
         if is_high_conviction:
             # HIGH-CONVICTION DEFENSE: Use AI position size with minimum MODERATE
-            # Sized up: MODERATE=$750, LARGE=$1000, MAX=$1500
+            # Sized up: uses HC_POSITION_SIZES_USD (MODERATE=$750, LARGE=$1000, MAX=$1250)
             if ai_position_size == "SMALL":
                 ai_position_size = "MODERATE"
             ai_conviction = AI_SIZE_TO_CONVICTION.get(ai_position_size, ConvictionLevel.STANDARD)
@@ -2145,7 +2147,7 @@ async def process_imminent_article(
             )
         elif is_clinical_breakthrough:
             # CLINICAL BREAKTHROUGH: Phase 2+ exceptional trials — sized up like HC
-            # MODERATE=$7,500, LARGE=$10,000, MAX=$12,500
+            # Uses HC_POSITION_SIZES_USD
             ai_conviction = AI_SIZE_TO_CONVICTION.get(ai_position_size, ConvictionLevel.STANDARD)
             size_dict = HC_POSITION_SIZES_USD
             logger.info(
@@ -2159,7 +2161,7 @@ async def process_imminent_article(
         elif headline_type == "stock_buyback":
             # STOCK BUYBACK: HC sizing (structural edge — company is the buyer)
             # but normal safety filters still apply (no HC filter bypasses).
-            # Fixed $10,000 position — buybacks are binary (real demand from company).
+            # Fixed HC LARGE position — buybacks are binary (real demand from company).
             ai_conviction = ConvictionLevel.HIGH
             size_dict = HC_POSITION_SIZES_USD
             logger.info(
@@ -2186,8 +2188,7 @@ async def process_imminent_article(
             )
         else:
             # NORMAL TRADES: Use AI-determined position size
-            # AI sizes: SMALL=$1000, MODERATE=$1250, LARGE=$1500, MAX=$2000
-            # Modified by confluence multiplier (0.5x-1.0x)
+            # Uses POSITION_SIZES_USD, modified by confluence multiplier (0.5x-1.0x)
             ai_conviction = AI_SIZE_TO_CONVICTION.get(ai_position_size, ConvictionLevel.STANDARD)
             size_dict = POSITION_SIZES_USD
             logger.info(
@@ -2499,7 +2500,7 @@ async def process_imminent_article(
             _ab_price = confluence_metadata.get("initial_ask") or 0
             MAX_SPREAD_PCT = _ai_breakthrough_spread_threshold(_ab_price)
         else:
-            MAX_SPREAD_PCT = 4.5
+            MAX_SPREAD_PCT = 5.0
         initial_spread = confluence_metadata.get("initial_spread")
         initial_ask = confluence_metadata.get("initial_ask")
         initial_bid = confluence_metadata.get("initial_bid", 0)
@@ -2517,7 +2518,7 @@ async def process_imminent_article(
 
                 if spread_pct_of_mid > MAX_SPREAD_PCT:
                     logger.info(
-                        "⏭️ AUTO-TRADE SKIPPED: Spread too wide (>4.5% of mid) - instant loss trap",
+                        "⏭️ AUTO-TRADE SKIPPED: Spread too wide (>5% of mid) - instant loss trap",
                         ticker=ticker,
                         spread_pct_of_mid=round(spread_pct_of_mid, 2),
                         max_allowed=MAX_SPREAD_PCT,
@@ -2645,7 +2646,7 @@ async def process_imminent_article(
             _ab_fill_price = confluence_metadata.get("initial_ask") or 0
             MAX_FILL_SPREAD_PCT = _ai_breakthrough_spread_threshold(_ab_fill_price)
         else:
-            MAX_FILL_SPREAD_PCT = 4.5
+            MAX_FILL_SPREAD_PCT = 5.0
         SPREAD_TIGHT_INITIAL = 3.0  # Initial spread considered "tight"
         SPREAD_WIDENING_TOLERANCE = 3.0  # Max acceptable widening from initial (percentage points)
 
@@ -2671,7 +2672,7 @@ async def process_imminent_article(
                             if initial_was_tight and widening_is_modest:
                                 # Temporary volatility on a liquid stock — allow it
                                 logger.info(
-                                    "✅ FILL-TIME SPREAD: Exceeds 4.5% but initial was tight and widening modest — temporary volatility",
+                                    "✅ FILL-TIME SPREAD: Exceeds 5% but initial was tight and widening modest — temporary volatility",
                                     ticker=ticker,
                                     fill_spread_pct=round(fill_spread_pct, 2),
                                     initial_spread_pct=round(initial_spread_pct_val, 2),

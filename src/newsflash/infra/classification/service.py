@@ -682,10 +682,10 @@ Summary: {summary}"""
                 # ====================================================================
                 spread = nbbo_snapshot.get("spread", 0)
                 spread_pct = nbbo_snapshot.get("spread_pct", 0)
-                MAX_SPREAD_PCT_PREFILTER = 4.5
+                MAX_SPREAD_PCT_PREFILTER = 5.0
 
                 # HIGH-CONVICTION SPREAD BYPASS: If headline is high-conviction (e.g. military_contract),
-                # relax spread from 4.5% → 10%. Uses early triage result (already populated above).
+                # relax spread from 5% → 10%. Uses early triage result (already populated above).
                 HIGH_CONVICTION_PREFILTER_TYPES = frozenset({
                     "government_contract", "military_contract", "defense_order",
                     "major_contract",  # Commercial contracts — 46.2% IMMINENT win rate, avg MFE +50%
@@ -725,7 +725,7 @@ Summary: {summary}"""
 
                 if is_merger_headline and spread_pct and spread_pct > MAX_SPREAD_PCT_PREFILTER:
                     logger.info(
-                        f"🤝 MERGER AGREEMENT: Relaxing spread prefilter (4.5% → {MAX_SPREAD_PCT_MERGER}%)",
+                        f"🤝 MERGER AGREEMENT: Relaxing spread prefilter (5% → {MAX_SPREAD_PCT_MERGER}%)",
                         article_id=request_data.article_id,
                         ticker=primary_ticker,
                         spread_pct=round(spread_pct, 2),
@@ -735,7 +735,7 @@ Summary: {summary}"""
 
                 if is_high_conviction_headline and spread_pct and spread_pct > MAX_SPREAD_PCT_PREFILTER:
                     logger.info(
-                        "✅ HIGH-CONVICTION HEADLINE: Relaxing spread prefilter (4.5% → 7%)",
+                        "✅ HIGH-CONVICTION HEADLINE: Relaxing spread prefilter (5% → 10%)",
                         article_id=request_data.article_id,
                         ticker=primary_ticker,
                         spread_pct=round(spread_pct, 2),
@@ -1040,23 +1040,42 @@ Summary: {summary}"""
             return
 
         try:
-            # STOCK BUYBACK BYPASS: Always trade buybacks regardless of sector/industry.
-            # Buybacks are structurally bullish (company is the buyer, reduces float).
-            # Skip sector LLM entirely — auto_trade.py applies HC LARGE sizing.
-            if triage_headline_type == "stock_buyback":
+            # SECTOR LLM BYPASS: Headline types that are universally tradeable
+            # regardless of sector/industry. The triage already validated the type —
+            # the sector LLM adds false-SKIP risk without adding signal.
+            #
+            # HC types (gov/military/major contracts): sector prompt can't evaluate
+            # cross-industry deals (e.g. biotech-classified company winning defense
+            # contract). Activity confirmation + postfilters still protect against duds.
+            # Data: CETX +104%, ELAB +24% missed by sector LLM; WRAP/GNSS caught by
+            # activity filter (no surge = no trade). Zero losers from bypass.
+            #
+            # Buybacks: structurally bullish in every sector (company is the buyer).
+            # AI breakthrough: the sector prompt can't judge cross-industry AI/robotics
+            # (ONCO: biotech-classified company launching AI humanoid robot → +80%).
+            HC_BYPASS_TYPES = frozenset({
+                "government_contract", "military_contract", "defense_order", "major_contract",
+                "stock_buyback", "ai_breakthrough",
+            })
+
+            if triage_headline_type in HC_BYPASS_TYPES:
                 logger.info(
-                    "💰 BUYBACK BYPASS: Skipping sector LLM — always trade stock buybacks",
+                    f"🎖️ HC BYPASS: Skipping sector LLM — {triage_headline_type} trades on headline signal + activity confirmation",
                     article_id=request_data.article_id,
                     ticker=primary_ticker,
+                    headline_type=triage_headline_type,
                     headline=headline[:60],
                 )
+
+                # Buybacks get LARGE; HC contract types get MODERATE (confluence multiplier scales up)
+                bypass_size = "LARGE" if triage_headline_type == "stock_buyback" else "MODERATE"
 
                 response_data = InfrastructureClassificationResponseData(
                     classification="imminent",
                     confidence="HIGH",
-                    reasoning="stock_buyback - sector LLM bypassed (always trade)",
-                    position_size="LARGE",
-                    headline_type="stock_buyback",
+                    reasoning=f"{triage_headline_type} - sector LLM bypassed (HC headline type)",
+                    position_size=bypass_size,
+                    headline_type=triage_headline_type,
                 )
 
                 completed_event = ClassificationCompletedInfrastructureEvent(
@@ -1065,7 +1084,7 @@ Summary: {summary}"""
                     completed_at=datetime.now(),
                     latency_ms=0.0,
                     success=True,
-                    source="buyback_bypass"
+                    source="hc_bypass"
                 )
 
                 await self.event_bus.publish(

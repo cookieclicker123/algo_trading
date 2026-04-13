@@ -105,10 +105,12 @@
     "last_win_date": "2026-03-06T23:20:09.446191"
   },
   "BURU": {
-    "consecutive_fps": 2,
-    "permanent": false,
+    "consecutive_fps": 3,
+    "permanent": true,
     "created_at": "2026-03-09T11:48:32.803922",
-    "last_fp_date": "2026-03-20"
+    "last_fp_date": "2026-04-09",
+    "reason": "3 consecutive false positives",
+    "blacklisted_at": "2026-04-09T13:06:34.494453"
   },
   "VRTX": {
     "consecutive_fps": 0,
@@ -136,10 +138,10 @@
     "last_fp_date": "2026-03-11"
   },
   "KWM": {
-    "consecutive_fps": 1,
+    "consecutive_fps": 2,
     "permanent": false,
     "created_at": "2026-03-11T12:31:27.472569",
-    "last_fp_date": "2026-03-11"
+    "last_fp_date": "2026-04-10"
   },
   "ASNS": {
     "consecutive_fps": 1,
@@ -184,10 +186,10 @@
     "last_fp_date": "2026-03-24"
   },
   "PRZO": {
-    "consecutive_fps": 1,
+    "consecutive_fps": 2,
     "permanent": false,
     "created_at": "2026-03-13T12:57:41.963083",
-    "last_fp_date": "2026-03-13"
+    "last_fp_date": "2026-04-13"
   },
   "CTMX": {
     "consecutive_fps": 1,
@@ -244,10 +246,10 @@
     "last_fp_date": "2026-03-24"
   },
   "OPTT": {
-    "consecutive_fps": 1,
+    "consecutive_fps": 2,
     "permanent": false,
     "created_at": "2026-03-24T12:30:23.999134",
-    "last_fp_date": "2026-03-24"
+    "last_fp_date": "2026-04-13"
   },
   "SRPT": {
     "consecutive_fps": 1,
@@ -320,5 +322,29 @@
     "permanent": false,
     "created_at": "2026-04-08T13:40:07.578099",
     "last_fp_date": "2026-04-08"
+  },
+  "GNLN": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-04-09T12:32:08.046014",
+    "last_fp_date": "2026-04-09"
+  },
+  "WRAP": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-04-10T12:49:10.668138",
+    "last_fp_date": "2026-04-10"
+  },
+  "ALMU": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-04-13T12:03:42.074541",
+    "last_fp_date": "2026-04-13"
+  },
+  "RVMD": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-04-13T13:01:25.252280",
+    "last_fp_date": "2026-04-13"
   }
 }
