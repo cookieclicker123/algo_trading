@@ -64,9 +64,18 @@ PRODUCT LAUNCHES (Physical products or brand partnerships)
 
 CLINICAL RESULTS
 ├─ First-in-human study completion
-├─ Clinical study results
+├─ Clinical study results with specific data (response rate, endpoints, %)
+├─ REQUIRE SPECIFIC DATA: Headlines must contain concrete numbers to qualify as TRADE.
+│   "Positive results" alone without specific data = SKIP (press release spin)
+├─ SKIP: "Interim results" / "preliminary data" without specific numbers (too early, can change)
+├─ SKIP: "Positive interim results" with only qualitative descriptions (no %, no rate, no p-value)
+├─ KEY: Pivotal/Phase 3 final results with specific endpoints met = strong TRADE
+│   Interim/preliminary without numbers = SKIP regardless of "positive" framing
 └─ Examples:
    "Announces Completion Of First In Human Clinical Study" → TRADE
+   "Phase 2 Trial Shows 92% Success Rate" → TRADE (specific number)
+   "Positive Interim Results from Study Demonstrating Improvement" → SKIP (no numbers)
+   "Reports Positive Preliminary Data" → SKIP (preliminary, no data)
 
 
 M&A / STRATEGIC ALTERNATIVES

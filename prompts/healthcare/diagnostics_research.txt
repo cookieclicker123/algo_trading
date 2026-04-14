@@ -26,9 +26,18 @@ SCIENTIFIC/RESEARCH FINDINGS
 ├─ Patent grants for diagnostic technology
 ├─ Publication of study results
 ├─ New biomarker discovery
+├─ REQUIRE SPECIFIC DATA for clinical/study results: Headlines must contain concrete
+│   numbers (response rate, sensitivity/specificity %, endpoint, patient count) to TRADE.
+│   "Positive results" alone without data = SKIP (press release spin, not evidence)
+├─ SKIP: "Interim results" / "preliminary data" without specific numbers (too early, can change)
+├─ SKIP: "Positive interim results" with only qualitative descriptions
+├─ KEY: Final/validated results with specific performance metrics = strong TRADE
+│   Interim/preliminary without numbers = SKIP regardless of "positive" framing
 └─ Examples:
    "To Present Findings Related To Discovery Of Predictive Biomarker" → TRADE
    "To Be Granted US Patent For Radio Frequency Applicator" → TRADE
+   "Diagnostic Achieves 97% Sensitivity in Pivotal Study" → TRADE (specific number)
+   "Positive Interim Results from Validation Study" → SKIP (interim, no numbers)
    "Highlights Urgent Need For Better Diagnosis After Study Shows" → TRADE
 
 PRODUCT/TEST LAUNCHES

@@ -55,6 +55,13 @@ CLINICAL TRIAL RESULTS
 │   ✗ "Strengthens Clinical Pathway Following Positive Results" → SKIP (vague)
 │   ✓ "86% Clinical Benefit Rate" → TRADE (specific number)
 │   ✓ "Phase 2 Shows 40% Reduction in Disease Score" → TRADE (specific %)
+├─ NOTE: INTERIM / PRELIMINARY = SKIP (unless with specific numbers)
+│   "Interim results" and "preliminary data" are incomplete — can change, often
+│   already partially priced in, and "positive" framing is PR spin on early data.
+│   ✗ "Positive Interim Results from Phase 2 Study" → SKIP (interim, no numbers)
+│   ✗ "Reports Positive Preliminary Data" → SKIP (preliminary, no data)
+│   ✓ "Interim Analysis Shows 45% Response Rate" → TRADE (specific number)
+│   ✓ "Phase 3 Interim: Primary Endpoint Met With p<0.001" → TRADE (pivotal + specific)
 └─ Examples:
    "Announces Topline Results from Phase 2 Clinical Trial" → TRADE
    "Completed Pharmacokinetic Study Shows Positive Results" → TRADE
@@ -62,6 +69,7 @@ CLINICAL TRIAL RESULTS
    "Phase 3 Trial Seeking to Expand Label" → SKIP (label expansion)
    "Strengthens Clinical Development Pathway Following Positive Phase 2 Outcomes" → SKIP (no data)
    "Announces Positive Phase 2 Results" → SKIP (no numbers)
+   "Announces Positive Interim Results from Study" → SKIP (interim, no numbers)
 
 PARTNERSHIPS (9% of winners)
 ├─ Licensing agreements
