@@ -141618,5 +141618,17 @@
   "MLAA": {
     "industry": "",
     "sector": ""
+  },
+  "MRLN": {
+    "industry": "Aerospace & Defense",
+    "sector": "Industrials"
+  },
+  "TRGSU": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
+  },
+  "FMACU": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
   }
 }

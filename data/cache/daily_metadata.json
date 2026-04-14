@@ -1,5 +1,5 @@
 {
-  "date": "2026-04-09",
+  "date": "2026-04-14",
   "data": {
     "ORCL": {
       "market_cap_millions": 459538.399232
@@ -16545,6 +16545,13 @@
     "MLAA": {
       "market_cap_millions": 256.562992,
       "float_shares": 36440140
+    },
+    "MRLN": {
+      "market_cap_millions": 915.094912,
+      "float_shares": 3598221
+    },
+    "TRGSU": {
+      "float_shares": 3860250
     }
   }
 }
