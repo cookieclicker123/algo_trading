@@ -43,13 +43,23 @@ FDA/REGULATORY CLEARANCES (Key signal)
 CLINICAL RESULTS (Must be TRIAL data, not individual cases)
 ├─ Clinical trial data for devices with cohort results (response rate, endpoints)
 ├─ First-in-human device implant results from formal clinical studies
+├─ REQUIRE SPECIFIC DATA: Headlines must contain concrete numbers (response rate,
+│   %, endpoint met, patient count, effect size) to qualify as TRADE. "Positive results"
+│   alone without specific data = SKIP (press release spin, not clinical evidence)
+├─ SKIP: "Interim results" / "preliminary data" without specific numbers (too early, can change)
+├─ SKIP: "Positive interim results" with only qualitative descriptions (no %, no rate, no p-value)
 ├─ SKIP: Individual procedure completions at hospitals (case reports, not trial data)
 ├─ SKIP: "Hospital Successfully Completes Procedures Using Device" = marketing, not data
 ├─ SKIP: In vitro / binding studies = preclinical, not clinical
 ├─ A single hospital using a device is NOT a clinical trial result
+├─ KEY: Pivotal/Phase 3 final results with specific endpoints met = strong TRADE
+│   Interim/preliminary without numbers = SKIP regardless of "positive" framing
 └─ Examples:
    "Completion Of First In Human Clinical Study" → TRADE
-   "Phase 2 Trial Shows 90% Success Rate for Implant" → TRADE
+   "Phase 2 Trial Shows 90% Success Rate for Implant" → TRADE (specific number)
+   "Pivotal Trial Meets Primary Endpoint With 85% Response Rate" → TRADE LARGE (specific + pivotal)
+   "Positive Interim Results from Study Demonstrating Accelerated Healing" → SKIP (no numbers)
+   "Reports Positive Phase 2a Interim Study Results" → SKIP (interim, no data)
    "Hospital Successfully Completes Robotic Procedures Using System" → SKIP (case report)
    "Announces Results From In Vitro Binding Study" → SKIP (preclinical)
 

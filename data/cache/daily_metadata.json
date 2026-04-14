@@ -16552,6 +16552,14 @@
     },
     "TRGSU": {
       "float_shares": 3860250
+    },
+    "MSB": {
+      "market_cap_millions": 427.58112,
+      "float_shares": 13109908
+    },
+    "NE": {
+      "market_cap_millions": 7602.098688,
+      "float_shares": 125342479
     }
   }
 }

@@ -141630,5 +141630,13 @@
   "FMACU": {
     "industry": "Shell Companies",
     "sector": "Financial Services"
+  },
+  "MSB": {
+    "industry": "Steel",
+    "sector": "Basic Materials"
+  },
+  "NE": {
+    "industry": "Oil & Gas Drilling",
+    "sector": "Energy"
   }
 }
