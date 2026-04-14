@@ -346,5 +346,11 @@
     "permanent": false,
     "created_at": "2026-04-13T13:01:25.252280",
     "last_fp_date": "2026-04-13"
+  },
+  "RCEL": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-04-14T12:55:07.125749",
+    "last_fp_date": "2026-04-14"
   }
 }

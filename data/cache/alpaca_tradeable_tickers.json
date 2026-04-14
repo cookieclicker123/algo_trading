@@ -3265,6 +3265,7 @@
     "GLDY",
     "GLE",
     "GLED",
+    "GLED.RT",
     "GLED.U",
     "GLGG",
     "GLIBA",
@@ -5044,7 +5045,9 @@
     "MSW",
     "MT",
     "MTA",
+    "MTAL",
     "MTAL.U",
+    "MTAL.WS",
     "MTB",
     "MTB.PRH",
     "MTB.PRJ",
@@ -8560,6 +8563,6 @@
     "ZYBT",
     "ZYME"
   ],
-  "updated_at": "2026-04-14T10:30:29.521551",
-  "count": 8559
+  "updated_at": "2026-04-14T12:30:30.867986",
+  "count": 8562
 }
