@@ -382,6 +382,27 @@ class SectorClassifier:
         try:
             with open(prompt_path, "r") as f:
                 prompt = f.read()
+            # Append universal cross-sector rule so Haiku evaluates catalysts
+            # on their merits rather than anchoring on the company's industry
+            prompt += """
+
+===============================================================================
+CROSS-SECTOR CATALYST OVERRIDE
+===============================================================================
+
+CRITICAL: Evaluate the CATALYST, not the company's industry. A restaurant company
+announcing a military drone partnership is a MILITARY catalyst, not a restaurant catalyst.
+
+If the headline describes ANY of these, it is a TRADE regardless of this company's sector:
+- Military, defense, or government contracts/partnerships (DOD, DOE, NASA, any branch)
+- Merger partner or subsidiary news that benefits the parent ticker
+- Joint ventures with named partners and specific technology/product
+- Transformational technology pivots (AI, drones, space, defense tech, quantum)
+- Acquisition targets (company BEING acquired)
+
+These catalysts transcend industry classification. Size them as you would for any
+strong catalyst in the sector where the deal actually belongs.
+"""
             self._prompts[cache_key] = prompt
             logger.debug("Loaded prompt", sector=sector, industry=industry, path=str(prompt_path))
             return prompt
