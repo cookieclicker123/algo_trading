@@ -2818,7 +2818,7 @@ async def process_imminent_article(
                 # run, not exhausted front-running.
                 is_strong_signal_bypass = (
                     ai_position_size in ("LARGE", "MAX")
-                    and confluence_score >= 5
+                    and confluence_score >= 4
                 )
 
                 if is_high_conviction:
@@ -2832,7 +2832,7 @@ async def process_imminent_article(
                     )
                 elif is_strong_signal_bypass:
                     logger.info(
-                        "🔥 STRONG SIGNAL BYPASS: pub_to_recv filter skipped (TRADE LARGE+ with confluence >= 5)",
+                        "🔥 STRONG SIGNAL BYPASS: pub_to_recv filter skipped (TRADE LARGE+ with confluence >= 4)",
                         ticker=ticker,
                         pub_to_recv_pct=round(pub_to_recv_pct, 2),
                         normal_max=effective_max_pct,

@@ -711,10 +711,21 @@ Summary: {summary}"""
                 is_merger_headline = triage_headline_type in MERGER_PREFILTER_TYPES
                 MAX_SPREAD_PCT_MERGER = 7.5
 
+                # ACQUISITION WITH DOLLAR AMOUNTS: Acquisitions that name specific dollar
+                # figures (revenue, deal size) convert from cash-outflow to growth catalyst.
+                # Allow up to 10% spread — these are high-signal events (LRHC +91%, DGNX +111%).
+                MAX_SPREAD_PCT_ACQUISITION_WITH_DOLLARS = 10.0
+                is_acquisition_with_dollars = (
+                    triage_headline_type == "acquisition_announced"
+                    and "$" in request_data.article_title
+                )
+
                 if is_high_conviction_headline:
                     effective_spread_threshold = MAX_SPREAD_PCT_HIGH_CONVICTION
                 elif is_clinical_breakthrough_headline:
                     effective_spread_threshold = 10.0
+                elif is_acquisition_with_dollars:
+                    effective_spread_threshold = MAX_SPREAD_PCT_ACQUISITION_WITH_DOLLARS
                 elif is_merger_headline:
                     effective_spread_threshold = MAX_SPREAD_PCT_MERGER
                 elif is_ai_breakthrough_headline and current_price:
@@ -733,6 +744,16 @@ Summary: {summary}"""
                         spread_pct=round(spread_pct, 2),
                         headline_type=triage_headline_type,
                         effective_threshold=MAX_SPREAD_PCT_MERGER,
+                    )
+
+                if is_acquisition_with_dollars and spread_pct and spread_pct > MAX_SPREAD_PCT_PREFILTER:
+                    logger.info(
+                        f"💰 ACQUISITION WITH $: Relaxing spread prefilter (5% → {MAX_SPREAD_PCT_ACQUISITION_WITH_DOLLARS}%)",
+                        article_id=request_data.article_id,
+                        ticker=primary_ticker,
+                        spread_pct=round(spread_pct, 2),
+                        headline_type=triage_headline_type,
+                        effective_threshold=MAX_SPREAD_PCT_ACQUISITION_WITH_DOLLARS,
                     )
 
                 if is_high_conviction_headline and spread_pct and spread_pct > MAX_SPREAD_PCT_PREFILTER:

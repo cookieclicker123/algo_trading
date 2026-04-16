@@ -153,8 +153,8 @@ SECTOR_INDUSTRY_MAP: Dict[str, Dict[str, str]] = {
     # =========================================================================
     "Communication Services": {
         "Electronic Gaming & Multimedia": "electronic_gaming_multimedia.txt",
-        # Blacklisted industries (0% win rate, -10.8% avg PnL):
-        # - Internet Content & Information
+        "Internet Content & Information": "internet_content_information.txt",
+        # Blacklisted industries:
         # - Entertainment
         # - Telecom Services
     },
