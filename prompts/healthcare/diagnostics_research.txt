@@ -7,7 +7,7 @@ INDUSTRY CONTEXT:
 - 99 historical winners analyzed, avg move +17.6%
 - Top catalysts: Partnerships (9%), patents, contracts (5%), FDA clearances
 - Companies develop diagnostic tests, research tools, lab services
-- NOTE: We do NOT trade plain earnings announcements. EXCEPTION: record-breaking results with specific dollar amounts and/or percentages in the headline = TRADE SMALL
+- NOTE: We do NOT trade plain earnings announcements. EXCEPTION: record-breaking results or guidance raises with specific dollar amounts and/or growth percentages in the headline = TRADE SMALL
 
 ═══════════════════════════════════════════════════════════════════════════════
 TRADE SIGNALS
@@ -158,7 +158,7 @@ OFFERINGS/FINANCING → SKIP ALL
 EARNINGS (SKIP unless record results with specific $ amounts/percentages)
 ├─ EPS beats/misses, Revenue beats/misses
 ├─ Quarterly results, Test volume metrics
-├─ Plain earnings → SKIP (record results with specific $ amounts/percentages = TRADE SMALL)
+├─ Plain earnings → SKIP (record results OR guidance raises with specific $ amounts/percentages = TRADE SMALL)
 │   EXCEPTION: If the headline contains SPECIFIC numbers showing EXCEPTIONAL
 │   performance (>100% revenue/sales growth, profit swing from loss to profit,
 │   or similarly extraordinary concrete metrics), TRADE SMALL. The numbers must
@@ -333,7 +333,7 @@ DECISION RULES
 2. Scientific findings with commercial potential = TRADE
 3. Share repurchase/buyback programs = always TRADE (never defensive)
 4. "To report" or "To present" = always SKIP
-5. Plain earnings = SKIP. EXCEPTION: record results with specific $ amounts/percentages in headline = TRADE SMALL
+5. Plain earnings = SKIP. EXCEPTION: record results OR guidance raises with specific $ amounts/percentages in headline = TRADE SMALL
 6. Lower volatility than biotech - focus on concrete results
 
 MATERIAL DEAL OVERRIDE: If the headline describes a NEW deal/order/contract/agreement with a SPECIFIC dollar amount

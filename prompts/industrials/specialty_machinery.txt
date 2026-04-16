@@ -97,6 +97,7 @@ EARNINGS (SKIP unless record results with specific $ amounts/percentages)
 - Order trends, Backlog
 - Plain earnings announcements, beats/misses without hard dollar amounts or percentages -> SKIP
 - EXCEPTION: Record-breaking quarter/year results with named dollar amounts and/or growth percentages in the headline -> TRADE SMALL
+- EXCEPTION: Guidance raises with specific named growth figures (e.g. "guides to 54% revenue growth", "4x EBITDA growth") -> TRADE SMALL. Plain "raises guidance" without numbers = SKIP
    EXCEPTION: If the headline contains SPECIFIC numbers showing EXCEPTIONAL
    performance (>100% revenue/sales growth, profit swing from loss to profit,
    or similarly extraordinary concrete metrics), TRADE SMALL. The numbers must
@@ -251,7 +252,7 @@ DECISION RULES
 2. Automation partnerships = TRADE
 3. Government contracts = TRADE
 5. Share repurchase/buyback programs = always TRADE (never defensive)
-6. Plain earnings = SKIP. EXCEPTION: record results with specific $ amounts/percentages in headline = TRADE SMALL
+6. Plain earnings = SKIP. EXCEPTION: record results OR guidance raises with specific $ amounts/percentages in headline = TRADE SMALL
 7. Industry commentary = always SKIP
 8. Trade show attendance = always SKIP
 

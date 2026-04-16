@@ -2813,6 +2813,14 @@ async def process_imminent_article(
 
             if pub_to_recv_pct > effective_max_pct and absolute_move >= MIN_ABSOLUTE_ASK_MOVE:
                 # High-conviction headlines: skip pub_to_recv filter (legitimate market reaction)
+                # Strong signal bypass: TRADE LARGE+ with confluence >= 5 means the LLM and
+                # microstructure both confirm this is real — the price move is the start of a
+                # run, not exhausted front-running.
+                is_strong_signal_bypass = (
+                    ai_position_size in ("LARGE", "MAX")
+                    and confluence_score >= 5
+                )
+
                 if is_high_conviction:
                     logger.info(
                         "🎖️ HIGH-CONVICTION BYPASS: pub_to_recv filter skipped (legitimate market reaction to gov/mil contract)",
@@ -2820,6 +2828,16 @@ async def process_imminent_article(
                         pub_to_recv_pct=round(pub_to_recv_pct, 2),
                         normal_max=effective_max_pct,
                         headline_type=headline_type,
+                        article_id=article_id,
+                    )
+                elif is_strong_signal_bypass:
+                    logger.info(
+                        "🔥 STRONG SIGNAL BYPASS: pub_to_recv filter skipped (TRADE LARGE+ with confluence >= 5)",
+                        ticker=ticker,
+                        pub_to_recv_pct=round(pub_to_recv_pct, 2),
+                        normal_max=effective_max_pct,
+                        ai_position_size=ai_position_size,
+                        confluence_score=confluence_score,
                         article_id=article_id,
                     )
                 else:

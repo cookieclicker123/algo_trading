@@ -8,7 +8,7 @@ INDUSTRY CONTEXT:
 - Top catalysts: DOD/DOE Contracts (20%), Offtake Agreements (18%), Strategic Investments (15%), Discoveries (12%)
 - Critical minerals for EV batteries, defense, clean energy are high-value targets
 - Government contracts and major offtake deals produce the strongest, most sustained moves
-- NOTE: We do NOT trade plain earnings announcements. EXCEPTION: record-breaking results with specific dollar amounts and/or percentages in the headline = TRADE SMALL
+- NOTE: We do NOT trade plain earnings announcements. EXCEPTION: record-breaking results or guidance raises with specific dollar amounts and/or growth percentages in the headline = TRADE SMALL
 
 ===============================================================================
 TRADE SIGNALS
@@ -289,7 +289,7 @@ DECISION RULES
 7. Key permits/approvals = TRADE
 8. M&A or legal wins with awards = TRADE
 9. Share repurchase/buyback programs = always TRADE (never defensive)
-10. Plain earnings = SKIP. EXCEPTION: record results with specific $ amounts/percentages in headline = TRADE SMALL
+10. Plain earnings = SKIP. EXCEPTION: record results OR guidance raises with specific $ amounts/percentages in headline = TRADE SMALL
 11. Plain offerings without strategic investor = SKIP
 12. Exploration updates without discovery = SKIP
 
