@@ -118,7 +118,7 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
             self.client = AsyncGroq(api_key=groq_api_key)
             logger.info(
                 "ClassificationInfrastructureService initialized",
-                triage_model="llama-3.3-70b-versatile (Groq)",
+                triage_model="claude-haiku-4-5 (Anthropic)",
                 sector_model=f"{anthropic_model} (Anthropic)",
             )
         else:

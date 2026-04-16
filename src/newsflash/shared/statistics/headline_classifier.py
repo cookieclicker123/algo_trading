@@ -8,7 +8,7 @@ Returns ONLY the type, no explanation.
 import os
 from pathlib import Path
 from typing import Optional, Dict
-from groq import AsyncGroq
+from anthropic import AsyncAnthropic
 
 from ...utils.logging_config import get_logger
 
@@ -98,14 +98,14 @@ class HeadlineTypeClassifier:
     """
     Lightweight AI classifier for headline types.
 
-    - Uses Groq for fast inference
+    - Uses Claude Haiku for accurate triage
     - Industry-specific type lists
     - Returns ONLY the type (no explanation)
     - For background statistical collection only
     """
 
     def __init__(self, api_key: Optional[str] = None):
-        self.api_key = api_key or os.environ.get("GROQ_API_KEY")
+        self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
         self._prompt_cache: Dict[str, str] = {}
         self._prompts_dir = Path(__file__).parent.parent.parent.parent.parent / "prompts" / "headline_types"
         self._triage_prompt: Optional[str] = None
@@ -163,19 +163,18 @@ class HeadlineTypeClassifier:
         prompt = prompt_template.replace("{headline}", headline)
 
         try:
-            client = AsyncGroq(api_key=self.api_key)
+            client = AsyncAnthropic(api_key=self.api_key)
 
-            response = await client.chat.completions.create(
-                model="llama-3.1-8b-instant",  # Fast, cheap model for simple classification
+            response = await client.messages.create(
+                model="claude-haiku-4-5-20251001",
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.0,  # Deterministic
-                max_tokens=20,  # Only need the type word
-                timeout=timeout,
+                temperature=0.0,
+                max_tokens=20,
             )
 
-            if response.choices and response.choices[0].message.content:
+            if response.content and response.content[0].text:
                 # Clean up response - just the type, lowercase, no whitespace
-                result = response.choices[0].message.content.strip().lower()
+                result = response.content[0].text.strip().lower()
                 # Remove any punctuation or extra words
                 result = result.split()[0] if result else None
                 result = result.replace(".", "").replace(",", "") if result else None
@@ -225,18 +224,17 @@ class HeadlineTypeClassifier:
         prompt = self._triage_prompt.replace("{headline}", headline)
 
         try:
-            client = AsyncGroq(api_key=self.api_key)
+            client = AsyncAnthropic(api_key=self.api_key)
 
-            response = await client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+            response = await client.messages.create(
+                model="claude-haiku-4-5-20251001",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.0,
                 max_tokens=20,
-                timeout=timeout,
             )
 
-            if response.choices and response.choices[0].message.content:
-                result = response.choices[0].message.content.strip().lower()
+            if response.content and response.content[0].text:
+                result = response.content[0].text.strip().lower()
                 result = result.split()[0] if result else None
                 result = result.replace(".", "").replace(",", "") if result else None
                 return result

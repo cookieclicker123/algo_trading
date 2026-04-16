@@ -141642,5 +141642,9 @@
   "MYXXU": {
     "industry": "Shell Companies",
     "sector": "Financial Services"
+  },
+  "OGC": {
+    "industry": "Gold",
+    "sector": "Basic Materials"
   }
 }

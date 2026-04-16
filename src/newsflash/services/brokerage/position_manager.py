@@ -661,15 +661,19 @@ class PositionManager:
 
     async def _check_force_exit_session_end(self) -> None:
         """
-        OVERNIGHT RISK: Force exit all positions before extended hours session ends.
+        OVERNIGHT RISK: Force exit all positions before postmarket session ends.
 
         If still holding at 8 PM ET (post-market close), you're stuck until 4 AM ET next day.
         This method forces exits 10 minutes before session end to avoid overnight gap risk.
+
+        NOTE: Premarket → market hours is a seamless transition (no gap), so we do NOT
+        force exit before premarket ends. Only postmarket → overnight has real gap risk.
         """
         seconds_remaining, session = seconds_until_extended_hours_end()
 
-        # Not in extended hours or session end isn't imminent
-        if session == "closed" or seconds_remaining <= 0:
+        # Only force exit before postmarket close (overnight gap risk).
+        # Premarket → market hours is seamless — no need to force exit.
+        if session != "postmarket" or seconds_remaining <= 0:
             return
 
         minutes_remaining = seconds_remaining / 60.0

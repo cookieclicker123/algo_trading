@@ -16317,10 +16317,10 @@
       "float_shares": 13502571
     },
     "ROC": {
-      "market_cap_millions": 129.632544
+      "market_cap_millions": 122.876024
     },
     "FACT": {
-      "market_cap_millions": 254.888896
+      "market_cap_millions": 255.861744
     },
     "HAYW": {
       "market_cap_millions": 3398.246912,
@@ -16560,6 +16560,10 @@
     "NE": {
       "market_cap_millions": 7602.098688,
       "float_shares": 125342479
+    },
+    "OGC": {
+      "market_cap_millions": 7518.907392,
+      "float_shares": 224140270
     }
   }
 }
