@@ -564,6 +564,7 @@ Summary: {summary}"""
                     HIGH_SIGNAL_PREFILTER_TYPES = frozenset({
                         "government_contract", "military_contract", "defense_order",
                         "major_contract", "clinical_breakthrough", "cancer_catalyst",
+                        "ai_rebranding",
                     })
                     is_high_signal_headline = triage_headline_type in HIGH_SIGNAL_PREFILTER_TYPES
 
@@ -689,6 +690,7 @@ Summary: {summary}"""
                 HIGH_CONVICTION_PREFILTER_TYPES = frozenset({
                     "government_contract", "military_contract", "defense_order",
                     "major_contract",  # Commercial contracts — 46.2% IMMINENT win rate, avg MFE +50%
+                    "ai_rebranding",   # Corporate rebrand to AI identity — sustained moves
                 })
                 MAX_SPREAD_PCT_HIGH_CONVICTION = 10.0  # Defense sweet spot is 3-10%, zero winners above 10%
 
@@ -1055,7 +1057,7 @@ Summary: {summary}"""
             # (ONCO: biotech-classified company launching AI humanoid robot → +80%).
             HC_BYPASS_TYPES = frozenset({
                 "government_contract", "military_contract", "defense_order", "major_contract",
-                "stock_buyback", "ai_breakthrough",
+                "stock_buyback", "ai_breakthrough", "ai_rebranding",
             })
 
             if triage_headline_type in HC_BYPASS_TYPES:

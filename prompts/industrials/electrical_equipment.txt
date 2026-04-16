@@ -8,7 +8,7 @@ INDUSTRY CONTEXT:
 - Top catalysts: Earnings (31%), Contracts (18%), Offerings (13%), Partnerships (13%)
 - Includes power equipment, transformers, motors, EV charging
 - Contracts and partnerships drive non-earnings moves
-- NOTE: We do NOT trade earnings announcements
+- NOTE: We do NOT trade plain earnings announcements. EXCEPTION: record-breaking results with specific dollar amounts and/or percentages in the headline = TRADE SMALL
 
 ===============================================================================
 TRADE SIGNALS
@@ -104,10 +104,11 @@ SHARE REPURCHASE (Bullish signal - size based on % of market cap)
 SKIP SIGNALS
 ===============================================================================
 
-EARNINGS (Do NOT trade - too unpredictable)
+EARNINGS (SKIP unless record results with specific $ amounts/percentages)
 - EPS beats/misses, Revenue beats/misses
 - Order trends, Backlog
-- ANY earnings-related headline -> SKIP
+- Plain earnings announcements, beats/misses without hard dollar amounts or percentages -> SKIP
+- EXCEPTION: Record-breaking quarter/year results with named dollar amounts and/or growth percentages in the headline -> TRADE SMALL
    EXCEPTION: If the headline contains SPECIFIC numbers showing EXCEPTIONAL
    performance (>100% revenue/sales growth, profit swing from loss to profit,
    or similarly extraordinary concrete metrics), TRADE SMALL. The numbers must
@@ -265,7 +266,7 @@ DECISION RULES
 3. Automaker partnerships = TRADE
 4. Permits/regulatory approvals = TRADE (esp. for energy/lithium/battery projects)
 6. Share repurchase/buyback programs = always TRADE (never defensive)
-7. Earnings = always SKIP
+7. Plain earnings = SKIP. EXCEPTION: record results with specific $ amounts/percentages in headline = TRADE SMALL
 8. Policy commentary = always SKIP
 9. Conference attendance = always SKIP
 

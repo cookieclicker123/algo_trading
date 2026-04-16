@@ -8,7 +8,7 @@ INDUSTRY CONTEXT:
 - Top catalysts: Contracts (33%), Partnerships (15%), Earnings (15%), Offerings (13%)
 - Includes PCs, servers, storage, peripherals, quantum computing
 - Contract wins are the dominant catalyst
-- NOTE: We do NOT trade earnings announcements
+- NOTE: We do NOT trade plain earnings announcements. EXCEPTION: record-breaking results with specific dollar amounts and/or percentages in the headline = TRADE SMALL
 
 ===============================================================================
 TRADE SIGNALS
@@ -97,10 +97,11 @@ SHARE REPURCHASE (Bullish signal - size based on % of market cap)
 SKIP SIGNALS
 ===============================================================================
 
-EARNINGS (Do NOT trade - too unpredictable)
+EARNINGS (SKIP unless record results with specific $ amounts/percentages)
 - EPS beats/misses, Revenue beats/misses
 - Unit shipments, ASP trends
-- ANY earnings-related headline -> SKIP
+- Plain earnings announcements, beats/misses without hard dollar amounts or percentages -> SKIP
+- EXCEPTION: Record-breaking quarter/year results with named dollar amounts and/or growth percentages in the headline -> TRADE SMALL
    EXCEPTION: If the headline contains SPECIFIC numbers showing EXCEPTIONAL
    performance (>100% revenue/sales growth, profit swing from loss to profit,
    or similarly extraordinary concrete metrics), TRADE SMALL. The numbers must
@@ -274,7 +275,7 @@ DECISION RULES
 3. AI/quantum hardware PRODUCT LAUNCHES = TRADE (actual product, not R&D)
 4. Major tech partnerships WITH NAMED COMPANY = TRADE (Microsoft, Dell, etc.)
 6. Share repurchase/buyback programs = always TRADE (never defensive)
-7. Earnings = always SKIP
+7. Plain earnings = SKIP. EXCEPTION: record results with specific $ amounts/percentages in headline = TRADE SMALL
 8. Trade show attendance = always SKIP
 9. Market share commentary = SKIP
 10. "Strategic upgrade/initiative" without specific deal = SKIP

@@ -88,6 +88,7 @@ HIGH_CONVICTION_HEADLINE_TYPES = frozenset({
     "major_contract",        # Commercial contracts — micro-cap + material deal size = sustained moves
     "stock_buyback",         # Company buying own shares — structural demand, reduces float
     "merger_agreement",      # Definitive merger — creates price floor, sustained buying
+    "ai_rebranding",         # Corporate rebrand to AI identity — market treats as transformational pivot
 })
 
 # Headline types that should NEVER be traded.

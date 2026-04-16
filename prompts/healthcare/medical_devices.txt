@@ -8,7 +8,7 @@ INDUSTRY CONTEXT:
 - Top catalysts: FDA clearances (13%), partnerships (7%), M&A, clinical data
 - Device companies rely heavily on FDA 510(k) clearances and CE Marks
 - M&A activity common in this space
-- NOTE: We do NOT trade earnings announcements
+- NOTE: We do NOT trade plain earnings announcements. EXCEPTION: record-breaking results with specific dollar amounts and/or percentages in the headline = TRADE SMALL
 
 ═══════════════════════════════════════════════════════════════════════════════
 CRITICAL: HEALTHCARE FALSE POSITIVE WARNING
@@ -176,11 +176,11 @@ OFFERINGS/FINANCING → SKIP ALL
    "Announces Registered Direct Offering" → SKIP (dilution)
    "Prices $X Million Offering At $Y/Share" → SKIP (dilution)
 
-EARNINGS (Do NOT trade - too unpredictable)
+EARNINGS (SKIP unless record results with specific $ amounts/percentages)
 ├─ EPS beats/misses, Revenue beats/misses
 ├─ Quarterly results, Preliminary results
 ├─ Raised/lowered guidance
-├─ ANY earnings-related headline → SKIP
+├─ Plain earnings → SKIP (record results with specific $ amounts/percentages = TRADE SMALL)
 │   EXCEPTION: If the headline contains SPECIFIC numbers showing EXCEPTIONAL
 │   performance (>100% revenue/sales growth, profit swing from loss to profit,
 │   or similarly extraordinary concrete metrics), TRADE SMALL. The numbers must

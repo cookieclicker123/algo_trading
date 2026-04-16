@@ -35,6 +35,7 @@ stock_buyback
 lawsuit_settlement
 regulatory_approval
 ai_breakthrough
+ai_rebranding
 other
 
 Rules:
@@ -112,6 +113,11 @@ THE FOLLOWING ARE NEVER government_contract, military_contract, defense_order, O
   PATH B — AI EXPANSION: Company announces a collaboration, partnership, or expansion that is SPECIFICALLY about building or deploying AI/robotics/ML capabilities. REQUIRES ALL of: (1) a named partner or counterparty, (2) a concrete AI/robotics domain (e.g. "AI tutoring", "robotics education", "ML drug discovery"), (3) clear growth signal (expand, launch, deploy, build, develop, roll out — NOT just "explore" or "evaluate").
   Examples that ARE ai_breakthrough: "Launches AI Agent Revolutionizing Biospecimen Matching" (Path A), "Deploys AI Drug Discovery Platform Achieving 95% Accuracy" (Path A), "Launch of Vinci AI Vision System with Delivery of First Humanoid Robot to Ericsson" (Path A — named AI product + robotics function + delivery to named customer), "Announces Collaboration With Walimaker to Expand AI and Robotics Learning Programs" (Path B — named partner + concrete AI domain + expansion), "Partners With NVIDIA to Build AI-Powered Medical Imaging Pipeline" (Path B), "Begins Collaboration With Tencent to Support AI Tutor Platform With Real-Time Voice" (Path B)
   Examples that are NOT ai_breakthrough (classify as "other" or "partnership"): "Announces AI-Powered Solutions" (no specifics), "Integrating AI Into Platform" (vague), "AI-Driven Revenue Growth" (marketing), "Partners With AI Company" (no domain specifics, unnamed capabilities), "Hiring Chief AI Officer" (staffing), "Exploring AI Opportunities" (no commitment), "Leveraging AI To Enhance Operations" (buzzword)
+- ai_rebranding: Company formally rebrands, renames, or transforms its corporate identity to signal a strategic pivot into AI, technology, or a high-growth sector. The headline must describe a COMPLETED rebrand or name change — not a plan, not a product launch, not "exploring AI." The market treats these as transformational identity shifts regardless of underlying fundamentals.
+  REQUIRES: (1) explicit rebrand/rename/name-change language ("rebrands as", "changes name to", "renames to", "now operating as"), AND (2) the new identity clearly signals a pivot to AI, technology, blockchain, quantum, or similar high-growth theme.
+  MUST NOT be ai_rebranding if: company just adds AI features to existing products (ai_breakthrough or other), mentions AI in a partnership/product context without renaming (use appropriate type), or announces plans to rebrand in the future (other).
+  Examples that ARE ai_rebranding: "Myseum Rebrands as Myseum.AI to Align with Full Suite of Technology and Social Media Platforms", "XYZ Corp Changes Name to XYZ.AI, Announces Strategic Pivot to Artificial Intelligence", "Company Completes Corporate Rebrand to Reflect AI-First Strategy"
+  Examples that are NOT ai_rebranding: "Announces AI Strategy" (no rebrand), "Launches AI Division" (product_launch or ai_breakthrough), "Plans to Rename Company" (future, not completed), "Adds .AI to Product Line" (product, not corporate rebrand)
 - clinical_breakthrough: Phase 2 or later clinical trial with EXCEPTIONAL positive results for a MAJOR, WIDELY-KNOWN disease. REQUIRES ALL of:
   (1) Phase 2 or Phase 3 (NOT Phase 1 — too early, safety-only)
   (2) Concrete positive outcome: met primary endpoint, statistically significant results, superiority over standard of care, OR strong response rates with specific numbers

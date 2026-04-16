@@ -8,7 +8,7 @@ INDUSTRY CONTEXT:
 - Top catalysts: M&A/strategic review, offerings (6%), partnerships (3%)
 - Includes hospitals, clinics, specialty care centers, fertility clinics
 - M&A activity notable, legal issues very common in losers
-- NOTE: We do NOT trade earnings announcements
+- NOTE: We do NOT trade plain earnings announcements. EXCEPTION: record-breaking results with specific dollar amounts and/or percentages in the headline = TRADE SMALL
 
 ═══════════════════════════════════════════════════════════════════════════════
 TRADE SIGNALS
@@ -133,10 +133,10 @@ Examples:
 SKIP SIGNALS
 ═══════════════════════════════════════════════════════════════════════════════
 
-EARNINGS (Do NOT trade - too unpredictable)
+EARNINGS (SKIP unless record results with specific $ amounts/percentages)
 ├─ EPS beats/misses, Revenue beats/misses
 ├─ Patient volume metrics, Same-store revenue
-├─ ANY earnings-related headline → SKIP
+├─ Plain earnings → SKIP (record results with specific $ amounts/percentages = TRADE SMALL)
 │   EXCEPTION: If the headline contains SPECIFIC numbers showing EXCEPTIONAL
 │   performance (>100% revenue/sales growth, profit swing from loss to profit,
 │   or similarly extraordinary concrete metrics), TRADE SMALL. The numbers must
@@ -322,7 +322,7 @@ DECISION RULES
 1. M&A/Strategic review = strongest signal
 2. Share repurchase/buyback programs = always TRADE (never defensive)
 3. Law firm names = IMMEDIATE SKIP (very common trap)
-4. Earnings = always SKIP
+4. Plain earnings = SKIP. EXCEPTION: record results with specific $ amounts/percentages in headline = TRADE SMALL
 5. Executive appointments = SKIP (common in losers)
 6. Geographic expansion = TRADE
 7. Financial position reaffirmation = can be strong

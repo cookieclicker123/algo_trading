@@ -8,7 +8,7 @@ INDUSTRY CONTEXT:
 - Top catalysts: Contracts (23%), Earnings (23%), M&A (10%), Partnerships (8%)
 - Includes solar panel manufacturers, installers, inverters
 - Contract wins and M&A activity are key catalysts
-- NOTE: We do NOT trade earnings announcements
+- NOTE: We do NOT trade plain earnings announcements. EXCEPTION: record-breaking results with specific dollar amounts and/or percentages in the headline = TRADE SMALL
 
 ===============================================================================
 TRADE SIGNALS
@@ -106,10 +106,11 @@ SHARE REPURCHASE (Bullish signal - size based on % of market cap)
 SKIP SIGNALS
 ===============================================================================
 
-EARNINGS (Do NOT trade - too unpredictable)
+EARNINGS (SKIP unless record results with specific $ amounts/percentages)
 - EPS beats/misses, Revenue beats/misses
 - Installation volumes, Backlog
-- ANY earnings-related headline -> SKIP
+- Plain earnings announcements, beats/misses without hard dollar amounts or percentages -> SKIP
+- EXCEPTION: Record-breaking quarter/year results with named dollar amounts and/or growth percentages in the headline -> TRADE SMALL
    EXCEPTION: If the headline contains SPECIFIC numbers showing EXCEPTIONAL
    performance (>100% revenue/sales growth, profit swing from loss to profit,
    or similarly extraordinary concrete metrics), TRADE SMALL. The numbers must
@@ -265,7 +266,7 @@ DECISION RULES
 2. PPA announcements = TRADE
 3. M&A activity = TRADE
 5. Share repurchase/buyback programs = always TRADE (never defensive)
-6. Earnings = always SKIP
+6. Plain earnings = SKIP. EXCEPTION: record results with specific $ amounts/percentages in headline = TRADE SMALL
 7. Policy commentary = always SKIP
 8. Conference attendance = always SKIP
 
