@@ -141638,5 +141638,9 @@
   "NE": {
     "industry": "Oil & Gas Drilling",
     "sector": "Energy"
+  },
+  "MYXXU": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
   }
 }

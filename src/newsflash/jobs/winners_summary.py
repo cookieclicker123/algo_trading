@@ -162,7 +162,7 @@ class WinnersSummaryJob:
         Generate winners summary for a date.
 
         Args:
-            target_date: Date to analyze (default: yesterday)
+            target_date: Date to analyze (default: today, since job runs at 8 PM ET after postmarket)
 
         Returns:
             Path to output file, or None if no data
@@ -170,7 +170,7 @@ class WinnersSummaryJob:
         if target_date is None:
             et_tz = pytz.timezone("America/New_York")
             now_et = datetime.now(et_tz)
-            target_date = (now_et - timedelta(days=1)).date()
+            target_date = now_et.date()
 
         logger.info(f"Generating winners summary for {target_date}")
 

@@ -352,5 +352,11 @@
     "permanent": false,
     "created_at": "2026-04-14T12:55:07.125749",
     "last_fp_date": "2026-04-14"
+  },
+  "ABUS": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-04-15T12:31:29.227845",
+    "last_fp_date": "2026-04-15"
   }
 }

@@ -95,7 +95,6 @@ HIGH_CONVICTION_HEADLINE_TYPES = frozenset({
 # that would only move a stock DOWN. Safety net in case the AI classifier
 # mistakenly returns IMMINENT on a fundamentally bearish headline.
 BLOCKED_HEADLINE_TYPES = frozenset({
-    "acquisition_announced",      # Company ACQUIRING another — cash outflow, stock usually drops
     "offering_announced",         # Dilutive offering — company selling new shares, stock drops
     "earnings_miss",              # Missed earnings expectations — stock dumps
     "guidance_cut",               # Lowered forward guidance — stock dumps

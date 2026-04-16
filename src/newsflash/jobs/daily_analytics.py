@@ -590,10 +590,10 @@ class DailyAnalyticsJob:
         Args:
             target_date: Date to analyze (defaults to yesterday in ET timezone)
         """
-        # Default to yesterday (since we run at 1am, we analyze the previous trading day)
+        # Default to today (job runs at 8 PM ET after postmarket closes — analyze the day that just ended)
         if target_date is None:
             now_et = datetime.now(ET_TZ)
-            target_date = (now_et - timedelta(days=1)).date()
+            target_date = now_et.date()
 
         logger.info(f"Running daily analytics for {target_date}")
 

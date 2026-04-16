@@ -7,6 +7,7 @@ USE CASES ORCHESTRATE SERVICES:
 - Use cases publish domain events to trigger workflows
 """
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Final, Optional, List
 
 from alpaca.data.historical import StockHistoricalDataClient
@@ -26,8 +27,35 @@ from ...domain.notification.events import NotificationRequestedDomainEvent
 from ...domain.notification.factories import NotificationMessageFactory
 from ...domain.notification.models import NotificationChannel, NotificationMessage
 from ...services.storage import StorageQueryService
+from ...jobs.headline_exit_profiles import load_profiles, HeadlineExitProfile
 
 logger = get_logger(__name__)
+
+# Load headline exit profiles once at import (cached in memory, zero I/O during trades)
+# Updated nightly by headline_exit_profiles job
+_EXIT_PROFILES_PATH = Path("tmp/statistics/headline_exit_profiles")
+_exit_profiles: dict[str, HeadlineExitProfile] = {}
+
+
+def _get_exit_profiles() -> dict[str, HeadlineExitProfile]:
+    """Lazy-load exit profiles from disk on first access, then cache."""
+    global _exit_profiles
+    if not _exit_profiles:
+        try:
+            _exit_profiles = load_profiles(_EXIT_PROFILES_PATH)
+        except Exception:
+            pass  # Profiles not available yet, no-op
+    return _exit_profiles
+
+
+def reload_exit_profiles() -> None:
+    """Force reload profiles from disk (called after nightly job updates them)."""
+    global _exit_profiles
+    try:
+        _exit_profiles = load_profiles(_EXIT_PROFILES_PATH)
+        logger.info(f"Reloaded {len(_exit_profiles)} headline exit profiles")
+    except Exception as e:
+        logger.warning(f"Failed to reload exit profiles: {e}")
 
 
 def _market_cap_category(market_cap_millions: float) -> str:
@@ -119,6 +147,24 @@ def _build_context_block(metadata: dict) -> list[str]:
         lines.append(f"💡 {hold_parts[0]}")
         for part in hold_parts[1:]:
             lines.append(f"   {part}")
+
+    # Add headline exit profile stats if available
+    if headline_type:
+        profiles = _get_exit_profiles()
+        profile = profiles.get(headline_type)
+        if profile and profile.sample_count >= 2:
+            time_str = (
+                f"{profile.median_time_to_peak_seconds}s"
+                if profile.median_time_to_peak_seconds < 60
+                else f"{profile.median_time_to_peak_seconds // 60}m{profile.median_time_to_peak_seconds % 60:02d}s"
+            )
+            lines.append("")
+            lines.append(
+                f"📈 Profile ({profile.sample_count}x): "
+                f"peaks +{profile.median_peak_gain_pct:.1f}% @ {time_str}, "
+                f"10min +{profile.median_10min_outcome_pct:.1f}%, "
+                f"fade {profile.median_fade_from_peak_pct:.1f}%"
+            )
 
     return lines
 

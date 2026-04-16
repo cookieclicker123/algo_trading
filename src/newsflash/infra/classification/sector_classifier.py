@@ -506,8 +506,6 @@ strong catalyst in the sector where the deal actually belongs.
 
 CONTEXT:
 - Ticker: {ticker}
-- Sector: {sector}
-- Industry: {industry}
 - Price: ${price:.2f}
 - Market Cap: ${market_cap:.1f}M
 
@@ -518,11 +516,6 @@ assess them RELATIVE to the company's market cap:
 - Investment/contract > 50% of market cap = transformational, very likely TRADE
 - Investment/contract > 100% of market cap = massive, almost certainly TRADE
 - A "$40M investment" means very different things for a $2M vs $500M company
-
-Also consider sector norms:
-- Industrials contracts with specific $ values are usually real deals
-- Biotech: Phase 3 results matter more than deal size
-- Tech: Large enterprise contracts relative to market cap are significant
 
 Respond: TRADE or SKIP"""
             else:

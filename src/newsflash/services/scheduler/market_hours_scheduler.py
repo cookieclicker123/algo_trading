@@ -603,6 +603,52 @@ class MarketHoursScheduler:
             except Exception as e:
                 logger.warning(f"Daily performance report failed: {e}")
 
+            # Run exit strategy stats (detailed + summary JSONs with Haiku strength scoring)
+            try:
+                from ...jobs.exit_strategy_stats import run_exit_strategy_stats
+                stats = await run_exit_strategy_stats()
+                if stats:
+                    n_types = len(stats.get("headline_types", {}))
+                    n_samples = stats.get("total_samples", 0)
+                    await self._send_notification(
+                        f"📊 Exit Strategy Stats Updated\n"
+                        f"🎯 {n_types} headline types, {n_samples} samples\n"
+                        f"📁 tmp/exit_strategy_stats/"
+                    )
+                    logger.info(
+                        "MarketHoursScheduler: Exit strategy stats updated",
+                        types=n_types, samples=n_samples,
+                    )
+            except Exception as e:
+                logger.warning(f"Exit strategy stats failed: {e}")
+
+            # Run headline exit profile recalculation
+            try:
+                from ...jobs.headline_exit_profiles import run_headline_exit_profiles
+                profiles = run_headline_exit_profiles()
+                if profiles:
+                    from ...jobs.headline_exit_profiles import print_profiles_table
+                    table = print_profiles_table(profiles)
+                    await self._send_notification(
+                        f"📊 Headline Exit Profiles Updated\n"
+                        f"🎯 {len(profiles)} headline types profiled\n\n"
+                        f"```\n{table}\n```"
+                    )
+                    logger.info(
+                        "MarketHoursScheduler: Headline exit profiles updated",
+                        profile_count=len(profiles),
+                    )
+                    # Reload in-memory cache so next trade notification includes updated profiles
+                    try:
+                        from ...use_cases.notification.notify_trade_executed_use_case import reload_exit_profiles
+                        reload_exit_profiles()
+                    except Exception:
+                        pass
+                else:
+                    logger.info("MarketHoursScheduler: No headline exit profiles generated (insufficient data)")
+            except Exception as e:
+                logger.warning(f"Headline exit profiles failed: {e}")
+
         except Exception as e:
             logger.error(
                 "MarketHoursScheduler: Daily analytics job failed",
