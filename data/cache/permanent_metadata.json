@@ -141646,5 +141646,9 @@
   "OGC": {
     "industry": "Gold",
     "sector": "Basic Materials"
+  },
+  "MAIR": {
+    "industry": "Building Products & Equipment",
+    "sector": "Industrials"
   }
 }

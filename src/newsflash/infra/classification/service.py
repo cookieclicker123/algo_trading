@@ -585,11 +585,11 @@ Summary: {summary}"""
                         await self._publish_skipped_event(infra_event, f"market_cap_too_high:{round(market_cap)}M", headline_type=triage_headline_type)
                         return
 
-                    # Minimum market cap filter: < $1.5M = too small, heavily manipulated
-                    # Lowered from $2M to $1.5M - borderline stocks like FRGT ($1.86M) with
-                    # legitimate named agreements were being unfairly blocked.
+                    # Minimum market cap filter: < $1M = too small, heavily manipulated
+                    # Lowered from $1.5M to $1M - borderline stocks like LRHC ($1.08M) with
+                    # legitimate AI headlines were being unfairly blocked (+30.9% missed).
                     # EXCEPTION: Transformational headlines (large $ relative to company) bypass this
-                    MIN_MARKET_CAP_MILLIONS = 1.5
+                    MIN_MARKET_CAP_MILLIONS = 1.0
 
                     if market_cap and market_cap < MIN_MARKET_CAP_MILLIONS:
                         # Check for transformational headline exception
@@ -622,7 +622,7 @@ Summary: {summary}"""
                                     threshold_millions=MIN_MARKET_CAP_MILLIONS,
                                     dollar_amount_millions=round(dollar_amount, 1) if dollar_amount else None,
                                     magnitude_ratio=f"{magnitude_ratio:.1f}x" if dollar_amount else None,
-                                    reason="Sub-$2M stocks are heavily manipulated (dollar amount not transformational)"
+                                    reason="Sub-$1M stocks are heavily manipulated (dollar amount not transformational)"
                                 )
                                 await self._publish_skipped_event(infra_event, f"prefilter_market_cap_too_low:{round(market_cap, 1)}M", headline_type=triage_headline_type)
                                 return
@@ -634,7 +634,7 @@ Summary: {summary}"""
                                 ticker=primary_ticker,
                                 market_cap_millions=round(market_cap, 2),
                                 threshold_millions=MIN_MARKET_CAP_MILLIONS,
-                                reason="Sub-$2M stocks are heavily manipulated"
+                                reason="Sub-$1M stocks are heavily manipulated"
                             )
                             await self._publish_skipped_event(infra_event, f"prefilter_market_cap_too_low:{round(market_cap, 1)}M", headline_type=triage_headline_type)
                             return

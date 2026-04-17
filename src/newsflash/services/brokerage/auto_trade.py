@@ -2440,8 +2440,8 @@ async def process_imminent_article(
         # These filters prevent trading manipulated or low-quality stocks.
         # Biotech price filter removed — momentum exhaustion handles bad cheap biotechs.
 
-        # Filter 1: Market cap check (minimum $1.5M to avoid manipulated stocks)
-        MIN_MARKET_CAP_MILLIONS = 1.5  # $1.5M minimum (lowered from $2M)
+        # Filter 1: Market cap check (minimum $1M to avoid manipulated stocks)
+        MIN_MARKET_CAP_MILLIONS = 1.0  # $1M minimum (lowered from $1.5M)
         ticker_sector = None  # Track sector for statistics
         ticker_industry = None  # Track industry for statistics
         if metadata_cache:
@@ -2471,7 +2471,7 @@ async def process_imminent_article(
                     market_cap_millions = ticker_metadata.get("market_cap_millions", 0)
                     if market_cap_millions and market_cap_millions < MIN_MARKET_CAP_MILLIONS:
                         logger.info(
-                            "⏭️ AUTO-TRADE SKIPPED: Market cap below $1.5M threshold",
+                            "⏭️ AUTO-TRADE SKIPPED: Market cap below $1M threshold",
                             ticker=ticker,
                             market_cap_millions=round(market_cap_millions, 2),
                             min_required=MIN_MARKET_CAP_MILLIONS,
