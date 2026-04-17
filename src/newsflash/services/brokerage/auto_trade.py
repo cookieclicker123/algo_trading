@@ -459,20 +459,20 @@ def cleanup_stale_tracking() -> None:
 # REDUCED 10x from normal sizes while testing/validating filters
 # Paper shadow trades use 50x these amounts for meaningful stats
 POSITION_SIZES_USD = {
-    ConvictionLevel.MINIMUM: Decimal("600.00"),       # AI: SMALL - $600
-    ConvictionLevel.STANDARD: Decimal("750.00"),      # AI: MODERATE - $750
-    ConvictionLevel.HIGH: Decimal("900.00"),          # AI: LARGE - $900
-    ConvictionLevel.VERY_HIGH: Decimal("1200.00"),    # AI: MAX - $1200
+    ConvictionLevel.MINIMUM: Decimal("3000.00"),      # AI: SMALL - $3000
+    ConvictionLevel.STANDARD: Decimal("3750.00"),     # AI: MODERATE - $3750
+    ConvictionLevel.HIGH: Decimal("4500.00"),         # AI: LARGE - $4500
+    ConvictionLevel.VERY_HIGH: Decimal("6000.00"),    # AI: MAX - $6000
 }
 
 # High-conviction headline types (gov/military contracts, major commercial contracts):
 # Structural edge — real government/commercial money, less manipulation than biotech.
 # Volume and float in defense headlines is usually sufficient for full fills.
 HC_POSITION_SIZES_USD = {
-    ConvictionLevel.MINIMUM: Decimal("1500.00"),      # AI: SMALL → overridden to MODERATE ($1500, 10x scale-up)
-    ConvictionLevel.STANDARD: Decimal("1500.00"),     # AI: MODERATE - $1500 (10x scale-up)
-    ConvictionLevel.HIGH: Decimal("2000.00"),         # AI: LARGE - $2000 (10x scale-up)
-    ConvictionLevel.VERY_HIGH: Decimal("2500.00"),    # AI: MAX - $2500 (10x scale-up)
+    ConvictionLevel.MINIMUM: Decimal("7500.00"),      # AI: SMALL → overridden to MODERATE ($7500)
+    ConvictionLevel.STANDARD: Decimal("7500.00"),     # AI: MODERATE - $7500
+    ConvictionLevel.HIGH: Decimal("10000.00"),        # AI: LARGE - $10000
+    ConvictionLevel.VERY_HIGH: Decimal("12500.00"),   # AI: MAX - $12500
 }
 
 # Map AI position size strings to ConvictionLevel
