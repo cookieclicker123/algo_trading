@@ -42,10 +42,22 @@ Rules:
 
 PRIORITY RULE — MERGER vs ACQUISITION (DIFFERENT EVENTS):
 A "Merger Agreement" between two companies is NOT an acquisition. In a merger, two companies COMBINE — neither is spending cash to buy the other. This is fundamentally different from "Company A acquires Company B" (cash outflow). Classify correctly:
-  merger_agreement: "Announce Merger Agreement", "Enter Into Merger Agreement", "Agree to Merge", "Merger of Equals", "Sign Definitive Merger Agreement", "All-Stock Merger". Two named companies combining.
+  merger_agreement: "Announce Merger Agreement", "Enter Into Merger Agreement", "Agree to Merge", "Merger of Equals", "Sign Definitive Merger Agreement", "All-Stock Merger". Two named OPERATING COMPANIES combining.
   acquisition_announced: "Acquires", "To Acquire", "Closes Acquisition", "Signs LOI to Acquire", "Secures Ownership Of", "Completes Purchase Of". One company BUYING another — cash outflow, bearish for acquirer.
   acquisition_target: "To Be Acquired", "Agrees to Be Acquired", "Receives Buyout Offer". Company BEING bought — bullish.
   CRITICAL: "Merger Agreement" → merger_agreement. "Acquires" → acquisition_announced. Do NOT classify mergers as acquisitions.
+  EXCLUSION — FUND/TRUST MERGERS ARE NOT merger_agreement:
+  merger_agreement ONLY applies to OPERATING COMPANIES (companies that sell products or services) combining. The following are NOT merger_agreement — always classify as "other":
+    (1) CLOSED-END FUND / INVESTMENT FUND / TRUST mergers: If either entity name contains "Fund", "Trust", "Income Fund", "Strategy Fund", "Capital Trust", "Investment Fund", or is clearly a closed-end fund, ETF, or investment vehicle, the merger is routine fund consolidation — NOT a catalytic event. Asset managers regularly merge funds to reduce overhead.
+    (2) ETF mergers or reorganizations: ETFs merging, reorganizing, or converting between structures are administrative — NOT merger_agreement.
+  Examples that are NOT merger_agreement (classify as "other"):
+    "XYZ Income Fund Enters Into Merger Agreement with ABC Capital Trust" → other (fund merger)
+    "AllianzGI Convertible & Income Fund Announces Merger with AllianzGI Diversified Income Fund" → other (fund consolidation)
+    "BlackRock Municipal Trust Agrees to Merge with BlackRock Income Trust" → other (trust merger)
+    "Eaton Vance Senior Floating-Rate Trust Merges Into Eaton Vance Income Fund" → other (fund reorganization)
+  Examples that ARE merger_agreement:
+    "SiriusXM and Liberty Media Sign Definitive Merger Agreement" → merger_agreement (operating companies)
+    "Sprint and T-Mobile Announce Merger of Equals" → merger_agreement (operating companies)
 
 PRIORITY RULE — ACQUISITION OVERRIDES EVERYTHING:
 If the headline contains ANY acquisition language ("acquires", "acquisition of", "to acquire", "re-activates acquisition", "closes acquisition", "signs LOI to acquire", "secures ownership of", "completes purchase of"), it MUST be classified as acquisition_announced or acquisition_target — NEVER as major_contract, government_contract, defense_order, or any other type, regardless of revenue targets, dollar amounts, defense context, or any other details in the headline. An acquisition is a CASH OUTFLOW (company spending money to buy another entity) — it is fundamentally different from a contract (company receiving money for services). Check for acquisition language FIRST before considering any other classification. NOTE: "Merger Agreement" is NOT acquisition — see MERGER vs ACQUISITION rule above.
