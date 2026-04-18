@@ -382,5 +382,17 @@
     "permanent": false,
     "created_at": "2026-04-16T14:21:07.689918",
     "last_fp_date": "2026-04-16"
+  },
+  "IPW": {
+    "consecutive_fps": 2,
+    "permanent": false,
+    "created_at": "2026-04-17T14:12:29.087318",
+    "last_fp_date": "2026-04-17"
+  },
+  "JOF": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-04-17T21:46:50.178496",
+    "last_fp_date": "2026-04-17"
   }
 }
