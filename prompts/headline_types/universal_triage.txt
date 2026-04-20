@@ -40,6 +40,12 @@ other
 
 Rules:
 
+UNIVERSAL RULE — NEW ANNOUNCEMENTS ONLY (APPLIES TO EVERY TYPE):
+We ONLY trade NEW, FORWARD-LOOKING events the market has not yet priced in. If a headline REPORTS on something that ALREADY HAPPENED, it is NOT tradeable — classify as "other" regardless of how bullish the event sounds. The market prices in events at announcement time; backward-looking reports are not catalysts.
+  PAST-TENSE RED FLAGS: "achieved", "completed", "has repurchased", "returned $X to shareholders", "bought back", "previously", "last quarter", "during Q1/Q2/Q3/Q4", "year-to-date results", "delivered on", "fulfilled". These describe what already happened — NOT a new event.
+  FORWARD-LOOKING GREEN FLAGS: "announces", "launches", "commences", "authorizes", "awarded", "wins", "enters into", "signs", "initiates", "receives approval", "grants". These describe something happening NOW.
+  Ask: "Is this headline telling the market something NEW it didn't know, or REPORTING on something that already happened?" If reporting → "other".
+
 PRIORITY RULE — MERGER vs ACQUISITION (DIFFERENT EVENTS):
 A "Merger Agreement" between two companies is NOT an acquisition. In a merger, two companies COMBINE — neither is spending cash to buy the other. This is fundamentally different from "Company A acquires Company B" (cash outflow). Classify correctly:
   merger_agreement: "Announce Merger Agreement", "Enter Into Merger Agreement", "Agree to Merge", "Merger of Equals", "Sign Definitive Merger Agreement", "All-Stock Merger". Two named OPERATING COMPANIES combining.
@@ -67,6 +73,15 @@ A "self tender offer to purchase shares" or "tender offer to purchase shares" = 
   stock_buyback: "Self Tender Offer To Purchase Shares", "Commences Tender Offer To Purchase Up To X Shares", "Announces Share Repurchase Program", "Board Authorizes Stock Buyback", "Modified Dutch Auction Tender Offer"
   offering_announced: "Prices Public Offering", "Announces Registered Direct Offering", "Prices Secondary Offering", "Closes Private Placement", "Enters Into Securities Purchase Agreement"
   CRITICAL: If the headline says "Tender Offer To PURCHASE" shares → stock_buyback. If it says "Offering OF shares" or "Prices Offering" → offering_announced. NEVER classify a share repurchase/buyback/tender-offer-to-purchase as offering_announced.
+  EXCLUSION — BACKWARD-LOOKING BUYBACK REPORTS ARE NOT stock_buyback:
+  stock_buyback requires a NEW, FORWARD-LOOKING announcement — the company is INITIATING or AUTHORIZING a buyback it has not done yet. If the headline REPORTS on buybacks that have ALREADY BEEN COMPLETED, it is NOT stock_buyback — classify as "other". The market prices in buybacks at announcement time; a report on past repurchase activity is not a catalyst. Look for past-tense or completion language: "achieved", "completed", "repurchased X shares during", "bought back", "has repurchased", "total shares repurchased", "repurchase activity", "returned $X to shareholders via buybacks". These describe what already happened — NOT a new program.
+  Examples that are NOT stock_buyback (classify as "other"):
+    "Achieved $50M in Share Repurchases During Q1" → other (backward-looking report)
+    "Repurchased 2M Shares in Q4 Under Existing Program" → other (completed activity)
+    "Returned $100M to Shareholders Through Share Buybacks" → other (past tense)
+    "Completed Share Repurchase Program" → other (program already finished)
+    "Has Repurchased $20M of Common Stock Year-to-Date" → other (status update)
+
   EXCLUSION — FUND/TRUST TENDER OFFERS ARE NOT stock_buyback:
   stock_buyback ONLY applies to OPERATING COMPANIES (companies that sell products or services) buying back their own COMMON stock. The following are NOT stock_buyback — always classify as "other":
     (1) CLOSED-END FUND / INVESTMENT FUND / TRUST tender offers: If the entity name contains "Fund", "Trust", "Capital Fund", "Income Fund", "Strategy Fund", "Investment Fund", or is clearly a closed-end fund or investment vehicle, its tender offer is routine NAV discount management — NOT a bullish catalyst. These funds regularly do conditional tender offers to narrow their NAV discount. This is housekeeping, not a signal of confidence.
@@ -79,8 +94,9 @@ A "self tender offer to purchase shares" or "tender offer to purchase shares" = 
     "AllianzGI Convertible & Income Fund Announces Tender Offer" → other (closed-end fund)
     "BlackRock Capital Allocation Trust Commences Tender Offer" → other (investment trust)
   Examples that ARE stock_buyback:
-    "Apple Announces $100B Share Repurchase Program" → stock_buyback (operating company, common stock)
-    "Tesla Commences Tender Offer To Purchase Up To 10M Shares" → stock_buyback (operating company, common stock)
+    "Apple Announces $100B Share Repurchase Program" → stock_buyback (NEW announcement, operating company, common stock)
+    "Tesla Commences Tender Offer To Purchase Up To 10M Shares" → stock_buyback (NEW initiation, operating company, common stock)
+    "Board Authorizes $50M Stock Buyback" → stock_buyback (NEW authorization)
 
 CASH FLOW DIRECTION PRINCIPLE:
 We only trade events where the company RECEIVES value (cash inflow, achievement, approval). Events where the company SPENDS money (acquisitions, investments outward, facility purchases) are cash outflows and bearish. When in doubt about a headline, ask: "Is the company RECEIVING money/value, or SPENDING money?" If spending, it should be acquisition_announced, offering_announced, or other — never a tradeable contract type. EXCEPTION: stock_buyback is the company spending money to buy its OWN shares — this is BULLISH (reduces float, signals confidence) and should always be classified as stock_buyback, never as a cash outflow.
