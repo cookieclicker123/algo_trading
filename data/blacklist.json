@@ -394,5 +394,17 @@
     "permanent": false,
     "created_at": "2026-04-17T21:46:50.178496",
     "last_fp_date": "2026-04-17"
+  },
+  "RCT": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-04-20T12:58:33.186879",
+    "last_fp_date": "2026-04-20"
+  },
+  "NNOX": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-04-20T13:13:55.328120",
+    "last_fp_date": "2026-04-20"
   }
 }
