@@ -253,12 +253,13 @@ class DailyAnalyticsJob:
             if not retro.get("triage_type"):
                 continue
             classified += 1
-            if retro.get("hc_bypass"):
+            hc = retro.get("hc_bypass") or {}
+            if hc.get("is_hc"):
                 hc_count += 1
                 would_trade.append({
                     "ticker": m.ticker,
                     "triage_type": retro["triage_type"],
-                    "hc_size": retro["hc_bypass"].get("size"),
+                    "hc_size": hc.get("size"),
                     "excursion_pct": retro.get("max_mid_excursion_pct"),
                 })
             else:

@@ -423,6 +423,7 @@ strong catalyst in the sector where the deal actually belongs.
         self,
         headline: str,
         ticker: str,
+        prefer_groq: bool = False,
     ) -> Tuple[str, Optional[str], Optional[str], float, Optional[str]]:
         """
         Classify a headline from any supported sector.
@@ -531,9 +532,69 @@ Respond: TRADE or SKIP"""
                 # Fallback to headline-only if no metadata
                 user_message = headline
 
+            # Groq-first path (for backfill — higher rate limits)
+            if prefer_groq and self.groq_client:
+                try:
+                    groq_response = await self.groq_client.chat.completions.create(
+                        model=self.groq_fallback_model,
+                        messages=[
+                            {"role": "system", "content": prompt},
+                            {"role": "user", "content": user_message},
+                        ],
+                        temperature=0.0,
+                        max_tokens=10,
+                    )
+                    result = groq_response.choices[0].message.content.strip().upper()
+
+                    position_size = None
+                    if "TRADE" in result:
+                        classification = "TRADE"
+                        self._stats["trade_signals"] += 1
+                        self._stats["by_sector"][sector]["trade"] += 1
+                        if "MAX" in result:
+                            position_size = "MAX"
+                        elif "LARGE" in result:
+                            position_size = "LARGE"
+                        elif "MODERATE" in result:
+                            position_size = "MODERATE"
+                        elif "SMALL" in result:
+                            position_size = "SMALL"
+                        else:
+                            position_size = "MODERATE"
+                    else:
+                        classification = "SKIP"
+                        self._stats["skip_signals"] += 1
+                        self._stats["by_sector"][sector]["skip"] += 1
+
+                    latency_ms = (datetime.now() - start_time).total_seconds() * 1000
+                    self._stats["total_classified"] += 1
+                    n = self._stats["total_classified"]
+                    self._stats["avg_latency_ms"] = (
+                        (self._stats["avg_latency_ms"] * (n - 1) + latency_ms) / n
+                    )
+                    logger.info(
+                        f"🎯 {sector} classification (Groq primary): {classification}" + (f" {position_size}" if position_size else ""),
+                        ticker=ticker, sector=sector, industry=industry,
+                        position_size=position_size, headline=headline[:60],
+                        latency_ms=round(latency_ms, 1),
+                    )
+                    return classification, sector, industry, latency_ms, position_size
+                except Exception as groq_err:
+                    logger.debug(
+                        "Groq primary failed, falling through to Anthropic",
+                        ticker=ticker, error=str(groq_err)[:100],
+                    )
+                    # fall through to Anthropic below
+
             response = await self.client.messages.create(
                 model=self.model,
-                system=prompt,
+                system=[
+                    {
+                        "type": "text",
+                        "text": prompt,
+                        "cache_control": {"type": "ephemeral"},
+                    }
+                ],
                 messages=[
                     {"role": "user", "content": user_message}
                 ],

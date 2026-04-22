@@ -145,7 +145,7 @@ async def _classify_one(
     print(
         f"  + {rec.get('article_id','')[:30]:<30} {ticker:<6} excursion={excursion:>5.1f}% "
         f"triage={retro.get('triage_type') or 'null':<28} "
-        f"hc={'Y' if retro.get('hc_bypass') else 'N'} "
+        f"hc={'Y' if (retro.get('hc_bypass') or {}).get('is_hc') else 'N'} "
         f"sector={(retro.get('sector_decision') or {}).get('classification') or '-'}",
         flush=True,
     )
@@ -202,7 +202,10 @@ async def _process_files_parallel(
                 continue
             totals["eligible"] += 1
 
-            if rec.get("retrospective_classification") and not force:
+            # Treat a prior-run failure (triage_type is null, typically from a 429)
+            # as "not yet classified" so retries naturally pick it up without --force.
+            existing = rec.get("retrospective_classification")
+            if existing and existing.get("triage_type") and not force:
                 totals["already_classified"] += 1
                 continue
 

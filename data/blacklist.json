@@ -418,5 +418,11 @@
     "permanent": false,
     "created_at": "2026-04-21T13:24:24.307346",
     "last_fp_date": "2026-04-21"
+  },
+  "KOPN": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-04-22T13:34:00.110321",
+    "last_fp_date": "2026-04-22"
   }
 }

@@ -417,8 +417,11 @@ class RecallRecord(BaseModel):
     # what the AI would have said about the headline, even when it was
     # rejected by prefilter and never saw triage/sector classification live.
     # Shape: {applied_at, max_mid_excursion_pct, triage_type,
-    #         hc_bypass: {is_hc, size} | None,
+    #         hc_bypass: {is_hc: True, size} | {is_hc: False} | None,
     #         sector_decision: {classification, size, sector, industry} | None}
+    # hc_bypass: None = retro never ran or triage failed.
+    #            {is_hc: True, size} = HC-bypass type (sector skipped).
+    #            {is_hc: False} = triage ran, type is non-HC (sector ran).
     retrospective_classification: Optional[Dict[str, Any]] = Field(
         None,
         description="Post-hoc AI classification for articles that moved >=10% mid excursion during the 10-min hold. See retrospective_classifier.py."
@@ -712,7 +715,8 @@ class SignalRecord(BaseModel):
     price_at_10s: Optional[float] = Field(None, description="Price at T+10 seconds")
     price_at_30s: Optional[float] = Field(None, description="Price at T+30 seconds")
     price_at_1min: Optional[float] = Field(None, description="Price at T+1 minute")
-    price_at_5min: Optional[float] = Field(None, description="Price at T+5 minutes")
+    price_at_5min: Optional[float] = Field(None, description="Price at T+5 minutes (deprecated — never populated; use price_at_10min)")
+    price_at_10min: Optional[float] = Field(None, description="Price at T+10 minutes (matches the recall engine's 10-min window — used by headline_exit_profiles)")
 
     # Enrichment tracking
     enrichment_completed: bool = Field(False, description="Whether async enrichment finished")

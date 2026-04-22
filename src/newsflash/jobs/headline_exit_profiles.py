@@ -284,6 +284,175 @@ def collect_premarket_samples(
     return samples
 
 
+def _estimate_signal_mid_excursion(rec: Dict[str, Any]) -> Optional[float]:
+    """
+    Mid-price max excursion for a SIGNAL record.
+
+    Signal records use `entry_nbbo` (not `initial_nbbo`) and store peak data in
+    `highest_price_during_hold`. The arithmetic is the same as the recall case,
+    normalised to mid.
+    """
+    nbbo = rec.get("entry_nbbo")
+    highest = rec.get("highest_price_during_hold")
+    if not nbbo or not highest:
+        return None
+    mid = nbbo.get("mid")
+    peak = highest.get("price")
+    spread = nbbo.get("spread", 0) or 0
+    if not mid or not peak or mid <= 0:
+        return None
+    estimated_peak_mid = peak - (spread / 2)
+    return ((estimated_peak_mid - mid) / mid) * 100
+
+
+def _signal_time_to_peak_seconds(rec: Dict[str, Any]) -> Optional[int]:
+    """
+    Best-effort time-to-peak for a signal record.
+
+    Signal `highest_price_during_hold` doesn't always carry a timestamp, so we
+    fall back to `hold_duration_seconds` as an upper bound. The true peak may
+    have occurred earlier within the hold; this overestimates but keeps the
+    sample usable for timing bucket distributions.
+
+    Returns an int in [0, 600], or None if no timing signal is available.
+    """
+    highest = rec.get("highest_price_during_hold") or {}
+    ts = highest.get("timestamp")
+    received_at = rec.get("received_at") or rec.get("executed_at")
+    if ts and received_at:
+        try:
+            p = datetime.fromisoformat(ts.replace("Z", "+00:00")) if isinstance(ts, str) else ts
+            r = datetime.fromisoformat(received_at.replace("Z", "+00:00")) if isinstance(received_at, str) else received_at
+            return max(0, min(int((p - r).total_seconds()), 600))
+        except (ValueError, TypeError):
+            pass
+    hold = rec.get("hold_duration_seconds")
+    if hold is not None:
+        return max(0, min(int(hold), 600))
+    return None
+
+
+def _signal_ten_min_mid_change(rec: Dict[str, Any]) -> Optional[float]:
+    """
+    Compute the 10-minute mid outcome for a signal record.
+
+    Signal enrichment writes `price_at_10min` at T+10 min (aligned with the
+    recall engine's 10-min monitoring window) — that's the canonical source
+    and matches the recall samples directly.
+
+    Older trades that predate `price_at_10min` fall back to the next-best
+    checkpoint (1min → 30s → 10s). Those will underestimate the true 10-min
+    outcome, so such samples are only kept when no 10-min data is available.
+
+    Returns a percent change relative to `entry_nbbo.mid`.
+    """
+    entry_mid = (rec.get("entry_nbbo") or {}).get("mid")
+    if not entry_mid or entry_mid <= 0:
+        return None
+    for key in ("price_at_10min", "price_at_1min", "price_at_30s", "price_at_10s"):
+        p = rec.get(key)
+        if p is not None:
+            return ((p - entry_mid) / entry_mid) * 100
+    return None
+
+
+def collect_signal_samples(
+    signal_base_path: Path,
+    data_start: date,
+    data_end: date,
+    min_excursion_pct: float = MIN_MID_EXCURSION_PCT,
+) -> List[_RawSample]:
+    """
+    Walk signal records (executed trades) and emit samples the same way
+    collect_premarket_samples does for recall records.
+
+    Signal records cover trades we actually took — they're the richest source
+    for HC-bypass headline types (military_contract, government_contract,
+    major_contract, stock_buyback, ai_breakthrough, etc.), which rarely make
+    it into premarket recall samples because premarket volatility is lower
+    for these types than the 10% threshold demands.
+
+    Uses all sessions (premarket, market_hours, postmarket). Signal records
+    only exist for trades we executed, so headline_type is always populated.
+    """
+    samples: List[_RawSample] = []
+    if not signal_base_path.exists():
+        return samples
+
+    sessions = ("premarket", "market_hours", "postmarket")
+
+    for year_dir in sorted(signal_base_path.iterdir()):
+        if not year_dir.is_dir():
+            continue
+        for month_dir in sorted(year_dir.iterdir()):
+            if not month_dir.is_dir():
+                continue
+            for week_dir in sorted(month_dir.iterdir()):
+                if not week_dir.is_dir():
+                    continue
+                for day_dir in sorted(week_dir.iterdir()):
+                    if not day_dir.is_dir():
+                        continue
+
+                    try:
+                        record_date = date(
+                            int(year_dir.name), int(month_dir.name), int(day_dir.name)
+                        )
+                    except (ValueError, TypeError):
+                        continue
+                    if record_date < data_start or record_date > data_end:
+                        continue
+
+                    for sess in sessions:
+                        session_file = day_dir / sess / f"{sess}.json"
+                        if not session_file.exists():
+                            continue
+                        try:
+                            with open(session_file) as f:
+                                data = json.load(f)
+                        except (json.JSONDecodeError, OSError) as e:
+                            logger.warning(f"Failed to read {session_file}: {e}")
+                            continue
+
+                        for rec in data.get("records", []):
+                            headline_type = rec.get("headline_type")
+                            if not headline_type:
+                                continue
+
+                            mid_excursion = _estimate_signal_mid_excursion(rec)
+                            if mid_excursion is None or mid_excursion < min_excursion_pct:
+                                continue
+
+                            ttp = _signal_time_to_peak_seconds(rec)
+                            if ttp is None:
+                                continue
+
+                            ten_min_mid = _signal_ten_min_mid_change(rec)
+                            if ten_min_mid is None:
+                                continue
+
+                            fade = mid_excursion - ten_min_mid
+
+                            samples.append(
+                                _RawSample(
+                                    ticker=rec.get("ticker") or "?",
+                                    headline_type=headline_type,
+                                    mid_excursion_pct=round(mid_excursion, 2),
+                                    time_to_peak_seconds=ttp,
+                                    ten_min_mid_change_pct=round(ten_min_mid, 2),
+                                    fade_from_peak_pct=round(fade, 2),
+                                    article_title=rec.get("headline", "") or "",
+                                    date=record_date.isoformat(),
+                                )
+                            )
+
+    logger.info(
+        f"Collected {len(samples)} signal samples with {min_excursion_pct}%+ mid excursion "
+        f"from {data_start} to {data_end}"
+    )
+    return samples
+
+
 def build_profiles(
     samples: List[_RawSample],
     min_samples: int = MIN_SAMPLES_FOR_PROFILE,
@@ -408,18 +577,24 @@ def print_profiles_table(profiles: Dict[str, HeadlineExitProfile]) -> str:
 
 def run_headline_exit_profiles(
     recall_base_path: Path = Path("tmp/statistics/recall"),
+    signal_base_path: Path = Path("tmp/statistics/signal"),
     output_path: Path = Path("tmp/statistics/headline_exit_profiles"),
     lookback_days: int = DEFAULT_LOOKBACK_DAYS,
     data_start_override: Optional[date] = None,
 ) -> Dict[str, HeadlineExitProfile]:
     """
-    Main entry point. Collects premarket recall data, builds profiles, saves to disk.
+    Main entry point. Collects samples from BOTH premarket recall records
+    (missed opportunities) and signal records (actual executed trades) so
+    HC-bypass headline types — military/government/major contracts, stock
+    buybacks, AI breakthroughs — get profile coverage too. Builds profiles
+    and saves to disk.
 
     Args:
-        recall_base_path: Root of recall statistics tree
-        output_path: Where to save the profiles JSON
-        lookback_days: How many days back to scan (from today)
-        data_start_override: Override the start date (default: max of DEFAULT_DATA_START and today - lookback_days)
+        recall_base_path: Root of recall statistics tree (missed opportunities).
+        signal_base_path: Root of signal statistics tree (executed trades).
+        output_path: Where to save the profiles JSON.
+        lookback_days: How many days back to scan (from today).
+        data_start_override: Override the start date (default: DEFAULT_DATA_START).
     """
     today = date.today()
 
@@ -433,13 +608,24 @@ def run_headline_exit_profiles(
     data_end = today
 
     logger.info(
-        f"Building headline exit profiles from premarket data: {data_start} to {data_end}"
+        f"Building headline exit profiles from recall + signal data: {data_start} to {data_end}"
     )
 
-    samples = collect_premarket_samples(
+    recall_samples = collect_premarket_samples(
         recall_base_path=recall_base_path,
         data_start=data_start,
         data_end=data_end,
+    )
+    signal_samples = collect_signal_samples(
+        signal_base_path=signal_base_path,
+        data_start=data_start,
+        data_end=data_end,
+    )
+
+    samples = recall_samples + signal_samples
+    logger.info(
+        f"Total samples: {len(samples)} "
+        f"(recall: {len(recall_samples)}, signal: {len(signal_samples)})"
     )
 
     if not samples:

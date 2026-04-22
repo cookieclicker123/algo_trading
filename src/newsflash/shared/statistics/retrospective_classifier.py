@@ -70,15 +70,20 @@ class RetrospectiveClassifier:
     Wraps: HeadlineTypeClassifier.triage() + (optionally) SectorClassifier.classify().
     """
 
-    def __init__(self, headline_classifier, sector_classifier=None):
+    def __init__(self, headline_classifier, sector_classifier=None, prefer_groq: bool = False):
         """
         Args:
             headline_classifier: HeadlineTypeClassifier — provides triage()
             sector_classifier: SectorClassifier or None. If None, only triage
                                is run (no sector decision is captured).
+            prefer_groq: If True, route triage + sector calls through Groq
+                         primarily (much higher rate limits — needed for bulk
+                         backfill). Default False keeps Anthropic primary for
+                         the live path.
         """
         self.headline_classifier = headline_classifier
         self.sector_classifier = sector_classifier
+        self.prefer_groq = prefer_groq
 
     async def classify(
         self,
@@ -92,7 +97,9 @@ class RetrospectiveClassifier:
             {
               "applied_at": "ISO-8601",
               "triage_type": "major_contract" | None,
-              "hc_bypass": {"is_hc": True, "size": "MODERATE"} | None,
+              "hc_bypass": {"is_hc": True, "size": "MODERATE"}
+                           | {"is_hc": False}
+                           | None,
               "sector_decision": {
                   "classification": "TRADE"|"SKIP"|"NOT_SUPPORTED_SECTOR"|"UNSUPPORTED_INDUSTRY",
                   "size": "SMALL"|"MODERATE"|"LARGE"|"MAX"|None,
@@ -101,10 +108,15 @@ class RetrospectiveClassifier:
               } | None,
             }
 
-        - If triage returns a HC_BYPASS type, hc_bypass is populated and
-          sector_decision stays None (mirrors live HC bypass behavior).
-        - Otherwise, hc_bypass is None and sector_decision is populated.
-        - If triage fails, both are None but applied_at and triage_type=None
+        hc_bypass semantics (unambiguous):
+        - None  → triage did not run or failed (can't say whether HC-bypass applies)
+        - {"is_hc": True, "size": ...}  → triage ran, type IS HC-bypass, sector skipped
+        - {"is_hc": False}              → triage ran, type is NOT HC-bypass, sector ran
+
+        - If triage returns a HC_BYPASS type, hc_bypass={"is_hc": True, ...}
+          and sector_decision stays None (mirrors live HC bypass behavior).
+        - Otherwise, hc_bypass={"is_hc": False} and sector_decision is populated.
+        - If triage fails, hc_bypass=None. applied_at and triage_type=None
           are still returned so callers can distinguish "tried and failed"
           from "never tried".
         """
@@ -120,7 +132,10 @@ class RetrospectiveClassifier:
 
         # Triage — universal, sector-agnostic
         try:
-            triage_type = await self.headline_classifier.triage(headline)
+            triage_type = await self.headline_classifier.triage(
+                headline,
+                prefer_groq=self.prefer_groq,
+            )
         except Exception as e:
             logger.debug(f"Retrospective triage failed: {e}", ticker=ticker)
             triage_type = None
@@ -137,7 +152,11 @@ class RetrospectiveClassifier:
             result["hc_bypass"] = {"is_hc": True, "size": size}
             return result
 
-        # Non-HC path — run sector classifier if available
+        # Non-HC path — triage succeeded but this type doesn't bypass sector.
+        # Explicitly record is_hc=False so downstream can't confuse this with a
+        # "retro never ran / triage failed" case.
+        result["hc_bypass"] = {"is_hc": False}
+
         if self.sector_classifier is None:
             return result
 

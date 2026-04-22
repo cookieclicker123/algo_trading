@@ -191,10 +191,18 @@ class HealthcareClassifier:
             return "SKIP", industry, latency_ms
 
         try:
-            # Simple prompt: just the headline
+            # Prompt caching: the industry system prompt is static per
+            # industry and is marked ephemeral so subsequent calls within
+            # 5 min read from cache (~10% of base input cost, no TPM burden).
             response = await self.client.messages.create(
                 model=self.model,
-                system=prompt,
+                system=[
+                    {
+                        "type": "text",
+                        "text": prompt,
+                        "cache_control": {"type": "ephemeral"},
+                    }
+                ],
                 messages=[
                     {"role": "user", "content": headline}
                 ],

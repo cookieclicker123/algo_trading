@@ -311,7 +311,7 @@ class PriceMonitor:
             ticker=ticker,
             excursion_pct=round(excursion_pct, 2),
             triage_type=retro.get("triage_type"),
-            is_hc=retro.get("hc_bypass") is not None,
+            is_hc=(retro.get("hc_bypass") or {}).get("is_hc", False),
         )
         return retro
 

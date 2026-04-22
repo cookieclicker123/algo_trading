@@ -969,8 +969,13 @@ class SignalStatsEngine:
             await asyncio.sleep(30)  # 30 more seconds
             await self._collect_timepoint_data(trade_id, ticker, session, executed_at, entry_price, "1min", updates)
 
-            # T+5 minutes - collect volume summary
-            await asyncio.sleep(240)  # 4 more minutes
+            # T+10 minutes — collect price AND volume summary.
+            # price_at_10min matches the recall engine's 10-min monitoring window,
+            # which is what headline_exit_profiles uses to compute the "10min
+            # outcome" stat. Keeping the two on the same clock means signal
+            # samples and recall samples are directly comparable.
+            await asyncio.sleep(540)  # 9 more minutes (T+1min -> T+10min)
+            await self._collect_timepoint_data(trade_id, ticker, session, executed_at, entry_price, "10min", updates)
             await self._collect_volume_summary(trade_id, ticker, session, executed_at, updates)
 
             # Mark enrichment complete
