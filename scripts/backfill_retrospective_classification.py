@@ -123,16 +123,53 @@ def _walk_recall_files(
     return matched
 
 
-async def _process_file(
-    path: Path,
+async def _classify_one(
+    rec: Dict[str, Any],
+    excursion: float,
+    classifier: RetrospectiveClassifier,
+    sem: asyncio.Semaphore,
+) -> Optional[Dict[str, Any]]:
+    """Classify one record behind the global semaphore. Returns the retro dict or None."""
+    headline = rec.get("title") or rec.get("headline")
+    tickers = rec.get("tickers") or []
+    ticker = tickers[0] if tickers else None
+    if not headline or not ticker:
+        return None
+    async with sem:
+        try:
+            retro = await classifier.classify(headline, ticker)
+        except Exception as e:
+            print(f"  ! classifier error on {rec.get('article_id')}: {e}", flush=True)
+            return None
+    retro["max_mid_excursion_pct"] = round(excursion, 2)
+    print(
+        f"  + {rec.get('article_id','')[:30]:<30} {ticker:<6} excursion={excursion:>5.1f}% "
+        f"triage={retro.get('triage_type') or 'null':<28} "
+        f"hc={'Y' if retro.get('hc_bypass') else 'N'} "
+        f"sector={(retro.get('sector_decision') or {}).get('classification') or '-'}",
+        flush=True,
+    )
+    return retro
+
+
+async def _process_files_parallel(
+    paths: List[Path],
     classifier: RetrospectiveClassifier,
     *,
     dry_run: bool,
     force: bool,
     min_excursion_pct: float,
+    concurrency: int,
 ) -> Dict[str, int]:
-    """Process one session JSON file; returns counters."""
-    counters = {
+    """
+    Parallelized pipeline across all files.
+
+    Phase 1 — Scan every file, collect eligible records into a flat list.
+    Phase 2 — Fan out classification concurrently with a global semaphore
+              capped at `concurrency` in-flight API calls.
+    Phase 3 — Group results by file and atomically rewrite each modified file.
+    """
+    totals = {
         "records": 0,
         "eligible": 0,
         "already_classified": 0,
@@ -140,58 +177,79 @@ async def _process_file(
         "failed": 0,
     }
 
-    with open(path) as f:
-        data = json.load(f)
+    # Phase 1 — scan and collect
+    file_data: Dict[Path, Dict[str, Any]] = {}
+    tasks: List[asyncio.Task] = []
+    task_refs: List[Dict[str, Any]] = []  # parallel list of {path, rec_ref, excursion}
 
-    records = data.get("records", [])
-    counters["records"] = len(records)
-    modified = False
+    sem = asyncio.Semaphore(concurrency)
 
-    for rec in records:
-        excursion = compute_mid_excursion_pct(
-            rec.get("initial_nbbo"),
-            rec.get("highest_price_during_hold"),
-        )
-        if excursion is None or excursion < min_excursion_pct:
+    for path in paths:
+        with open(path) as f:
+            data = json.load(f)
+        file_data[path] = data
+        records = data.get("records", [])
+        totals["records"] += len(records)
+
+        print(f"=== {path} ({len(records)} records) ===", flush=True)
+
+        for rec in records:
+            excursion = compute_mid_excursion_pct(
+                rec.get("initial_nbbo"),
+                rec.get("highest_price_during_hold"),
+            )
+            if excursion is None or excursion < min_excursion_pct:
+                continue
+            totals["eligible"] += 1
+
+            if rec.get("retrospective_classification") and not force:
+                totals["already_classified"] += 1
+                continue
+
+            headline = rec.get("title") or rec.get("headline")
+            tickers = rec.get("tickers") or []
+            if not headline or not tickers:
+                totals["failed"] += 1
+                continue
+
+            # Schedule classification; keep a ref so we can attach the result back
+            tasks.append(asyncio.create_task(
+                _classify_one(rec, excursion, classifier, sem)
+            ))
+            task_refs.append({"path": path, "rec": rec})
+
+    if not tasks:
+        print("Nothing to classify.", flush=True)
+        return totals
+
+    print(
+        f"\n== Classifying {len(tasks)} eligible records "
+        f"with {concurrency}-way concurrency ==\n",
+        flush=True,
+    )
+
+    # Phase 2 — fan out
+    results = await asyncio.gather(*tasks, return_exceptions=False)
+
+    # Phase 3 — attach and rewrite modified files atomically
+    modified_files: set = set()
+    for ref, retro in zip(task_refs, results):
+        if retro is None:
+            totals["failed"] += 1
             continue
-        counters["eligible"] += 1
+        ref["rec"]["retrospective_classification"] = retro
+        totals["classified"] += 1
+        modified_files.add(ref["path"])
 
-        if rec.get("retrospective_classification") and not force:
-            counters["already_classified"] += 1
-            continue
+    if not dry_run:
+        for path in modified_files:
+            tmp = path.with_suffix(".json.tmp")
+            with open(tmp, "w") as f:
+                json.dump(file_data[path], f, indent=2, default=str)
+            os.replace(tmp, path)
+        print(f"\nRewrote {len(modified_files)} file(s).", flush=True)
 
-        headline = rec.get("title") or rec.get("headline")
-        tickers = rec.get("tickers") or []
-        ticker = tickers[0] if tickers else None
-        if not headline or not ticker:
-            counters["failed"] += 1
-            continue
-
-        try:
-            retro = await classifier.classify(headline, ticker)
-        except Exception as e:
-            print(f"  ! classifier error on {rec.get('article_id')}: {e}")
-            counters["failed"] += 1
-            continue
-
-        retro["max_mid_excursion_pct"] = round(excursion, 2)
-        rec["retrospective_classification"] = retro
-        counters["classified"] += 1
-        modified = True
-        print(
-            f"  + {rec.get('article_id')[:30]:<30} {ticker:<6} excursion={excursion:>5.1f}% "
-            f"triage={retro.get('triage_type') or 'null':<28} "
-            f"hc={'Y' if retro.get('hc_bypass') else 'N'} "
-            f"sector={(retro.get('sector_decision') or {}).get('classification') or '-'}"
-        )
-
-    if modified and not dry_run:
-        tmp = path.with_suffix(".json.tmp")
-        with open(tmp, "w") as f:
-            json.dump(data, f, indent=2, default=str)
-        os.replace(tmp, path)
-
-    return counters
+    return totals
 
 
 async def main() -> int:
@@ -209,6 +267,8 @@ async def main() -> int:
                         help="Don't write files; just print what would happen")
     parser.add_argument("--force", action="store_true",
                         help="Reclassify even records that already have retrospective_classification")
+    parser.add_argument("--concurrency", type=int, default=20,
+                        help="Max concurrent in-flight Anthropic API calls (default: 20)")
     parser.add_argument("--recall-root", type=str, default="tmp/statistics/recall",
                         help="Root path for recall files")
     parser.add_argument("--permanent-cache", type=str, default="data/cache/permanent_metadata.json")
@@ -255,34 +315,30 @@ async def main() -> int:
         end=end,
         sessions=sessions,
     )
-    print(f"Scanning {len(files)} session files from {start} to {end} (sessions={sessions})")
-    print(f"Min excursion threshold: {args.min_excursion}%")
-    print(f"Dry run: {args.dry_run}, force: {args.force}")
-    print()
+    print(f"Scanning {len(files)} session files from {start} to {end} (sessions={sessions})", flush=True)
+    print(f"Min excursion threshold: {args.min_excursion}%", flush=True)
+    print(f"Dry run: {args.dry_run}, force: {args.force}, concurrency: {args.concurrency}", flush=True)
+    print(flush=True)
 
-    totals = {k: 0 for k in ("records", "eligible", "already_classified", "classified", "failed")}
-    for f in files:
-        print(f"=== {f} ===")
-        counters = await _process_file(
-            f,
-            classifier,
-            dry_run=args.dry_run,
-            force=args.force,
-            min_excursion_pct=args.min_excursion,
-        )
-        for k, v in counters.items():
-            totals[k] += v
+    totals = await _process_files_parallel(
+        files,
+        classifier,
+        dry_run=args.dry_run,
+        force=args.force,
+        min_excursion_pct=args.min_excursion,
+        concurrency=args.concurrency,
+    )
 
-    print()
-    print("=== SUMMARY ===")
-    print(f"  Files processed:       {len(files)}")
-    print(f"  Records scanned:       {totals['records']}")
-    print(f"  Eligible (>=10%):      {totals['eligible']}")
-    print(f"  Already classified:    {totals['already_classified']}")
-    print(f"  Newly classified:      {totals['classified']}")
-    print(f"  Failed (no headline/error): {totals['failed']}")
+    print(flush=True)
+    print("=== SUMMARY ===", flush=True)
+    print(f"  Files scanned:              {len(files)}", flush=True)
+    print(f"  Records scanned:            {totals['records']}", flush=True)
+    print(f"  Eligible (>={args.min_excursion}%):  {totals['eligible']}", flush=True)
+    print(f"  Already classified:         {totals['already_classified']}", flush=True)
+    print(f"  Newly classified:           {totals['classified']}", flush=True)
+    print(f"  Failed (no headline/error): {totals['failed']}", flush=True)
     if args.dry_run:
-        print(f"  (dry run — no files were modified)")
+        print(f"  (dry run — no files were modified)", flush=True)
 
     return 0
 
