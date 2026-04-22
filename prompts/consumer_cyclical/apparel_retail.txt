@@ -79,12 +79,35 @@ STRATEGIC ALTERNATIVES / ACQUISITION TARGET (Very strong — company is being pu
    "Board Evaluating Strategic Alternatives" (no bank named) -> TRADE SMALL
    "Exploring Strategic Options" (in earnings context) -> SKIP (defensive)
 
-PARTNERSHIPS
-- Brand collaborations
-- Celebrity partnerships
-- Examples:
-   "Announces Major Brand Collaboration" -> TRADE
-   "Signs Celebrity Partnership" -> TRADE
+PARTNERSHIPS / BRAND COLLABORATIONS / RETAIL WINS (Key small-cap catalyst)
+
+PATTERN: Apparel company formalizes a revenue-generating relationship with
+a tier-1 retailer, brand, celebrity, influencer, or sports/entertainment IP.
+
+TRADE when ANY of:
+- NAMED TIER-1 RETAILER placing the apparel (Nordstrom, Macy's, Bloomingdale's,
+  Saks, Neiman Marcus, Target, Walmart, Costco, Amazon, TJX, Ross, Marshalls,
+  Kohl's, Zara, H&M, Urban Outfitters, Anthropologie, Revolve)
+- NAMED TIER-1 BRAND collaboration (Nike, Adidas, Puma, Under Armour, Lululemon,
+  Ralph Lauren, Coach, Michael Kors, Calvin Klein, Tommy Hilfiger, Supreme,
+  Stüssy, Off-White, Fear of God, or comparable household name)
+- NAMED CELEBRITY / INFLUENCER (real name, genuine following)
+- NAMED SPORTS / ENTERTAINMENT LICENSE (NBA, NFL, MLB, NHL, NCAA, Disney,
+  Marvel, DC, Formula 1, UFC, or specific team licenses)
+- SPECIFIC $ AMOUNT on a deal
+- MATERIALITY QUALIFIER ("major", "landmark", "nationwide", "exclusive")
+  combined with named counterparty
+
+All counterparty lists above are NON-EXHAUSTIVE ANCHORS — infer comparable.
+
+Examples (variety of wording):
+   "Announces Major Brand Collaboration With Nike" → TRADE LARGE
+   "Signs Celebrity Partnership With [Named Star]" → TRADE MODERATE
+   "Chosen by Target for Exclusive Co-Branded Line" → TRADE LARGE
+   "Selected by Nordstrom as Preferred Athleisure Partner" → TRADE MODERATE
+   "Rolls Out Nationwide at 400 Urban Outfitters Locations" → TRADE MODERATE
+   "Secures NFL Licensing Deal for Team Apparel" → TRADE LARGE
+   "Landmark Collaboration With Disney for Marvel-Themed Line" → TRADE LARGE
 
 PRODUCT/BRAND LAUNCHES (New revenue streams)
 - New brand, collection, or product line launches with CONCRETE traction

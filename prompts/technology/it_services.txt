@@ -54,23 +54,53 @@ what the market cares about.
 TRADE SIGNALS
 ===============================================================================
 
-PARTNERSHIPS (23% of winners)
-- Technology vendor partnerships
-- Cloud migration partnerships
-- Digital transformation alliances
-- Examples:
-   "Partners With Salesforce For Cloud Implementation" -> TRADE
-   "Announces Strategic Alliance With ServiceNow" -> TRADE
-   "Signs Digital Transformation Partnership" -> TRADE
+PARTNERSHIPS / COMMERCIAL ALLIANCES (23% of winners — top non-earnings catalyst)
+
+PATTERN: IT services firm formalizes a revenue-generating relationship with
+a tier-1 tech vendor, cloud provider, enterprise client, or global systems
+integrator. Regardless of whether called partnership, alliance, collaboration,
+selection, "chosen by", "preferred partner", "named implementation partner".
+
+TRADE when ANY of:
+- NAMED TIER-1 CLOUD / VENDOR (AWS, Azure, Microsoft, Google Cloud, Oracle,
+  Salesforce, ServiceNow, SAP, IBM, Dell, HPE, Cisco, VMware, Workday,
+  Snowflake, Databricks, Adobe, Atlassian, Slack, Zoom, Nvidia, OpenAI,
+  Anthropic) — NOT a closed list; infer comparable
+- NAMED TIER-1 GLOBAL SI (Accenture, Deloitte, Capgemini, Infosys, TCS,
+  Wipro, Cognizant, Tech Mahindra, HCL) — as counterparty on subcontract
+- NAMED FORTUNE 500 ENTERPRISE CLIENT
+- SPECIFIC $ AMOUNT on a new deal
+- GOVERNMENT / FEDERAL IT CONTRACT (DoD, GSA, VA, IRS, any federal agency)
+- MATERIALITY QUALIFIER ("major", "landmark", "preferred", "exclusive") + named counterparty
+
+Examples (variety of wording):
+   "Partners With Salesforce For Cloud Implementation" → TRADE MODERATE
+   "Announces Strategic Alliance With ServiceNow" → TRADE MODERATE
+   "Signs Digital Transformation Partnership With AWS" → TRADE MODERATE
+   "Chosen by Microsoft as Preferred Azure Migration Partner" → TRADE LARGE
+   "Selected by Accenture for Fortune 500 Cloud Implementation" → TRADE MODERATE
+   "Named Preferred Partner by Oracle for Database Modernization" → TRADE MODERATE
+   "Landmark Multi-Year Managed Services Win With Fortune 100 Bank" → TRADE LARGE
 
 CONTRACTS (18% of winners)
-- Government IT contracts
-- Enterprise managed services deals
-- Long-term outsourcing agreements
-- Examples:
-   "Wins $40M Federal IT Contract" -> TRADE
-   "Secures Multi-Year Managed Services Deal" -> TRADE
-   "Awarded IT Modernization Contract" -> TRADE
+
+PATTERN: IT services firm RECEIVES new revenue-generating government or
+enterprise contract. Regardless of noun (contract, task order, award,
+selection, win).
+
+TRADE when ANY of:
+- NAMED GOVERNMENT AGENCY (DoD, GSA, VA, IRS, NASA, Treasury, HHS, DHS,
+  EPA, or any US/allied agency or military branch)
+- NAMED TIER-1 ENTERPRISE CLIENT (Fortune 500-class firm)
+- SPECIFIC $ AMOUNT on a new federal/enterprise contract
+- MATERIALITY QUALIFIER + context
+
+Examples (variety of wording):
+   "Wins $40M Federal IT Contract" → TRADE LARGE
+   "Secures Multi-Year Managed Services Deal With Fortune 500" → TRADE MODERATE
+   "Awarded IT Modernization Contract by Department of Veterans Affairs" → TRADE LARGE
+   "Selected as Prime Contractor for $50M DoD Cloud Migration" → TRADE LARGE
+   "Receives Task Order Under GSA Schedule" → TRADE MODERATE (if material $)
 - CONTRACT GUARDRAILS (apply AFTER identifying a potential contract, not before):
    - RENEWAL / EXTENSION = SKIP (unless significantly expanded with material new $)
    - "Follow-on order" without significant expansion = SKIP

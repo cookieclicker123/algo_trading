@@ -76,12 +76,39 @@ FDA APPROVALS
    "Receives FDA Approval For New Product" -> TRADE
    "FDA Clears New Medical Aesthetic Device" -> TRADE
 
-RETAIL DISTRIBUTION
-- Major retail distribution agreements
-- Expansion into major retailers
-- Examples:
-   "Secures Distribution Agreement With Major Retailer" -> TRADE
-   "Products To Be Sold In Walmart Nationwide" -> TRADE
+RETAIL / DISTRIBUTION WINS (Highest-signal non-earnings catalyst for CPG)
+
+PATTERN: Small/micro-cap CPG receives new revenue-generating relationship
+with a household-name retailer. This is the clearest alpha signal in this
+industry — small brand + tier-1 retailer = market reprices upward. Regardless
+of whether called distribution agreement, program, rollout, selection,
+placement, supply arrangement, or "chosen by".
+
+TRADE when ANY of:
+- NAMED TIER-1 RETAILER (Target, Walmart, Costco, Amazon, Home Depot, Lowe's,
+  Kroger, Whole Foods, Trader Joe's, Albertsons, Publix, Best Buy, Sephora,
+  Ulta, CVS, Walgreens, Rite Aid, Dollar General, Dollar Tree, TJX, Ross,
+  Kohl's, Macy's, Nordstrom, JC Penney, Petco, PetSmart, Dick's Sporting Goods,
+  7-Eleven, Circle K, Wawa, and any comparable national retailer — NOT closed)
+- SPECIFIC $ AMOUNT of revenue from the retail channel
+- MATERIALITY QUALIFIER ("major", "landmark", "nationwide", "exclusive",
+  "record-breaking") combined with named retailer or specific scope
+
+Examples (variety of wording — principle is the same):
+   "Secures Distribution Agreement With Target" → TRADE MODERATE
+   "Products To Be Sold In Walmart Nationwide" → TRADE LARGE
+   "Wins Major Fresh-Cut Herb Program at Target Stores" → TRADE LARGE
+   "Chosen by Costco for Exclusive Brand Rollout" → TRADE MODERATE
+   "Selected as Exclusive Supplier for Sephora Private Label" → TRADE LARGE
+   "Rolls Out Nationwide at 2,000 Kroger Stores" → TRADE LARGE
+   "Landmark Supply Partnership With Whole Foods" → TRADE MODERATE
+   "Placement Secured Across 1,500 CVS Pharmacy Locations" → TRADE MODERATE
+
+RETAIL GUARDRAILS (apply AFTER identifying a potential retail deal):
+- RENEWAL / EXTENSION = SKIP (unless significantly expanded)
+- Company SPENDING money to open stores / acquire retail brand = NOT retail_distribution
+- Regional / local / single-store pilot = SKIP (too small)
+- MOU / "plans to" / "anticipates" = SKIP (not committed)
 
 CELEBRITY/INFLUENCER PARTNERSHIPS
 - Celebrity brand partnerships

@@ -54,14 +54,34 @@ what the market cares about.
 TRADE SIGNALS
 ===============================================================================
 
-CONTRACTS (36% of winners - KEY SIGNAL)
-- Government security contracts
-- Enterprise security contracts
-- Multi-year service agreements
-- Examples:
-   "Wins $50M Government Security Contract" -> TRADE
-   "Secures Enterprise Security Deal" -> TRADE
-   "Awarded Critical Infrastructure Protection Contract" -> TRADE
+CONTRACTS (36% of winners — KEY SIGNAL for this sector)
+
+PATTERN: Security services firm RECEIVES new revenue-generating contract from
+a named government, defense, or tier-1 enterprise counterparty. Regardless of
+noun (contract, task order, award, selection, program, rollout).
+
+TRADE when ANY of:
+- NAMED GOVERNMENT / MILITARY (DoD, DHS, TSA, CBP, FBI, CIA, NSA, Secret
+  Service, U.S. Marshals, FAA, Army, Navy, Air Force, Space Force, Marines,
+  National Guard, or any US/allied agency or military branch)
+- NAMED DEFENSE / HOMELAND SECURITY PRIME (Lockheed Martin, Northrop Grumman,
+  Boeing, Raytheon/RTX, General Dynamics, L3Harris, BAE, Leidos, SAIC, CACI,
+  ManTech, Booz Allen Hamilton, Peraton)
+- NAMED TIER-1 CORPORATE CLIENT (Fortune 500, critical infrastructure operator,
+  major airport, port authority, stadium, arena, university system)
+- SPECIFIC $ AMOUNT on new contract
+- MATERIALITY QUALIFIER ("major", "landmark", "critical") + named counterparty
+
+All counterparty lists above are NON-EXHAUSTIVE ANCHORS — infer comparable.
+
+Examples (variety of wording):
+   "Wins $50M Government Security Contract" → TRADE LARGE
+   "Secures Enterprise Security Deal With Fortune 500" → TRADE MODERATE
+   "Awarded Critical Infrastructure Protection Contract" → TRADE MODERATE
+   "Chosen by DHS for Border Surveillance Program" → TRADE LARGE
+   "Selected by Lockheed Martin for Subcontract on F-35 Program" → TRADE LARGE
+   "Landmark Multi-Year TSA Airport Security Contract" → TRADE LARGE
+   "Receives Task Order Under GSA Schedule" → TRADE MODERATE (if material)
 - CONTRACT GUARDRAILS (apply AFTER identifying a potential contract, not before):
    - RENEWAL / EXTENSION = SKIP (unless significantly expanded with material new $)
    - "Follow-on order" without significant expansion = SKIP

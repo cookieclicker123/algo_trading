@@ -80,14 +80,57 @@ STRATEGIC ALTERNATIVES / ACQUISITION TARGET (Very strong — company is being pu
    "Board Evaluating Strategic Alternatives" (no bank named) -> TRADE SMALL
    "Exploring Strategic Options" (in earnings context) -> SKIP (defensive)
 
-CONTRACTS
-- Insurance: Major policy contracts
-- Banking: Partnership contracts
-- Mortgage: Servicing contracts
-- Examples:
-   "Wins Major Insurance Contract" -> TRADE
-   "Secures Mortgage Servicing Portfolio" -> TRADE
-   "Signs Banking Partnership Contract" -> TRADE
+CONTRACTS / REGULATORY UNLOCK / FINTECH PARTNERSHIPS
+
+PATTERN: Finance company gains new revenue channel through a named tier-1
+counterparty or regulatory milestone. The financial services industry has
+several distinct catalyst types — the underlying principle across all: new
+distribution, new customer channel, or regulatory enablement.
+
+TRADE when ANY of:
+
+(a) FINTECH / PLATFORM PARTNERSHIP — small bank/insurer signs with named
+    fintech for embedded banking, BaaS, or distribution.
+    TIER-1 FINTECH ANCHORS: Stripe, Plaid, Block/Square, PayPal, Visa,
+    Mastercard, American Express, Discover, Affirm, Klarna, Wise, Remitly,
+    SoFi, Coinbase, Robinhood, Toast, Shift4, Fiserv, FIS, Jack Henry, Temenos.
+
+(b) NAMED TIER-1 ENTERPRISE / CORPORATE CLIENT — large customer signing for
+    services.
+    TIER-1 ANCHORS: Fortune 500 names, household brands, major governments.
+
+(c) NAMED REINSURER / CAPACITY PROVIDER — for insurance companies.
+    TIER-1 ANCHORS: Munich Re, Swiss Re, Berkshire Hathaway Reinsurance,
+    Hannover Re, SCOR, Lloyd's syndicates.
+
+(d) REGULATORY UNLOCK — new charter, license, or designation that opens
+    revenue.
+    EXAMPLES: National Trust Charter, state insurance licenses covering
+    new territory, stablecoin issuance authority, SEC registration as
+    broker-dealer, DEA authorization, OCC charter approval.
+
+(e) MORTGAGE SERVICING / LOAN PORTFOLIO ACQUISITION (receiving-side) —
+    growing AUM, MSR portfolio, or loan book via deal with named seller.
+
+(f) CRYPTO / STABLECOIN / TOKENIZATION PRODUCT LAUNCH — novel product
+    catalyst with concrete details (named custodian, named asset, etc.).
+
+(g) SPECIFIC $ AMOUNT on any new revenue-generating deal.
+
+(h) MATERIALITY QUALIFIER ("major", "landmark", "transformational") +
+    named counterparty.
+
+All lists above are NON-EXHAUSTIVE ANCHORS — infer comparable.
+
+Examples (variety of wording):
+   "Wins Major Insurance Contract" → TRADE MODERATE (materiality qualifier)
+   "Secures Mortgage Servicing Portfolio From Wells Fargo" → TRADE LARGE (tier-1 seller)
+   "Signs Banking Partnership With Stripe for Embedded Accounts" → TRADE LARGE
+   "Partners With Plaid for Core Banking Integration" → TRADE MODERATE
+   "Receives National Trust Charter, Enabling Nationwide Rollout" → TRADE LARGE (regulatory unlock)
+   "Signs Reinsurance Agreement With Munich Re for Cyber Risk" → TRADE MODERATE
+   "Launches USDC-Backed Stablecoin With Coinbase Custody" → TRADE MODERATE
+   "Chosen by Block as Preferred Banking Partner" → TRADE LARGE
 - CONTRACT GUARDRAILS (apply AFTER identifying a potential contract, not before):
    - RENEWAL / EXTENSION = SKIP (unless significantly expanded with material new $)
    - "Follow-on order" without significant expansion = SKIP

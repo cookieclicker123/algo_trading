@@ -81,16 +81,42 @@ STRATEGIC ALTERNATIVES / ACQUISITION TARGET (Very strong — company is being pu
    "Board Evaluating Strategic Alternatives" (no bank named) -> TRADE SMALL
    "Exploring Strategic Options" (in earnings context) -> SKIP (defensive)
 
-PARTNERSHIPS/MOUS (STRONG SIGNAL)
-- Legally-binding MOUs
-- Strategic partnerships
-- Business injection agreements
-- Joint ventures
-- Examples:
-   "Enters Into Legally-Binding MOU" -> TRADE
-   "Signs Partnership Agreement With Major Distributor" -> TRADE
-   "Proposed Injection Of [Business] Into Company" -> TRADE
-   "Forms Strategic Alliance With [Partner]" -> TRADE
+PARTNERSHIPS / DISTRIBUTION / SUPPLY (STRONG SIGNAL — the EDBL pattern)
+
+PATTERN: Small/micro-cap food company wins a revenue-generating relationship
+with a household-name grocer, retailer, food-service operator, or major
+distributor. Regardless of whether called distribution agreement, supply
+deal, program, rollout, selection, placement, or "chosen by".
+
+TRADE when ANY of:
+- NAMED TIER-1 GROCER / RETAILER (Walmart, Target, Costco, Kroger, Albertsons,
+  Publix, Whole Foods, Trader Joe's, Aldi, H-E-B, Wegmans, Amazon Fresh,
+  Sprouts, Fresh Market, Dollar General, Dollar Tree, Sam's Club, BJ's,
+  7-Eleven, Circle K, Wawa)
+- NAMED TIER-1 FOOD SERVICE / QSR (Sysco, US Foods, PFG, McDonald's, Starbucks,
+  Chipotle, Subway, Domino's, YUM Brands, Darden, Compass Group, Aramark)
+- NAMED TIER-1 DISTRIBUTOR (Sysco, US Foods, PFG, UNFI, KeHE, C&S Wholesale)
+- SPECIFIC $ AMOUNT on new supply/distribution deal
+- MATERIALITY QUALIFIER ("major", "landmark", "nationwide", "exclusive")
+  combined with named counterparty
+
+All counterparty lists above are NON-EXHAUSTIVE ANCHORS — infer comparable.
+
+Examples (variety of wording):
+   "Signs Partnership Agreement With Sysco" → TRADE LARGE
+   "Wins Major Program at Target Stores" → TRADE LARGE  ← EDBL pattern
+   "Chosen by Kroger for Private-Label Frozen Line" → TRADE MODERATE
+   "Selected as Preferred Supplier for Whole Foods" → TRADE LARGE
+   "Rolls Out Nationwide at 2,500 Publix Stores" → TRADE LARGE
+   "Landmark Supply Deal With McDonald's North America" → TRADE LARGE
+   "Enters Legally-Binding MOU With Named Distributor" → TRADE MODERATE
+   "Forms Strategic Alliance With Named Food Service Operator" → TRADE MODERATE
+
+GUARDRAILS (apply AFTER identifying a potential deal):
+- MOU / framework / LOI without "legally-binding" language = SKIP
+- Unnamed counterparty + no $ + no materiality qualifier = SKIP
+- Regional/local/pilot = SKIP (too small)
+- Company SPENDING money to acquire food brand = NOT partnership
 
 IPO COMPLETIONS (Context-dependent)
 - Successfully closed IPOs with capital raised

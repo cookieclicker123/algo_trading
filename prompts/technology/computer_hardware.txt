@@ -54,20 +54,41 @@ what the market cares about.
 TRADE SIGNALS
 ===============================================================================
 
-CONTRACTS & DEFENSE/MILITARY (33% of winners - KEY SIGNAL)
-- Government/defense contracts
-- Enterprise server deals
-- Data center contracts
-- Educational contracts
-- Defense/military investments, partnerships, or orders (drones, munitions, counter-UAS, sensors)
-- NOTE: Many hardware companies pivot to or participate in defense — this is ALWAYS tradeable
-- Examples:
-   "Wins $50M Government Server Contract" -> TRADE
-   "Secures Enterprise Data Center Deal" -> TRADE
-   "Awarded Large Education Sector Contract" -> TRADE
-   "Announces Strategic Investment in Precision Loitering Munition Innovator" -> TRADE
-   "Selected for Military Drone Identification System" -> TRADE
-   "Receives Tactical Systems Order from Military Force" -> TRADE
+CONTRACTS / DEFENSE / MILITARY (33% of winners — KEY SIGNAL)
+
+PATTERN: Hardware company RECEIVES new revenue from a named government,
+military, defense, or tier-1 enterprise counterparty. Regardless of whether
+called contract, order, award, program, selection, win, supply agreement,
+or design win.
+
+TRADE when ANY of:
+- NAMED GOVERNMENT / MILITARY (Army, Navy, Air Force, Space Force, Marines,
+  DoD, DARPA, NASA, Space Command, DHS, TSA, CBP, FAA, DOE, or US/allied
+  military branch/agency)
+- NAMED DEFENSE PRIME (Lockheed Martin, Northrop Grumman, Boeing, Raytheon/RTX,
+  General Dynamics, L3Harris, BAE, Leonardo, Thales, Elbit, IAI, Rafael)
+- NAMED TIER-1 ENTERPRISE / OEM (Apple, Samsung, Microsoft, Dell, HPE, Cisco,
+  IBM, Oracle, Google, Amazon, Meta, Tesla, Ford, GM, Toyota, Siemens)
+- NAMED HYPERSCALER FOR DATA CENTER (AWS, Azure, Google Cloud, Oracle Cloud)
+- SPECIFIC $ AMOUNT on a new contract
+- MATERIALITY QUALIFIER + named counterparty
+
+All counterparty lists above are NON-EXHAUSTIVE ANCHORS — infer comparable.
+
+NOTE: Many hardware companies pivot to or participate in defense — this is
+ALWAYS tradeable when combined with a named counterparty.
+
+Examples (variety of wording):
+   "Wins $50M Government Server Contract" → TRADE LARGE
+   "Secures Enterprise Data Center Deal With AWS" → TRADE LARGE
+   "Awarded Large Education Sector Contract" → TRADE MODERATE (if material $)
+   "Announces Strategic Investment in Precision Loitering Munition Innovator" → TRADE MODERATE
+   "Selected for Military Drone Identification System" → TRADE LARGE
+   "Receives Tactical Systems Order from U.S. Army" → TRADE LARGE
+   "Chosen by Apple for Next-Gen iPhone Camera Module Supply" → TRADE LARGE
+   "Design Win With Samsung for Flagship Smartphone" → TRADE LARGE
+   "Qualified as Preferred Supplier for NVIDIA DGX Systems" → TRADE LARGE
+   "Landmark Multi-Year Server Deal With Microsoft Azure" → TRADE LARGE
 - CONTRACT GUARDRAILS (apply AFTER identifying a potential contract, not before):
    - RENEWAL / EXTENSION = SKIP (unless significantly expanded with material new $)
    - "Follow-on order" without significant expansion = SKIP

@@ -54,21 +54,46 @@ what the market cares about.
 TRADE SIGNALS
 ===============================================================================
 
-PARTNERSHIPS (24% of winners)
-- Enterprise partnerships
-- Technology partnerships
-- Distribution agreements
-- Examples:
-   "Partners With Major Enterprise For Service Delivery" -> TRADE
-   "Announces Strategic Partnership" -> TRADE
+PARTNERSHIPS / COMMERCIAL ALLIANCES (24% of winners — top non-earnings catalyst)
+
+PATTERN: B2B services firm formalizes a revenue-generating relationship with
+a named tier-1 enterprise, platform, technology vendor, or government entity.
+
+TRADE when ANY of:
+- NAMED FORTUNE 500 CLIENT on the enterprise side
+- NAMED TIER-1 TECH VENDOR (Microsoft, Google, Amazon, Oracle, Salesforce,
+  ServiceNow, SAP, IBM, Cisco, Adobe, Snowflake — NOT closed)
+- NAMED GLOBAL SI (Accenture, Deloitte, Capgemini, Infosys, TCS, Wipro, Cognizant)
+- NAMED TIER-1 PLATFORM / MARKETPLACE
+- SPECIFIC $ AMOUNT on a new deal
+- MATERIALITY QUALIFIER + named counterparty
+
+Examples (variety of wording):
+   "Partners With Microsoft For Service Delivery" → TRADE MODERATE
+   "Announces Strategic Partnership With Deloitte" → TRADE MODERATE
+   "Chosen by Salesforce as Preferred Implementation Partner" → TRADE MODERATE
+   "Signs Landmark Alliance With Accenture" → TRADE MODERATE
+   "Selected by Oracle for Fortune 500 Managed Services" → TRADE MODERATE
 
 CONTRACTS (16% of winners)
-- Government service contracts
-- Enterprise service agreements
-- Multi-year deals
-- Examples:
-   "Wins Government Services Contract" -> TRADE
-   "Secures Multi-Year Enterprise Agreement" -> TRADE
+
+PATTERN: B2B services firm RECEIVES new revenue from a named government,
+military, or tier-1 enterprise counterparty. Any noun qualifies — contract,
+task order, award, agreement, selection, win.
+
+TRADE when ANY of:
+- NAMED GOVERNMENT AGENCY (DoD, GSA, VA, IRS, NASA, HHS, DHS, EPA, Treasury,
+  or any US/allied federal/state agency)
+- NAMED TIER-1 ENTERPRISE CLIENT
+- SPECIFIC $ AMOUNT on new contract
+- MATERIALITY QUALIFIER + context
+
+Examples (variety of wording):
+   "Wins Government Services Contract" → TRADE MODERATE
+   "Secures Multi-Year Enterprise Agreement With Fortune 500" → TRADE MODERATE
+   "Awarded $25M VA Services Contract" → TRADE LARGE
+   "Chosen as Prime Contractor for GSA Schedule Task Order" → TRADE MODERATE
+   "Landmark Multi-Year Services Deal With Disney" → TRADE LARGE
 - CONTRACT GUARDRAILS (apply AFTER identifying a potential contract, not before):
    - RENEWAL / EXTENSION = SKIP (unless significantly expanded with material new $)
    - "Follow-on order" without significant expansion = SKIP

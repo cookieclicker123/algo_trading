@@ -62,14 +62,34 @@ RESEARCH BREAKTHROUGHS
    "Announces Breakthrough In Crop Technology" -> TRADE
    "Research Published In Major Journal" -> TRADE
 
-PARTNERSHIPS
-- Agricultural company partnerships
-- Research collaborations
-- Distribution agreements
-- Examples:
-   "Partners With Major Agricultural Company" -> TRADE
-   "Signs Research Collaboration Agreement" -> TRADE
-   "Announces Distribution Partnership" -> TRADE
+PARTNERSHIPS / COMMERCIAL ARRANGEMENTS (Key catalyst for small-cap ag)
+
+PATTERN: Ag inputs company formalizes a revenue-generating relationship with
+a tier-1 agribusiness, food processor, retailer, or government agency.
+Regardless of noun (partnership, supply deal, offtake, distribution, program,
+selection).
+
+TRADE when ANY of:
+- NAMED TIER-1 AGRIBUSINESS (Cargill, ADM, Bunge, Louis Dreyfus, CHS, COFCO,
+  Olam, Syngenta, Bayer/Monsanto, Corteva, FMC, Nutrien, Mosaic, CF Industries,
+  Yara, ICL, Tyson, JBS, Smithfield, Perdue, Hormel, Pilgrim's)
+- NAMED TIER-1 FOOD / RETAILER (Walmart, Kroger, Costco, Whole Foods, McDonald's,
+  Starbucks, Chipotle, PepsiCo, Coca-Cola, Unilever, Nestle, Kraft Heinz,
+  General Mills, Kellogg's)
+- NAMED GOVERNMENT / AGENCY (USDA, EPA, FDA, DoD, USAID)
+- SPECIFIC $ AMOUNT (offtake value, supply $, licensing deal)
+- MATERIALITY QUALIFIER ("major", "landmark", "exclusive") + named counterparty
+- NAMED RESEARCH INSTITUTION (Land-Grant Universities, USDA-ARS, CGIAR centers,
+  Gates Foundation-backed ag research)
+
+Examples (variety of wording):
+   "Partners With Cargill On Feed Additive Trial" → TRADE MODERATE
+   "Signs Research Collaboration Agreement With Bayer" → TRADE MODERATE
+   "Announces Distribution Partnership With Nutrien" → TRADE LARGE
+   "Chosen by ADM for Exclusive Supply of Fermented Protein" → TRADE LARGE
+   "Selected as Preferred Seed Partner by Corteva" → TRADE MODERATE
+   "Landmark Offtake Agreement With Tyson Foods" → TRADE LARGE
+   "Wins Major USDA Research Grant for Drought-Resistant Crops" → TRADE MODERATE
 
 REGULATORY APPROVALS
 - FDA/EPA approvals

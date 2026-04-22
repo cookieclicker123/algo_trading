@@ -54,21 +54,43 @@ what the market cares about.
 TRADE SIGNALS
 ===============================================================================
 
-PARTNERSHIPS (13% of winners)
-- Brand partnerships
-- Exclusive distribution deals
-- Celebrity/influencer partnerships
-- Examples:
-   "Partners With Major Brand For Exclusive Line" -> TRADE
-   "Announces Celebrity Partnership" -> TRADE
-   "Signs Exclusive Distribution Agreement" -> TRADE
+PARTNERSHIPS / BRAND COLLABORATIONS (13% of winners)
 
-CONTRACTS (11% of winners)
-- Major retailer partnerships
-- B2B contracts
-- Examples:
-   "Wins Major B2B Supply Contract" -> TRADE
-   "Secures Enterprise Deal" -> TRADE
+PATTERN: Formalized relationship between two named entities — the specialty
+retailer and either a household-name brand, celebrity, platform, or tier-1
+distributor. Regardless of specific noun (partnership, collaboration,
+tie-up, alliance, "chosen by", "selected as", exclusive).
+
+TRADE when BOTH parties named AND at least one of:
+- NAMED TIER-1 BRAND (Nike, Adidas, Lululemon, Ralph Lauren, Coach, Tapestry,
+  Kate Spade, Michael Kors, Calvin Klein, Tommy Hilfiger, North Face,
+  Patagonia, Columbia, Under Armour, Vans, Crocs, Lego, Hasbro, Mattel,
+  Disney, Marvel, and any comparable household-name brand — NOT closed)
+- NAMED TIER-1 PLATFORM / DISTRIBUTOR (Amazon, Shopify, Target, Walmart,
+  Costco, QVC, HSN, TikTok Shop)
+- NAMED CELEBRITY (real name of a celebrity with genuine following)
+- SPECIFIC $ AMOUNT on a deal
+- MATERIALITY QUALIFIER + named counterparty
+
+Examples (variety of wording):
+   "Partners With Nike For Exclusive Line" → TRADE LARGE
+   "Announces Celebrity Partnership With [Named Artist]" → TRADE MODERATE
+   "Signs Exclusive Distribution Agreement With Amazon" → TRADE LARGE
+   "Chosen by Target for Co-Branded Collection" → TRADE LARGE
+   "Selected as Preferred Vendor for Costco Private Label" → TRADE LARGE
+   "Landmark Collaboration With Disney" → TRADE LARGE
+   "Rolls Out Exclusive Shopify Integration Across 500 Stores" → TRADE MODERATE
+
+CONTRACTS / COMMERCIAL ARRANGEMENTS (11% of winners)
+
+PATTERN: Specialty retailer RECEIVES new revenue-generating business from a
+named counterparty (wholesale/B2B, enterprise client, licensing, franchise).
+
+Examples:
+   "Wins Major B2B Supply Contract With Named Enterprise" → TRADE MODERATE
+   "Secures Enterprise Deal With Fortune 500 Client" → TRADE MODERATE
+   "Chosen as Supplier for Disney Theme Park Merchandise" → TRADE LARGE
+   "Signs Landmark Licensing Deal With NFL / NBA / MLB" → TRADE LARGE
 - CONTRACT GUARDRAILS (apply AFTER identifying a potential contract, not before):
    - RENEWAL / EXTENSION = SKIP (unless significantly expanded with material new $)
    - "Follow-on order" without significant expansion = SKIP
