@@ -2484,14 +2484,14 @@ async def process_imminent_article(
                 logger.debug(f"Could not check market cap/biotech filter: {e}")
 
         # ============================================================
-        # 📊 SPREAD FILTER: Reject wide spreads (>5% of mid)
+        # 📊 SPREAD FILTER: Reject wide spreads (>7.5% of mid for normal)
         # ============================================================
         # 🎯 WIDE SPREAD TRAP FILTER
         # ============================================================
-        # Wide spreads cause instant losses. If bid-ask spread is 5%, you're
-        # already down 5% the moment you buy at ask and would sell at bid.
-        # IINN lesson: 35% spread = untradeable.
-        # Tightened to 5% - even 5% spread means instant -5% on entry.
+        # Wide spreads cause instant losses. IINN lesson: 35% spread = untradeable.
+        # Raised from 5% → 7.5% for normal trades (2026-04-22) — on a few-trades-a-day
+        # news strategy with big winners rare, allow slightly wider entry slippage
+        # in exchange for catching more real movers. AI quality good enough to trust.
         if is_high_conviction:
             MAX_SPREAD_PCT = 10.0
         elif is_clinical_breakthrough:
@@ -2500,7 +2500,7 @@ async def process_imminent_article(
             _ab_price = confluence_metadata.get("initial_ask") or 0
             MAX_SPREAD_PCT = _ai_breakthrough_spread_threshold(_ab_price)
         else:
-            MAX_SPREAD_PCT = 5.0
+            MAX_SPREAD_PCT = 7.5
         initial_spread = confluence_metadata.get("initial_spread")
         initial_ask = confluence_metadata.get("initial_ask")
         initial_bid = confluence_metadata.get("initial_bid", 0)
@@ -2518,7 +2518,7 @@ async def process_imminent_article(
 
                 if spread_pct_of_mid > MAX_SPREAD_PCT:
                     logger.info(
-                        "⏭️ AUTO-TRADE SKIPPED: Spread too wide (>5% of mid) - instant loss trap",
+                        f"⏭️ AUTO-TRADE SKIPPED: Spread too wide (>{MAX_SPREAD_PCT}% of mid) - instant loss trap",
                         ticker=ticker,
                         spread_pct_of_mid=round(spread_pct_of_mid, 2),
                         max_allowed=MAX_SPREAD_PCT,

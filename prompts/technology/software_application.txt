@@ -10,42 +10,97 @@ INDUSTRY CONTEXT:
 - AI/ML integration announcements are strong catalysts in this industry
 - NOTE: We do NOT trade plain earnings announcements. EXCEPTION: record-breaking results with specific dollar amounts and/or percentages in the headline = TRADE SMALL
 
-===============================================================================
+═══════════════════════════════════════════════════════════════════════════════
+HOW TO REASON ABOUT SOFTWARE HEADLINES (PATTERN-FIRST)
+═══════════════════════════════════════════════════════════════════════════════
+
+Classify on the PATTERN of the economic event, NOT on the specific nouns or
+proper names in the headline. Company names, product names, and technical
+terms vary — the list below is ANCHOR POINTS, not exhaustive enumerations.
+
+If a headline is PRINCIPLE-EQUIVALENT to an example (same economic nature,
+different wording), classify it the same way. "Contract" / "program" / "rollout"
+/ "supply deal" / "selection" / "win" / "chosen to supply" all describe the
+same economic event when the substance is the same: the company RECEIVES
+new revenue-generating business from a named counterparty.
+
+A self-declared materiality qualifier ("major", "landmark", "record-breaking",
+"significant", "transformational") combined with a specific $ amount OR a
+named tier-1 counterparty makes a deal tradeable even if the specific noun
+isn't in the examples below.
+
+WHAT WEAKENS A HEADLINE:
+- Missing named counterparty or asset ("partners with unnamed firm")
+- Missing materiality (no $ figure, no qualifier, no tier-1 counterparty)
+- Non-committal structure ("framework", "MOU", "exploring", "evaluating")
+- Future tense ("plans to", "will announce", "to launch")
+- Already-priced-in events (milestones on existing contracts)
+
+None of these require blanket SKIP — they disqualify specific headlines.
+Judge each on its own signal density.
+
+═══════════════════════════════════════════════════════════════════════════════
 TRADE SIGNALS
-===============================================================================
+═══════════════════════════════════════════════════════════════════════════════
 
-CONTRACTS/PARTNERSHIPS (26% combined)
-- Government/enterprise contract wins
-- Major tech company partnerships (Microsoft, Google, Amazon, etc.)
-- Cloud migration deals
-- "Multi-year agreement", "strategic partnership"
-- Examples:
-   "Secures $50M Enterprise Contract With Fortune 500 Company" -> TRADE
-   "Partners With Microsoft To Integrate AI Solutions" -> TRADE
-   "Wins Major Government Contract" -> TRADE
-- CONTRACT QUALITY FILTERS (apply to ALL contract headlines):
-   - NEW contract/order/agreement = TRADE (if material)
-   - Contract RENEWAL or EXTENSION = SKIP (unless significantly expanded with material dollar amount)
-   - "Follow-on order" without significant expansion = SKIP
-   - Must have SPECIFIC counterparty name OR dollar amount (vague = SKIP)
-   - Company must be RECEIVING revenue (not spending/acquiring)
-   - PRV sales, royalty agreements, asset purchases = SKIP (financial transactions, not contracts)
-   - Examples:
-      "Renews Supply Agreement" -> SKIP (renewal, not new)
+CONTRACTS / COMMERCIAL ARRANGEMENTS (26% of winners combined with partnerships)
 
-AI/TECHNOLOGY ADVANCEMENT (Strong signal in this sector)
-- AI product launches with SPECIFIC deliverables
-- Machine learning integration with NAMED partners
-- Generative AI capabilities with concrete use cases
-- "Launches AI-powered", "integrates artificial intelligence"
-- REQUIRES: Specific product name, named customer, or dollar amount
-- SKIP: Vague "partnership for AI innovation" without specifics
-- Examples:
-   "Launches AI-Powered Analytics Platform" -> TRADE (specific product)
-   "Partners With NVIDIA For AI Integration" -> TRADE (named partner)
-   "Announces Generative AI Partnership With Fortune 500" -> TRADE
-   "Forge Strategic Partnership for AI Innovation" -> SKIP (too vague, no specifics)
-   "Partnership With Unknown Company For AI" -> SKIP (unknown counterparty, no details)
+PATTERN: Company RECEIVES new revenue-generating business from a named counterparty.
+Any of the following wordings qualify (non-exhaustive): contract, order, program,
+rollout, selection, win, supply arrangement, "chosen by", "selected to supply",
+"awarded", "integrated into". The economic event — cash flowing TO the company
+from an external party — is what matters, not the specific noun.
+
+TRADE when ANY of the following are present:
+- NAMED TIER-1 COUNTERPARTY on the receiving side of revenue. Household-name
+  tech/enterprise firms like Microsoft, Google, Amazon, NVIDIA, Apple, Oracle,
+  Salesforce, SAP, IBM, Meta, Dell, Cisco, ServiceNow, Adobe, Snowflake,
+  Databricks, Intel, AMD — and any other firm of comparable recognition and
+  scale you infer (NOT a closed list). Counterparty alone can be enough; no
+  $ needed when the name is household-recognized.
+- SPECIFIC DOLLAR AMOUNT on a new deal (any $ figure qualifies).
+- MATERIALITY QUALIFIER ("major", "landmark", "significant", "transformational",
+  "record-breaking") combined with a named counterparty — even without a $ figure.
+- GOVERNMENT / ENTERPRISE contract with specific scope.
+
+Examples (variety of wording — the principle is the same):
+   "Secures $50M Enterprise Contract With Fortune 500 Company" → TRADE MODERATE
+   "Partners With Microsoft To Integrate AI Solutions" → TRADE MODERATE
+   "Wins Major Government Contract" → TRADE LARGE
+   "Selected as Supplier for AWS Cloud Migration Program" → TRADE MODERATE
+   "Chosen by Oracle for Enterprise Database Modernization" → TRADE MODERATE
+   "Rolls Out Nationwide Deployment with NVIDIA on GPU Analytics" → TRADE LARGE
+   "Landmark Supply Partnership with Salesforce" → TRADE MODERATE (materiality qualifier + tier-1)
+   "Integrated into Snowflake Partner Network as Preferred Vendor" → TRADE SMALL
+
+AI / ML ADVANCEMENT (Strong signal — AI is core to this industry)
+
+PATTERN: Company launches, deploys, or partners on AI/ML capabilities with
+concrete specifics — a named product, named customer/partner, or specific
+deliverable. The "AI" label alone is not enough; combine with specifics.
+
+TRADE when any present:
+- Named AI product/tool/agent being launched or deployed
+- Named major tech partner (NVIDIA, Google, Microsoft, AWS, OpenAI, Anthropic,
+  etc., or comparable) on an AI/ML collaboration
+- Concrete AI capability with specific use case and results/traction
+
+Examples:
+   "Launches AI-Powered Analytics Platform" → TRADE MODERATE (specific product)
+   "Partners With NVIDIA For AI Integration" → TRADE MODERATE (named tier-1)
+   "Announces Generative AI Partnership With Fortune 500" → TRADE MODERATE
+   "Deploys Generative AI Agent Across 500 Enterprise Customers" → TRADE LARGE (traction + specifics)
+   "Collaborates With Microsoft Azure OpenAI on Custom GPT-4 Integration" → TRADE MODERATE
+
+CONTRACT / DEAL GUARDRAILS — apply AFTER identifying a potential contract:
+- RENEWAL / EXTENSION = SKIP (unless significantly expanded with material new $)
+- "Follow-on order" without significant expansion = SKIP
+- Unnamed counterparty + no $ amount + no materiality qualifier = SKIP
+- Company SPENDING money (acquisition, purchase) = SKIP (not a contract)
+- PRV sales, royalty-only arrangements, asset purchases = SKIP (financial transactions, not contracts)
+- Vague "strategic partnership" with no scope specifics = SKIP
+- Delivery/shipping/milestone update on EXISTING deal = SKIP
+- MOU / LOI / framework / "exploring" = SKIP (non-committal)
 
 MERGERS & ACQUISITIONS
 - Acquisition announcements (acquirer or target)

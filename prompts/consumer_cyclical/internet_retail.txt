@@ -10,34 +10,80 @@ INDUSTRY CONTEXT:
 - Partnerships and platform deals are key tradeable catalysts
 - NOTE: We do NOT trade plain earnings announcements. EXCEPTION: record-breaking results with specific dollar amounts and/or percentages in the headline = TRADE SMALL
 
+═══════════════════════════════════════════════════════════════════════════════
+HOW TO REASON ABOUT INTERNET RETAIL HEADLINES (PATTERN-FIRST)
+═══════════════════════════════════════════════════════════════════════════════
+
+Classify on the PATTERN of the economic event, NOT on specific nouns. The
+lists below are ANCHOR POINTS, not closed. If a headline is PRINCIPLE-EQUIVALENT
+to an example (same economic nature, different wording), classify it the same way.
+
+Key patterns that move small-cap e-commerce stocks:
+1. New revenue-generating relationship with a named tier-1 counterparty
+   (retailer, platform, brand) — regardless of specific noun used
+2. RECORD REVENUE from a named event / trade show / channel, combined with
+   a materiality qualifier ("record-breaking", "all-time record", "best-ever")
+   — event-based records are tradeable when material to a small-cap, even
+   without annualized framing
+3. M&A (target), strategic alternatives, share buyback
+
+Household-name counterparties (infer beyond this list): Amazon, Walmart,
+Target, Shopify, Stripe, Etsy, eBay, Alibaba, JD.com, Rakuten, Wayfair,
+Costco, Best Buy, Home Depot, Kroger, Nordstrom, Sephora, Ulta, Meta, Google,
+TikTok, Pinterest, Visa, Mastercard, PayPal.
+
 ===============================================================================
 TRADE SIGNALS
 ===============================================================================
 
-PARTNERSHIPS (20% of winners)
-- Brand partnerships
-- Platform partnerships
-- Payment partnerships
-- Examples:
-   "Partners With Major Brand For Exclusive Line" -> TRADE
-   "Announces Payment Partnership With Major Provider" -> TRADE
-   "Signs Platform Partnership" -> TRADE
+COMMERCIAL RELATIONSHIPS WITH NAMED TIER-1 COUNTERPARTIES
 
-CONTRACTS (16% of winners)
-- B2B contracts
-- Enterprise partnerships
-- Examples:
-   "Wins Enterprise E-commerce Contract" -> TRADE
-   "Secures Major B2B Deal" -> TRADE
-- CONTRACT QUALITY FILTERS (apply to ALL contract headlines):
-   - NEW contract/order/agreement = TRADE (if material)
-   - Contract RENEWAL or EXTENSION = SKIP (unless significantly expanded with material dollar amount)
-   - "Follow-on order" without significant expansion = SKIP
-   - Must have SPECIFIC counterparty name OR dollar amount (vague = SKIP)
-   - Company must be RECEIVING revenue (not spending/acquiring)
-   - PRV sales, royalty agreements, asset purchases = SKIP (financial transactions, not contracts)
-   - Examples:
-      "Renews E-commerce Platform Agreement" -> SKIP (renewal, not new)
+PATTERN: Company receives new revenue-generating business from a household-name
+counterparty. Regardless of whether called partnership, contract, program,
+rollout, placement, selection, integration, launch-on-platform, or any synonym.
+Named tier-1 counterparty alone is enough materiality — $ figure not required.
+
+TRADE when ANY of:
+- NAMED TIER-1 counterparty (Amazon, Walmart, Target, Shopify, Stripe, Meta,
+  Google, Pinterest, TikTok, Visa, etc., or comparable)
+- SPECIFIC $ AMOUNT on a new deal
+- MATERIALITY QUALIFIER ("major", "landmark", "record-breaking") + context
+
+Examples (variety of wording):
+   "Partners With Amazon For Exclusive Line" → TRADE LARGE
+   "Announces Payment Partnership With Stripe" → TRADE MODERATE
+   "Signs Platform Partnership With Shopify" → TRADE MODERATE
+   "Selected as Preferred Merchant on Walmart Marketplace" → TRADE MODERATE
+   "Rolls Out Nationwide Integration With Amazon Marketplace" → TRADE LARGE
+   "Landmark Supply Partnership With Target Private Label" → TRADE LARGE
+
+RECORD EVENT / PERIOD REVENUE (Pattern-based, not just annualized)
+
+PATTERN: Specific $ figure from a named event, trade show, product launch,
+holiday period, channel, OR reporting period, combined with a materiality
+qualifier ("record-breaking", "all-time record", "landmark", "best-ever",
+"exceeds prior year").
+
+For small/micro-cap e-commerce, event-based record revenue can be material
+relative to market cap. The market doesn't require "annualized run rate"
+framing — "record sales at [event]" with a specific $ figure qualifies.
+
+Examples:
+   "Announces Record-Breaking Performance at NATAS Fair with Over US$3.34M in Travel Bookings" → TRADE MODERATE (small-cap + record + specific $)
+   "Best-Ever Cyber Monday Sales of $12M, Up 145% YoY" → TRADE MODERATE
+   "Record Single-Day Gross Merchandise Volume of $8M" → TRADE MODERATE
+   "Landmark Q4 Marketplace GMV Exceeds Full-Year 2024" → TRADE LARGE
+   "Reports Record Revenue" → SKIP (no $ figure)
+   "Strong Holiday Sales" → SKIP (no specifics)
+
+CONTRACT / PARTNERSHIP GUARDRAILS — apply AFTER identifying a potential deal:
+- RENEWAL / EXTENSION = SKIP (unless significantly expanded with new $)
+- "Follow-on order" without significant expansion = SKIP
+- Unnamed counterparty + no $ + no materiality qualifier = SKIP
+- Company SPENDING money (acquisition) = SKIP
+- MOU / LOI / framework / "exploring" = SKIP (non-committal)
+- Delivery/shipping/milestone on EXISTING deal = SKIP
+- Royalty-only arrangements = SKIP
 
 M&A ACTIVITY
 - Acquisition announcements

@@ -10,6 +10,32 @@ INDUSTRY CONTEXT:
 - Trio Petroleum moved +43% on well completions, +150% on asset acquisition
 - NOTE: We do NOT trade plain earnings announcements. EXCEPTION: record-breaking results with specific dollar amounts and/or percentages in the headline = TRADE SMALL
 
+═══════════════════════════════════════════════════════════════════════════════
+HOW TO REASON ABOUT E&P HEADLINES (PATTERN-FIRST)
+═══════════════════════════════════════════════════════════════════════════════
+
+Classify on the PATTERN of the economic event, NOT on specific nouns or basin
+names. Company names, formation names, and technical terms vary — the list
+below is ANCHOR POINTS, not closed.
+
+Key patterns that move E&P stocks:
+1. ASSET SALE / DIVESTITURE — company receives cash for selling properties
+2. COMPANY BEING ACQUIRED — buyout at premium
+3. DISCOVERY / WELL RESULT with SPECIFIC flow rates, recoverable volumes, or
+   grades — regardless of wording (completion, test, appraisal, production)
+4. OFFTAKE / SUPPLY AGREEMENT with named counterparty
+5. DEBT ELIMINATION / STRATEGIC INVESTMENT
+
+If a headline describes company RECEIVING value (cash, asset, contract,
+production flow) with specifics, it's tradeable. Company SPENDING money on
+acquisitions = SKIP (company is the acquirer).
+
+Household-name counterparties (non-exhaustive): ExxonMobil, Chevron, Shell, BP,
+ConocoPhillips, TotalEnergies, EOG Resources, Pioneer Natural Resources,
+Occidental, Devon Energy, Marathon, APA, Diamondback, Cheniere, Tellurian, and
+any US/allied NOC or major integrated. DOE, DOD, Export-Import Bank count as
+government tier-1.
+
 ===============================================================================
 TRADE SIGNALS
 ===============================================================================

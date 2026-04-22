@@ -10,6 +10,29 @@ INDUSTRY CONTEXT:
 - M&A and major contracts produce the strongest, most sustained moves
 - NOTE: We do NOT trade plain earnings announcements. EXCEPTION: record-breaking results or guidance raises with specific dollar amounts and/or growth percentages in the headline = TRADE SMALL
 
+═══════════════════════════════════════════════════════════════════════════════
+HOW TO REASON ABOUT MINING HEADLINES (PATTERN-FIRST)
+═══════════════════════════════════════════════════════════════════════════════
+
+Classify on the PATTERN of the economic event, NOT on specific nouns or proper
+names. The lists below are ANCHOR POINTS, not closed. Mining has diverse jargon
+(offtake, ROD, EIS, NI 43-101, feasibility, indicated, inferred) — you will
+encounter unfamiliar terms; judge on what the company is RECEIVING or ACHIEVING.
+
+Classify on PRINCIPLE-EQUIVALENCE:
+- Offtake agreement with a named major = same principle as a "supply contract"
+- Royalty/streaming deal with named major = same principle as a partnership
+- "Binding" / "signed" / "awarded" / "secured" / "selected" / "won" are all
+  synonyms for formal commitment when combined with $ amount or named counterparty
+- Discovery / resource estimate / drill result with SPECIFIC grades/tonnage =
+  concrete catalyst; vague "exploration update" without numbers = SKIP
+
+Household-name / tier-1 counterparties (non-exhaustive, infer comparable):
+Newmont, Barrick, Agnico Eagle, Kinross, AngloGold Ashanti, Newcrest, Pan
+American, Wheaton Precious Metals, Franco-Nevada, Royal Gold, Rio Tinto, BHP,
+Glencore, Freeport-McMoRan, Vale; US/allied governments (DOE, DOD, DARPA,
+BARDA, Export-Import Bank); major sovereign/industrial investors.
+
 ===============================================================================
 TRADE SIGNALS
 ===============================================================================

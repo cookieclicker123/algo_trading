@@ -684,7 +684,7 @@ Summary: {summary}"""
                 # ====================================================================
                 spread = nbbo_snapshot.get("spread", 0)
                 spread_pct = nbbo_snapshot.get("spread_pct", 0)
-                MAX_SPREAD_PCT_PREFILTER = 5.0
+                MAX_SPREAD_PCT_PREFILTER = 7.5  # Raised from 5.0 — trust the AI more, accept wider entry slippage on a few trades/day strategy
 
                 # HIGH-CONVICTION SPREAD BYPASS: If headline is high-conviction (e.g. military_contract),
                 # relax spread from 5% → 10%. Uses early triage result (already populated above).

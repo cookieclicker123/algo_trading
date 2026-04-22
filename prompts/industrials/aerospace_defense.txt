@@ -10,24 +10,54 @@ INDUSTRY CONTEXT:
 - Government/military contracts are the KEY catalyst
 - NOTE: We do NOT trade plain earnings announcements. EXCEPTION: record-breaking results with specific dollar amounts and/or percentages in the headline = TRADE SMALL
 
+═══════════════════════════════════════════════════════════════════════════════
+HOW TO REASON ABOUT AEROSPACE/DEFENSE HEADLINES (PATTERN-FIRST)
+═══════════════════════════════════════════════════════════════════════════════
+
+Classify on the PATTERN of the economic event, NOT on specific nouns or proper
+names. The lists below are ANCHOR POINTS, not closed.
+
+If a headline is PRINCIPLE-EQUIVALENT to an example (same economic nature,
+different wording), classify it the same way. "Contract" / "award" / "order"
+/ "program" / "selection" / "win" / "production authorization" / "task order"
+all describe the same economic event when substance is the same: company
+RECEIVES new revenue-generating business from a government/military/defense
+counterparty.
+
+Self-declared materiality ("major", "landmark") + named counterparty (branch,
+agency, prime) = tradeable even without $ figure.
+
 ===============================================================================
 TRADE SIGNALS
 ===============================================================================
 
-CONTRACTS (34% of winners - KEY SIGNAL)
-- DOD contracts
-- Military equipment contracts
-- Space/NASA contracts
-- Foreign military sales
-- Multi-year awards
+CONTRACTS (34% of winners — KEY SIGNAL)
 
+PATTERN: Company RECEIVES new revenue from government/military/defense
+counterparty. Any wording qualifies: contract, order, award, program,
+task order, production authorization, selection, win, qualification,
+rollout. Foreign Military Sales (FMS) count.
 
-- Examples:
-   "Wins $500M DOD Contract" -> TRADE (if material to market cap)
-   "Awarded Air Force Fighter Jet Contract" -> TRADE (if material)
-   "Secures NASA Space Station Contract" -> TRADE
-   "Receives Foreign Military Sale Approval" -> TRADE
-   "Wins $2M Training Contract" for $300M+ company -> SKIP (immaterial)
+TRADE when ANY of:
+- NAMED MILITARY BRANCH (Army, Navy, Air Force, Space Force, Marines, Coast
+  Guard, National Guard)
+- NAMED AGENCY (DoD, DTRA, DARPA, NASA, DOE, DHS, TSA, FAA, CBP, or US/allied
+  equivalents — NOT a closed list)
+- NAMED PRIME CONTRACTOR (Lockheed Martin, Northrop Grumman, Boeing, Raytheon/RTX,
+  General Dynamics, L3Harris, BAE Systems, Leonardo, Thales, and any comparable
+  tier-1 prime — NOT a closed list)
+- SPECIFIC $ AMOUNT on a new contract
+- MATERIALITY QUALIFIER ("major", "landmark", "record-breaking") + context
+
+Examples (variety of wording):
+   "Wins $500M DOD Contract" → TRADE LARGE (if material to market cap)
+   "Awarded Air Force Fighter Jet Contract" → TRADE LARGE
+   "Secures NASA Space Station Contract" → TRADE LARGE
+   "Receives Foreign Military Sale Approval" → TRADE MODERATE
+   "Selected for Navy Next-Generation Radar Program" → TRADE LARGE
+   "Receives Task Order Under DOD Program" → TRADE MODERATE (if specific)
+   "Chosen as Supplier for Lockheed Martin F-35 Production" → TRADE LARGE
+   "Wins $2M Training Contract" for $300M+ company → SKIP (immaterial)
 
 GOVERNMENT DESIGNATIONS & CERTIFICATIONS (Strong signal — unlocks procurement pipeline)
 - Being included in government approved/trusted/certified vendor or product lists

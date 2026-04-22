@@ -51,6 +51,18 @@ Rules:
 PRINCIPLE-FIRST RULE — THE NATURE OF THE EVENT MATTERS, NOT THE WORDING (APPLIES TO EVERY TYPE):
 For every type below, the nouns, verbs, and phrasings shown in examples are ILLUSTRATIVE, not exhaustive. Your job is to recognize the underlying ECONOMIC PRINCIPLE of the headline, then classify it based on what is happening — not which specific word the company used to describe it. A "program" at a major retailer, a "rollout", a "supply arrangement", a "win", a "selection", and a "deal" are all the SAME economic event as a "contract" when the substance is the same: the company receives new revenue-generating business from a named counterparty. The same principle holds for every other type — product launches, partnerships, approvals, clinical data, licensing, designations, and so on. Do not require the exact nouns or verbs shown in examples. If a headline is PRINCIPLE-EQUIVALENT to an example (same economic nature, different wording), classify it the same type. Trust your understanding of the event. Overfitting to specific words causes you to miss the same catalyst dressed in different language. The listed terms and examples are anchors, not a closed set — synonyms and re-wordings of the same principle always count.
 
+PRECEDENCE RULES — WHEN A HEADLINE FITS MULTIPLE TYPES:
+Real headlines often bundle multiple things. Apply these in order:
+
+1. AI/ROBOTICS OVERRIDES PARTNERSHIP: When a headline qualifies BOTH as `partnership` AND as `ai_breakthrough` Path B (named partner + concrete AI/robotics domain + clear growth signal), classify as `ai_breakthrough`. "Partnership" / "collaboration" / "tie-up" is only the legal/structural label; the AI/robotics content is the actual market catalyst. Do not let the word "partnership" or "collaboration" in the headline mask an AI/robotics catalyst underneath.
+   Example: "Enters Strategic Collaboration with ICreate Education Technology to Advance AI Robotics Learning in North America" → ai_breakthrough (Path B: named partner + "AI Robotics Learning" domain + "Advance" growth signal). NOT partnership.
+
+2. CONCRETE SPECIFIC CATALYSTS WIN OVER NARRATIVE: When a headline bundles multiple events (expansion + investment + patent grant, or rebrand + launch + earnings, etc.), prioritize the most concrete NAMED specific catalyst. General precedence when multiple types apply to the same headline:
+   fda_approval > fda_clearance > fda_designation > clinical_breakthrough > pivotal_trial_data > merger_agreement > acquisition_target > government_contract > military_contract > major_contract > stock_buyback > patent_granted > ai_breakthrough > ai_rebranding > strategic_investment_received > licensing_agreement > revenue_milestone > strategic_alternatives_review > reimbursement_pathway > peer_reviewed_publication > listing_compliance_regained > partnership > product_launch > other
+
+3. PATENT GRANTS ARE ALWAYS SPECIFIC: If the headline contains "granted patent", "issued patent", "patent grant", or similar final-grant language for a NAMED asset, classify as `patent_granted` regardless of other topics also mentioned. The patent grant is the dominant catalyst — it wins over expansion language, investment language, product narrative.
+   Example: "Expands into Fleet Operations with Accelevate Investment and BEN's Newly Granted Patent" → patent_granted (NOT "other" and NOT product_launch). The Newly Granted Patent is the specific catalyst; the expansion and investment are narrative framing around it.
+
 UNIVERSAL RULE — NEW ANNOUNCEMENTS ONLY (APPLIES TO EVERY TYPE):
 We ONLY trade NEW, FORWARD-LOOKING events the market has not yet priced in. If a headline REPORTS on something that ALREADY HAPPENED, it is NOT tradeable — classify as "other" regardless of how bullish the event sounds. The market prices in events at announcement time; backward-looking reports are not catalysts.
   PAST-TENSE RED FLAGS: "achieved", "completed", "has repurchased", "returned $X to shareholders", "bought back", "previously", "last quarter", "during Q1/Q2/Q3/Q4", "year-to-date results", "delivered on", "fulfilled". These describe what already happened — NOT a new event.
@@ -223,11 +235,23 @@ TIEBREAKER — If unsure between military_contract and government_contract, pref
   NOT strategic_alternatives_review: defensive "exploring strategic options" language in an earnings call without any process detail → other; vague "considering alternatives" without a bank or process → other; confirming a previously announced process continuing → other.
   Examples that ARE strategic_alternatives_review: "Announces Review of Strategic Alternatives to Maximize Shareholder Value", "Engages Goldman Sachs to Review Unsolicited Interest and Evaluate Strategic Alternatives", "Retains Roth Capital to Explore Strategic Alternatives", "Board Receives Unsolicited Acquisition Proposal and Initiates Strategic Review"
   Examples that are NOT: "Exploring Strategic Options for Growth" (earnings context, no process) → other, "Continues to Evaluate Strategic Direction" → other (vague, no bank, no process)
-- revenue_milestone: Company announces a SPECIFIC revenue milestone — annualized run rate, all-time record revenue, new ARR tier — with concrete numbers. Distinct from earnings_beat (quarterly reporting vs estimates) and from vague "record revenue" claims. REQUIRES: a specific revenue figure AND a named milestone framing (run rate, ARR, all-time record with growth %, tier crossed).
-  Generalization: this captures the "we just hit $X ARR" announcement pattern that is common for growth companies between earnings releases. The key is a FORWARD-LOOKING framing (run rate implies future) combined with a CONCRETE number.
-  NOT revenue_milestone: quarterly earnings reports (use earnings_beat), vague "record revenue" without a specific figure or growth rate → other, retrospective "returned to growth" framing without a number → other.
-  Examples that ARE revenue_milestone: "Announces $12 Million Annualized Revenue Run Rate", "Reports $98M 2025 Revenue, Up 20%; Platform Positioned for AI Commercialization" (with specific figure), "Crosses $50M ARR Threshold", "Hits All-Time Record Quarterly Revenue of $25M, Up 146% YoY"
-  Examples that are NOT: "Reports Record Revenue" → other (no number), "Q1 Results Show Strong Growth" → earnings_beat (quarterly report), "Revenue Up 15% YoY" → other (growth modest, no milestone framing)
+- revenue_milestone: Company announces a SPECIFIC revenue milestone with concrete numbers. Distinct from earnings_beat (quarterly reporting vs estimates) and from vague "record revenue" claims. Two patterns qualify:
+
+  PATTERN A — ANNUALIZED / ARR MILESTONE: a specific revenue figure AND a forward-looking framing (run rate, ARR, all-time record with growth %, tier crossed). The "we just hit $X ARR" pattern common for growth companies between earnings releases.
+
+  PATTERN B — EVENT / PERIOD / PRODUCT RECORD: a specific $ figure from a named event, trade show, product launch, rollout, or time period, combined with a MATERIALITY QUALIFIER ("record-breaking", "all-time record", "landmark", "best-ever"). The annualized vs event-based distinction matters less than the materiality of the figure relative to company size. Small / micro-cap companies announcing record revenues from a specific event or channel often move hard — the market doesn't distinguish "annualized" from "event-based" when the $ figure is large relative to market cap or is the first time the company has reported such a number. Self-declared "record-breaking" is a valid materiality signal because companies deliberately use those words when the result IS material.
+
+  NOT revenue_milestone: quarterly earnings reports (use earnings_beat), vague "record revenue" without ANY specific figure → other, retrospective "returned to growth" framing without a number → other.
+
+  Examples that ARE revenue_milestone:
+    "Announces $12 Million Annualized Revenue Run Rate" → Pattern A (ARR)
+    "Crosses $50M ARR Threshold" → Pattern A (tier crossed)
+    "Hits All-Time Record Quarterly Revenue of $25M, Up 146% YoY" → Pattern A (record + growth %)
+    "Announces Record-Breaking Performance at NATAS Fair with Over US$3.34 Million in Travel Bookings" → Pattern B (specific $ + "record-breaking" materiality qualifier)
+    "Reports All-Time Record Single-Day Sales of $8.2M on Cyber Monday" → Pattern B (specific $ + all-time record framing from a named event)
+    "Landmark $15M Q4 Product Launch Revenue Exceeds 2024 Full-Year Total" → Pattern B (specific $ + "landmark" qualifier + size framing)
+
+  Examples that are NOT: "Reports Record Revenue" → other (no number), "Q1 Results Show Strong Growth" → earnings_beat (quarterly report), "Revenue Up 15% YoY" → other (modest growth, no milestone framing)
 
 Headline: {headline}
 

@@ -10,6 +10,37 @@ INDUSTRY CONTEXT:
 - Key catalysts vary by industry: Earnings dominant in most, but M&A and partnerships tradeable
 - NOTE: We do NOT trade plain earnings announcements. EXCEPTION: record-breaking results with specific dollar amounts and/or percentages in the headline = TRADE SMALL
 
+═══════════════════════════════════════════════════════════════════════════════
+HOW TO REASON ABOUT CONSUMER HEADLINES (PATTERN-FIRST)
+═══════════════════════════════════════════════════════════════════════════════
+
+This prompt covers a BROAD range of industries — restaurants, leisure, gambling,
+luxury, apparel, travel, auto retail, furnishings, personal services. Catalysts
+look different across industries but the PATTERNS are common:
+
+1. A small-cap gets a commercial relationship with a household-name counterparty
+   (retailer, chain, brand, platform, venue) — regardless of whether called a
+   "contract", "program", "rollout", "selection", "supply deal", "franchise",
+   "brand partnership", "placement", or any synonym. Named tier-1 counterparty
+   alone is enough materiality.
+
+2. A self-declared materiality qualifier ("major", "landmark", "record-breaking",
+   "best-ever") combined with a specific $ figure OR named counterparty makes
+   any event tradeable — even if the event is event-based revenue rather than
+   annualized (e.g. "record single-day sales at [event]").
+
+3. M&A, strategic alternatives, share repurchase — bullish signals regardless of
+   specific industry.
+
+The examples below are ANCHOR POINTS, not exhaustive enumerations. Classify on
+PRINCIPLE-EQUIVALENCE, not literal string match.
+
+Household-name counterparties (non-exhaustive, infer comparable scale): Target,
+Walmart, Amazon, Costco, Home Depot, Kroger, Whole Foods, Trader Joe's, Best Buy,
+Macy's, Nordstrom, Sephora, Ulta, McDonald's, Starbucks, Chipotle, Disney, Marriott,
+Hilton, Netflix, Spotify, Nike, Adidas, Lululemon, Apple, Google, Meta, TikTok —
+plus any Fortune 500 or equivalent tier-1 name you recognize.
+
 ===============================================================================
 TRADE SIGNALS
 ===============================================================================
@@ -39,44 +70,75 @@ STRATEGIC ALTERNATIVES / ACQUISITION TARGET (Very strong — company is being pu
    "Board Evaluating Strategic Alternatives" (no bank named) -> TRADE SMALL
    "Exploring Strategic Options" (in earnings context) -> SKIP (defensive)
 
-PARTNERSHIPS
-- Brand partnerships
-- Franchise partnerships
-- Distribution deals
-- Celebrity partnerships
-- Examples:
-   "Partners With Major Brand" -> TRADE
-   "Announces Celebrity Collaboration" -> TRADE
-   "Signs Major Franchise Agreement" -> TRADE
+COMMERCIAL ARRANGEMENTS WITH NAMED TIER-1 COUNTERPARTIES (biggest source of small-cap wins)
+
+PATTERN: Company receives new revenue-generating business from a household-name
+retailer, chain, brand, platform, or counterparty. Regardless of whether the
+headline calls it a program, rollout, supply deal, selection, placement, shelf
+win, launch at [retailer], or franchise. Named counterparty alone is enough
+materiality — $ figure not required.
+
+TRADE when ANY of:
+- NAMED TIER-1 counterparty (Target, Walmart, Amazon, Costco, McDonald's,
+  Starbucks, Disney, Hilton, Nike, Apple, Google, Meta, Netflix — or any
+  comparable household name you infer)
+- SPECIFIC $ AMOUNT on a new deal
+- MATERIALITY QUALIFIER ("major", "landmark", "record-breaking", "best-ever",
+  "significant") + context (event, counterparty, market)
+
+Examples (variety of wording — same principle):
+   "Wins Major New Fresh-Cut Herb Program at Target Stores" → TRADE LARGE (tier-1 + 'major')
+   "Selected as Exclusive Supplier for Walmart Private Label Cosmetics" → TRADE LARGE
+   "Chosen by McDonald's to Supply Regional Packaging" → TRADE MODERATE
+   "Launches Nationwide Rollout at Costco Warehouses" → TRADE LARGE
+   "Receives Shelf Placement Across 2,000 Kroger Stores" → TRADE MODERATE
+   "Announces Landmark Supply Partnership with Starbucks" → TRADE LARGE
+
+PARTNERSHIPS / BRAND COLLABORATIONS / FRANCHISE
+
+PATTERN: Formalized cooperation between two named entities with concrete scope.
+
+TRADE when BOTH parties named AND at least one of: specific $, specific
+product/service named, specific market/application. Celebrity collaborations
+with named celebrity + concrete product line qualify.
+
+Examples:
+   "Partners With Nike on Co-Branded Apparel Line" → TRADE MODERATE
+   "Announces Celebrity Collaboration With [Named Celebrity]" → TRADE SMALL
+   "Signs Major Franchise Agreement with 50-Unit Development Commitment" → TRADE MODERATE
 
 PRODUCT/SERVICE LAUNCHES (New revenue streams)
 - New service, platform, or business division launches with CONCRETE traction
 - Must have at least ONE of: specific revenue/transaction figures, named customers, measurable adoption
 - Examples:
-   "Launches Digital Ordering Platform, Processes $3M in First Month" -> TRADE (concrete revenue)
-   "Introduces Subscription Service With 10,000 Signups" -> TRADE (concrete traction)
-   "Launches New Menu Category" -> SKIP (no traction, no revenue)
+   "Launches Digital Ordering Platform, Processes $3M in First Month" → TRADE MODERATE (concrete revenue)
+   "Introduces Subscription Service With 10,000 Signups" → TRADE SMALL (concrete traction)
+   "Launches New Menu Category" → SKIP (no traction, no revenue)
 
-CONTRACTS
-- Restaurant: Franchise deals
-- Leisure: Event contracts
-- Personal Services: Enterprise contracts
-- Long-term service contracts with named customers
-- Examples:
-   "Wins Major Franchise Agreement" -> TRADE
-   "Secures Enterprise Services Contract" -> TRADE
-   "Signs Event/Venue Contract" -> TRADE
-   "Awarded Long-Term Service Contract With Named Customer" -> TRADE
-- CONTRACT QUALITY FILTERS (apply to ALL contract headlines):
-   - NEW contract/order/agreement = TRADE (if material)
-   - Contract RENEWAL or EXTENSION = SKIP (unless significantly expanded with material dollar amount)
-   - "Follow-on order" without significant expansion = SKIP
-   - Must have SPECIFIC counterparty name OR dollar amount (vague = SKIP)
-   - Company must be RECEIVING revenue (not spending/acquiring)
-   - PRV sales, royalty agreements, asset purchases = SKIP (financial transactions, not contracts)
-   - Examples:
-      "Renews Supply Agreement" -> SKIP (renewal, not new)
-      "Sells Priority Review Voucher" -> SKIP (financial transaction)
+RECORD EVENT / PERIOD REVENUE (Pattern-based, not annualized)
+
+PATTERN: Specific $ figure from a named event, trade show, product launch,
+holiday period, or channel, combined with a materiality qualifier
+("record-breaking", "all-time record", "landmark", "best-ever").
+
+The annualized vs event-based distinction matters LESS than the materiality
+of the figure. Small/micro-cap companies announcing record revenues that
+are material relative to market cap often move hard on the announcement.
+
+Examples:
+   "Announces Record-Breaking Performance at NATAS Fair with Over US$3.34M in Travel Bookings" → TRADE MODERATE (small-cap + record + specific $)
+   "Best-Ever Cyber Monday Sales of $12M, Up 145% YoY" → TRADE MODERATE
+   "Landmark Black Friday Weekend Exceeds Full-Year 2025 Revenue" → TRADE LARGE
+   "Reports Record Revenue" → SKIP (no $ figure, no specific framing)
+
+CONTRACT / PARTNERSHIP GUARDRAILS — apply AFTER identifying a potential deal:
+- RENEWAL / EXTENSION = SKIP (unless significantly expanded with new $)
+- "Follow-on order" without significant expansion = SKIP
+- Unnamed counterparty + no $ + no materiality qualifier = SKIP
+- Company SPENDING money (acquiring) = SKIP
+- MOU / LOI / framework / "exploring" = SKIP (non-committal)
+- Delivery/shipping/milestone on EXISTING deal = SKIP
+- Royalty-only or PRV sales = SKIP (financial transactions, not contracts)
 
 STRATEGIC INVESTMENTS (Investor putting large capital into the company)
 - Strategic investor commits specific dollar amount at specific price per share

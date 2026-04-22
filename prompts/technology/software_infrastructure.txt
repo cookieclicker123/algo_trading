@@ -10,36 +10,70 @@ INDUSTRY CONTEXT:
 - Contract wins and partnerships are key catalysts
 - NOTE: We do NOT trade plain earnings announcements. EXCEPTION: record-breaking results with specific dollar amounts and/or percentages in the headline = TRADE SMALL
 
+═══════════════════════════════════════════════════════════════════════════════
+HOW TO REASON ABOUT INFRASTRUCTURE HEADLINES (PATTERN-FIRST)
+═══════════════════════════════════════════════════════════════════════════════
+
+Classify on the PATTERN of the economic event, NOT on the specific nouns or
+proper names in the headline. The lists below are ANCHOR POINTS, not closed.
+
+If a headline is PRINCIPLE-EQUIVALENT to an example (same economic nature,
+different wording), classify it the same way. "Contract" / "program" / "rollout"
+/ "supply deal" / "selection" / "win" / "chosen to supply" all describe the
+same economic event: company RECEIVES new revenue-generating business from a
+named counterparty. Self-declared materiality qualifiers ("major", "landmark",
+"significant") + specific $ OR named tier-1 counterparty = tradeable.
+
 ===============================================================================
 TRADE SIGNALS
 ===============================================================================
 
-CONTRACTS (16% of winners)
-- Government contracts (DOD, federal agencies)
-- Enterprise security contracts
-- Cloud infrastructure deals
-- Multi-year agreements
-- Examples:
-   "Wins $30M Cybersecurity Contract With Federal Agency" -> TRADE
-   "Secures Multi-Year Cloud Infrastructure Deal" -> TRADE
-   "Awarded Government Security Contract" -> TRADE
-- CONTRACT QUALITY FILTERS (apply to ALL contract headlines):
-   - NEW contract/order/agreement = TRADE (if material)
-   - Contract RENEWAL or EXTENSION = SKIP (unless significantly expanded with material dollar amount)
-   - "Follow-on order" without significant expansion = SKIP
-   - Must have SPECIFIC counterparty name OR dollar amount (vague = SKIP)
-   - Company must be RECEIVING revenue (not spending/acquiring)
-   - PRV sales, royalty agreements, asset purchases = SKIP (financial transactions, not contracts)
-   - Examples:
-      "Renews Supply Agreement" -> SKIP (renewal, not new)
+CONTRACTS / COMMERCIAL ARRANGEMENTS (16% of winners)
+
+PATTERN: Company RECEIVES new revenue-generating business from a named
+counterparty. Any wording qualifies: contract, order, program, rollout,
+selection, win, supply arrangement, "chosen by", "selected to supply",
+"awarded", "integrated into".
+
+TRADE when ANY of:
+- NAMED TIER-1 COUNTERPARTY (government/DOD/federal agencies, or household-name
+  enterprises — AWS, Azure, GCP, Oracle, Cisco, IBM, Dell, HPE, ServiceNow,
+  Palo Alto Networks, CrowdStrike, Datadog, etc., or comparable; NOT a closed list)
+- SPECIFIC $ AMOUNT on a new deal
+- MATERIALITY QUALIFIER ("major", "landmark", "significant") + named counterparty
+- GOVERNMENT / DOD / FEDERAL contract with specific scope
+
+Examples (variety of wording):
+   "Wins $30M Cybersecurity Contract With Federal Agency" → TRADE LARGE
+   "Secures Multi-Year Cloud Infrastructure Deal With AWS" → TRADE MODERATE
+   "Awarded Government Security Contract" → TRADE LARGE
+   "Selected as Preferred Cloud Partner by Oracle" → TRADE MODERATE
+   "Rolls Out Platform-Wide Integration with Microsoft Azure" → TRADE MODERATE
+   "Chosen by Cisco for Enterprise Network Security Program" → TRADE MODERATE
 
 PARTNERSHIPS (15% of winners)
-- Cloud provider partnerships (AWS, Azure, GCP)
-- Security ecosystem partnerships
-- OEM agreements
-- Examples:
-   "Partners With AWS For Cloud Security Integration" -> TRADE
-   "Announces Strategic Partnership With Microsoft" -> TRADE
+
+PATTERN: Two named entities formalize cooperation with concrete scope
+(technology integration, product development, go-to-market).
+
+TRADE when BOTH parties named AND at least one of:
+- Specific $ amount
+- Specific product/service/technology named
+- Specific market/application described
+
+Examples:
+   "Partners With AWS For Cloud Security Integration" → TRADE MODERATE
+   "Announces Strategic Partnership With Microsoft" → TRADE MODERATE (Microsoft named + strategic)
+   "Teams Up With Cisco on Zero-Trust Network Architecture" → TRADE MODERATE
+   "Joins Forces With Palo Alto Networks on XDR Integration" → TRADE MODERATE
+
+CONTRACT / PARTNERSHIP GUARDRAILS — apply AFTER identifying a potential deal:
+- RENEWAL / EXTENSION = SKIP (unless significantly expanded with new $)
+- "Follow-on order" without significant expansion = SKIP
+- Unnamed counterparty + no $ + no materiality qualifier = SKIP
+- Company SPENDING money (acquiring, purchasing) = SKIP
+- MOU / LOI / framework / "exploring" = SKIP (non-committal)
+- Delivery/shipping/milestone update on EXISTING deal = SKIP
 
 MERGERS & ACQUISITIONS
 - Acquisition announcements

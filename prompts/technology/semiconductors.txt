@@ -10,40 +10,72 @@ INDUSTRY CONTEXT:
 - Design wins and supply agreements are key catalysts
 - NOTE: We do NOT trade plain earnings announcements. EXCEPTION: record-breaking results with specific dollar amounts and/or percentages in the headline = TRADE SMALL
 
+═══════════════════════════════════════════════════════════════════════════════
+HOW TO REASON ABOUT SEMICONDUCTOR HEADLINES (PATTERN-FIRST)
+═══════════════════════════════════════════════════════════════════════════════
+
+Classify on the PATTERN, not the specific nouns. Semiconductor companies sell
+technology into DIVERSE end markets (consumer, automotive, defense, medical,
+industrial, aerospace, security). The examples below are ANCHOR POINTS, not
+a closed list.
+
+A new revenue-generating arrangement — whether called a "design win",
+"contract", "order", "supply agreement", "program", "selection", "production
+award", "rollout", or any synonym — qualifies if the company is RECEIVING
+revenue and there is EITHER a specific $ figure OR a named tier-1 counterparty
+OR a materiality qualifier ("major", "landmark", "significant").
+
 ===============================================================================
 TRADE SIGNALS
 ===============================================================================
 
-CONTRACTS/DESIGN WINS/ORDERS (17% of winners)
-- Design wins with major OEMs
-- Supply agreements with tech giants
-- Automotive chip contracts
-- AI/GPU supply deals
-- Government/security/defense technology orders (TSA, DHS, DoD, airport security, border security, military systems)
-- ANY new order/contract with a specific dollar amount — the contract type does not need to match traditional chip catalysts. Semiconductor companies sell technology into diverse end markets (security, medical, industrial, automotive, aerospace). If the headline has a concrete $ amount AND the company is receiving revenue, evaluate it as a contract.
-- Examples:
-   "Secures Design Win With Major Smartphone OEM" -> TRADE
-   "Announces AI Chip Supply Agreement" -> TRADE
-   "Wins Automotive Semiconductor Contract" -> TRADE
-   "Secures $3.2M Order for Technology Used in TSA Airport Security Scanners" -> TRADE (government end-user, specific $, revenue-generating)
-   "Receives $5M Order for Sensor Technology Used in Defense Systems" -> TRADE (defense application, specific $)
-- CONTRACT QUALITY FILTERS (apply to ALL contract headlines):
-   - NEW contract/order/agreement = TRADE (if material)
-   - Contract RENEWAL or EXTENSION = SKIP (unless significantly expanded with material dollar amount)
-   - "Follow-on order" without significant expansion = SKIP
-   - Must have SPECIFIC counterparty name OR dollar amount (vague = SKIP)
-   - Company must be RECEIVING revenue (not spending/acquiring)
-   - PRV sales, royalty agreements, asset purchases = SKIP (financial transactions, not contracts)
-   - Examples:
-      "Renews Supply Agreement" -> SKIP (renewal, not new)
+CONTRACTS / DESIGN WINS / ORDERS (17% of winners)
+
+PATTERN: Company RECEIVES new revenue from a counterparty for chips, components,
+or technology. The specific noun doesn't matter — design win, order, contract,
+supply agreement, program, qualification, production award are all the same event.
+
+TRADE when ANY of:
+- NAMED TIER-1 COUNTERPARTY (Apple, Samsung, NVIDIA, AMD, Intel, Qualcomm, TSMC,
+  Tesla, Ford, GM, Toyota, Bosch, Huawei, Sony, Microsoft, Google, Meta, Amazon,
+  major OEMs, or US/allied government/defense agencies — NOT a closed list)
+- SPECIFIC $ AMOUNT on a new order
+- MATERIALITY QUALIFIER ("major", "landmark", "transformational") + context
+- GOVERNMENT/DEFENSE order (TSA, DHS, DoD, Space Force, etc.)
+
+Examples (variety of wording and end markets):
+   "Secures Design Win With Major Smartphone OEM" → TRADE MODERATE
+   "Announces AI Chip Supply Agreement With NVIDIA" → TRADE LARGE
+   "Wins Automotive Semiconductor Contract With Tesla" → TRADE LARGE
+   "Secures $3.2M Order for Technology Used in TSA Airport Security Scanners" → TRADE MODERATE
+   "Receives $5M Order for Sensor Technology Used in Defense Systems" → TRADE MODERATE
+   "Selected by Apple for Next-Generation iPhone Camera Module" → TRADE LARGE (tier-1 named)
+   "Qualified as Preferred Supplier for Samsung Foundry" → TRADE MODERATE
 
 PARTNERSHIPS (11% of winners)
-- Foundry partnerships
-- Technology licensing deals
-- Joint development agreements
-- Examples:
-   "Partners With TSMC For Advanced Node Production" -> TRADE
-   "Announces Technology Partnership With NVIDIA" -> TRADE
+
+PATTERN: Two named entities formalize cooperation on technology development,
+foundry access, IP licensing, or co-engineering.
+
+TRADE when BOTH parties named AND at least one of:
+- Specific $ amount
+- Specific technology/node/product named
+- Specific market/application described
+
+Examples (variety of wording):
+   "Partners With TSMC For Advanced Node Production" → TRADE MODERATE
+   "Announces Technology Partnership With NVIDIA" → TRADE MODERATE
+   "Teams Up With Samsung Foundry on 2nm GAA Process" → TRADE MODERATE
+   "Joins Forces With Qualcomm on 5G Modem Integration" → TRADE MODERATE
+
+CONTRACT / PARTNERSHIP GUARDRAILS — apply AFTER identifying a potential deal:
+- RENEWAL / EXTENSION = SKIP (unless significantly expanded with new $)
+- "Follow-on order" without significant expansion = SKIP
+- Unnamed counterparty + no $ + no materiality qualifier = SKIP
+- Company SPENDING money (acquisition) = SKIP
+- MOU / LOI / framework / "exploring" = SKIP (non-committal)
+- Delivery/shipping/milestone on EXISTING deal = SKIP
+- Royalty-only or IP licensing with no upfront $ → use licensing_agreement route (SMALL) or SKIP if vague
 
 PRODUCT LAUNCHES
 - New chip announcements

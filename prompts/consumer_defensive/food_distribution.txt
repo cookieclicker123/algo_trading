@@ -10,6 +10,46 @@ INDUSTRY CONTEXT:
 - Small cap food distributors move aggressively on M&A/partnership news
 - NOTE: We do NOT trade plain earnings announcements. EXCEPTION: record-breaking results with specific dollar amounts and/or percentages in the headline = TRADE SMALL
 
+
+═══════════════════════════════════════════════════════════════════════════════
+HOW TO REASON ABOUT THESE HEADLINES (PATTERN-FIRST)
+═══════════════════════════════════════════════════════════════════════════════
+
+Classify on the PATTERN of the economic event, NOT on specific nouns or proper
+names in the headline. The example lists below are ANCHOR POINTS, not closed
+enumerations.
+
+If a headline is PRINCIPLE-EQUIVALENT to an example (same economic nature,
+different wording), classify it the same way. "Contract" / "program" / "rollout"
+/ "supply deal" / "selection" / "win" / "order" / "chosen to supply" / "awarded"
+all describe the same economic event when substance is the same: company
+RECEIVES new revenue-generating business from a named counterparty.
+
+MATERIALITY can come from ANY of:
+- Specific $ amount on a new deal
+- Named tier-1 counterparty (household-name firm) — alone is enough
+- Self-declared materiality qualifier ("major", "landmark", "record-breaking",
+  "significant", "transformational", "best-ever") combined with $ or named counterparty
+- Government / military / agency order
+
+ALL counterparty lists in this prompt are NON-EXHAUSTIVE ANCHORS. Infer
+comparable companies yourself — any household-name firm of similar scale
+and recognition qualifies. Do not require literal string match.
+
+TRADE SIGNALS WEAKEN when: missing named counterparty or asset; missing
+outcome ("potential", "may", "could"); future tense ("plans to", "will");
+non-committal framing ("MOU", "framework", "exploring", "evaluating");
+renewals/extensions of existing deals; operational updates on already-
+announced work. None of these require blanket SKIP — judge each headline
+on its own signal density.
+
+RECORD EVENT / PERIOD REVENUE also qualifies as a milestone:
+A specific $ figure from a named event/channel/period combined with a
+"record-breaking" / "all-time record" / "landmark" qualifier counts as a
+revenue catalyst — even if not annualized. Relative to company size is
+what the market cares about.
+
+
 ===============================================================================
 TRADE SIGNALS
 ===============================================================================
