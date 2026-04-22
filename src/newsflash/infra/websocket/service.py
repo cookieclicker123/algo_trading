@@ -390,16 +390,27 @@ class BenzingaWebSocketMicroservice:
                         else:
                             await self._publish_error(error_msg, is_rate_limit=False)
                     else:
-                        logger.debug("Unknown JSON WebSocket message format", data=data)
+                        logger.warning(
+                            "Unknown JSON WebSocket message format — articles not extracted",
+                            top_level_keys=list(data.keys())[:10],
+                            kind=data.get("kind"),
+                            action=(data.get("data") or {}).get("action") if isinstance(data.get("data"), dict) else None,
+                            sample=str(data)[:300],
+                        )
 
                 elif isinstance(data, list):
                     # List of articles
                     await self._process_news_articles(data)
                 else:
-                    logger.debug("Unexpected JSON message type", message_type=type(data).__name__)
+                    logger.warning("Unexpected JSON message type", message_type=type(data).__name__)
 
             elif not is_json:
                 # XML/HTML message
+                logger.warning(
+                    "WebSocket message did not parse as JSON — articles not extracted",
+                    message_length=len(message),
+                    preview=message[:200],
+                )
                 process_xml_message(message)
 
         except Exception as e:
@@ -413,9 +424,12 @@ class BenzingaWebSocketMicroservice:
                 # Check if article is too old during startup period
                 if self._should_skip_old_article(article_data):
                     article_id = article_data.get("id") or article_data.get("benzinga_id") or "unknown"
-                    logger.debug(
-                        f"Skipping old article during startup: {article_id}",
-                        skip_threshold_minutes=self._startup_skip_old_minutes
+                    logger.info(
+                        "Skipping old article during startup",
+                        article_id=article_id,
+                        published=article_data.get("published"),
+                        created_at=article_data.get("created_at"),
+                        skip_threshold_minutes=self._startup_skip_old_minutes,
                     )
                     continue
 
@@ -428,6 +442,12 @@ class BenzingaWebSocketMicroservice:
 
                     article_id = infra_article_data.source_id or str(infra_article_data.benzinga_id) if infra_article_data.benzinga_id else "unknown"
                     logger.info("Published ArticleReceived event", article_id=article_id)
+                else:
+                    logger.warning(
+                        "Article dropped — create_infrastructure_article_data returned None",
+                        top_level_keys=list(article_data.keys())[:15] if isinstance(article_data, dict) else type(article_data).__name__,
+                        sample=str(article_data)[:300],
+                    )
 
             except Exception as e:
                 logger.error("Error processing article", error=str(e), article_data=article_data)
