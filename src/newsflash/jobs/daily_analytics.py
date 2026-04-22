@@ -696,8 +696,14 @@ class DailyAnalyticsJob:
             missed_opportunities=missed_opportunities,
         )
 
-        # Save to JSON
-        output_file = self.output_path / f"{target_date.isoformat()}.json"
+        # Save to JSON — organized by YYYY/MM/week_N/DD.json to match recall/signal trees
+        year = target_date.year
+        month = target_date.month
+        day = target_date.day
+        week = target_date.isocalendar()[1]
+        output_dir = self.output_path / str(year) / f"{month:02d}" / f"week_{week}"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_file = output_dir / f"{day:02d}.json"
 
         # Convert dataclasses to dicts for JSON serialization
         report_dict = {

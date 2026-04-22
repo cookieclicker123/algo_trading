@@ -23,7 +23,8 @@ from typing import Optional, Dict, Tuple
 
 from datetime import datetime
 
-from anthropic import AsyncAnthropic
+from anthropic import AsyncAnthropic, RateLimitError
+from groq import AsyncGroq
 
 from ...utils.logging_config import get_logger
 
@@ -311,6 +312,8 @@ class SectorClassifier:
         api_key: str,
         metadata_cache,  # MetadataCache instance for sector/industry lookup
         model: str = "claude-haiku-4-5-20251001",
+        groq_api_key: str = None,
+        groq_fallback_model: str = "llama-3.3-70b-versatile",
     ):
         """
         Initialize multi-sector classifier.
@@ -318,14 +321,20 @@ class SectorClassifier:
         Args:
             api_key: Anthropic API key
             metadata_cache: MetadataCache instance for instant sector/industry lookup
-            model: Anthropic model to use (default: Claude Sonnet 4.6)
+            model: Anthropic model to use (default: Claude Haiku 4.5)
+            groq_api_key: Groq API key for fallback on Anthropic 429 rate limits
+            groq_fallback_model: Groq model for fallback classification
         """
         self.api_key = api_key
         self.metadata_cache = metadata_cache
         self.model = model
+        self.groq_fallback_model = groq_fallback_model
 
-        # Anthropic client
+        # Anthropic client (primary)
         self.client = AsyncAnthropic(api_key=api_key, timeout=15.0) if api_key else None
+
+        # Groq client (fallback for Anthropic 429 rate limits)
+        self.groq_client = AsyncGroq(api_key=groq_api_key) if groq_api_key else None
 
         # Cache loaded prompts (load once, reuse)
         # Key format: "{sector}/{industry}"
@@ -579,6 +588,86 @@ Respond: TRADE or SKIP"""
             )
 
             return classification, sector, industry, latency_ms, position_size
+
+        except RateLimitError as e:
+            # Anthropic 429 rate limit — fall back to Groq if available
+            if self.groq_client:
+                logger.warning(
+                    "⚠️ Anthropic 429 rate limit — falling back to Groq",
+                    ticker=ticker,
+                    sector=sector,
+                    error=str(e)[:100],
+                )
+                try:
+                    groq_response = await self.groq_client.chat.completions.create(
+                        model=self.groq_fallback_model,
+                        messages=[
+                            {"role": "system", "content": prompt},
+                            {"role": "user", "content": user_message},
+                        ],
+                        temperature=0.0,
+                        max_tokens=10,
+                    )
+                    result = groq_response.choices[0].message.content.strip().upper()
+
+                    position_size = None
+                    if "TRADE" in result:
+                        classification = "TRADE"
+                        self._stats["trade_signals"] += 1
+                        self._stats["by_sector"][sector]["trade"] += 1
+                        if "MAX" in result:
+                            position_size = "MAX"
+                        elif "LARGE" in result:
+                            position_size = "LARGE"
+                        elif "MODERATE" in result:
+                            position_size = "MODERATE"
+                        elif "SMALL" in result:
+                            position_size = "SMALL"
+                        else:
+                            position_size = "MODERATE"
+                    else:
+                        classification = "SKIP"
+                        self._stats["skip_signals"] += 1
+                        self._stats["by_sector"][sector]["skip"] += 1
+
+                    latency_ms = (datetime.now() - start_time).total_seconds() * 1000
+                    self._stats["total_classified"] += 1
+                    n = self._stats["total_classified"]
+                    self._stats["avg_latency_ms"] = (
+                        (self._stats["avg_latency_ms"] * (n - 1) + latency_ms) / n
+                    )
+
+                    logger.info(
+                        f"🎯 {sector} classification (Groq fallback): {classification}" + (f" {position_size}" if position_size else ""),
+                        ticker=ticker,
+                        sector=sector,
+                        industry=industry,
+                        position_size=position_size,
+                        headline=headline[:60],
+                        latency_ms=round(latency_ms, 1),
+                    )
+                    return classification, sector, industry, latency_ms, position_size
+
+                except Exception as groq_err:
+                    latency_ms = (datetime.now() - start_time).total_seconds() * 1000
+                    logger.error(
+                        "Groq fallback also failed",
+                        ticker=ticker,
+                        sector=sector,
+                        error=str(groq_err),
+                    )
+                    self._stats["errors"] += 1
+                    return "SKIP", sector, industry, latency_ms, None
+            else:
+                latency_ms = (datetime.now() - start_time).total_seconds() * 1000
+                logger.error(
+                    "Anthropic 429 rate limit — no Groq fallback configured",
+                    ticker=ticker,
+                    sector=sector,
+                    error=str(e)[:100],
+                )
+                self._stats["errors"] += 1
+                return "SKIP", sector, industry, latency_ms, None
 
         except Exception as e:
             latency_ms = (datetime.now() - start_time).total_seconds() * 1000

@@ -178,6 +178,7 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
                 api_key=self.anthropic_api_key,
                 metadata_cache=self.metadata_cache,
                 model=self.anthropic_model,
+                groq_api_key=self.groq_api_key,
             )
             logger.info(
                 "SectorClassifier initialized",

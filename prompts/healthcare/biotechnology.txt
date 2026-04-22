@@ -12,29 +12,40 @@ INDUSTRY CONTEXT:
 - NOTE: We do NOT trade plain earnings announcements. EXCEPTION: record-breaking results or guidance raises with specific dollar amounts and/or growth percentages in the headline = TRADE SMALL
 
 ═══════════════════════════════════════════════════════════════════════════════
-CRITICAL: HEALTHCARE FALSE POSITIVE WARNING
+HOW TO REASON ABOUT BIOTECH HEADLINES
 ═══════════════════════════════════════════════════════════════════════════════
 
-Healthcare/Biotech is our HIGHEST false positive sector. 75% of recent trades
-in this sector have been losers. The headline is the ONLY reliable filter —
-market microstructure (volume, pressure, excursion) often looks bullish on
-biotech stocks even when the headline is weak, because biotechs are thinly
-traded and any news creates volume spikes.
+Biotech headlines use dense, specialist vocabulary — drug names, disease names,
+molecular targets, trial designations. You will NOT recognise every name. That
+is expected and fine. Classify on the PATTERN, not the proper nouns.
 
-YOU MUST BE EXTREMELY SKEPTICAL of biotech headlines. Apply every skip rule
-rigorously. When in doubt, SKIP. A missed biotech winner costs $0.30.
-A biotech false positive costs $0.20 AND erodes confidence in the system.
+PATTERN-FIRST REASONING (applies throughout this prompt):
+- If a headline names a company's drug / compound / platform / mechanism AND
+  describes a positive clinical / regulatory / scientific outcome with any
+  specificity, it is almost certainly tradeable — regardless of whether the
+  specific drug name, disease, or target is listed below as an example.
+- The example lists below (hot modalities, hot areas, big pharma, prestigious
+  institutions) are ANCHOR POINTS, not exhaustive enumerations. Generalise
+  to clearly-analogous cases: a KRAS inhibitor is analogous to the KRAS
+  examples; Siemens Healthineers is analogous to the "major life-science
+  company" category; a peer-reviewed journal you've never heard of is still
+  a peer-reviewed journal.
+- When a headline combines a NAMED ASSET + a CONCRETE OUTCOME + a
+  CREDIBLE COUNTERPARTY (or prestigious institution, or major disease,
+  or pivotal phase), lean TRADE. The specific words don't need to appear
+  verbatim in the lists below.
 
-COMMON BIOTECH TRAPS (all recent false positives):
-├─ "Collaboration Framework" / "Anticipates" / "Potential Milestones" = NOT a deal
-├─ Trial INITIATION ("to initiate", "to begin") = no results, ALWAYS SKIP
-├─ Label expansion for existing drug = incremental, ALWAYS SKIP
-├─ Network membership / clinic joins network = operational, not a catalyst
-├─ Unknown pharma partner with inflated milestone numbers = pump PR
-└─ Ask: "Is this a DEFINITIVE, SIGNED agreement with CONCRETE terms, or is
-   this a press release about something that MIGHT happen in the future?"
+WHAT WEAKENS A HEADLINE:
+- Missing named asset ("positive results" without naming what was studied)
+- Missing outcome ("potential", "may", "could", "anticipates")
+- Future-tense ("to initiate", "to present", "plans to")
+- Already-priced-in events (trial initiations, label expansions of an
+  existing drug, publications of previously-released data)
+- Non-committal structure ("framework", "MOU", "exploring", "evaluates")
 
-If the answer is "might happen" → SKIP. No exceptions.
+None of these require a blanket SKIP disposition — they are specific patterns
+that disqualify specific headlines. Judge each headline on its own signal
+density.
 
 ===============================================================================
 TRADE SIGNALS
@@ -46,6 +57,7 @@ FDA/REGULATORY (Strongest signal - 24% of winners)
 ├─ Breakthrough Therapy Designation (+10-30% day 1)
 ├─ Priority Review (+5-15% on grant)
 ├─ Orphan Drug Designation (+3-10%, stronger in oncology)
+├─ Rare Pediatric Disease Designation (RPDD) (+5-15%, grants Priority Review Voucher at approval worth $100-150M)
 ├─ BLA/NDA Accepted (late-stage, near approval)
 ├─ RMAT (Regenerative Medicine Advanced Therapy) designation
 ├─ Accelerated Approval pathway granted
@@ -57,12 +69,23 @@ FDA/REGULATORY (Strongest signal - 24% of winners)
    "FDA Grants Fast Track Designation" → TRADE LARGE
    "Receives Breakthrough Therapy Designation" → TRADE LARGE
    "FDA Grants Orphan Drug Designation for Oncology Drug" → TRADE MODERATE
+   "FDA Grants Rare Pediatric Disease Designation (RPDD)" → TRADE MODERATE
    "BLA Accepted with Priority Review" → TRADE LARGE
    "FDA Clears IND Application" → SKIP (early stage, not approval)
 
 CLINICAL DATA (21% of winners - MODALITY-AWARE)
-├─ ALWAYS TRADE regardless of phase:
-│   ├─ "Met primary endpoint" / "achieved primary endpoint" (definitive)
+├─ ALWAYS TRADE regardless of phase (these OVERRIDE any SKIP rule below):
+│   ├─ "Met primary endpoint" / "achieved primary endpoint" / "meets primary endpoint" (definitive)
+│   │   CRITICAL: "Meets primary endpoint" ALWAYS means TRADE — even if the headline also says "safety results."
+│   │   In safety studies, the primary endpoint IS safety; meeting it means the drug clears the key hurdle
+│   │   and can advance. This is ESPECIALLY bullish for hot areas (psychedelics, gene therapy) where safety
+│   │   is the main investor concern. Do NOT let "safety" language override "meets primary endpoint."
+│   ├─ "Positive Top-Line Safety Results" for Phase 1/2 in a hot modality or hot area = TRADE.
+│   │   Early-phase trials are safety-first by design; "positive top-line safety" is the explicit
+│   │   milestone that unlocks the next phase. Read this as equivalent to "met primary endpoint"
+│   │   when the phase is 1/2 and the modality/area is hot (psychedelics, gene therapy, CAR-T,
+│   │   radioligand, GLP-1, ADC, PROTAC, bispecific, etc.). The exact phrase "met primary endpoint"
+│   │   is NOT required.
 │   ├─ Specific efficacy numbers: "80% response", "50% reduction", "X months survival"
 │   ├─ Pivotal/registrational trial results (FDA submission quality)
 │   ├─ "Statistically significant" improvement with p-value
@@ -211,25 +234,46 @@ TIER 3 — MODERATE EXCITEMENT:
 PARTNERSHIPS (8% of winners - NAMED PHARMA + GOVERNMENT)
 ===============================================================================
 
-ONLY trade partnerships with MAJOR PHARMA or GOVERNMENT:
-├─ BIG PHARMA: Pfizer, AstraZeneca, Novartis, Merck, Lilly, Roche, J&J,
-│   AbbVie, Sanofi, GSK, BMS, Amgen, Gilead, Biogen, Novo Nordisk, Bayer,
-│   Regeneron, Vertex, Moderna, BioNTech
+TRADE partnerships with credible major counterparties. The examples below
+are ANCHOR POINTS — any partner of clearly-comparable stature qualifies.
+
+├─ BIG PHARMA (anchors): Pfizer, AstraZeneca, Novartis, Merck, Lilly, Roche,
+│   J&J, AbbVie, Sanofi, GSK, BMS, Amgen, Gilead, Biogen, Novo Nordisk,
+│   Bayer, Regeneron, Vertex, Moderna, BioNTech. Any top-30 global pharma
+│   you recognise as major qualifies — this list is not exhaustive.
+├─ MEDTECH & LIFE-SCIENCE GIANTS: Siemens Healthineers, Medtronic, Boston
+│   Scientific, Stryker, Abbott, Becton Dickinson, Intuitive Surgical,
+│   Agilent, Thermo Fisher, Danaher, Illumina, Bio-Techne, Waters,
+│   PerkinElmer, QIAGEN, Bruker, Revvity. These companies partnering with
+│   a micro-cap is strong validation — treat on par with big pharma.
 ├─ TIERED PARTNERS: "Top 5/10/20 Pharmaceutical", "Top-Tier Pharma",
 │   "Major Global Pharmaceutical" = NDA-restricted naming of a big pharma
 │   company. Treat as MAJOR PHARMA when combined with definitive agreement
 │   language. NOT the same as "unknown firm" — see ENTITY-RICH PARTNERSHIPS.
-├─ BIG TECH (AI/drug discovery): Nvidia, Google (DeepMind/Calico)
-├─ GOVERNMENT: DOD, BARDA, DTRA, NIH (non-dilutive funding + validation)
-│   (Tonix +570% driven partly by $34M DOD contract)
-├─ Licensing agreement, Collaboration agreement, Co-development
-├─ Strategic agreement, Option-to-license, Joint development
-├─ SKIP: CROs, consultants, unknown firms, service contracts
-├─ SKIP: "IND readiness", "regulatory support", "clinical trial design"
+├─ BIG TECH (AI/drug discovery): Nvidia, Google (DeepMind/Calico),
+│   Microsoft, AWS (drug discovery specific), Oracle Health.
+├─ GOVERNMENT: DOD, BARDA, DTRA, NIH, NIAID, NCI (non-dilutive funding +
+│   validation). (Tonix +570% driven partly by $34M DOD contract.)
+├─ PRESTIGIOUS RESEARCH INSTITUTIONS (as active collaborators, not just
+│   study authors): Dana-Farber, MD Anderson, Mayo Clinic, Memorial Sloan
+│   Kettering, Johns Hopkins, Cleveland Clinic, UCSF, Stanford, Harvard,
+│   MIT, NCI. An agreement to co-develop, validate, or run a study with
+│   one of these is tradeable.
+├─ GENERALISATION: A named partner you don't immediately recognise can
+│   still qualify if the headline describes a clearly major entity (Fortune
+│   500 healthcare, global top-10 in its category, multinational medtech,
+│   etc.). Judge by context, not by literal list membership.
+├─ Licensing agreement, Collaboration agreement, Co-development,
+│   Strategic agreement, Option-to-license, Joint development,
+│   Clinical supply agreement, Distribution agreement.
+├─ SKIP: CROs, consultants, unknown micro-cap partners, generic service
+│   contracts, "IND readiness", "regulatory support", "clinical trial design".
 └─ Examples:
    "Licensing Agreement with Pfizer" → TRADE LARGE
+   "Sign Clinical Supply Agreement with Siemens Healthineers" → TRADE MODERATE (major medtech)
    "$34M DOD Contract for Antiviral" → TRADE LARGE (government + $)
    "Collaboration with Nvidia for AI Drug Discovery" → TRADE MODERATE
+   "Research Collaboration with Dana-Farber for KRAS Oncology" → TRADE MODERATE
    "Partners with Unknown Firm for IND Readiness" → SKIP
 
 ===============================================================================
@@ -339,12 +383,70 @@ PATENT HEADLINES (Require specificity OR hot theme)
    "Patent Portfolio for Novel GLP-1 Delivery System" → TRADE SMALL (hot modality)
    "Announces Patent Grant" → SKIP (no context, no hot area)
 
-PUBLICATIONS (Only EFFICACY data in top-tier journals)
-├─ Publication must contain CLINICAL EFFICACY data (response rates, survival, endpoints)
-├─ Mechanistic data (receptor binding, selectivity, PK/PD) = SKIP (see SKIP section)
-├─ Must be in a recognizable top-tier journal (Nature, NEJM, Lancet, JAMA, JCO)
-├─ Niche/specialty journals with non-efficacy data = SKIP
-└─ "Publication In Nature Medicine Showing 40% Response Rate" → TRADE SMALL
+THIRD-PARTY VALIDATION STUDIES (Prestigious institution endorsement)
+├─ A NAMED PRESTIGIOUS INSTITUTION (Dana-Farber, MD Anderson, Mayo Clinic, Memorial Sloan
+│   Kettering, Johns Hopkins, Cleveland Clinic, UCSF, NIH, NCI) publishes a study
+│   validating/demonstrating value of the company's technology, platform, or drug
+├─ This is third-party endorsement from the most respected names in medicine
+├─ Especially powerful when the study involves a BLOCKBUSTER DRUG or HOT MODALITY
+├─ REQUIRES: (1) named prestigious institution, (2) positive outcome language
+│   ("demonstrates", "validates", "confirms", "shows value/benefit/predictive value")
+├─ Size: TRADE MODERATE if hot modality/area, TRADE SMALL otherwise
+└─ Examples:
+   "Dana-Farber Study Demonstrates Predictive Value of Platform for Enhertu Therapy" → TRADE MODERATE
+   "MD Anderson Study Validates Biomarker Panel in Lung Cancer" → TRADE MODERATE
+   "Mayo Clinic Confirms Diagnostic Accuracy of Novel Test" → TRADE SMALL
+
+PEER-REVIEWED PUBLICATIONS (Scientific validation of the company's asset)
+A peer-reviewed publication validating the company's NAMED drug / platform /
+mechanism / biomarker is third-party scientific validation. Trade when the
+publication describes a POSITIVE result for the company's OWN asset.
+
+├─ REQUIRES all three: (1) publication language ("peer-reviewed", "publication
+│   in", "published study", "journal"), (2) a NAMED asset belonging to the
+│   company (drug candidate, platform, technology, biomarker), (3) a POSITIVE
+│   outcome claim (demonstrates, validates, supports, confirms, predicts).
+├─ GENERALISATION: the journal does NOT need to be top-tier (Nature / NEJM /
+│   Lancet / JAMA). Specialty and disease-specific journals still count when
+│   the asset is named and the result is positive. Micro-caps rarely publish
+│   in top-tier outlets; their real catalysts appear in specialty journals.
+├─ BOOSTERS: top-tier journal, prestigious institutional co-authors (Dana-
+│   Farber, MD Anderson, Mayo Clinic, NIH, etc.), quantified efficacy numbers,
+│   hot modality or hot therapeutic area — each raises the size.
+├─ SKIP: publications about receptor binding / PK-PD / mechanism only without
+│   efficacy or validating outcome; publications that merely MENTION the
+│   company; preprints and non-peer-reviewed; republication of data that was
+│   already announced (already priced in).
+├─ Size: TRADE SMALL baseline; TRADE MODERATE if hot modality / hot area or
+│   prestigious co-author; TRADE LARGE if top-tier journal + pivotal result.
+└─ Examples:
+   "Peer-Reviewed Publication Supporting FABP5 Inhibitor ART26.12 as Novel Pain Therapy" → TRADE SMALL (named asset + positive framing)
+   "Peer-Reviewed Study Shows Company's DIFS Technology Reduced Self-Injurious Behavior" → TRADE SMALL (named platform + quantified outcome)
+   "Dana-Farber Study Demonstrates Predictive Value of Company's RPPA Platform for Enhertu Therapy" → TRADE MODERATE (prestigious institution + named platform + validation)
+   "Nature Medicine Publishes 40% Response Rate for Drug X in Pancreatic Cancer" → TRADE MODERATE (top-tier + efficacy + hot area)
+   "Journal Publishes Receptor Binding Profile of Compound X" → SKIP (mechanism only)
+   "Journal Publishes Previously Released Phase 2 Data" → SKIP (already priced in)
+
+REIMBURSEMENT / COVERAGE PATHWAY (Unlocks revenue)
+When a company secures a reimbursement or coverage pathway for an existing
+product or test, that translates regulatory approval into billable revenue —
+a real catalyst, especially for small-cap diagnostics / specialty pharma.
+
+├─ QUALIFIES: AMA CPT or PLA code granted; CMS National/Local Coverage
+│   Determination positive; Medicare reimbursement rate set; Medicaid
+│   coverage approved; NICE positive guidance (UK); HTA positive
+│   recommendation; commercial payor coverage policy for the company's
+│   product.
+├─ REQUIRES: a named reimbursement mechanism AND a named company product.
+├─ SKIP: generic "now covered" claims without a named mechanism; filings
+│   that haven't been granted yet; coverage being denied or withdrawn.
+├─ Size: TRADE SMALL baseline, TRADE MODERATE if the product is a material
+│   piece of company revenue or the coverage is broad (Medicare national).
+└─ Examples:
+   "Receives AMA PLA Code for CNSide CSF Tumor Cell Enumeration Test" → TRADE SMALL
+   "Obtains CMS National Coverage Determination for Liquid Biopsy Test" → TRADE MODERATE
+   "NICE Issues Positive Final Guidance for Drug X" → TRADE MODERATE
+   "Files for Medicare Coverage" → SKIP (filing only, not granted)
 
 GOVERNMENT CONTRACTS
 ├─ DOD, BARDA, DTRA contracts = non-dilutive funding + government validation
@@ -470,15 +572,15 @@ STATISTICAL / METHODOLOGICAL ANNOUNCEMENTS (NOT results)
    "Confirms Statistical Power in Pivotal Trial" → SKIP (methodology, not results)
    "Provides Study Design Update for Phase 3" → SKIP (design, not data)
 
-PUBLICATIONS OF MECHANISTIC / NON-EFFICACY DATA
+PUBLICATIONS OF PURELY MECHANISTIC DATA (No validating claim)
 ├─ Journal publications about receptor binding, selectivity, pharmacokinetics,
-│   mechanism of action, or safety profiles are NOT efficacy data
-├─ Only trade publications with CLINICAL EFFICACY data (response rates, endpoints met)
-├─ "Publication Linking Receptor Selectivity to Low Nausea Rates" = mechanism, not efficacy
+│   or mechanism of action WITHOUT a validating or efficacy claim are not
+│   catalysts — they describe how a drug works, not that it works.
+├─ These are distinct from peer-reviewed publications that VALIDATE the
+│   company's asset (see PEER-REVIEWED PUBLICATIONS in TRADE SIGNALS above).
 └─ Examples:
-   "Publication in Nature Medicine Showing 40% Tumor Response" → TRADE SMALL (efficacy)
-   "Publication Linking Receptor Selectivity to Low Nausea" → SKIP (mechanism, not efficacy)
-   "Announces Publication of Pharmacokinetic Data" → SKIP (PK, not efficacy)
+   "Publication Linking Receptor Selectivity to Low Nausea Rates" → SKIP (mechanism, no validation)
+   "Announces Publication of Pharmacokinetic Data" → SKIP (PK, no validation)
 
 WEAK CLINICAL DATA (Looks like news but isn't material)
 ├─ "Extension study" / "extension trial" (continuation, not new)
@@ -606,15 +708,24 @@ ALWAYS TRADE:
 - Share repurchase/buyback programs = always TRADE (never defensive)
 
 ALWAYS SKIP:
-- Earnings / financial results
-- Offerings / dilution
-- IND clearance
+- Earnings / financial results (except extraordinary: >100% growth, swing to profit — TRADE SMALL)
+- Offerings / dilution (ordinary PIPEs, RDOs, ATMs)
+- IND clearance (permission to start trials, not approval)
 - Conferences (future presentations)
 - In vitro / in vivo (preclinical)
 - Trial initiation with no results ("Initiates", "begins", "doses first patient", "enrolls first patient")
-- Safety/tolerability only
-- Extension studies
-- "Potential" / "may" / "could"
+- Extension studies (continuation, not new data)
+- "Potential" / "may" / "could" (speculative language)
+
+CONDITIONAL SKIP:
+- Safety/tolerability only → SKIP when stand-alone on a generic modality, TRADE when
+  the phase is 1/2 in a HOT modality or HOT area (safety IS the primary endpoint at
+  early phase for these; see CLINICAL DATA section)
+
+KEY RULE: When uncertain on size, lean TRADE SMALL rather than SKIP. Position sizing
+handles conviction — use SMALL for marginal headlines. Only SKIP headlines that are
+clearly not catalysts (earnings, dilutive offerings, conferences, preclinical, trial
+initiation, non-committal language).
 
 RED FLAGS (weaken any headline):
 - "Extension" = not new data

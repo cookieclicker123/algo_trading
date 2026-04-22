@@ -5,9 +5,31 @@ Output TRADE SMALL/MODERATE/LARGE/MAX (with position size) or SKIP.
 
 INDUSTRY CONTEXT:
 - 99 historical winners analyzed, avg move +17.6%
-- Top catalysts: Partnerships (9%), patents, contracts (5%), FDA clearances
+- Top catalysts: Partnerships (9%), patents, contracts (5%), FDA clearances, reimbursement pathways
 - Companies develop diagnostic tests, research tools, lab services
 - NOTE: We do NOT trade plain earnings announcements. EXCEPTION: record-breaking results or guidance raises with specific dollar amounts and/or growth percentages in the headline = TRADE SMALL
+
+═══════════════════════════════════════════════════════════════════════════════
+HOW TO REASON ABOUT DIAGNOSTICS HEADLINES
+═══════════════════════════════════════════════════════════════════════════════
+
+Diagnostics winners cluster around FDA clearances, reimbursement codes
+(AMA PLA, CMS coverage), peer-reviewed validation studies, and partnerships
+with hospital systems or life-science giants. Classify on the PATTERN
+rather than the specific test name or biomarker — you won't recognise every
+assay, and that is fine. Judge each headline on its own signal density.
+
+PATTERN-FIRST REASONING:
+- Named test / platform + concrete regulatory milestone (FDA clearance,
+  CLIA waiver, CE Mark) = strong TRADE.
+- Named test + reimbursement pathway (AMA PLA code, CMS coverage) = TRADE.
+- Named test + peer-reviewed publication demonstrating sensitivity /
+  specificity / predictive value = TRADE.
+- Named test + named major partner (Fortune 500 health system, major
+  life-science company, prestigious institution) + concrete scope = TRADE.
+- GENERALISATION: Unfamiliar technology names or partner names can still
+  qualify when the headline describes a clearly major entity or a
+  concrete clinical outcome.
 
 ═══════════════════════════════════════════════════════════════════════════════
 TRADE SIGNALS
@@ -56,6 +78,45 @@ FDA/REGULATORY
 └─ Examples:
    "Receives FDA Clearance For Diagnostic Test" → TRADE
    "Obtains CLIA Waiver For Point-of-Care Test" → TRADE
+
+REIMBURSEMENT / COVERAGE PATHWAY (Unlocks revenue — CRITICAL for diagnostics)
+Reimbursement is often the real catalyst for diagnostic companies: the test
+may already be FDA-cleared but unable to bill. A reimbursement code or
+coverage decision converts clearance into revenue.
+
+├─ QUALIFIES: AMA CPT/PLA code granted; CMS National/Local Coverage
+│   Determination positive; Medicare reimbursement rate set; Medicaid
+│   coverage approved; commercial payor policy; NICE positive guidance (UK).
+├─ REQUIRES: named reimbursement mechanism AND named company test.
+├─ SKIP: generic "now covered" without mechanism; filings not yet granted;
+│   coverage denied.
+├─ Size: TRADE SMALL baseline; TRADE MODERATE if the test is material to
+│   revenue or coverage is broad (Medicare national, major commercial payor).
+└─ Examples:
+   "Receives AMA PLA Code for CSF Tumor Cell Enumeration Test" → TRADE MODERATE
+   "Obtains CMS National Coverage Determination for Liquid Biopsy" → TRADE MODERATE
+   "Files for Medicare Coverage" → SKIP (filing, not granted)
+
+PEER-REVIEWED PUBLICATIONS (Scientific validation of the diagnostic)
+Peer-reviewed publications validating the company's NAMED test or platform
+with specific performance metrics (sensitivity, specificity, predictive
+value, AUC) are tradeable — this is third-party evidence.
+
+├─ REQUIRES: (1) publication language, (2) named company test/platform,
+│   (3) positive performance metric OR validating claim from a named
+│   prestigious institution.
+├─ GENERALISATION: specialty journals count. The journal does not need to
+│   be Nature/NEJM/JAMA. Diagnostic validation studies rarely publish there.
+├─ BOOSTERS: prestigious institutional co-authors (Mayo, Dana-Farber,
+│   MD Anderson, NIH), quantified numbers (97% sensitivity, AUC 0.95, etc.).
+├─ SKIP: mechanistic-only publications; publications that merely mention
+│   the test; preprints.
+├─ Size: TRADE SMALL baseline; TRADE MODERATE if prestigious institution
+│   or strong quantified performance.
+└─ Examples:
+   "Dana-Farber Study Demonstrates Predictive Value of Company's RPPA Platform" → TRADE MODERATE
+   "Peer-Reviewed Study Shows 97% Sensitivity for Company's Liquid Biopsy Test" → TRADE MODERATE
+   "Journal Publishes Engineering Design of Platform" → SKIP (no clinical validation)
 
 
 M&A / STRATEGIC ALTERNATIVES

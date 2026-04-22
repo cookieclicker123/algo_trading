@@ -11,20 +11,29 @@ INDUSTRY CONTEXT:
 - NOTE: We do NOT trade plain earnings announcements. EXCEPTION: record-breaking results or guidance raises with specific dollar amounts and/or growth percentages in the headline = TRADE SMALL
 
 ═══════════════════════════════════════════════════════════════════════════════
-CRITICAL: HEALTHCARE FALSE POSITIVE WARNING
+HOW TO REASON ABOUT DRUG MANUFACTURER HEADLINES
 ═══════════════════════════════════════════════════════════════════════════════
 
-Healthcare is our HIGHEST false positive sector. Be EXTREMELY STRICT about
-skip rules. The headline is the ONLY reliable filter — volume and price
-signals often look bullish even on weak headlines because pharma stocks are
-thinly traded.
+Drug manufacturer headlines center on FDA actions, DEA reclassification,
+clinical data, and partnerships. Classify on the PATTERN rather than the
+specific drug or molecule name — you won't recognise every compound, and
+that is fine. Judge each headline on its own signal density.
 
-COMMON TRAPS (recent false positives):
-├─ Trial INITIATION = SKIP (no results yet — "to initiate", "to begin", "commence")
-├─ Label expansion for existing drug = SKIP (incremental, not transformational)
-├─ BOTH combined = DEFINITELY SKIP ("Initiate Phase 3 to Expand Label" = SKIP + SKIP)
-├─ "Framework" / "Anticipates" / "Potential" = NOT a real deal
-└─ If in doubt, SKIP. A missed winner costs less than a false positive.
+PATTERN-FIRST REASONING:
+- Named drug + concrete regulatory milestone (FDA approval, NDA/ANDA
+  accepted, DEA reclassification) = strong TRADE.
+- Named drug + late-stage clinical data with specific numbers = TRADE.
+- Named drug + named major counterparty (big pharma, government, major
+  distributor) + concrete scope = TRADE.
+- GENERALISATION: A drug or molecule name you don't recognise is still
+  a named asset. A partner you don't immediately know can still qualify
+  if the headline describes a clearly major entity.
+
+WHAT WEAKENS A HEADLINE:
+- Trial initiation with no results ("to initiate", "to begin", "commence")
+- Label expansion for an already-approved drug (incremental)
+- Non-committal language ("framework", "potential", "anticipates")
+- Positive claims with no numbers (press-release spin, not data)
 
 ═══════════════════════════════════════════════════════════════════════════════
 TRADE SIGNALS

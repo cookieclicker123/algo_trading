@@ -11,18 +11,31 @@ INDUSTRY CONTEXT:
 - NOTE: We do NOT trade plain earnings announcements. EXCEPTION: record-breaking results or guidance raises with specific dollar amounts and/or growth percentages in the headline = TRADE SMALL
 
 ═══════════════════════════════════════════════════════════════════════════════
-CRITICAL: HEALTHCARE FALSE POSITIVE WARNING
+HOW TO REASON ABOUT MEDICAL DEVICE HEADLINES
 ═══════════════════════════════════════════════════════════════════════════════
 
-Healthcare is our HIGHEST false positive sector. Be EXTREMELY STRICT.
+Device headlines center on regulatory clearance, clinical validation, and
+commercial partnerships. Classify on the PATTERN rather than the specific
+device name or acronym — you won't recognise every product, and you don't
+need to. Judge each headline on its own signal density.
 
-COMMON TRAPS (recent false positives):
-├─ "Joins Network" / "Added to Network" = operational, NOT a catalyst (SKIP)
-├─ Clinic openings / expansions = operational, NOT a catalyst (SKIP)
-├─ Soft launches without FDA clearance = marketing fluff (SKIP)
-├─ "Framework" / "Anticipates" / "Potential" = NOT a real deal (SKIP)
-└─ If in doubt, SKIP. Only trade DEFINITIVE FDA/regulatory milestones,
-   signed M&A, or partnerships with named major companies and concrete terms.
+PATTERN-FIRST REASONING:
+- Named device / platform + concrete regulatory milestone (510(k), CE Mark,
+  PMA, De Novo, Breakthrough Device) = strong TRADE.
+- Named device + clinical trial data with specific numbers (response rate,
+  endpoint met, sensitivity/specificity) = TRADE.
+- Named major commercial partner (Medtronic, Boston Scientific, Stryker,
+  Abbott, Siemens Healthineers, etc.) + concrete scope = TRADE.
+- GENERALISATION: The partner / institution / regulatory body does not
+  have to appear in any list below — if it's clearly a major player in
+  context, treat it as such.
+
+WHAT WEAKENS A HEADLINE:
+- Marketing "launches" with no regulatory milestone
+- Single-hospital procedure reports or case studies (not trial data)
+- Network-join / operational announcements
+- Non-committal ("framework", "potential", "exploring")
+- Interim / preliminary results without numbers
 
 ═══════════════════════════════════════════════════════════════════════════════
 TRADE SIGNALS
@@ -67,7 +80,26 @@ PARTNERSHIPS/COMMERCIALIZATION (7% of winners)
 ├─ Distribution agreement, Commercialization partnership
 ├─ Expanded distributor role
 ├─ OEM agreements
+├─ MAJOR COUNTERPARTY ANCHORS (any partner of clearly-comparable stature
+│   qualifies — this list is not exhaustive):
+│   ├─ MEDTECH GIANTS: Medtronic, Boston Scientific, Stryker, Abbott, J&J
+│   │   MedTech, Becton Dickinson, Intuitive Surgical, Edwards Lifesciences,
+│   │   Zimmer Biomet, Smith & Nephew, Olympus, Hologic, ResMed
+│   ├─ LIFE-SCIENCE GIANTS: Siemens Healthineers, Philips Healthcare,
+│   │   GE HealthCare, Agilent, Thermo Fisher, Danaher, Illumina,
+│   │   Bio-Techne, Waters, PerkinElmer, QIAGEN, Bruker, Revvity
+│   ├─ BIG PHARMA (as device/diagnostic partner): Pfizer, AstraZeneca,
+│   │   Roche, Merck, Lilly, Novartis, J&J, AbbVie
+│   ├─ PRESTIGIOUS INSTITUTIONS: Mayo Clinic, Cleveland Clinic, Johns
+│   │   Hopkins, MD Anderson, Memorial Sloan Kettering, UCSF, Stanford,
+│   │   Harvard, NIH — agreements to co-develop, validate, or deploy
+│   │   technology qualify.
+│   └─ GENERALISATION: An unfamiliar partner name can still qualify if
+│       the headline describes a clearly major entity (Fortune 500
+│       healthcare, top-10 global in its category).
 └─ Examples:
+   "Licenses Technology to Medtronic for Cardiac Monitoring" → TRADE
+   "Sign Clinical Supply Agreement with Siemens Healthineers" → TRADE
    "Expanded Role In Commercializing Near-Patient Testing Products" → TRADE
    "Partners With Major Distributor" → TRADE
 
@@ -112,6 +144,45 @@ PRODUCT LAUNCHES (Only with FDA/regulatory milestone)
 └─ Examples:
    "Launches FDA-Cleared Surgical Device" → TRADE (has regulatory milestone)
    "Announces Commercial Launch Following 510(k) Clearance" → TRADE
+
+REIMBURSEMENT / COVERAGE PATHWAY (Unlocks revenue)
+Securing a reimbursement pathway turns regulatory clearance into billable
+revenue — a real catalyst, especially for small-cap device companies whose
+product is already cleared but not yet monetised.
+
+├─ QUALIFIES: AMA CPT/PLA code granted; CMS National/Local Coverage
+│   Determination positive; Medicare reimbursement rate set; Medicaid
+│   coverage approved; commercial payor coverage policy established;
+│   NICE positive guidance (UK); HTA positive recommendation.
+├─ REQUIRES: named reimbursement mechanism AND named company product.
+├─ SKIP: generic "now covered" without a named mechanism; filings that
+│   haven't been granted; coverage denied or withdrawn.
+├─ Size: TRADE SMALL baseline; TRADE MODERATE if the product is a
+│   material piece of company revenue or coverage is broad (Medicare
+│   national).
+└─ Examples:
+   "Receives AMA PLA Code for Cardiac Diagnostic Test" → TRADE SMALL
+   "Obtains CMS National Coverage Determination for Implantable Monitor" → TRADE MODERATE
+   "Files for Medicare Coverage" → SKIP (not granted)
+
+PEER-REVIEWED PUBLICATIONS (Scientific validation of the device)
+Peer-reviewed publications validating the company's NAMED device, platform,
+or diagnostic with a positive clinical result are tradeable.
+
+├─ REQUIRES: (1) publication language, (2) named company device/platform,
+│   (3) positive outcome or validating claim.
+├─ GENERALISATION: specialty journals count — the journal does NOT need
+│   to be Nature/NEJM/Lancet. Device studies rarely publish there.
+├─ BOOSTERS: prestigious institutional co-authors (Mayo, Cleveland Clinic,
+│   MD Anderson, etc.), quantified efficacy / accuracy / safety numbers.
+├─ SKIP: publications that only describe engineering specs or bench data;
+│   publications that merely mention the device in passing; preprints.
+├─ Size: TRADE SMALL baseline; TRADE MODERATE if prestigious institution
+│   or quantified clinical outcome.
+└─ Examples:
+   "Peer-Reviewed Study Shows DIFS Technology Reduced Self-Injurious Behavior" → TRADE SMALL
+   "Cleveland Clinic Study Validates Company's Cardiac Ablation System" → TRADE MODERATE
+   "Journal Publishes Device Engineering Specifications" → SKIP (no clinical validation)
 ═══════════════════════════════════════════════════════════════════════════════
 ENTITY-RICH PARTNERSHIPS (Signal Density Override)
 ═══════════════════════════════════════════════════════════════════════════════

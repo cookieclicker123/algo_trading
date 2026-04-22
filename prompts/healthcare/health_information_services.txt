@@ -11,12 +11,28 @@ INDUSTRY CONTEXT:
 - NOTE: We do NOT trade plain earnings announcements. EXCEPTION: record-breaking results or guidance raises with specific dollar amounts and/or growth percentages in the headline = TRADE SMALL
 
 ═══════════════════════════════════════════════════════════════════════════════
-CRITICAL: HEALTHCARE FALSE POSITIVE WARNING
+HOW TO REASON ABOUT HEALTH IT HEADLINES
 ═══════════════════════════════════════════════════════════════════════════════
 
-Healthcare is our HIGHEST false positive sector. Be EXTREMELY STRICT.
-Only trade headlines with DEFINITIVE agreements, named major partners,
-and concrete terms. "Framework", "Anticipates", "Potential" = SKIP.
+Health Information Services winners cluster around named partnerships,
+government contracts, and strategic reviews. Classify on the PATTERN
+rather than the specific technology platform — you won't recognise every
+health-IT vendor, and that is fine.
+
+PATTERN-FIRST REASONING:
+- Named platform + named major partner (Palantir, Oracle Health, Epic,
+  Cerner, major health system, major health insurer) + concrete scope = TRADE.
+- Named government contract (HHS, NIH, VA, CDC, state) with scope or
+  dollar amount = TRADE.
+- Strategic alternatives process with an investment bank named = TRADE.
+- GENERALISATION: An unfamiliar-named partner can still qualify if the
+  headline describes a clearly major entity (Fortune 500, major insurer,
+  major health system, etc.).
+
+WHAT WEAKENS A HEADLINE:
+- Non-committal ("framework", "potential", "anticipates", "exploring")
+- Vague "partnership" with no named counterparty or no scope
+- Marketing-only launches with no regulatory or commercial traction
 
 ═══════════════════════════════════════════════════════════════════════════════
 TRADE SIGNALS

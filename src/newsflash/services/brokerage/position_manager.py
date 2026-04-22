@@ -73,12 +73,11 @@ HC_CONFIRMATION_SECONDS = 1.25          # HC trades: 1.25s breach confirmation
 MEGA_GRACE_PERIOD_SECONDS = 10.0        # Mega trades: 10 seconds grace
 MEGA_CONFIRMATION_SECONDS = 1.25        # Mega trades: 1.25s breach confirmation
 
-# Breakeven stop configuration - protects gains after reaching +5%
-# Once price stays at +5% for 0.5 seconds, stop moves from -5% to breakeven (0%)
-# Rationale: If trade hits +5%, buying pressure is real. Moving to breakeven protects
-# against turning winner into loser, while still giving 5% buffer room.
-BREAKEVEN_TRIGGER_PCT = 0.05  # Move to breakeven after hitting +5%
-BREAKEVEN_CONFIRMATION_SECONDS = 0.5  # Must stay at +5% for 0.5s to confirm
+# Breakeven stop — REMOVED.
+# Previously moved stop from -5%/-12% to 0% after hitting +5%. Caused premature exits
+# on volatile small-caps: price would briefly hit +5%, breakeven activates, then reversal
+# exits at a loss due to bid/ask slippage. The tiered exit system already captures gains;
+# the initial stop loss (5% or 12%) provides sufficient downside protection.
 
 # Tiered exit configuration - let winners run, capture large moves
 # Strategy: Most winners go past 15%, so hold for bigger gains
@@ -330,12 +329,11 @@ class PositionManager:
         self._exits_in_progress: set = set()
 
         logger.info(
-            "PositionManager initialized (early exit + tiered exits + stop loss + breakeven)",
+            "PositionManager initialized (early exit + tiered exits + stop loss)",
             enabled=enabled,
             poll_interval=poll_interval,
             has_stream_manager=stream_manager is not None,
-            stop_loss_pct=f"{STOP_LOSS_PCT*100:.0f}%",
-            breakeven_trigger=f"+{BREAKEVEN_TRIGGER_PCT*100:.0f}% → stop moves to 0%",
+            stop_loss_pct=f"{STOP_LOSS_PCT*100:.0f}% (HC/clinical: 12%)",
             early_exit=f"+{EARLY_EXIT_PROFIT_PCT*100:.0f}% after {EARLY_EXIT_MINUTES:.0f} min",
             tiered_exits=[f"+{t[0]*100:.0f}%: {t[1]*100:.0f}%" for t in TIERED_EXIT_THRESHOLDS],
             floor_rule=f"{FLOOR_RULE_MULTIPLIER*100:.0f}% of last tier",
@@ -924,42 +922,9 @@ class PositionManager:
 
                 return
 
-            # 🎯 BREAKEVEN STOP ACTIVATION CHECK
-            # If price hits +5% and stays there for 0.5s, move stop from -5% to breakeven
+            # Breakeven stop removed — initial stop loss (5%/12%) stays for the life of the trade.
+            # Gains are captured by tiered exits, not by moving the stop to breakeven.
             now = datetime.now()
-            if not position.breakeven_stop_active and profit_pct >= BREAKEVEN_TRIGGER_PCT:
-                if position.breakeven_trigger_time is None:
-                    # First time hitting +5% - start confirmation timer
-                    position.breakeven_trigger_time = now
-                    logger.info(
-                        f"📈 BREAKEVEN TRIGGER: Hit +{BREAKEVEN_TRIGGER_PCT*100:.0f}%, starting {BREAKEVEN_CONFIRMATION_SECONDS}s confirmation",
-                        ticker=ticker,
-                        current_price=current_price,
-                        profit_pct=f"+{profit_pct*100:.1f}%",
-                    )
-                else:
-                    # Check if we've stayed at +5% long enough
-                    trigger_duration = (now - position.breakeven_trigger_time).total_seconds()
-                    if trigger_duration >= BREAKEVEN_CONFIRMATION_SECONDS:
-                        # Confirmed! Activate breakeven stop
-                        position.breakeven_stop_active = True
-                        logger.info(
-                            f"✅ BREAKEVEN STOP ACTIVATED: Stop moved from -5% to 0% (confirmed +{BREAKEVEN_TRIGGER_PCT*100:.0f}% for {trigger_duration:.1f}s)",
-                            ticker=ticker,
-                            current_price=current_price,
-                            profit_pct=f"+{profit_pct*100:.1f}%",
-                            old_stop=position.stop_loss_price,
-                            new_stop=position.entry_price,
-                        )
-            elif not position.breakeven_stop_active and profit_pct < BREAKEVEN_TRIGGER_PCT:
-                # Dropped below +5% before confirmation - reset trigger
-                if position.breakeven_trigger_time is not None:
-                    logger.debug(
-                        f"BREAKEVEN TRIGGER RESET: Dropped below +{BREAKEVEN_TRIGGER_PCT*100:.0f}%",
-                        ticker=ticker,
-                        profit_pct=f"{profit_pct*100:+.1f}%",
-                    )
-                    position.breakeven_trigger_time = None
 
             # 🛑 STOP LOSS CHECK with confirmation logic
             # Uses effective_stop_price (breakeven if activated, otherwise -5%/-12%)

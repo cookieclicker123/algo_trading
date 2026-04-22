@@ -1,5 +1,5 @@
 {
-  "date": "2026-04-16",
+  "date": "2026-04-22",
   "data": {
     "ORCL": {
       "market_cap_millions": 459538.399232
@@ -16281,7 +16281,7 @@
       "float_shares": 92765717
     },
     "BCTXL": {
-      "float_shares": 6410373
+      "float_shares": 6410301
     },
     "BTG": {
       "market_cap_millions": 7188.42112,
@@ -16454,14 +16454,15 @@
       "float_shares": 1120855
     },
     "MDA": {
-      "market_cap_millions": 3795.651328
+      "market_cap_millions": 4849.967104
     },
     "QUCY": {
       "market_cap_millions": 8.656858,
       "float_shares": 3546736
     },
     "SWMR": {
-      "market_cap_millions": 679.17184
+      "market_cap_millions": 433.8056,
+      "float_shares": 195973
     },
     "RYZ": {
       "market_cap_millions": 1071.595712,
@@ -16567,6 +16568,28 @@
     },
     "MAIR": {
       "market_cap_millions": 15523.410944
+    },
+    "FNUC": {
+      "market_cap_millions": 71.059512,
+      "float_shares": 7905893
+    },
+    "NEXR": {
+      "market_cap_millions": 1.642613,
+      "float_shares": 652425
+    },
+    "PAYP": {
+      "market_cap_millions": 14620.468224,
+      "float_shares": 241180434
+    },
+    "KLRA": {
+      "market_cap_millions": 2902.719488,
+      "float_shares": 9251
+    },
+    "JATT": {
+      "market_cap_millions": 82.256248
+    },
+    "RMIX": {
+      "market_cap_millions": 893.37888
     }
   }
 }

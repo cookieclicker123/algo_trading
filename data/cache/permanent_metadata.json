@@ -141650,5 +141650,37 @@
   "MAIR": {
     "industry": "Building Products & Equipment",
     "sector": "Industrials"
+  },
+  "FNUC": {
+    "industry": "Other Industrial Metals & Mining",
+    "sector": "Basic Materials"
+  },
+  "NEXR": {
+    "industry": "Internet Retail",
+    "sector": "Consumer Cyclical"
+  },
+  "MDA": {
+    "industry": "Aerospace & Defense",
+    "sector": "Industrials"
+  },
+  "SWMR": {
+    "industry": "Software - Infrastructure",
+    "sector": "Technology"
+  },
+  "PAYP": {
+    "industry": "Software - Infrastructure",
+    "sector": "Technology"
+  },
+  "KLRA": {
+    "industry": "Biotechnology",
+    "sector": "Healthcare"
+  },
+  "JATT": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
+  },
+  "RMIX": {
+    "industry": "Building Materials",
+    "sector": "Basic Materials"
   }
 }
