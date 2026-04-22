@@ -66,12 +66,13 @@ class _MetadataCacheAdapter:
         if permanent_path.exists():
             with open(permanent_path) as f:
                 data = json.load(f)
-                # File can be {ticker: {...}} OR {"metadata": {ticker: {...}}}
-                self._permanent = data.get("metadata", data) if isinstance(data, dict) else {}
+                # Flat {TICKER: {sector, industry, exchange, ...}}
+                self._permanent = data if isinstance(data, dict) else {}
         if daily_path.exists():
             with open(daily_path) as f:
                 data = json.load(f)
-                self._daily = data.get("metadata", data) if isinstance(data, dict) else {}
+                # Nested: {"date": ..., "data": {TICKER: {market_cap_millions, price}}}
+                self._daily = data.get("data", {}) if isinstance(data, dict) else {}
 
     async def get_permanent(self, ticker: str) -> Optional[Dict[str, Any]]:
         perm = self._permanent.get(ticker)

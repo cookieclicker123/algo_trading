@@ -123,6 +123,11 @@ class RecallAnalytics:
     skip_reason: Optional[str] = None
     skip_filter: Optional[str] = None
 
+    # Retrospective AI classification (for articles filtered pre-classification
+    # that ended up moving >=10% during the 10-min hold).
+    # Shape mirrors retrospective_classifier.RetrospectiveClassifier.classify().
+    retrospective_classification: Optional[Dict[str, Any]] = None
+
     # What we missed
     price_at_skip: Optional[float] = None
     max_price_after: Optional[float] = None
@@ -214,6 +219,71 @@ class DailyAnalyticsJob:
     Collects all trade data from the day, enriches with market regime data,
     and saves structured analytics for pattern analysis.
     """
+
+    @staticmethod
+    def _summarize_retrospective_fns(
+        missed_opportunities: Optional[List["RecallAnalytics"]],
+    ) -> Dict[str, Any]:
+        """
+        Summarise retrospective_classification findings across recall records.
+
+        Captures the "what would the AI have done?" signal on articles that
+        got rejected by prefilter but moved >=10% during the 10-min hold.
+        Surfaces true false negatives (AI says TRADE or HC bypass) separately
+        from legitimate skips (AI also says SKIP).
+        """
+        if not missed_opportunities:
+            return {
+                "total_classified": 0,
+                "would_have_traded": 0,
+                "hc_bypass_count": 0,
+                "sector_trade_count": 0,
+                "sector_skip_count": 0,
+                "tickers_would_have_traded": [],
+            }
+
+        would_trade = []
+        hc_count = 0
+        sector_trade = 0
+        sector_skip = 0
+        classified = 0
+
+        for m in missed_opportunities:
+            retro = m.retrospective_classification or {}
+            if not retro.get("triage_type"):
+                continue
+            classified += 1
+            if retro.get("hc_bypass"):
+                hc_count += 1
+                would_trade.append({
+                    "ticker": m.ticker,
+                    "triage_type": retro["triage_type"],
+                    "hc_size": retro["hc_bypass"].get("size"),
+                    "excursion_pct": retro.get("max_mid_excursion_pct"),
+                })
+            else:
+                sd = retro.get("sector_decision") or {}
+                if sd.get("classification") == "TRADE":
+                    sector_trade += 1
+                    would_trade.append({
+                        "ticker": m.ticker,
+                        "triage_type": retro["triage_type"],
+                        "sector_size": sd.get("size"),
+                        "sector": sd.get("sector"),
+                        "industry": sd.get("industry"),
+                        "excursion_pct": retro.get("max_mid_excursion_pct"),
+                    })
+                elif sd.get("classification") == "SKIP":
+                    sector_skip += 1
+
+        return {
+            "total_classified": classified,
+            "would_have_traded": len(would_trade),
+            "hc_bypass_count": hc_count,
+            "sector_trade_count": sector_trade,
+            "sector_skip_count": sector_skip,
+            "tickers_would_have_traded": would_trade,
+        }
 
     def __init__(
         self,
@@ -361,13 +431,19 @@ class DailyAnalyticsJob:
             shares_estimate = int(500 / price_at_skip) if price_at_skip > 0 else 0
             potential_gain_usd = (max_price - price_at_skip) * shares_estimate
 
+        # Fall back to retrospective triage when live headline_type is null
+        # (article was filtered pre-classification but moved >=10% retroactively)
+        retro = record.get("retrospective_classification") or {}
+        headline_type = record.get("headline_type") or retro.get("triage_type")
+
         return RecallAnalytics(
             article_id=record.get("article_id", ""),
             ticker=record.get("ticker", ""),
             date=record.get("recorded_at", "")[:10] if record.get("recorded_at") else "",
             session=record.get("_session", ""),
             headline=record.get("headline"),
-            headline_type=record.get("headline_type"),
+            headline_type=headline_type,
+            retrospective_classification=retro or None,
             skip_reason=record.get("skip_reason") or record.get("reason"),
             skip_filter=record.get("skip_filter") or record.get("filter_name"),
             price_at_skip=price_at_skip,
@@ -747,6 +823,7 @@ class DailyAnalyticsJob:
             "by_market_cap_bucket": report.by_market_cap_bucket,
             "by_headline_type": report.by_headline_type,
             "by_session": report.by_session,
+            "retrospective_false_negatives": self._summarize_retrospective_fns(report.missed_opportunities),
             "trades": [asdict(t) for t in report.trades],
             "recall_records": [asdict(m) for m in report.missed_opportunities] if report.missed_opportunities else [],
         }

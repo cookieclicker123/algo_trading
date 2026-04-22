@@ -229,7 +229,13 @@ def collect_premarket_samples(
 
                     records = data.get("records", [])
                     for rec in records:
+                        # Prefer live classification; fall back to retrospective
+                        # triage (filled in for prefilter-rejected movers — see
+                        # shared/statistics/retrospective_classifier.py).
                         headline_type = rec.get("headline_type")
+                        if not headline_type:
+                            retro = rec.get("retrospective_classification") or {}
+                            headline_type = retro.get("triage_type")
                         if not headline_type:
                             continue
 
