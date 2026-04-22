@@ -722,11 +722,6 @@ CONDITIONAL SKIP:
   the phase is 1/2 in a HOT modality or HOT area (safety IS the primary endpoint at
   early phase for these; see CLINICAL DATA section)
 
-KEY RULE: When uncertain on size, lean TRADE SMALL rather than SKIP. Position sizing
-handles conviction — use SMALL for marginal headlines. Only SKIP headlines that are
-clearly not catalysts (earnings, dilutive offerings, conferences, preclinical, trial
-initiation, non-committal language).
-
 RED FLAGS (weaken any headline):
 - "Extension" = not new data
 - "Interim" without numbers = preliminary

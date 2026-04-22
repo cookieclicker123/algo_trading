@@ -65,7 +65,8 @@ class RecallStatsEngine:
         yahoo_finance_coordinator: YahooFinanceCoordinator,
         market_data_client: Optional["StockHistoricalDataClient"] = None,
         trading_client: Optional["TradingClient"] = None,
-        metadata_cache: Optional[Any] = None  # MetadataCache for float shares
+        metadata_cache: Optional[Any] = None,  # MetadataCache for float shares
+        retrospective_classifier: Optional[Any] = None,  # RetrospectiveClassifier
     ):
         """Initialize recall statistics engine with all dependencies."""
         self.event_bus = event_bus
@@ -75,6 +76,7 @@ class RecallStatsEngine:
         self.market_data_client = market_data_client
         self.trading_client = trading_client
         self.metadata_cache = metadata_cache
+        self.retrospective_classifier = retrospective_classifier
 
         # Shared state
         self._monitoring_tasks: Dict[str, asyncio.Task] = {}
@@ -112,7 +114,8 @@ class RecallStatsEngine:
             quote_fetcher=quote_fetcher,
             repository=repository,
             monitoring_tasks=self._monitoring_tasks,
-            monitoring_lock=self._monitoring_lock
+            monitoring_lock=self._monitoring_lock,
+            retrospective_classifier=retrospective_classifier,
         )
 
         self.record_manager = RecordManager(

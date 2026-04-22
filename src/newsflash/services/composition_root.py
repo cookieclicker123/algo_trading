@@ -502,6 +502,17 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
     statistics_repository = container.statistics_repository()
     logger.info("StatisticsRepository initialized via DI container")
     
+    # Build RetrospectiveClassifier — used by PriceMonitor after the 10-min
+    # hold to run triage + HC/sector classification on articles whose mid
+    # excursion was >=10% but were rejected by prefilter (false-negative capture).
+    from ..shared.statistics.headline_classifier import get_headline_classifier
+    from ..shared.statistics.retrospective_classifier import RetrospectiveClassifier
+    retrospective_classifier = RetrospectiveClassifier(
+        headline_classifier=get_headline_classifier(),
+        sector_classifier=classification.infra.sector_classifier,
+    )
+    logger.info("RetrospectiveClassifier wired (triage + HC bypass + sector)")
+
     # Create recall engine via DI container factory (quote_fetcher, yahoo_finance_coordinator, market_data_client, trading_client passed as dependencies)
     # Note: yahoo_finance_coordinator is already started above (shared with MarketDataValidator)
     recall_engine = container.recall_stats_engine(
@@ -510,6 +521,7 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
         market_data_client=brokerage.infra.connection_manager.market_data_client if brokerage else None,
         trading_client=brokerage.infra.connection_manager.trading_client if brokerage else None,
         metadata_cache=metadata_cache,  # For float-normalized volume calculations
+        retrospective_classifier=retrospective_classifier,
     )
     await recall_engine.start()
     logger.info("RecallStatsEngine started - tracking missed opportunities (with volume stats, float normalization)")

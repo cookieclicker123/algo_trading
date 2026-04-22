@@ -2,7 +2,7 @@
 Statistics repository - handles file I/O for statistics records.
 Pure infrastructure - stateless, uses BaseRepository pattern.
 """
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import json
 import asyncio
 from pathlib import Path
@@ -291,6 +291,31 @@ class StatisticsRepository:
             )
             return False
     
+    async def get_recall_record_title(
+        self,
+        article_id: str,
+        session: str,
+        date: datetime,
+    ) -> Optional[str]:
+        """
+        Fetch the stored headline (title) for a recall record by article_id.
+
+        Used by PriceMonitor for retrospective classification after the 10-min
+        hold — the monitor doesn't receive the headline text, so it reads it
+        back from the persisted record.
+
+        Returns None if the record doesn't exist.
+        """
+        file_path = self._get_session_file_path("recall", session, date)
+        file_lock = await self._get_file_lock(str(file_path))
+
+        async with file_lock:
+            session_file = await self._load_recall_file(file_path, session, date)
+            for record in session_file.records:
+                if record.article_id == article_id:
+                    return record.title
+            return None
+
     async def update_recall_record(
         self,
         article_id: str,

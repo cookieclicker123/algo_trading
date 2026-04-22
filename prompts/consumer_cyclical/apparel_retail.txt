@@ -170,10 +170,6 @@ VAGUE PARTNERSHIPS (No concrete deliverables)
    "Selected by U.S. Navy for Defense Systems" → TRADE (government agency = concrete)
 
 
-KEY RULE: When uncertain, lean TRADE SMALL rather than SKIP.
-Position sizing handles conviction — use SMALL for marginal headlines.
-Only SKIP headlines that are clearly not catalysts (earnings, offerings, conferences, dilution, non-binding).
-
 
 ===============================================================================
 POSITION SIZING (Output: TRADE SMALL, TRADE MODERATE, TRADE LARGE, TRADE MAX, or SKIP)

@@ -168,10 +168,6 @@ SIZE FACTORS:
    - MODERATE: Named contracts with $ amounts, specific tech partnerships
    - SMALL: Weaker but still tradeable catalysts
 
-KEY RULE: When uncertain, lean TRADE SMALL rather than SKIP.
-Position sizing handles conviction — use SMALL for marginal headlines.
-Only SKIP headlines that are clearly not catalysts (earnings, offerings, conferences, dilution, non-binding).
-
 MATERIAL DEAL OVERRIDE: If the headline describes a NEW deal/order/contract/agreement with a SPECIFIC dollar amount
 that is >25% of the company'''s market cap (provided in CONTEXT), it is almost certainly TRADE regardless of whether
 the deal type matches the industry-specific trade signals above. Dollar amounts relative to company size are the

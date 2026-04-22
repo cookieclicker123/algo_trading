@@ -412,6 +412,18 @@ class RecallRecord(BaseModel):
         description="Filter name -> would_pass (True/False). Shows which filters the trade would have passed."
     )
 
+    # Retrospective classification (false-negative capture)
+    # Populated after the 10-min hold if mid excursion was >= 10% — captures
+    # what the AI would have said about the headline, even when it was
+    # rejected by prefilter and never saw triage/sector classification live.
+    # Shape: {applied_at, max_mid_excursion_pct, triage_type,
+    #         hc_bypass: {is_hc, size} | None,
+    #         sector_decision: {classification, size, sector, industry} | None}
+    retrospective_classification: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Post-hoc AI classification for articles that moved >=10% mid excursion during the 10-min hold. See retrospective_classifier.py."
+    )
+
     model_config = {"frozen": False}  # Allow updates for price_check_10min and monitoring fields
 
 

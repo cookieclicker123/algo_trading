@@ -64,7 +64,8 @@ class PriceMonitor:
         quote_fetcher: QuoteFetcherProtocol,
         repository: RepositoryProtocol,
         monitoring_tasks: Dict[str, asyncio.Task],
-        monitoring_lock: asyncio.Lock
+        monitoring_lock: asyncio.Lock,
+        retrospective_classifier: Any = None,  # Optional RetrospectiveClassifier
     ):
         """
         Initialize price monitor.
@@ -75,12 +76,17 @@ class PriceMonitor:
             repository: Statistics repository for record updates
             monitoring_tasks: Shared dict of monitoring tasks
             monitoring_lock: Lock protecting monitoring_tasks dict
+            retrospective_classifier: Optional RetrospectiveClassifier — if
+                provided, runs triage + HC/sector on records whose mid
+                excursion was >=10% during the 10-min hold (captures what
+                the AI would have done on prefilter-rejected movers).
         """
         self.market_data_client = market_data_client
         self.quote_fetcher = quote_fetcher
         self.repository = repository
         self._monitoring_tasks = monitoring_tasks
         self._monitoring_lock = monitoring_lock
+        self.retrospective_classifier = retrospective_classifier
 
     async def monitor_price(
         self,
@@ -167,6 +173,21 @@ class PriceMonitor:
             if max_adverse_data:
                 updates["max_adverse_excursion"] = max_adverse_data
 
+            # Retrospective classification: if mid excursion >= 10%, ask the AI
+            # what it would have done with this headline. Captures false
+            # negatives — articles we rejected pre-classification that ended
+            # up moving. Lets analytics engines include these samples.
+            retro = await self._run_retrospective_classification(
+                article_id=article_id,
+                ticker=target_ticker,
+                initial_nbbo=initial_nbbo,
+                highest_price_data=highest_price_data,
+                session=session,
+                received_at=received_at,
+            )
+            if retro is not None:
+                updates["retrospective_classification"] = retro
+
             # Update record
             updated = await self.repository.update_recall_record(
                 article_id=article_id,
@@ -218,6 +239,81 @@ class PriceMonitor:
 
             async with self._monitoring_lock:
                 self._monitoring_tasks.pop(article_id, None)
+
+    async def _run_retrospective_classification(
+        self,
+        article_id: str,
+        ticker: str,
+        initial_nbbo: Optional[Dict[str, Any]],
+        highest_price_data: Optional[Dict[str, Any]],
+        session: str,
+        received_at: datetime,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Run triage + HC/sector classification on the article iff its mid
+        excursion during the 10-min hold was >= 10%.
+
+        Returns:
+            The retrospective_classification dict (see RetrospectiveClassifier),
+            or None if no classifier injected / excursion below threshold /
+            headline unavailable.
+        """
+        if self.retrospective_classifier is None:
+            return None
+
+        # Lazy import to avoid circular deps
+        from .retrospective_classifier import (
+            compute_mid_excursion_pct,
+            DEFAULT_MIN_EXCURSION_PCT,
+        )
+
+        excursion_pct = compute_mid_excursion_pct(initial_nbbo, highest_price_data)
+        if excursion_pct is None or excursion_pct < DEFAULT_MIN_EXCURSION_PCT:
+            return None
+
+        # Fetch headline from the stored record — PriceMonitor doesn't receive
+        # the headline text, so ask the repository for the current record.
+        headline = None
+        getter = getattr(self.repository, "get_recall_record_title", None)
+        if getter is not None:
+            try:
+                headline = await getter(article_id, session, received_at)
+            except Exception as e:
+                logger.debug(
+                    "PriceMonitor: failed to fetch headline for retro classification",
+                    article_id=article_id,
+                    error=str(e),
+                )
+
+        if not headline:
+            logger.debug(
+                "PriceMonitor: cannot run retrospective classification — no headline",
+                article_id=article_id,
+                ticker=ticker,
+            )
+            return None
+
+        try:
+            retro = await self.retrospective_classifier.classify(headline, ticker)
+        except Exception as e:
+            logger.debug(
+                "PriceMonitor: retrospective classifier error",
+                article_id=article_id,
+                ticker=ticker,
+                error=str(e),
+            )
+            return None
+
+        retro["max_mid_excursion_pct"] = round(excursion_pct, 2)
+        logger.info(
+            "PriceMonitor: retrospective classification applied",
+            article_id=article_id,
+            ticker=ticker,
+            excursion_pct=round(excursion_pct, 2),
+            triage_type=retro.get("triage_type"),
+            is_hc=retro.get("hc_bypass") is not None,
+        )
+        return retro
 
     async def _analyze_price_bars(
         self,
