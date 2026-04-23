@@ -10,6 +10,13 @@ from ...models.base_models import TradeRequest
 logger = get_logger(__name__)
 
 
+# Liquidity gate: block BUY orders whose share count is >= this fraction of the
+# live displayed ask depth. Applied against a fresh NBBO snapshot taken
+# immediately before order submission. Empirically calibrated on April 2026
+# premarket trades — ratios >= 0.5 cluster in losses and exit-chase failures.
+DEPTH_GATE_MAX_RATIO = 0.5
+
+
 def calculate_trade_quantity(
     trade_request: TradeRequest,
     current_price: float,

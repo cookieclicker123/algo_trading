@@ -2136,6 +2136,7 @@
     "DEMZ",
     "DEO",
     "DERM",
+    "DETX",
     "DEVS",
     "DFDV",
     "DFDVW",
@@ -2169,12 +2170,11 @@
     "DHCNL",
     "DHF",
     "DHI",
-    "DHIL",
     "DHR",
     "DHT",
     "DHX",
     "DHY",
-    "DHY.RTWI",
+    "DHY.RT",
     "DIBS",
     "DIME",
     "DIN",
@@ -2480,6 +2480,7 @@
     "ELLO",
     "ELMD",
     "ELME",
+    "ELMT",
     "ELOG",
     "ELPC",
     "ELPW",
@@ -4385,6 +4386,7 @@
     "KZR",
     "L",
     "LAB",
+    "LABT",
     "LAC",
     "LACG",
     "LAD",
@@ -8584,6 +8586,6 @@
     "ZYBT",
     "ZYME"
   ],
-  "updated_at": "2026-04-22T08:32:10.368111",
-  "count": 8583
+  "updated_at": "2026-04-23T11:19:26.680726",
+  "count": 8585
 }

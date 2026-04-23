@@ -17,7 +17,7 @@ from ...shared.event_bus import AsyncEventBus
 from .events import TradeExecutedEvent, TradeFailedEvent
 from .event_builders import build_infrastructure_trade_request_data
 from .quote_fetcher import AlpacaQuoteFetcher
-from .utils import calculate_trade_quantity
+from .utils import calculate_trade_quantity, DEPTH_GATE_MAX_RATIO
 from ...utils.brokerage.ladder_algorithms import (
     calculate_ladder_base_price,
     calculate_ladder_parameters,
@@ -258,6 +258,40 @@ class AlpacaExtendedHoursTradeExecutor:
                             slippage_pct=round(execution_slippage_pct, 2),
                             max_allowed_pct=max_execution_slippage,
                         )
+
+                # ===============================================================
+                # 🚦 LIQUIDITY GATE: Block if our order dominates displayed depth
+                # ===============================================================
+                # If quantity >= DEPTH_GATE_MAX_RATIO * displayed ask size, the
+                # book can't absorb us cleanly — entry walks the book and exits
+                # often fail (the BNBX-shape trap). Checked against the fresh
+                # NBBO snapshot fetched above so it reflects the real book now.
+                ask_size_now = nbbo_snapshot.get("ask_size")
+                if ask_size_now and ask_size_now > 0:
+                    order_vs_depth = quantity / ask_size_now
+                    if order_vs_depth >= DEPTH_GATE_MAX_RATIO:
+                        error_msg = (
+                            f"Liquidity gate: order_vs_depth {order_vs_depth:.2f}x "
+                            f"(shares={quantity}, ask_size={ask_size_now}) — "
+                            f"threshold {DEPTH_GATE_MAX_RATIO:.2f}x"
+                        )
+                        logger.warning(
+                            "🚦 TRADE ABORTED: Liquidity gate",
+                            ticker=trade_request.ticker,
+                            quantity=quantity,
+                            ask_size=ask_size_now,
+                            order_vs_depth=round(order_vs_depth, 2),
+                            threshold=DEPTH_GATE_MAX_RATIO,
+                        )
+                        error_result = {
+                            "success": False,
+                            "error": error_msg,
+                            "session": session,
+                            "order_type": "LIMIT",
+                            "instrument": "stock",
+                        }
+                        await self._publish_failed_event(trade_request, error_result["error"])
+                        return error_result
 
                 # Price collar: Maximum we're willing to pay (10% above initial ask for extended chase)
                 # This prevents chasing into pump-and-dumps while allowing runners
