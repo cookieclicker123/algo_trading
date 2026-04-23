@@ -430,5 +430,11 @@
     "permanent": false,
     "created_at": "2026-04-23T12:40:06.902553",
     "last_fp_date": "2026-04-23"
+  },
+  "BNBX": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-04-23T13:53:50.883180",
+    "last_fp_date": "2026-04-23"
   }
 }

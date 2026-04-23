@@ -2813,12 +2813,15 @@ async def process_imminent_article(
 
             if pub_to_recv_pct > effective_max_pct and absolute_move >= MIN_ABSOLUTE_ASK_MOVE:
                 # High-conviction headlines: skip pub_to_recv filter (legitimate market reaction)
-                # Strong signal bypass: TRADE LARGE+ with confluence >= 5 means the LLM and
-                # microstructure both confirm this is real — the price move is the start of a
-                # run, not exhausted front-running.
+                # Strong signal bypass — general rule, any headline type:
+                #   confluence_score >= 4 AND surge detected.
+                # IMMINENT is implicit (this function only runs on IMMINENT). No
+                # ceiling — if all three criteria hold, the move is real momentum
+                # being priced in live, not exhausted front-running. The depth
+                # gate at submit-time is the tail safety net on sizing.
                 is_strong_signal_bypass = (
-                    ai_position_size in ("LARGE", "MAX")
-                    and confluence_score >= 4
+                    confluence_score >= 4
+                    and is_surge_trade
                 )
 
                 if is_high_conviction:
@@ -2832,12 +2835,13 @@ async def process_imminent_article(
                     )
                 elif is_strong_signal_bypass:
                     logger.info(
-                        "🔥 STRONG SIGNAL BYPASS: pub_to_recv filter skipped (TRADE LARGE+ with confluence >= 4)",
+                        "🔥 STRONG SIGNAL BYPASS: pub_to_recv filter skipped (confluence >= 4 + surge + runup < 30%)",
                         ticker=ticker,
                         pub_to_recv_pct=round(pub_to_recv_pct, 2),
                         normal_max=effective_max_pct,
-                        ai_position_size=ai_position_size,
+                        ceiling=STRONG_SIGNAL_RUNUP_CEILING_PCT,
                         confluence_score=confluence_score,
+                        is_surge_trade=is_surge_trade,
                         article_id=article_id,
                     )
                 else:
@@ -2923,61 +2927,88 @@ async def process_imminent_article(
                 confluence_metadata["recv_to_fill_pct"] = round(recv_to_fill_pct, 2)
 
         # ============================================================
-        # 🎯 PUMP-AND-DUMP FILTER: Entry ask vs confluence VWAP
+        # 🎯 PUMP-AND-DUMP FILTER: Ask-to-ask change (pub → fill)
         # ============================================================
-        # Pump-and-dump pattern: Ask held high while trades happen at lower prices.
-        # We'd enter at the inflated ask and the price crashes to where trades actually are.
+        # REPLACES the earlier fill_ask-vs-confluence_vwap implementation.
+        # VWAP proved unreliable: early-1s shakeouts inside the 2-second
+        # confluence window artificially depress VWAP and manufacture false
+        # "pump" signals on stocks that never moved to a pump price.
+        # AGPU 2026-04-22 — ask was stable at $6.43 at both receive and fill,
+        # but a 1-second dip inside the confluence window pulled VWAP to
+        # $5.30, producing a spurious 21% "pump" signal on a flat market.
         #
-        # Uses VWAP (not first_price) because first_price can be a stale pre-news tick
-        # (e.g. GFAI $0.44 stale → VWAP $0.49 → ask $0.503 = 2.6% premium, not 14.3%).
-        #
-        # JZXN lesson: On sub-$1 stocks, the bid-ask spread is structurally wide (2-4%),
-        # so VWAP (trades near bid/mid) is naturally 3-5% below the ask. This is normal
-        # microstructure, not pump manipulation. Require BOTH percentage AND absolute dollar
-        # thresholds to avoid false positives on penny stocks (same fix as front-running).
-        MAX_ASK_VS_VWAP_PCT = 12.0 if is_ai_breakthrough else 5.5  # AI breakthrough: 12% (early volatility dips depress VWAP), normal: 5.5%
-        MIN_ABSOLUTE_ASK_VS_VWAP = 0.08  # $0.08 minimum gap to trigger (penny stock protection)
-        # Higher than front-running's $0.05 because this checks a LEVEL gap (ask vs VWAP),
-        # not a DELTA (how much ask moved). On sub-$1 stocks, VWAP naturally sits 5-8¢
-        # below ask due to spread structure. Empirical: filter has 0 real catches and 2
-        # false positives (JZXN $0.051 gap +69%, OneMedNet $0.079 gap +26%). EPOW (the
-        # inspiration) had actual VWAP $0.9641 vs ask $1.00 = 3.7% — wouldn't even trigger.
-        confluence_vwap = confluence_metadata.get("confluence_vwap")
+        # New check: fill_ask vs pub_ask (the ask at publication time).
+        # Simple, intuitive, robust — if the ask we'd pay is materially higher
+        # than where the stock was pre-news, we're paying a premium. Clean.
+        PUMP_AND_DUMP_MAX_PCT = 12.0 if is_ai_breakthrough else 5.5
+        PUMP_AND_DUMP_MIN_ABSOLUTE = 0.08  # $0.08 floor (penny stock protection)
+        pub_time_ask_baseline = confluence_metadata.get("pub_time_ask")
         fill_ask = pre_entry_nbbo.get("ask") if pre_entry_nbbo else None
 
-        if confluence_vwap and fill_ask and confluence_vwap > 0:
-            ask_vs_vwap_pct = ((fill_ask - confluence_vwap) / confluence_vwap) * 100
-            absolute_gap = abs(fill_ask - confluence_vwap)
+        if pub_time_ask_baseline and fill_ask and pub_time_ask_baseline > 0:
+            pump_pct = ((fill_ask - pub_time_ask_baseline) / pub_time_ask_baseline) * 100
+            absolute_gap = abs(fill_ask - pub_time_ask_baseline)
 
-            if ask_vs_vwap_pct > MAX_ASK_VS_VWAP_PCT and absolute_gap >= MIN_ABSOLUTE_ASK_VS_VWAP:
-                logger.info(
-                    "⏭️ AUTO-TRADE SKIPPED: Entry ask too far above VWAP (pump-and-dump pattern)",
-                    ticker=ticker,
-                    confluence_vwap=round(confluence_vwap, 4),
-                    fill_ask=round(fill_ask, 4),
-                    ask_vs_vwap_pct=round(ask_vs_vwap_pct, 2),
-                    absolute_gap=round(absolute_gap, 4),
-                    max_allowed_pct=MAX_ASK_VS_VWAP_PCT,
-                    min_absolute=MIN_ABSOLUTE_ASK_VS_VWAP,
-                    article_id=article_id,
-                    reason="Entry ask is above average trading price - paying the pump premium"
+            if pump_pct > PUMP_AND_DUMP_MAX_PCT and absolute_gap >= PUMP_AND_DUMP_MIN_ABSOLUTE:
+                # Strong signal bypass — mirrors pub_to_recv / pre_news_runup.
+                # confluence_score >= 4 + surge detected. IMMINENT is implicit
+                # (this function only runs on IMMINENT classifications). No
+                # ceiling: if all three criteria hold, the ask move is genuine
+                # momentum and we are NOT paying a pump premium — the "premium"
+                # is the news being priced in live.
+                is_strong_signal_bypass = (
+                    confluence_score >= 4
+                    and is_surge_trade
                 )
-                await _record_postfilter_skip(article_id, f"postfilter_pump_and_dump:{ask_vs_vwap_pct:.1f}%")
-                return
+
+                if is_high_conviction:
+                    logger.info(
+                        "🎖️ HIGH-CONVICTION BYPASS: pump_and_dump filter skipped",
+                        ticker=ticker,
+                        pump_pct=round(pump_pct, 2),
+                        headline_type=headline_type,
+                        article_id=article_id,
+                    )
+                elif is_strong_signal_bypass:
+                    logger.info(
+                        "🔥 STRONG SIGNAL BYPASS: pump_and_dump filter skipped (confluence >= 4 + surge)",
+                        ticker=ticker,
+                        pub_ask=round(pub_time_ask_baseline, 4),
+                        fill_ask=round(fill_ask, 4),
+                        pump_pct=round(pump_pct, 2),
+                        confluence_score=confluence_score,
+                        is_surge_trade=is_surge_trade,
+                        article_id=article_id,
+                    )
+                else:
+                    logger.info(
+                        "⏭️ AUTO-TRADE SKIPPED: Ask ran too far since publication (pump-and-dump)",
+                        ticker=ticker,
+                        pub_ask=round(pub_time_ask_baseline, 4),
+                        fill_ask=round(fill_ask, 4),
+                        pump_pct=round(pump_pct, 2),
+                        absolute_gap=round(absolute_gap, 4),
+                        max_allowed_pct=PUMP_AND_DUMP_MAX_PCT,
+                        min_absolute=PUMP_AND_DUMP_MIN_ABSOLUTE,
+                        article_id=article_id,
+                        reason="Entry ask ran above publication ask - paying the pump premium"
+                    )
+                    await _record_postfilter_skip(article_id, f"postfilter_pump_and_dump:{pump_pct:.1f}%")
+                    return
 
             logger.info(
                 "✅ PUMP-AND-DUMP CHECK PASSED",
                 ticker=ticker,
-                confluence_vwap=round(confluence_vwap, 4),
+                pub_ask=round(pub_time_ask_baseline, 4),
                 fill_ask=round(fill_ask, 4),
-                ask_vs_vwap_pct=round(ask_vs_vwap_pct, 2),
+                pump_pct=round(pump_pct, 2),
                 absolute_gap=round(absolute_gap, 4),
-                max_allowed_pct=MAX_ASK_VS_VWAP_PCT,
-                min_absolute=MIN_ABSOLUTE_ASK_VS_VWAP,
+                max_allowed_pct=PUMP_AND_DUMP_MAX_PCT,
+                min_absolute=PUMP_AND_DUMP_MIN_ABSOLUTE,
             )
 
-            # Store for statistics
-            confluence_metadata["ask_vs_vwap_pct"] = round(ask_vs_vwap_pct, 2)
+            # Store for statistics (ask_pub_to_fill_pct is the new metric name)
+            confluence_metadata["ask_pub_to_fill_pct"] = round(pump_pct, 2)
 
         # ============================================================
         # 🎯 PRE-NEWS RUNUP FILTER
@@ -3024,18 +3055,39 @@ async def process_imminent_article(
                         pre_news_change_pct = ((price_at_pub - price_30min_ago) / price_30min_ago) * 100
 
                         if pre_news_change_pct > PRE_NEWS_RUNUP_THRESHOLD:
-                            logger.info(
-                                "⏭️ AUTO-TRADE SKIPPED: Pre-news runup detected (stock already moved >5% before news)",
-                                ticker=ticker,
-                                price_30min_ago=round(price_30min_ago, 4),
-                                price_at_pub=round(price_at_pub, 4),
-                                pre_news_change_pct=round(pre_news_change_pct, 2),
-                                max_allowed=PRE_NEWS_RUNUP_THRESHOLD,
-                                article_id=article_id,
-                                reason="Stock already ran before news - could be priced in or leaked"
+                            # Strong signal bypass — mirrors pub_to_recv / pump_and_dump:
+                            # confluence_score >= 4 AND surge detected. IMMINENT is implicit.
+                            # No ceiling — if all three hold, the pre-news run is real
+                            # momentum, not leaked/front-run. The depth gate at submit-time
+                            # is the tail safety net on sizing.
+                            is_strong_signal_bypass = (
+                                confluence_score >= 4
+                                and is_surge_trade
                             )
-                            await _record_postfilter_skip(article_id, f"postfilter_pre_news_runup:{pre_news_change_pct:.1f}%")
-                            return
+                            if is_strong_signal_bypass:
+                                logger.info(
+                                    "🔥 STRONG SIGNAL BYPASS: pre_news_runup filter skipped (confluence >= 4 + surge + runup < 30%)",
+                                    ticker=ticker,
+                                    pre_news_change_pct=round(pre_news_change_pct, 2),
+                                    normal_max=PRE_NEWS_RUNUP_THRESHOLD,
+                                    ceiling=PRE_NEWS_STRONG_SIGNAL_CEILING_PCT,
+                                    confluence_score=confluence_score,
+                                    is_surge_trade=is_surge_trade,
+                                    article_id=article_id,
+                                )
+                            else:
+                                logger.info(
+                                    "⏭️ AUTO-TRADE SKIPPED: Pre-news runup detected (stock already moved >5% before news)",
+                                    ticker=ticker,
+                                    price_30min_ago=round(price_30min_ago, 4),
+                                    price_at_pub=round(price_at_pub, 4),
+                                    pre_news_change_pct=round(pre_news_change_pct, 2),
+                                    max_allowed=PRE_NEWS_RUNUP_THRESHOLD,
+                                    article_id=article_id,
+                                    reason="Stock already ran before news - could be priced in or leaked"
+                                )
+                                await _record_postfilter_skip(article_id, f"postfilter_pre_news_runup:{pre_news_change_pct:.1f}%")
+                                return
 
                         logger.debug(
                             "✅ PRE-NEWS CHECK PASSED",

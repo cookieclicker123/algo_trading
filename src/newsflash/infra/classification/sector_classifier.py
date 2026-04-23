@@ -424,6 +424,7 @@ strong catalyst in the sector where the deal actually belongs.
         headline: str,
         ticker: str,
         prefer_groq: bool = False,
+        headline_type: Optional[str] = None,
     ) -> Tuple[str, Optional[str], Optional[str], float, Optional[str]]:
         """
         Classify a headline from any supported sector.
@@ -431,6 +432,10 @@ strong catalyst in the sector where the deal actually belongs.
         Args:
             headline: News headline text
             ticker: Primary ticker symbol
+            headline_type: Optional triage classification (e.g.
+                "acquisition_with_revenue_generating_business"). When provided,
+                used to inject type-specific guidance into the sector prompt's
+                user message (e.g. acquisition materiality gate).
 
         Returns:
             Tuple of (classification, sector, industry, latency_ms, position_size):
@@ -512,6 +517,40 @@ strong catalyst in the sector where the deal actually belongs.
             # Context-aware message format
             # This allows the AI to understand that $40M into a $2M company is transformational
             if price and market_cap:
+                # Acquisition materiality gate: for the acquisition-with-revenue type,
+                # the acquirer is spending cash, so we trade this ONLY when the inbound
+                # revenue stream is material enough to reprice the company. Hard floor
+                # at 50% of market cap. Injected at runtime so all sector prompts get
+                # this guidance without having to edit each one.
+                acquisition_materiality_note = ""
+                if headline_type == "acquisition_with_revenue_generating_business":
+                    required_rev = market_cap * 0.5
+                    acquisition_materiality_note = (
+                        "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                        "OVERRIDE RULE — ACQUISITION WITH MATERIAL REVENUE (applies to THIS headline):\n"
+                        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                        "Your sector prompt contains a default rule that acquirer-side acquisitions "
+                        "are SKIP because the company is spending cash. THAT DEFAULT DOES NOT APPLY "
+                        "HERE. Triage has pre-classified this headline as "
+                        "`acquisition_with_revenue_generating_business`, meaning the acquired entity "
+                        "brings a CONCRETE inbound revenue stream named in the headline. Follow these "
+                        "steps instead of the default:\n"
+                        f"  1. Identify the inbound revenue figure in the headline.\n"
+                        f"  2. Compare it to this company's market cap (${market_cap:.1f}M). The 50%-of-mcap "
+                        f"floor is ${required_rev:.1f}M.\n"
+                        f"  3. If the revenue figure is ≥ ${required_rev:.1f}M (i.e. at least 50% of mcap), "
+                        f"respond TRADE — the inbound revenue materially reprices the combined entity and "
+                        f"overrides the cash-outflow concern.\n"
+                        f"  4. If the revenue is < ${required_rev:.1f}M, or the figure is soft (\"targeting\", "
+                        f"\"up to\", \"potential\"), or not clearly tied to the acquired business, respond SKIP.\n"
+                        "Worked example (follow this pattern):\n"
+                        "  Headline: \"Announces $1.5B AI Acquisition, Targets $280M Revenue by 2027\"\n"
+                        "  Market cap: $180M → 50% floor = $90M\n"
+                        "  Inbound revenue: $280M (dated forward revenue).\n"
+                        "  $280M ≥ $90M → TRADE. The default \"acquisitions = SKIP\" rule DOES NOT APPLY.\n"
+                        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                    )
+
                 user_message = f"""HEADLINE: {headline}
 
 CONTEXT:
@@ -525,7 +564,7 @@ assess them RELATIVE to the company's market cap:
 - Investment/contract > 25% of market cap = major deal, likely TRADE
 - Investment/contract > 50% of market cap = transformational, very likely TRADE
 - Investment/contract > 100% of market cap = massive, almost certainly TRADE
-- A "$40M investment" means very different things for a $2M vs $500M company
+- A "$40M investment" means very different things for a $2M vs $500M company{acquisition_materiality_note}
 
 Respond: TRADE or SKIP"""
             else:

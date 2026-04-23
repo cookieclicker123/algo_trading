@@ -703,7 +703,18 @@ Summary: {summary}"""
                 AI_BREAKTHROUGH_PREFILTER_TYPES = frozenset({"ai_breakthrough"})
                 is_ai_breakthrough_headline = triage_headline_type in AI_BREAKTHROUGH_PREFILTER_TYPES
 
-                CLINICAL_BREAKTHROUGH_PREFILTER_TYPES = frozenset({"clinical_breakthrough"})
+                # Clinical catalysts (broadened from just clinical_breakthrough): any
+                # evidence-positive trial / validation type. These announcements
+                # consistently compress spreads rapidly post-news as algos pile in,
+                # so a 10% spread snapshot at receive is often a stale view. Applies
+                # to all PATTERN-FIRST healthcare positives that rely on evidence data.
+                CLINICAL_BREAKTHROUGH_PREFILTER_TYPES = frozenset({
+                    "clinical_breakthrough",
+                    "clinical_trial_positive",
+                    "pivotal_trial_data",
+                    "peer_reviewed_publication",
+                    "cancer_catalyst",
+                })
                 is_clinical_breakthrough_headline = triage_headline_type in CLINICAL_BREAKTHROUGH_PREFILTER_TYPES
 
                 # MERGER AGREEMENT: Definitive merger between two companies (not acquisition).
@@ -715,10 +726,15 @@ Summary: {summary}"""
                 # ACQUISITION WITH DOLLAR AMOUNTS: Acquisitions that name specific dollar
                 # figures (revenue, deal size) convert from cash-outflow to growth catalyst.
                 # Allow up to 10% spread — these are high-signal events (LRHC +91%, DGNX +111%).
+                # acquisition_with_revenue_generating_business always has a dollar anchor
+                # (by definition of that triage type), so it qualifies unconditionally.
                 MAX_SPREAD_PCT_ACQUISITION_WITH_DOLLARS = 10.0
                 is_acquisition_with_dollars = (
-                    triage_headline_type == "acquisition_announced"
-                    and "$" in request_data.article_title
+                    triage_headline_type == "acquisition_with_revenue_generating_business"
+                    or (
+                        triage_headline_type == "acquisition_announced"
+                        and "$" in request_data.article_title
+                    )
                 )
 
                 if is_high_conviction_headline:
@@ -1118,9 +1134,13 @@ Summary: {summary}"""
                 return
 
             # Classify via multi-sector classifier
+            # Pass triage_headline_type so type-specific guidance (e.g. acquisition
+            # materiality gate for acquisition_with_revenue_generating_business)
+            # is injected into the sector prompt's user message at runtime.
             classification, sector, industry, latency_ms, position_size = await self.sector_classifier.classify(
                 headline=headline,
-                ticker=primary_ticker
+                ticker=primary_ticker,
+                headline_type=triage_headline_type,
             )
 
             logger.info(

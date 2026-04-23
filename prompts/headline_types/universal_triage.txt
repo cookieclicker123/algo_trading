@@ -5,6 +5,7 @@ military_contract
 defense_order
 acquisition_target
 acquisition_announced
+acquisition_with_revenue_generating_business
 merger_agreement
 fda_approval
 fda_clearance
@@ -58,7 +59,7 @@ Real headlines often bundle multiple things. Apply these in order:
    Example: "Enters Strategic Collaboration with ICreate Education Technology to Advance AI Robotics Learning in North America" → ai_breakthrough (Path B: named partner + "AI Robotics Learning" domain + "Advance" growth signal). NOT partnership.
 
 2. CONCRETE SPECIFIC CATALYSTS WIN OVER NARRATIVE: When a headline bundles multiple events (expansion + investment + patent grant, or rebrand + launch + earnings, etc.), prioritize the most concrete NAMED specific catalyst. General precedence when multiple types apply to the same headline:
-   fda_approval > fda_clearance > fda_designation > clinical_breakthrough > pivotal_trial_data > merger_agreement > acquisition_target > government_contract > military_contract > major_contract > stock_buyback > patent_granted > ai_breakthrough > ai_rebranding > strategic_investment_received > licensing_agreement > revenue_milestone > strategic_alternatives_review > reimbursement_pathway > peer_reviewed_publication > listing_compliance_regained > partnership > product_launch > other
+   fda_approval > fda_clearance > fda_designation > clinical_breakthrough > pivotal_trial_data > merger_agreement > acquisition_target > acquisition_with_revenue_generating_business > government_contract > military_contract > major_contract > stock_buyback > patent_granted > ai_breakthrough > ai_rebranding > strategic_investment_received > licensing_agreement > revenue_milestone > strategic_alternatives_review > reimbursement_pathway > peer_reviewed_publication > listing_compliance_regained > partnership > product_launch > other
 
 3. PATENT GRANTS ARE ALWAYS SPECIFIC: If the headline contains "granted patent", "issued patent", "patent grant", or similar final-grant language for a NAMED asset, classify as `patent_granted` regardless of other topics also mentioned. The patent grant is the dominant catalyst — it wins over expansion language, investment language, product narrative.
    Example: "Expands into Fleet Operations with Accelevate Investment and BEN's Newly Granted Patent" → patent_granted (NOT "other" and NOT product_launch). The Newly Granted Patent is the specific catalyst; the expansion and investment are narrative framing around it.
@@ -78,7 +79,7 @@ We trade events where the company RECEIVES value. Events where the company SPEND
 PRIORITY RULE — MERGER vs ACQUISITION vs ACQUISITION TARGET:
 Three distinct events; classify correctly:
 - merger_agreement: Two named OPERATING COMPANIES combining. Language: "merger agreement", "agree to merge", "merger of equals", "all-stock merger", "sign definitive merger agreement". Neither spends cash. MUST be the INITIAL ANNOUNCEMENT — completions ("closes merger", "merger finalized"), terminations ("terminates merger", "called off"), amendments ("extends merger deadline", "revises terms"), regulatory challenges ("FTC challenges", "DOJ sues to block"), and status updates on existing mergers all → "other".
-- acquisition_announced: Company named FIRST is DOING the acquiring (cash outflow, bearish for acquirer). Language: "acquires", "to acquire", "closes acquisition of", "signs LOI to acquire", "secures ownership of", "completes purchase of", "re-activates acquisition". CRITICAL: If ANY acquisition language appears, classify as acquisition_announced or acquisition_target — NEVER major_contract / government_contract / defense_order, regardless of revenue targets, dollar amounts, or defense context.
+- acquisition_announced: Company named FIRST is DOING the acquiring (cash outflow, bearish for acquirer). Language: "acquires", "to acquire", "closes acquisition of", "signs LOI to acquire", "secures ownership of", "completes purchase of", "re-activates acquisition". CRITICAL: If ANY acquisition language appears, classify as acquisition_announced, acquisition_target, or acquisition_with_revenue_generating_business — NEVER major_contract / government_contract / defense_order, regardless of revenue targets, dollar amounts, or defense context. If the acquisition brings a concrete, specific inbound revenue stream (dated forward revenue, ARR, or contracted revenue explicitly tied to the target or combined entity) AND that stream is material enough to reprice the company, use acquisition_with_revenue_generating_business (see definition below). Default to acquisition_announced for all other acquirer-side deals.
 - acquisition_target: Company named FIRST is BEING acquired (bullish for target). Language: "to be acquired", "agrees to be acquired", "tender offer for X", "receives buyout offer". If headline says "Y and X announce acquisition" and Y is buying X, classify X as acquisition_target.
 Examples: "SiriusXM and Liberty Media Sign Definitive Merger Agreement" → merger_agreement. "Sprint and T-Mobile Announce Merger of Equals" → merger_agreement. "Completes Previously Announced Merger" → other. "Terminates Merger Agreement with ABC" → other.
 
@@ -137,7 +138,27 @@ If a headline would otherwise qualify for government_contract / military_contrac
 
 TIEBREAKER — If unsure between military_contract and government_contract, prefer military_contract for anything involving armed forces, weapons, or defense systems.
 - acquisition_target: Company named FIRST is BEING acquired. See PRIORITY RULE — MERGER vs ACQUISITION above for language and examples.
-- acquisition_announced: Company named FIRST is DOING the acquiring (cash outflow, bearish). See PRIORITY RULE — MERGER vs ACQUISITION above. Even if the headline mentions revenue targets or defense context, if the company is ACQUIRING another entity, always classify as acquisition_announced.
+- acquisition_announced: Company named FIRST is DOING the acquiring (cash outflow, bearish). See PRIORITY RULE — MERGER vs ACQUISITION above. When the headline mentions vague revenue targets, soft forward language ("targeting", "potential", "up to"), or narrative growth framing without a firm numeric anchor, classify as acquisition_announced. Only when the inbound revenue is explicit, specific, and dated/ARR/contracted does the exception at acquisition_with_revenue_generating_business apply.
+- acquisition_with_revenue_generating_business: EXCEPTION to the "acquirer = cash outflow = bearish" rule. Company named FIRST is DOING the acquiring, AND the acquired business brings a CONCRETE, SPECIFIC, FIRM inbound revenue stream that is material enough that the market reprices the acquirer around the combined entity. The substance: even though cash flows out, a materially larger revenue stream flows in, and the market treats this as a growth catalyst rather than a cash drain.
+  REQUIRES ALL of:
+    (1) Clear acquisition language by the subject company (acquires, announces acquisition of, closes acquisition of, etc.) — same triggers as acquisition_announced.
+    (2) A SPECIFIC NUMERIC REVENUE FIGURE tied to the target or combined entity, with a FIRM anchor — one of:
+        - Dated forward revenue guidance ("$280M Revenue by 2027", "Targets $X Revenue in FY27")
+        - ARR / annualized run rate ("Adding $100M ARR", "Annual Revenue Run Rate of $50M")
+        - Contracted / recognized revenue ("Adding $75M Contracted Revenue", "Recurring Revenue of $40M")
+    (3) The revenue figure is the subject of the headline, not a throwaway phrase. Vague framings ("high-growth business", "revenue-generating operations", "valuable pipeline") do NOT qualify.
+  SOFT / VAGUE REVENUE LANGUAGE (keeps it as acquisition_announced, NOT this type):
+    "targeting $X", "up to $X", "represents $X", "potential $X revenue", "expected to generate", "combined ventures represent" — all fail requirement (2). A firm anchor is a defined value the acquirer is willing to put its name behind; "targeting" is aspirational.
+  NOTE ON MARKET-CAP MATERIALITY: Triage does not know the subject company's market cap. The sector prompt (which receives market cap in its context) enforces the materiality check — typically the inbound revenue must be at least ~50% of current market cap to justify overriding the default acquisition-is-bearish behavior. Triage's job is only to flag the headline as a candidate based on language.
+  Examples that ARE acquisition_with_revenue_generating_business:
+    "Announces US$1.5 Billion AI Acquisition, Adding High Growth Business and Targets $280M Revenue by 2027" — dated forward revenue anchor ($280M by 2027)
+    "Acquires X Corp, Adding $100M Annualized Revenue Run Rate" — ARR anchor
+    "Closes Acquisition of Y, Adding $50M in Contracted Recurring Revenue" — contracted revenue anchor
+  Examples that are NOT (classify as acquisition_announced):
+    "Acquires Tekne, Advancing Defense Platform Targeting €100M+ Revenue" — "Targeting €100M+" is soft/aspirational, fails requirement (2)
+    "Announces Acquisition of ABC to Drive Future Growth" — no revenue figure, fails (2)
+    "Acquires Startup, Expected to Generate Material Revenue" — vague, fails (2)
+    "Completes Acquisition of High-Margin Business" — no figure, fails (2)
 - product_launch: Company brings a NEW product, service, platform, or business division to market for the first time. The SUBSTANCE is what matters: any verb describing the act of bringing something new into existence qualifies — "launches", "introduces", "deploys", "unveils", "debuts", "rolls out", "releases", "announces availability of", "goes live with", or any principle-equivalent wording. Do NOT require a specific verb — if the economic event is "this product/service did not exist commercially before and now it does", it qualifies. REQUIRES: a concrete product/service description AND at least ONE of: (1) specific revenue or transaction figures ("$2M in first two months", "$500K monthly recurring"), (2) named customers or user counts ("500 active merchants", "partnership with [named company]"), (3) specific product capability or function described (not just "new platform" — what does it DO?). The product must be NEW — not an update to an existing product. This includes tech-enhanced divisions (e.g., "AI-enabled MICE Division with $2M revenue") where the launch + revenue are the catalyst, not the AI component itself.
   IMPORTANT: If the product being launched IS an AI/robotics/ML system and meets ai_breakthrough Path A criteria, classify as ai_breakthrough instead — the AI technology is the core catalyst, not just the launch event.
   Examples that ARE product_launch: "Launches AI-Enabled MICE Division, Achieves Over $2M in First Two Month Transaction Values" (concrete revenue + specific division — AI is secondary to the revenue), "Deploys New SaaS Platform With 200 Enterprise Customers" (named traction), "Introduces Autonomous Delivery Service, Completes 10,000 Deliveries" (concrete results)

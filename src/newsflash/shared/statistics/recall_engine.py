@@ -336,6 +336,23 @@ class RecallStatsEngine:
                 ticker=event.trade_request.ticker,
                 error=event.error
             )
+
+            # If the failure came from the pre-submit depth gate, also stamp a
+            # postfilter_reason so it appears in filter_breakdown and recall
+            # records make clear *why* we chose not to enter (not just that we
+            # failed). Error format:
+            #   "Liquidity gate: order_vs_depth 1.85x (shares=2770, ask_size=1500) — threshold 0.50x"
+            if event.error and event.error.startswith("Liquidity gate:"):
+                ratio_tag = "unknown"
+                try:
+                    after = event.error.split("order_vs_depth", 1)[1].strip()
+                    ratio_tag = after.split()[0]  # e.g. "1.85x"
+                except Exception:
+                    pass
+                await self.record_manager.update_postfilter_reason(
+                    article_id,
+                    f"postfilter_liquidity_gate:{ratio_tag}",
+                )
         except Exception as e:
             logger.error("Error handling trade failed", error=str(e), exc_info=True)
 
