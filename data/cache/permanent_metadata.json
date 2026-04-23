@@ -141682,5 +141682,9 @@
   "RMIX": {
     "industry": "Building Materials",
     "sector": "Basic Materials"
+  },
+  "CNR": {
+    "industry": "Thermal Coal",
+    "sector": "Energy"
   }
 }

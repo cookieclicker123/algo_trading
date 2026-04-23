@@ -16590,6 +16590,10 @@
     },
     "RMIX": {
       "market_cap_millions": 893.37888
+    },
+    "CNR": {
+      "market_cap_millions": 4566.747648,
+      "float_shares": 49803956
     }
   }
 }

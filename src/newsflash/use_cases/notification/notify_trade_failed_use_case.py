@@ -39,7 +39,12 @@ def format_trade_failed_message(trade_request, error: str, article_title: str = 
     
     # Normalize error messages for user-friendly explanations
     error_lower = error.lower()
-    if "nbbo" in error_lower or "snapshot" in error_lower:
+    if error.startswith("Liquidity gate:"):
+        # Our pre-submit book-depth rule: quantity vs live ask_size exceeded threshold.
+        # Keep the raw detail so the ratio and sizes show through.
+        detail = error[len("Liquidity gate: "):]
+        user_error = f"Blocked by 0.5× book-depth rule — {detail}"
+    elif "nbbo" in error_lower or "snapshot" in error_lower:
         user_error = "Could not retrieve market data (NBBO snapshot) for extended hours trading"
     elif "liquidity" in error_lower or "fill" in error_lower:
         user_error = "Not enough liquidity for a fill"
