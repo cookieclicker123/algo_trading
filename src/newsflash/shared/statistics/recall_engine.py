@@ -693,6 +693,23 @@ class RecallStatsEngine:
             except Exception as e:
                 logger.debug(f"Could not get float_shares for {primary_ticker}: {e}")
 
+        # === PRACTICAL TRADABILITY CHECK ($7,500 hypothetical order) ===
+        # Computes what % of displayed ask depth a standard $7,500 order would
+        # consume at receive-time NBBO. >= 50% = the book can't absorb us, so
+        # the stock isn't practically tradable at our size even if it ran.
+        # Lets us filter out "fake misses" from the recall denominator.
+        # $7,500 baseline matches HC SMALL/MODERATE intended size in auto_trade.py.
+        book_share_pct_at_7500_usd = None
+        if primary_ticker:
+            primary_nbbo = initial_nbbos.get(primary_ticker)
+            if primary_nbbo:
+                ask_price = primary_nbbo.get("ask")
+                ask_size = primary_nbbo.get("ask_size")
+                if ask_price and ask_price > 0 and ask_size and ask_size > 0:
+                    shares_needed = int(7500 / ask_price)
+                    if shares_needed > 0:
+                        book_share_pct_at_7500_usd = round((shares_needed / ask_size) * 100, 2)
+
         record = RecallRecord(
             article_id=article.id,
             title=article.title,
@@ -747,6 +764,8 @@ class RecallStatsEngine:
             recv_time_ask=recv_time_ask,
             pub_to_recv_pct=pub_to_recv_pct,
             pub_to_recv_latency_ms=pub_to_recv_latency_ms,
+            # Practical tradability — % of book a $7.5K order would consume at receive
+            book_share_pct_at_7500_usd=book_share_pct_at_7500_usd,
         )
 
         # Append record and apply any pending classifications

@@ -321,6 +321,17 @@ class RecallRecord(BaseModel):
         description="Quote updates per second in confluence window. High churn (>50/s) may indicate spoofing"
     )
 
+    # === PRACTICAL TRADABILITY: % of book a standard $7.5K order would consume ===
+    # Computed at receive time from initial_nbbo: (floor(7500/ask) / ask_size) * 100.
+    # Uses $7,500 as the baseline (matches HC SMALL/MODERATE intended size).
+    # >= 50% means our order would dominate displayed depth → practically NOT tradable
+    # for our size, regardless of whether the stock subsequently ran. Use this to
+    # filter "fake misses" — moves we couldn't have captured anyway.
+    book_share_pct_at_7500_usd: Optional[float] = Field(
+        None,
+        description="% of displayed ask depth a hypothetical $7,500 order would consume at receive-time NBBO. >= 50% = not practically tradable at our size."
+    )
+
     # === GAP/TRAP DETECTION: Price at publication vs reception ===
     # Critical for false negative analysis: did price run away before we could act?
     pub_time_ask: Optional[float] = Field(None, description="Ask price at PUBLICATION time (from historical API)")
