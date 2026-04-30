@@ -122,6 +122,27 @@ HIGH_CONVICTION_TIERS = [
 # Example: peak at +72%, trailing stop exits at +57%.
 HIGH_CONVICTION_TRAILING_PCT = 0.15  # 15 percentage points below peak
 
+# === AUTO-TAKE-PROFIT (clinical_breakthrough / fda_designation /
+# stock_buyback / merger_agreement) ==========================================
+# Two-tier ladder for highly volatile catalysts: 50% at +10%, remaining 50% at
+# +20%. Manual exit is too slow on these (CANF +23.6% → -14.3% in 2.5 min;
+# TOMZ +18.1% → -13.2% in 5 min). Eligibility flagged by auto_trade.py via
+# AUTO_TP_HEADLINE_TYPES → metadata["is_auto_tp_eligible"] → Position flag.
+#
+# Sustainability rule: must observe ≥AUTO_TP_SUSTAIN_TRADES distinct trade
+# prints at-or-above the threshold within an AUTO_TP_SUSTAIN_WINDOW_S rolling
+# window. Filters single-print flash quotes that aren't representative of a
+# fillable price. CANF +20% had 53 such trades, TOMZ +10% had 25 — easy. A
+# stray print would fire a single trade above threshold then revert.
+#
+# Manual exit (/exit) and stop loss continue to work alongside.
+AUTO_TP_TIERS = [
+    (0.10, 0.50),  # +10%: exit 50% of position
+    (0.20, 1.00),  # +20%: exit remaining 50%
+]
+AUTO_TP_SUSTAIN_TRADES = 3
+AUTO_TP_SUSTAIN_WINDOW_S = 1.0
+
 # Overnight risk configuration - force exit before extended hours close
 # Rationale: If still holding at 8 PM ET (post-market close), stuck until 4 AM ET next day.
 # Overnight gap risk is unacceptable - force exit 10 minutes before session end.
@@ -187,6 +208,12 @@ class Position:
     is_clinical_breakthrough: bool = False  # Phase 2+ exceptional trials: 12% stop, normal exits
     trailing_stop_active: bool = False  # Activated after first high-conviction tier exit
     trailing_stop_peak_pct: float = 0.0  # Highest profit % since trailing stop activation
+
+    # === AUTO-TAKE-PROFIT (highly volatile catalysts) ===
+    # Two-tier ladder at +10%/+20% with sustained-print confirmation.
+    # Replaces the existing tier system for these positions only.
+    is_auto_tp_eligible: bool = False
+    auto_tp_tier_index: int = 0  # Next tier in AUTO_TP_TIERS to check
 
     # === MOMENTUM TRACKING (Phase 1: Data Collection) ===
     # After Tier 2 (+20%), track price trajectory for comparison analysis.
@@ -352,6 +379,7 @@ class PositionManager:
         is_mega_trade: bool = False,
         is_high_conviction: bool = False,
         is_clinical_breakthrough: bool = False,
+        is_auto_tp_eligible: bool = False,
     ) -> Position:
         """
         Add a new position to track.
@@ -362,6 +390,7 @@ class PositionManager:
             is_mega_trade: True for mega trades — skips automated exits, manual control via /exit
             is_high_conviction: True for high-conviction headlines — uses mega stop loss but normal exits
             is_clinical_breakthrough: True for clinical breakthrough — 12% stop, normal exits
+            is_auto_tp_eligible: True for AUTO_TP_HEADLINE_TYPES — uses two-tier auto TP at +10%/+20%
         """
         async with self._lock:
             position = Position(
@@ -375,6 +404,7 @@ class PositionManager:
                 is_mega_trade=is_mega_trade,
                 is_high_conviction=is_high_conviction,
                 is_clinical_breakthrough=is_clinical_breakthrough,
+                is_auto_tp_eligible=is_auto_tp_eligible,
             )
 
             # Scale-in tracking for no_volume entries
@@ -1094,6 +1124,70 @@ class PositionManager:
                             profit_pct
                         ))
                 return
+
+            # 🎯 AUTO-TAKE-PROFIT (highly volatile catalysts) — runs BEFORE the
+            # default tier system and supersedes it for these positions. Two-tier
+            # ladder at +10%/+20% with sustained-print confirmation: ≥3 distinct
+            # trade prints at-or-above the threshold within the trailing 1s.
+            # See AUTO_TP_TIERS, AUTO_TP_SUSTAIN_TRADES, AUTO_TP_SUSTAIN_WINDOW_S.
+            if (position.is_auto_tp_eligible
+                    and position.auto_tp_tier_index < len(AUTO_TP_TIERS)
+                    and position.shares_remaining > 0):
+                tp_threshold_pct, tp_exit_fraction = AUTO_TP_TIERS[position.auto_tp_tier_index]
+                if profit_pct >= tp_threshold_pct:
+                    # Confirm sustained price via stream cache.
+                    target_price = position.entry_price * (1.0 + tp_threshold_pct)
+                    confirming = 0
+                    if self.stream_manager is not None:
+                        try:
+                            recent_trades = await self.stream_manager.get_recent_trades(ticker, max_trades=200)
+                            cutoff = datetime.now() - timedelta(seconds=AUTO_TP_SUSTAIN_WINDOW_S)
+                            for tr in recent_trades:
+                                ts = tr.get("timestamp")
+                                price = tr.get("price")
+                                if ts is None or price is None:
+                                    continue
+                                # Strip tz for comparison
+                                ts_naive = ts.replace(tzinfo=None) if getattr(ts, "tzinfo", None) else ts
+                                cutoff_naive = cutoff.replace(tzinfo=None) if getattr(cutoff, "tzinfo", None) else cutoff
+                                if ts_naive >= cutoff_naive and price >= target_price:
+                                    confirming += 1
+                        except Exception as e:
+                            logger.debug(f"auto-TP: stream cache error for {ticker}: {e}")
+
+                    if confirming >= AUTO_TP_SUSTAIN_TRADES:
+                        shares_to_exit = int(position.shares_remaining * tp_exit_fraction)
+                        if shares_to_exit < 1 and position.shares_remaining >= 1:
+                            shares_to_exit = int(position.shares_remaining)
+                        if shares_to_exit > 0 and ticker not in self._exits_in_progress:
+                            self._exits_in_progress.add(ticker)
+                            position.auto_tp_tier_index += 1
+                            position.total_exits_taken += 1
+                            position.last_exit_threshold = tp_threshold_pct
+                            logger.info(
+                                f"🎯 AUTO-TP: +{tp_threshold_pct*100:.0f}% sustained ({confirming} trades in {AUTO_TP_SUSTAIN_WINDOW_S}s) — exiting {tp_exit_fraction*100:.0f}%",
+                                ticker=ticker,
+                                current_price=current_price,
+                                target_price=round(target_price, 4),
+                                profit_pct=f"+{profit_pct*100:.1f}%",
+                                shares_to_exit=shares_to_exit,
+                                shares_remaining_after=position.shares_remaining - shares_to_exit,
+                                tier_index=position.auto_tp_tier_index,
+                            )
+                            asyncio.create_task(self._execute_exit_async(
+                                position,
+                                shares_to_exit,
+                                f"auto_tp_{int(tp_threshold_pct*100)}pct",
+                                profit_pct,
+                            ))
+                            return
+                    else:
+                        logger.debug(
+                            f"auto-TP: +{tp_threshold_pct*100:.0f}% reached but not sustained ({confirming}/{AUTO_TP_SUSTAIN_TRADES} trades in {AUTO_TP_SUSTAIN_WINDOW_S}s)",
+                            ticker=ticker,
+                            current_price=current_price,
+                            target_price=round(target_price, 4),
+                        )
 
             # 📈 TIERED EXIT CHECK: Take profit at predefined thresholds
             # +20%: 50%, +25%: 50% of remaining, +30%: 50%, +35%: 50%, +40%: 100%

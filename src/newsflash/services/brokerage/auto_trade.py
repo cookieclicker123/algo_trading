@@ -126,6 +126,20 @@ AI_BREAKTHROUGH_HEADLINE_TYPES = frozenset({"ai_breakthrough"})
 # All other postfilters remain normal (unlike HC which skips most).
 CLINICAL_BREAKTHROUGH_HEADLINE_TYPES = frozenset({"clinical_breakthrough", "cancer_catalyst"})
 
+# === AUTO-TAKE-PROFIT ===
+# Headline types where peaks are narrow and reversals are fast. Manual exit is
+# too slow — these need automated partial exits at +10% and +20% with sustained-
+# print confirmation. CANF 2026-04-30 (clinical_breakthrough): +23.6% peak then
+# stop-lossed at -14.3% in 2.5 min. TOMZ 2026-04-30 (merger_agreement): +18.1%
+# peak then stop-lossed at -13.2% in 5 min. The +10%/+20% tiers would have
+# captured ~$8k of the swing on a $20k position.
+AUTO_TP_HEADLINE_TYPES = frozenset({
+    "clinical_breakthrough",
+    "fda_designation",
+    "stock_buyback",
+    "merger_agreement",
+})
+
 
 def _ai_breakthrough_spread_threshold(price: float) -> float:
     """Price-tiered spread threshold for AI breakthrough headlines."""
@@ -2144,6 +2158,12 @@ async def process_imminent_article(
         is_high_conviction = headline_type in HIGH_CONVICTION_HEADLINE_TYPES if headline_type else False
         is_ai_breakthrough = headline_type in AI_BREAKTHROUGH_HEADLINE_TYPES if headline_type else False
         is_clinical_breakthrough = headline_type in CLINICAL_BREAKTHROUGH_HEADLINE_TYPES if headline_type else False
+        # Auto-take-profit eligibility for highly volatile catalysts.
+        # CANF (clinical_breakthrough) +23.6% then -14.3%; TOMZ (merger_agreement) +18.1%
+        # then -13.2%. Manual exit is too slow on these — the round-trip from peak to
+        # stop loss can be under a minute. Two-tier TP at +10%/+20% with sustained-print
+        # confirmation captures the move.
+        is_auto_tp_eligible = headline_type in AUTO_TP_HEADLINE_TYPES if headline_type else False
 
         if is_clinical_breakthrough:
             logger.info(
@@ -2480,6 +2500,7 @@ async def process_imminent_article(
         confluence_metadata["is_mega_trade"] = is_mega_trade
         confluence_metadata["is_high_conviction"] = is_high_conviction
         confluence_metadata["is_clinical_breakthrough"] = is_clinical_breakthrough
+        confluence_metadata["is_auto_tp_eligible"] = is_auto_tp_eligible
         if headline_type:
             confluence_metadata["headline_type"] = headline_type
 

@@ -350,6 +350,7 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
                     is_mega_trade = metadata.get("is_mega_trade", False)
                     is_high_conviction = metadata.get("is_high_conviction", False)
                     is_clinical_breakthrough = metadata.get("is_clinical_breakthrough", False)
+                    is_auto_tp_eligible = metadata.get("is_auto_tp_eligible", False)
 
                     # Safety check: HC-sized trade but flag missing = metadata race condition
                     # Normal max is $2,000 — anything above that without HC flag is a bug
@@ -380,6 +381,7 @@ async def initialize_services() -> Tuple[Services, ApplicationContainer, Any, An
                             is_mega_trade=is_mega_trade,
                             is_high_conviction=is_high_conviction,
                             is_clinical_breakthrough=is_clinical_breakthrough,
+                            is_auto_tp_eligible=is_auto_tp_eligible,
                         )
                         if is_mega_trade:
                             logger.info(

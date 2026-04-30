@@ -49,6 +49,8 @@ def format_exit_trade_message(
         "tier_1": "🎯 TIER 1 EXIT (+10%)",
         "tier_2": "🎯 TIER 2 EXIT (+15%)",
         "tier_3": "🎯 TIER 3 EXIT (+20%)",
+        "auto_tp_10pct": "🎯 AUTO-TP TIER 1 (+10%) — 50%",
+        "auto_tp_20pct": "🎯 AUTO-TP TIER 2 (+20%) — remaining",
         "manual_exit": "👤 MANUAL EXIT",
         "unknown": "🚪 EXIT TRADE EXECUTED",
     }
