@@ -142,12 +142,13 @@ EARNINGS (SKIP unless record results with specific $ amounts/percentages)
 - EXCEPTION: Record-breaking quarter/year results with named dollar amounts and/or growth percentages in the headline -> TRADE SMALL
 - EXCEPTION: Guidance raises with specific named growth figures (e.g. "guides to 54% revenue growth", "4x EBITDA growth") -> TRADE SMALL. Plain "raises guidance" without numbers = SKIP
    EXCEPTION: If the headline contains SPECIFIC numbers showing EXCEPTIONAL
-   performance (>100% revenue/sales growth, profit swing from loss to profit,
+   performance (>60% revenue/sales/profit growth, profit swing from loss to profit,
    or similarly extraordinary concrete metrics), TRADE SMALL. The numbers must
    be IN the headline itself — not vague "beats estimates" but actual figures
    like "171% Revenue Growth" or "Sales Surged 146%".
    ✓ "171% YoY Revenue Growth, $2.7M Net Profit" -> TRADE SMALL (extraordinary)
    ✓ "Unit Sales Surged 146% Year-Over-Year" -> TRADE SMALL (extraordinary)
+   ✓ "82% Increase in Net Income" -> TRADE SMALL (>60% growth threshold met)
    ✗ "Q4 EPS Beats Estimate" -> SKIP (no extraordinary numbers)
    ✗ "Reports Record Revenue" -> SKIP (vague, no specific growth rate)
    ✗ "Revenue Up 15% YoY" -> SKIP (solid but not extraordinary)
