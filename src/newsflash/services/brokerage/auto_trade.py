@@ -4,14 +4,14 @@ Auto-trade service - subscribes to domain events and handles trading logic.
 AI-BASED POSITION SIZING (Immediate entry on classification):
 SCALED DOWN 100x FOR VALIDATION — multiply by 100 to restore full sizes.
 Regular path:
-- SMALL: $10 position (was $1,000)
-- MODERATE: $12.50 position (was $1,250)
-- LARGE: $15 position (was $1,500)
-- MAX: $20 position (was $2,000)
+- SMALL: $300 position (full: $30,000)
+- MODERATE: $375 position (full: $37,500)
+- LARGE: $450 position (full: $45,000)
+- MAX: $600 position (full: $60,000)
 High-conviction headline types (gov/military contracts, major commercial contracts):
-- SMALL/MODERATE: $75 position (was $7,500)
-- LARGE: $100 position (was $10,000)
-- MAX: $125 position (was $12,500)
+- SMALL/MODERATE: $750 position (full: $75,000)
+- LARGE: $1,000 position (full: $100,000)
+- MAX: $1,250 position (full: $125,000)
 
 The AI determines position size based on:
 1. Headline concreteness (specific $ amounts, named parties, definitive terms)
@@ -96,11 +96,24 @@ HIGH_CONVICTION_HEADLINE_TYPES = frozenset({
 # that would only move a stock DOWN. Safety net in case the AI classifier
 # mistakenly returns IMMINENT on a fundamentally bearish headline.
 BLOCKED_HEADLINE_TYPES = frozenset({
+    # NOTE: `acquisition_announced` was removed 2026-04-29 (mirror of classification/service.py).
+    # XTLB +45.6% would have passed both depth probe (74/4382 deep, 7 sustained runs) and
+    # STRENGTH (fires +6.6s). ATCH probe verdict at trade time is BLOCK (0/11 deep) — the
+    # sustained-depth probe is the new safety net replacing the blanket block.
     "offering_announced",         # Dilutive offering — company selling new shares, stock drops
     "earnings_miss",              # Missed earnings expectations — stock dumps
     "guidance_cut",               # Lowered forward guidance — stock dumps
     "clinical_trial_negative",    # Failed clinical trial — stock dumps
     "analyst_downgrade",          # Analyst downgrade — stock drops
+})
+
+# Headline types that need wider spread tolerance (10%) but should NOT inherit
+# the full HC postfilter relaxation (circuit breaker, selling pressure, etc).
+# Partnerships and FDA designations have wider natural spreads but standard
+# safety filters still apply — the only override is spread.
+WIDE_SPREAD_HEADLINE_TYPES = frozenset({
+    "partnership",      # KIDZ/AXIL-class — wider spreads on small-cap partnerships
+    "fda_designation",  # JAGX-class — wider spreads on biotech designations
 })
 
 # AI breakthrough headlines get price-tiered spread leniency (only spread, nothing else).
@@ -452,27 +465,27 @@ def cleanup_stale_tracking() -> None:
 
 
 # ============================================================
-# POSITION SIZING - AI-BASED (TESTING MODE - 10x REDUCED)
+# POSITION SIZING - AI-BASED (TESTING MODE - 100x REDUCED)
 # ============================================================
 # Position size determined by AI based on headline quality, deal size vs market cap,
 # catalyst strength, and counterparty quality.
-# REDUCED 10x from normal sizes while testing/validating filters
-# Paper shadow trades use 50x these amounts for meaningful stats
+# REDUCED 100x from original sizes while de-risking during bug triage.
+# Paper shadow trades use 50x these amounts for meaningful stats.
 POSITION_SIZES_USD = {
-    ConvictionLevel.MINIMUM: Decimal("3000.00"),      # AI: SMALL - $3000
-    ConvictionLevel.STANDARD: Decimal("3750.00"),     # AI: MODERATE - $3750
-    ConvictionLevel.HIGH: Decimal("4500.00"),         # AI: LARGE - $4500
-    ConvictionLevel.VERY_HIGH: Decimal("6000.00"),    # AI: MAX - $6000
+    ConvictionLevel.MINIMUM: Decimal("300.00"),       # AI: SMALL - $300
+    ConvictionLevel.STANDARD: Decimal("375.00"),      # AI: MODERATE - $375
+    ConvictionLevel.HIGH: Decimal("450.00"),          # AI: LARGE - $450
+    ConvictionLevel.VERY_HIGH: Decimal("600.00"),     # AI: MAX - $600
 }
 
 # High-conviction headline types (gov/military contracts, major commercial contracts):
 # Structural edge — real government/commercial money, less manipulation than biotech.
 # Volume and float in defense headlines is usually sufficient for full fills.
 HC_POSITION_SIZES_USD = {
-    ConvictionLevel.MINIMUM: Decimal("7500.00"),      # AI: SMALL → overridden to MODERATE ($7500)
-    ConvictionLevel.STANDARD: Decimal("7500.00"),     # AI: MODERATE - $7500
-    ConvictionLevel.HIGH: Decimal("10000.00"),        # AI: LARGE - $10000
-    ConvictionLevel.VERY_HIGH: Decimal("12500.00"),   # AI: MAX - $12500
+    ConvictionLevel.MINIMUM: Decimal("750.00"),       # AI: SMALL → overridden to MODERATE ($750)
+    ConvictionLevel.STANDARD: Decimal("750.00"),      # AI: MODERATE - $750
+    ConvictionLevel.HIGH: Decimal("1000.00"),         # AI: LARGE - $1000
+    ConvictionLevel.VERY_HIGH: Decimal("1250.00"),    # AI: MAX - $1250
 }
 
 # Map AI position size strings to ConvictionLevel
@@ -542,9 +555,22 @@ MIN_ABSOLUTE_VOLUME = 2000            # Absolute minimum volume (even if prior i
 MIN_ABSOLUTE_TRADES = 20              # Absolute minimum trades (even if prior is 0)
 
 # Late entry monitoring: extended window after initial STRENGTH/SURGE checks fail
-LATE_ENTRY_MAX_SECONDS = 45.0         # Max seconds from publication for late entry (was 90s — too generous, catches noise/decay)
+LATE_ENTRY_MAX_SECONDS = 45.0         # Default cutoff: was 90s — too generous, catches noise/decay
+LATE_ENTRY_MAX_SECONDS_SLOW_BUILD = 180.0  # Slow-build catalysts: SAGT (revenue_milestone) first showed sustained deep book at +89.8s; default 45s missed a +39.89% move
 LATE_ENTRY_POLL_INTERVAL = 1.0        # Check every 1s (WebSocket data is instant)
 LATE_STRENGTH_MIN_TRADES = 5          # Min trades to confirm real activity
+
+# Headline types whose catalyst typically takes >45s for liquidity to arrive.
+# Small-float or niche-audience announcements need longer monitoring; the
+# sustained-depth probe at execution time still gates penny-float fakes.
+SLOW_BUILD_HEADLINE_TYPES = frozenset({
+    "revenue_milestone",            # SAGT 2026-04-29: first deep book +89.8s, peak +39.89% at +231s
+    "listing_compliance_regained",  # Small-float compliance news propagates slowly
+    "fda_designation",              # Designation announcements — biotech reaction lag
+    "peer_reviewed_publication",    # Academic-style news, slow uptake
+    "strategic_investment_received",# Investment deal news, slow news cycle
+    "strategic_alternatives_review",# Strategic review — slow to digest
+})
 
 
 async def monitor_for_last_chance_surge(
@@ -822,14 +848,19 @@ async def monitor_for_late_entry(
     publication_time: datetime,
     initial_ask_at_publication: Optional[float],
     article_id: str,
+    headline_type: Optional[str] = None,
 ) -> Optional[dict]:
     """
-    Monitor for late STRENGTH or SURGE up to 30 seconds from publication.
+    Monitor for late STRENGTH or SURGE up to LATE_ENTRY_MAX_SECONDS from publication.
 
     Called when both the 2-second STRENGTH check and 8-second SURGE check fail.
     Polls WebSocket trade data every 1 second, looking for either:
     - STRENGTH: price excursion >= 0.5% AND trade count >= 5
     - SURGE: all 4 criteria (volume, trades, price >= 2%, pressure >= 80%)
+
+    Slow-build catalysts (SLOW_BUILD_HEADLINE_TYPES) get a longer monitoring
+    window because their liquidity typically arrives 60-180s post-publication.
+    The sustained-depth probe at execution time gates against decay/fake setups.
 
     Args:
         quote_fetcher: Quote fetcher with stream_manager for WebSocket data
@@ -837,6 +868,7 @@ async def monitor_for_late_entry(
         publication_time: When the article was published
         initial_ask_at_publication: Ask price at publication time
         article_id: Article ID for logging
+        headline_type: Triage headline type — controls late-window length
 
     Returns:
         Dict with late entry metadata if signal found, None otherwise
@@ -855,10 +887,16 @@ async def monitor_for_late_entry(
     if pub_time_utc.tzinfo is None:
         pub_time_utc = pub_time_utc.replace(tzinfo=timezone.utc)
 
-    # Calculate how much time remains until 30s from publication
+    # Pick the late-window cutoff based on headline type
+    if headline_type in SLOW_BUILD_HEADLINE_TYPES:
+        max_seconds = LATE_ENTRY_MAX_SECONDS_SLOW_BUILD
+    else:
+        max_seconds = LATE_ENTRY_MAX_SECONDS
+
+    # Calculate how much time remains until cutoff from publication
     now_utc = datetime.now(timezone.utc)
     elapsed = (now_utc - pub_time_utc).total_seconds()
-    remaining = LATE_ENTRY_MAX_SECONDS - elapsed
+    remaining = max_seconds - elapsed
 
     if remaining <= 0:
         return None
@@ -871,6 +909,9 @@ async def monitor_for_late_entry(
         "🔍 LATE ENTRY: Starting extended monitoring",
         ticker=ticker,
         article_id=article_id,
+        headline_type=headline_type,
+        slow_build=headline_type in SLOW_BUILD_HEADLINE_TYPES,
+        max_window_s=max_seconds,
         seconds_elapsed=round(elapsed, 1),
         remaining_seconds=round(remaining, 1),
         num_checks=num_checks,
@@ -999,7 +1040,8 @@ async def monitor_for_late_entry(
         "⏭️ LATE ENTRY: No signal in extended window",
         ticker=ticker,
         article_id=article_id,
-        total_seconds=round(LATE_ENTRY_MAX_SECONDS, 0),
+        headline_type=headline_type,
+        total_seconds=round(max_seconds, 0),
     )
     return None
 
@@ -1104,14 +1146,41 @@ async def check_confluence_signals(
             await asyncio.sleep(wait_time)
 
         # ============================================================
-        # STEP 2: Get current NBBO (2 seconds after publication)
+        # STEP 2 + STEP 3 (PARALLEL): Fresh NBBO + trades window
         # ============================================================
-        current_nbbo = None
-        if quote_fetcher:
+        # Both are independent network calls and both happen exactly at
+        # pub+2s. Running them in parallel saves ~100ms of receive-to-submit
+        # latency on every trade. The NBBO call is fast (~100ms); the trades
+        # fetch is the bottleneck (~300-500ms). Gather lets the NBBO race with
+        # it instead of stacking after.
+        confluence_score = 0
+        trades_start = publication_time
+        trades_end = publication_time + timedelta(seconds=OBSERVATION_WINDOW_SECONDS)
+
+        async def _fetch_current_nbbo():
+            if not quote_fetcher:
+                return None
             try:
-                current_nbbo = await quote_fetcher.get_nbbo_snapshot(ticker)
+                return await quote_fetcher.get_nbbo_snapshot(ticker)
             except Exception as e:
                 logger.debug(f"Could not get current NBBO: {e}")
+                return None
+
+        async def _fetch_trades():
+            return await run_sync_alpaca_call(
+                market_data_client.get_stock_trades,
+                StockTradesRequest(
+                    symbol_or_symbols=ticker,
+                    start=trades_start,
+                    end=trades_end,
+                    feed=DataFeed.SIP
+                )
+            )
+
+        current_nbbo, trades = await asyncio.gather(
+            _fetch_current_nbbo(),
+            _fetch_trades(),
+        )
 
         if current_nbbo:
             metadata["final_spread"] = current_nbbo.get("spread")
@@ -1131,25 +1200,6 @@ async def check_confluence_signals(
             if initial_spread > 0:
                 spread_compression = ((initial_spread - final_spread) / initial_spread) * 100
                 metadata["spread_compression_pct"] = round(spread_compression, 2)
-
-        # ============================================================
-        # STEP 3: Fetch trades in 2-second window for volume/price/pressure analysis
-        # ============================================================
-        confluence_score = 0
-
-        trades_start = publication_time
-        trades_end = publication_time + timedelta(seconds=OBSERVATION_WINDOW_SECONDS)
-
-        # Use async wrapper to avoid blocking event loop
-        trades = await run_sync_alpaca_call(
-            market_data_client.get_stock_trades,
-            StockTradesRequest(
-                symbol_or_symbols=ticker,
-                start=trades_start,
-                end=trades_end,
-                feed=DataFeed.SIP
-            )
-        )
 
         if trades and trades.data and ticker in trades.data:
             trade_list = trades.data[ticker]
@@ -2359,13 +2409,17 @@ async def process_imminent_article(
                 # Update metadata with surge info
                 confluence_metadata.update(surge_result)
             else:
-                # Neither STRENGTH nor SURGE in initial windows - try late entry (up to 30s)
+                # Neither STRENGTH nor SURGE in initial windows - try late entry.
+                # Slow-build headline types (revenue_milestone et al.) get a
+                # longer cutoff: SAGT 2026-04-29 didn't show real activity
+                # until +60s and the move peaked at +231s; default 45s missed it.
                 late_result = await monitor_for_late_entry(
                     quote_fetcher=quote_fetcher,
                     ticker=ticker,
                     publication_time=published_at,
                     initial_ask_at_publication=initial_ask_at_pub,
                     article_id=article_id,
+                    headline_type=headline_type,
                 )
 
                 if late_result:
@@ -2495,6 +2549,8 @@ async def process_imminent_article(
         if is_high_conviction:
             MAX_SPREAD_PCT = 10.0
         elif is_clinical_breakthrough:
+            MAX_SPREAD_PCT = 10.0
+        elif headline_type in WIDE_SPREAD_HEADLINE_TYPES:
             MAX_SPREAD_PCT = 10.0
         elif is_ai_breakthrough:
             _ab_price = confluence_metadata.get("initial_ask") or 0
@@ -2641,6 +2697,8 @@ async def process_imminent_article(
         if is_high_conviction:
             MAX_FILL_SPREAD_PCT = 10.0
         elif is_clinical_breakthrough:
+            MAX_FILL_SPREAD_PCT = 10.0
+        elif headline_type in WIDE_SPREAD_HEADLINE_TYPES:
             MAX_FILL_SPREAD_PCT = 10.0
         elif is_ai_breakthrough:
             _ab_fill_price = confluence_metadata.get("initial_ask") or 0
@@ -3055,16 +3113,29 @@ async def process_imminent_article(
                         pre_news_change_pct = ((price_at_pub - price_30min_ago) / price_30min_ago) * 100
 
                         if pre_news_change_pct > PRE_NEWS_RUNUP_THRESHOLD:
-                            # Strong signal bypass — mirrors pub_to_recv / pump_and_dump:
-                            # confluence_score >= 4 AND surge detected. IMMINENT is implicit.
-                            # No ceiling — if all three hold, the pre-news run is real
-                            # momentum, not leaked/front-run. The depth gate at submit-time
-                            # is the tail safety net on sizing.
+                            # High-conviction full bypass — mirrors pump_and_dump / pub_to_recv.
+                            # For gov / military / major_contract / defense_order / merger /
+                            # buyback / ai_rebranding, a real mega catalyst is *expected* to
+                            # have already started moving by the time we see it. Pre-news
+                            # runup is a feature of these signals, not a warning. The depth
+                            # gate at submit time is the tail safety net on sizing — if the
+                            # book can't absorb us we still won't trade.
+                            #
+                            # Strong signal bypass (confluence >= 4 + surge) still applies
+                            # to non-HC headlines that show institutional confirmation.
                             is_strong_signal_bypass = (
                                 confluence_score >= 4
                                 and is_surge_trade
                             )
-                            if is_strong_signal_bypass:
+                            if is_high_conviction:
+                                logger.info(
+                                    "🎖️ HIGH-CONVICTION BYPASS: pre_news_runup filter skipped (mega catalysts expected to have already started moving)",
+                                    ticker=ticker,
+                                    pre_news_change_pct=round(pre_news_change_pct, 2),
+                                    headline_type=headline_type,
+                                    article_id=article_id,
+                                )
+                            elif is_strong_signal_bypass:
                                 logger.info(
                                     "🔥 STRONG SIGNAL BYPASS: pre_news_runup filter skipped (confluence >= 4 + surge + runup < 30%)",
                                     ticker=ticker,
