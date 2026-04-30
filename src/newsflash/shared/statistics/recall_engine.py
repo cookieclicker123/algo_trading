@@ -337,21 +337,26 @@ class RecallStatsEngine:
                 error=event.error
             )
 
-            # If the failure came from the pre-submit depth gate, also stamp a
-            # postfilter_reason so it appears in filter_breakdown and recall
-            # records make clear *why* we chose not to enter (not just that we
-            # failed). Error format:
-            #   "Liquidity gate: order_vs_depth 1.85x (shares=2770, ask_size=1500) — threshold 0.50x"
-            if event.error and event.error.startswith("Liquidity gate:"):
-                ratio_tag = "unknown"
+            # If the failure came from the pre-submit activity gate, stamp a
+            # postfilter_reason with the telemetry so we can see *why* the gate
+            # blocked the trade (qi, tps, md, elapsed) without re-running it.
+            # Error format:
+            #   "Activity gate: no sustained activity since pub
+            #    (qi=0.8/s, tps=0.7/s, md=0.6%, elapsed=8.0s)"
+            if event.error and event.error.startswith("Activity gate:"):
+                tag_parts = []
                 try:
-                    after = event.error.split("order_vs_depth", 1)[1].strip()
-                    ratio_tag = after.split()[0]  # e.g. "1.85x"
+                    inside = event.error[event.error.index("(") + 1: event.error.rindex(")")]
+                    for part in inside.split(","):
+                        kv = part.strip().replace("/s", "").replace("%", "")
+                        if kv.startswith(("qi=", "tps=", "md=", "elapsed=")):
+                            tag_parts.append(kv)
                 except Exception:
                     pass
+                tag = " ".join(tag_parts) if tag_parts else "unknown"
                 await self.record_manager.update_postfilter_reason(
                     article_id,
-                    f"postfilter_liquidity_gate:{ratio_tag}",
+                    f"postfilter_activity_gate:{tag}",
                 )
         except Exception as e:
             logger.error("Error handling trade failed", error=str(e), exc_info=True)
