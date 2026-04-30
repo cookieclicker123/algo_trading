@@ -17,7 +17,14 @@ from ...shared.event_bus import AsyncEventBus
 from .events import TradeExecutedEvent, TradeFailedEvent
 from .event_builders import build_infrastructure_trade_request_data
 from .quote_fetcher import AlpacaQuoteFetcher
-from .utils import calculate_trade_quantity, DEPTH_GATE_MAX_RATIO
+from .utils import (
+    calculate_trade_quantity,
+    wait_for_sustained_depth,
+    DEPTH_GATE_MAX_RATIO,
+    DEPTH_PROBE_USD,
+    DEPTH_PROBE_MIN_CONSECUTIVE,
+    DEPTH_PROBE_MAX_WAIT_S,
+)
 from ...utils.brokerage.ladder_algorithms import (
     calculate_ladder_base_price,
     calculate_ladder_parameters,
@@ -260,38 +267,61 @@ class AlpacaExtendedHoursTradeExecutor:
                         )
 
                 # ===============================================================
-                # 🚦 LIQUIDITY GATE: Block if our order dominates displayed depth
+                # 🚦 LIQUIDITY GATE: Sustained-depth probe at $5K truth-filter
                 # ===============================================================
-                # If quantity >= DEPTH_GATE_MAX_RATIO * displayed ask size, the
-                # book can't absorb us cleanly — entry walks the book and exits
-                # often fail (the BNBX-shape trap). Checked against the fresh
-                # NBBO snapshot fetched above so it reflects the real book now.
-                ask_size_now = nbbo_snapshot.get("ask_size")
-                if ask_size_now and ask_size_now > 0:
-                    order_vs_depth = quantity / ask_size_now
-                    if order_vs_depth >= DEPTH_GATE_MAX_RATIO:
-                        error_msg = (
-                            f"Liquidity gate: order_vs_depth {order_vs_depth:.2f}x "
-                            f"(shares={quantity}, ask_size={ask_size_now}) — "
-                            f"threshold {DEPTH_GATE_MAX_RATIO:.2f}x"
-                        )
-                        logger.warning(
-                            "🚦 TRADE ABORTED: Liquidity gate",
-                            ticker=trade_request.ticker,
-                            quantity=quantity,
-                            ask_size=ask_size_now,
-                            order_vs_depth=round(order_vs_depth, 2),
-                            threshold=DEPTH_GATE_MAX_RATIO,
-                        )
-                        error_result = {
-                            "success": False,
-                            "error": error_msg,
-                            "session": session,
-                            "order_type": "LIMIT",
-                            "instrument": "stock",
-                        }
-                        await self._publish_failed_event(trade_request, error_result["error"])
-                        return error_result
+                # Replaces the prior single-snapshot ask_size check. Bimodal books
+                # (AGPU 2026-04-22) flicker between 100-share asks and 10K-share
+                # asks; one snapshot is coin-flip noise. We poll up to ~13s for
+                # N consecutive distinct quotes where $5K is < 50% of book.
+                #
+                # The probe is decoupled from our order size on purpose: it asks
+                # "is this a real institutional book?" not "can we fit". Empirical
+                # April 2026 sweep: catches 23/85 winners ≥+8% with 0 fakers.
+                gate_passed, last_nbbo, depth_telemetry = await wait_for_sustained_depth(
+                    quote_fetcher=self.quote_fetcher,
+                    ticker=trade_request.ticker,
+                    max_wait_s=DEPTH_PROBE_MAX_WAIT_S,
+                    probe_size_usd=DEPTH_PROBE_USD,
+                    min_consecutive=DEPTH_PROBE_MIN_CONSECUTIVE,
+                    gate_ratio=DEPTH_GATE_MAX_RATIO,
+                )
+
+                if not gate_passed:
+                    error_msg = (
+                        f"Liquidity gate: no sustained depth (probe ${DEPTH_PROBE_USD:,.0f} "
+                        f"< {int(DEPTH_GATE_MAX_RATIO*100)}% of book × {DEPTH_PROBE_MIN_CONSECUTIVE} "
+                        f"consecutive quotes within {DEPTH_PROBE_MAX_WAIT_S:.0f}s) — "
+                        f"max_consec={depth_telemetry.get('depth_probe_max_consecutive', 0)} "
+                        f"deep={depth_telemetry.get('depth_probe_deep_observed', 0)}/"
+                        f"{depth_telemetry.get('depth_probe_quotes_observed', 0)}"
+                    )
+                    logger.warning(
+                        "🚦 TRADE ABORTED: Liquidity gate (sustained depth probe failed)",
+                        ticker=trade_request.ticker,
+                        **depth_telemetry,
+                    )
+                    error_result = {
+                        "success": False,
+                        "error": error_msg,
+                        "session": session,
+                        "order_type": "LIMIT",
+                        "instrument": "stock",
+                        "depth_probe": depth_telemetry,
+                    }
+                    await self._publish_failed_event(trade_request, error_result["error"])
+                    return error_result
+
+                logger.info(
+                    "✅ Liquidity gate: sustained depth probe passed",
+                    ticker=trade_request.ticker,
+                    **depth_telemetry,
+                )
+
+                # Refresh initial_ask from the most recent NBBO seen during the
+                # probe — it can drift over the probe window. Down-the-line
+                # ladder calculations and slippage tracking should use this.
+                if last_nbbo and last_nbbo.get("ask"):
+                    initial_ask = last_nbbo["ask"]
 
                 # Price collar: Maximum we're willing to pay (10% above initial ask for extended chase)
                 # This prevents chasing into pump-and-dumps while allowing runners
