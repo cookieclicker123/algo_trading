@@ -570,6 +570,7 @@ SLOW_BUILD_HEADLINE_TYPES = frozenset({
     "peer_reviewed_publication",    # Academic-style news, slow uptake
     "strategic_investment_received",# Investment deal news, slow news cycle
     "strategic_alternatives_review",# Strategic review — slow to digest
+    "clinical_breakthrough",        # RVMD 2026-04-13 (+51.5%): no activity until t=45s, md crosses 3% at the default cutoff
 })
 
 
