@@ -19,11 +19,11 @@ from .event_builders import build_infrastructure_trade_request_data
 from .quote_fetcher import AlpacaQuoteFetcher
 from .utils import (
     calculate_trade_quantity,
-    wait_for_sustained_depth,
-    DEPTH_GATE_MAX_RATIO,
-    DEPTH_PROBE_USD,
-    DEPTH_PROBE_MIN_CONSECUTIVE,
-    DEPTH_PROBE_MAX_WAIT_S,
+    wait_for_activity_gate,
+    QI_THRESHOLD,
+    TPS_THRESHOLD,
+    MD_THRESHOLD_PCT,
+    ACTIVITY_GATE_MAX_WAIT_S,
 )
 from ...utils.brokerage.ladder_algorithms import (
     calculate_ladder_base_price,
@@ -267,38 +267,50 @@ class AlpacaExtendedHoursTradeExecutor:
                         )
 
                 # ===============================================================
-                # 🚦 LIQUIDITY GATE: Sustained-depth probe at $5K truth-filter
+                # 🚦 ACTIVITY GATE — second-stage precision filter on STRENGTH/SURGE/LATE
                 # ===============================================================
-                # Replaces the prior single-snapshot ask_size check. Bimodal books
-                # (AGPU 2026-04-22) flicker between 100-share asks and 10K-share
-                # asks; one snapshot is coin-flip noise. We poll up to ~13s for
-                # N consecutive distinct quotes where $5K is < 50% of book.
-                #
-                # The probe is decoupled from our order size on purpose: it asks
-                # "is this a real institutional book?" not "can we fit". Empirical
-                # April 2026 sweep: catches 23/85 winners ≥+8% with 0 fakers.
-                gate_passed, last_nbbo, depth_telemetry = await wait_for_sustained_depth(
-                    quote_fetcher=self.quote_fetcher,
-                    ticker=trade_request.ticker,
-                    max_wait_s=DEPTH_PROBE_MAX_WAIT_S,
-                    probe_size_usd=DEPTH_PROBE_USD,
-                    min_consecutive=DEPTH_PROBE_MIN_CONSECUTIVE,
-                    gate_ratio=DEPTH_GATE_MAX_RATIO,
-                )
+                # Replaces the sustained-depth probe (zero edge — calm books were
+                # losers, bursty books were winners). Reads cached quotes/trades
+                # since publication and fires when ANY of qi≥5/s, tps≥5/s, mid
+                # drift ≥3% holds. Catches ~93% of "snapshot flicker" losers
+                # that triggered STRENGTH then died.
+                pub_time = (metadata or {}).get("published_at_dt") if isinstance(metadata, dict) else None
+                if isinstance(pub_time, str):
+                    try:
+                        pub_time = datetime.fromisoformat(pub_time.replace("Z", "+00:00"))
+                    except Exception:
+                        pub_time = None
+                if pub_time is None:
+                    logger.warning(
+                        "Activity gate skipped: no published_at_dt in metadata",
+                        ticker=trade_request.ticker,
+                    )
+                    gate_passed = True
+                    last_nbbo = None
+                    gate_telemetry = {"activity_gate_skipped": "no_pub_time"}
+                else:
+                    gate_passed, last_nbbo, gate_telemetry = await wait_for_activity_gate(
+                        quote_fetcher=self.quote_fetcher,
+                        ticker=trade_request.ticker,
+                        pub_time=pub_time,
+                        max_wait_s=ACTIVITY_GATE_MAX_WAIT_S,
+                        qi_threshold=QI_THRESHOLD,
+                        tps_threshold=TPS_THRESHOLD,
+                        md_threshold_pct=MD_THRESHOLD_PCT,
+                    )
 
                 if not gate_passed:
                     error_msg = (
-                        f"Liquidity gate: no sustained depth (probe ${DEPTH_PROBE_USD:,.0f} "
-                        f"< {int(DEPTH_GATE_MAX_RATIO*100)}% of book × {DEPTH_PROBE_MIN_CONSECUTIVE} "
-                        f"consecutive quotes within {DEPTH_PROBE_MAX_WAIT_S:.0f}s) — "
-                        f"max_consec={depth_telemetry.get('depth_probe_max_consecutive', 0)} "
-                        f"deep={depth_telemetry.get('depth_probe_deep_observed', 0)}/"
-                        f"{depth_telemetry.get('depth_probe_quotes_observed', 0)}"
+                        f"Activity gate: no sustained activity since pub "
+                        f"(qi={gate_telemetry.get('activity_gate_qi')}/s, "
+                        f"tps={gate_telemetry.get('activity_gate_tps')}/s, "
+                        f"md={gate_telemetry.get('activity_gate_md_pct')}%, "
+                        f"elapsed={gate_telemetry.get('activity_gate_elapsed_since_pub_s')}s)"
                     )
                     logger.warning(
-                        "🚦 TRADE ABORTED: Liquidity gate (sustained depth probe failed)",
+                        "🚦 TRADE ABORTED: Activity gate (no sustained activity)",
                         ticker=trade_request.ticker,
-                        **depth_telemetry,
+                        **gate_telemetry,
                     )
                     error_result = {
                         "success": False,
@@ -306,20 +318,19 @@ class AlpacaExtendedHoursTradeExecutor:
                         "session": session,
                         "order_type": "LIMIT",
                         "instrument": "stock",
-                        "depth_probe": depth_telemetry,
+                        "activity_gate": gate_telemetry,
                     }
                     await self._publish_failed_event(trade_request, error_result["error"])
                     return error_result
 
                 logger.info(
-                    "✅ Liquidity gate: sustained depth probe passed",
+                    "✅ Activity gate passed",
                     ticker=trade_request.ticker,
-                    **depth_telemetry,
+                    **gate_telemetry,
                 )
 
-                # Refresh initial_ask from the most recent NBBO seen during the
-                # probe — it can drift over the probe window. Down-the-line
-                # ladder calculations and slippage tracking should use this.
+                # Refresh initial_ask from the most recent NBBO seen during
+                # the gate — it can drift over the wait window.
                 if last_nbbo and last_nbbo.get("ask"):
                     initial_ask = last_nbbo["ask"]
 

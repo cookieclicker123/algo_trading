@@ -2267,6 +2267,11 @@ async def process_imminent_article(
         # Add AI position size to metadata for logging
         confluence_metadata["ai_position_size"] = ai_position_size
 
+        # Stamp pub time as a datetime for the activity gate at submit time.
+        # `published_at` is the canonical pub timestamp from the classification event;
+        # the gate computes elapsed-since-pub from this value.
+        confluence_metadata["published_at_dt"] = published_at
+
         # Get confluence score and excursion for gating decision
         confluence_score = confluence_metadata.get("confluence_score", 0)
         max_excursion_pct = confluence_metadata.get("confluence_price_excursion_pct", 0.0)
