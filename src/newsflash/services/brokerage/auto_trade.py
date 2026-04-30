@@ -127,17 +127,24 @@ AI_BREAKTHROUGH_HEADLINE_TYPES = frozenset({"ai_breakthrough"})
 CLINICAL_BREAKTHROUGH_HEADLINE_TYPES = frozenset({"clinical_breakthrough", "cancer_catalyst"})
 
 # === AUTO-TAKE-PROFIT ===
-# Headline types where peaks are narrow and reversals are fast. Manual exit is
-# too slow — these need automated partial exits at +10% and +20% with sustained-
-# print confirmation. CANF 2026-04-30 (clinical_breakthrough): +23.6% peak then
-# stop-lossed at -14.3% in 2.5 min. TOMZ 2026-04-30 (merger_agreement): +18.1%
-# peak then stop-lossed at -13.2% in 5 min. The +10%/+20% tiers would have
-# captured ~$8k of the swing on a $20k position.
-AUTO_TP_HEADLINE_TYPES = frozenset({
-    "clinical_breakthrough",
-    "fda_designation",
-    "stock_buyback",
-    "merger_agreement",
+# Auto-TP applies to every traded headline type EXCEPT the small set of
+# transformational HC catalysts where moves tend to extend rather than fade.
+# Inversion list keeps the rule simple — new triage types added later are
+# auto-TP by default.
+#
+# Empirical motivation: CANF (clinical_breakthrough) +23.6% then -14.3% in
+# 2.5 min; TOMZ (merger_agreement) +18.1% then -13.2% in 5 min. With +10%/+20%
+# auto-TP, both flip from large losses to net gains.
+#
+# As samples grow we'll tailor thresholds per industry — biotechs may move
+# wider (15%/25%) than industrials (8%/15%), but the +10%/+20% baseline is
+# the reasonable starting point.
+NO_AUTO_TP_HEADLINE_TYPES = frozenset({
+    "government_contract",   # Pure HC — keeps running on transformational news
+    "military_contract",
+    "defense_order",
+    "major_contract",
+    "ai_rebranding",         # Corporate identity shifts — sustained structural rerate
 })
 
 
@@ -2158,12 +2165,12 @@ async def process_imminent_article(
         is_high_conviction = headline_type in HIGH_CONVICTION_HEADLINE_TYPES if headline_type else False
         is_ai_breakthrough = headline_type in AI_BREAKTHROUGH_HEADLINE_TYPES if headline_type else False
         is_clinical_breakthrough = headline_type in CLINICAL_BREAKTHROUGH_HEADLINE_TYPES if headline_type else False
-        # Auto-take-profit eligibility for highly volatile catalysts.
-        # CANF (clinical_breakthrough) +23.6% then -14.3%; TOMZ (merger_agreement) +18.1%
-        # then -13.2%. Manual exit is too slow on these — the round-trip from peak to
-        # stop loss can be under a minute. Two-tier TP at +10%/+20% with sustained-print
-        # confirmation captures the move.
-        is_auto_tp_eligible = headline_type in AUTO_TP_HEADLINE_TYPES if headline_type else False
+        # Auto-take-profit eligibility: every traded headline type EXCEPT the
+        # NO_AUTO_TP set. Inversion → new types default to auto-TP. The +10%/+20%
+        # tiers run BEFORE the existing tier system (supersedes it), so for HC
+        # types like stock_buyback and merger_agreement that still get HC stop
+        # loss + HC tier widths, the auto-TP is a layer on top, not a replacement.
+        is_auto_tp_eligible = bool(headline_type) and headline_type not in NO_AUTO_TP_HEADLINE_TYPES
 
         if is_clinical_breakthrough:
             logger.info(
