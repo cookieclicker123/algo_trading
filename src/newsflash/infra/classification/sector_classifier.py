@@ -631,7 +631,7 @@ Respond: TRADE or SKIP"""
                     {
                         "type": "text",
                         "text": prompt,
-                        "cache_control": {"type": "ephemeral"},
+                        "cache_control": {"type": "ephemeral", "ttl": "1h"},
                     }
                 ],
                 messages=[
@@ -639,6 +639,7 @@ Respond: TRADE or SKIP"""
                 ],
                 temperature=0.0,  # Deterministic for consistency
                 max_tokens=10,    # Only need "TRADE" or "SKIP"
+                extra_headers={"anthropic-beta": "extended-cache-ttl-2025-04-11"},
             )
 
             # Parse response
