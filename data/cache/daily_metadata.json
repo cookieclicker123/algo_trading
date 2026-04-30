@@ -1,5 +1,5 @@
 {
-  "date": "2026-04-22",
+  "date": "2026-04-29",
   "data": {
     "ORCL": {
       "market_cap_millions": 459538.399232
@@ -16594,6 +16594,35 @@
     "CNR": {
       "market_cap_millions": 4566.747648,
       "float_shares": 49803956
+    },
+    "DETX": {
+      "market_cap_millions": 9.266695,
+      "float_shares": 1598736
+    },
+    "YOOV": {
+      "market_cap_millions": 372.25616,
+      "float_shares": 19934531
+    },
+    "KEEL": {
+      "market_cap_millions": 1983.380224,
+      "float_shares": 576584913
+    },
+    "NICM": {
+      "market_cap_millions": 127.48468,
+      "float_shares": 163512807
+    },
+    "OIO": {
+      "market_cap_millions": 27.908618
+    },
+    "LABT": {
+      "market_cap_millions": 51.308344
+    },
+    "ZSQR": {
+      "market_cap_millions": 773.787456
+    },
+    "XNDU": {
+      "market_cap_millions": 9409.173504,
+      "float_shares": 43084145
     }
   }
 }

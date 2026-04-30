@@ -436,5 +436,41 @@
     "permanent": false,
     "created_at": "2026-04-23T13:53:50.883180",
     "last_fp_date": "2026-04-23"
+  },
+  "REGN": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-04-23T20:56:21.513443",
+    "last_fp_date": "2026-04-23"
+  },
+  "ATCH": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-04-24T12:01:16.707812",
+    "last_fp_date": "2026-04-24"
+  },
+  "CMND": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-04-27T12:42:42.196069",
+    "last_fp_date": "2026-04-27"
+  },
+  "EFOR": {
+    "consecutive_fps": 2,
+    "permanent": false,
+    "created_at": "2026-04-27T21:24:04.972272",
+    "last_fp_date": "2026-04-28"
+  },
+  "SLNH": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-04-28T12:33:26.719490",
+    "last_fp_date": "2026-04-28"
+  },
+  "ASML": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-04-28T13:01:25.661958",
+    "last_fp_date": "2026-04-28"
   }
 }

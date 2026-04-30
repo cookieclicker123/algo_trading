@@ -141686,5 +141686,41 @@
   "CNR": {
     "industry": "Thermal Coal",
     "sector": "Energy"
+  },
+  "DETX": {
+    "industry": "Security & Protection Services",
+    "sector": "Industrials"
+  },
+  "YOOV": {
+    "industry": "Security & Protection Services",
+    "sector": "Industrials"
+  },
+  "KEEL": {
+    "industry": "Information Technology Services",
+    "sector": "Technology"
+  },
+  "BPRE": {
+    "industry": "Asset Management",
+    "sector": "Financial Services"
+  },
+  "NICM": {
+    "industry": "Other Industrial Metals & Mining",
+    "sector": "Basic Materials"
+  },
+  "OIO": {
+    "industry": "Asset Management",
+    "sector": "Financial Services"
+  },
+  "LABT": {
+    "industry": "Biotechnology",
+    "sector": "Healthcare"
+  },
+  "ZSQR": {
+    "industry": "Software - Infrastructure",
+    "sector": "Technology"
+  },
+  "XNDU": {
+    "industry": "Software - Infrastructure",
+    "sector": "Technology"
   }
 }
