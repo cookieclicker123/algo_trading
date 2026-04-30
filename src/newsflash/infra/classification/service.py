@@ -692,6 +692,8 @@ Summary: {summary}"""
                     "government_contract", "military_contract", "defense_order",
                     "major_contract",  # Commercial contracts — 46.2% IMMINENT win rate, avg MFE +50%
                     "ai_rebranding",   # Corporate rebrand to AI identity — sustained moves
+                    "partnership",     # AXIL/KIDZ-class — trust depth probe + activity to filter fakes
+                    "fda_designation", # JAGX-class — designations are heterogeneous; let book confirm
                 })
                 MAX_SPREAD_PCT_HIGH_CONVICTION = 10.0  # Defense sweet spot is 3-10%, zero winners above 10%
 
@@ -1080,6 +1082,39 @@ Summary: {summary}"""
             return
 
         try:
+            # HARD BLOCK: Headline types that are never traded (cash outflows,
+            # dilution, bearish catalysts). Block here — before the sector LLM —
+            # so we don't pay for a Claude call on a headline that can't produce
+            # a trade. Mirrors BLOCKED_HEADLINE_TYPES in services/brokerage/auto_trade.py.
+            # `acquisition_with_revenue_generating_business` is the tradeable carve-out
+            # and is intentionally NOT in this set.
+            # NOTE: `acquisition_announced` was removed 2026-04-29. Acquisitions are
+            # context-dependent and hard to model in the LLM but reliably run on
+            # market-confirmed reaction (XTLB +45.6%, RVMD class). Now routed through
+            # HC_BYPASS with the sustained-depth probe + activity confirmation as the
+            # safety net (validated against ATCH 2026-04-24 — probe blocks at trade time).
+            BLOCKED_HEADLINE_TYPES = frozenset({
+                "offering_announced",
+                "earnings_miss",
+                "guidance_cut",
+                "clinical_trial_negative",
+                "analyst_downgrade",
+            })
+            if triage_headline_type in BLOCKED_HEADLINE_TYPES:
+                logger.info(
+                    f"🚫 BLOCKED HEADLINE TYPE: Skipping sector LLM — {triage_headline_type} is never traded",
+                    article_id=request_data.article_id,
+                    ticker=primary_ticker,
+                    headline_type=triage_headline_type,
+                    headline=headline[:80],
+                )
+                await self._publish_skipped_event(
+                    infra_event,
+                    f"blocked_headline_type:{triage_headline_type}",
+                    headline_type=triage_headline_type,
+                )
+                return
+
             # SECTOR LLM BYPASS: Headline types that are universally tradeable
             # regardless of sector/industry. The triage already validated the type —
             # the sector LLM adds false-SKIP risk without adding signal.
@@ -1096,6 +1131,11 @@ Summary: {summary}"""
             HC_BYPASS_TYPES = frozenset({
                 "government_contract", "military_contract", "defense_order", "major_contract",
                 "stock_buyback", "ai_breakthrough", "ai_rebranding",
+                # Heterogeneous catalysts — too context-dependent for sector LLM to
+                # reliably score. Trust market reaction (depth probe + activity) instead.
+                "partnership",            # KIDZ/AXIL: hard to know which partnerships work; book is the truth
+                "fda_designation",        # JAGX-class: designations vary widely; let activity confirm
+                "acquisition_announced",  # XTLB-class: acquirees often run; depth probe filters non-runners
             })
 
             if triage_headline_type in HC_BYPASS_TYPES:
