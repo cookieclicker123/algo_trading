@@ -141722,5 +141722,33 @@
   "XNDU": {
     "industry": "Software - Infrastructure",
     "sector": "Technology"
+  },
+  "GMTL": {
+    "industry": "Other Precious Metals & Mining",
+    "sector": "Basic Materials"
+  },
+  "AIFC": {
+    "industry": "Software - Infrastructure",
+    "sector": "Technology"
+  },
+  "ALMR": {
+    "industry": "Medical Devices",
+    "sector": "Healthcare"
+  },
+  "CAIIU": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
+  },
+  "XE": {
+    "industry": "Specialty Industrial Machinery",
+    "sector": "Industrials"
+  },
+  "PS": {
+    "industry": "Asset Management",
+    "sector": "Financial Services"
+  },
+  "NHP": {
+    "industry": "REIT - Healthcare Facilities",
+    "sector": "Real Estate"
   }
 }

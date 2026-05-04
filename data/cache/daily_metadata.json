@@ -1,5 +1,5 @@
 {
-  "date": "2026-04-29",
+  "date": "2026-05-02",
   "data": {
     "ORCL": {
       "market_cap_millions": 459538.399232
@@ -16623,6 +16623,28 @@
     "XNDU": {
       "market_cap_millions": 9409.173504,
       "float_shares": 43084145
+    },
+    "GMTL": {
+      "market_cap_millions": 666.476352,
+      "float_shares": 95358439
+    },
+    "AIFC": {
+      "market_cap_millions": 120.16152,
+      "float_shares": 104006736
+    },
+    "ALMR": {
+      "market_cap_millions": 1707.951616,
+      "float_shares": 14142784
+    },
+    "XE": {
+      "market_cap_millions": 8676.330496
+    },
+    "PS": {
+      "market_cap_millions": 11200.0
+    },
+    "NHP": {
+      "market_cap_millions": 948.159872,
+      "float_shares": 28340868
     }
   }
 }

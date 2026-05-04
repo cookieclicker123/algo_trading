@@ -472,5 +472,17 @@
     "permanent": false,
     "created_at": "2026-04-28T13:01:25.661958",
     "last_fp_date": "2026-04-28"
+  },
+  "CANF": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-04-30T13:34:05.328631",
+    "last_fp_date": "2026-04-30"
+  },
+  "TOMZ": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-04-30T13:35:35.805879",
+    "last_fp_date": "2026-04-30"
   }
 }
