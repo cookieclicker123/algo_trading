@@ -141750,5 +141750,41 @@
   "NHP": {
     "industry": "REIT - Healthcare Facilities",
     "sector": "Real Estate"
+  },
+  "QXL": {
+    "industry": "Information Technology Services",
+    "sector": "Technology"
+  },
+  "FLNA": {
+    "industry": "Biotechnology",
+    "sector": "Healthcare"
+  },
+  "AVEX": {
+    "industry": "Aerospace & Defense",
+    "sector": "Industrials"
+  },
+  "VBIO": {
+    "industry": "Biotechnology",
+    "sector": "Healthcare"
+  },
+  "CNTMD": {
+    "industry": "Software - Application",
+    "sector": "Technology"
+  },
+  "AVLN": {
+    "industry": "Biotechnology",
+    "sector": "Healthcare"
+  },
+  "VGNT": {
+    "industry": "Auto Parts",
+    "sector": "Consumer Cyclical"
+  },
+  "TMCR": {
+    "industry": "Other Industrial Metals & Mining",
+    "sector": "Basic Materials"
+  },
+  "FABC": {
+    "industry": "Auto Manufacturers",
+    "sector": "Consumer Cyclical"
   }
 }

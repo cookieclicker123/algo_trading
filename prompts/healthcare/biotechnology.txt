@@ -101,7 +101,8 @@ CLINICAL DATA (21% of winners - MODALITY-AWARE)
 │   └─ Size: upgrade one level if results include specific numbers
 │
 ├─ STILL SKIP even if hot area or hot modality:
-│   ├─ "In vitro" / "in vivo" (preclinical, NOT human trials — ALWAYS SKIP)
+│   ├─ "In vitro" / "in vivo" / animal-model data — SKIP by default
+│   │   (NARROW OVERRIDE: see SUPERLATIVE PRECLINICAL EXCEPTION section below)
 │   ├─ Trial INITIATION with no results ("Initiates", "to begin", "commence", "doses first patient", "enrolls first patient") — ALWAYS SKIP
 │   │   EXCEPTION: Externally funded study agreements — see EXTERNALLY FUNDED CLINICAL STUDIES below
 │   ├─ Safety/tolerability only (no efficacy signal)
@@ -126,6 +127,60 @@ CLINICAL DATA (21% of winners - MODALITY-AWARE)
    "Initiates Phase 2 Clinical Trial for Novel ADC" → SKIP (trial initiation, no results)
    "Doses First Patient in Phase 3 Radioligand Trial" → SKIP (trial initiation, no results)
    "Begins Enrollment in Phase 1 CAR-T Study" → SKIP (trial initiation, no results)
+
+═══════════════════════════════════════════════════════════════════════════════
+SUPERLATIVE PRECLINICAL EXCEPTION
+═══════════════════════════════════════════════════════════════════════════════
+
+Default: preclinical / in vivo / in vitro / animal-model data = SKIP. This
+default stands for the ~95% of preclinical headlines that are weak retail
+catalysts ("promising signal in murine model X", "in vitro binding study", etc.).
+
+OVERRIDE to TRADE only when the headline is so dominantly superlative on a
+recognizable disease that retail will price the magnitude over the timeline.
+BOTH conditions must hold — not one or the other.
+
+(A) SUPERLATIVE-MAGNITUDE OUTCOME on a primary efficacy endpoint
+    Quantitative anchors: "100%", "≥90%", "complete", "total", "full", "fully"
+    attached to a primary efficacy endpoint:
+      survival, elimination, eradication, regression, response, cure,
+      remission, reversal
+    Verb-form anchors: "cures", "eradicates", "eliminates", "reverses" used
+    as outcome claims, not adjectives. "Potential cure" does NOT qualify;
+    "Cures pancreatic cancer" does.
+
+(B) UNIVERSALLY-RECOGNIZED DISEASE/INDICATION
+    Top-tier oncology: ovarian, pancreatic, breast, lung, colon, prostate,
+    glioblastoma, leukemia, lymphoma, melanoma.
+    Household-name systemic conditions: Alzheimer's, ALS, Parkinson's, MS,
+    sickle cell, cystic fibrosis, type-1 diabetes, HIV.
+    Anchor points only — generalize to clearly-comparable household diseases.
+    Obscure / rare indications a non-scientist cannot place → still SKIP.
+
+WHY THIS WORKS: retail prices preclinical headlines on raw magnitude, not
+science. "100% survival in ovarian cancer" dominates the timeline discount
+because the words alone trigger FOMO without requiring scientific evaluation.
+"Promising signal in murine model X" does not, regardless of the underlying
+science. The intersection of (A) AND (B) is rare in practice, which keeps
+this carve-out narrow.
+
+SIZING: TRADE MODERATE. Preclinical is still preclinical — the move comes
+from headline impact, not durable conviction. Do not upsize to LARGE/MAX
+on this exception alone.
+
+Examples → TRADE:
+   "Achieves 100% Survival and Complete Tumor Elimination in Ovarian Cancer Models" → TRADE MODERATE
+   "Drug X Cures Pancreatic Cancer in Mouse Study" → TRADE MODERATE
+   "Compound Y Fully Reverses Alzheimer's in Animal Trial" → TRADE MODERATE
+   "Preclinical Study Eradicates Glioblastoma Tumors in 100% of Mice" → TRADE MODERATE
+
+Examples → still SKIP (one or both conditions missing):
+   "Promising Preclinical Data in Lupus Model" → SKIP (no superlative)
+   "100% Response Rate in Murine Study of [Rare Inherited Disorder]" → SKIP (obscure indication)
+   "In Vitro Results for Novel mRNA Platform" → SKIP (no efficacy endpoint, no superlative)
+   "Reports Successful Results in Vitro" → SKIP (no superlative, no disease)
+   "Preclinical Collaboration with NIH" → SKIP (collaboration, not efficacy data)
+   "Potential Cure for Pancreatic Cancer Identified in Animal Studies" → SKIP ("potential" disqualifies — adjective, not outcome claim)
 
 ═══════════════════════════════════════════════════════════════════════════════
 HOT MODALITIES — Buzzwords that move stocks in 2025-2026
@@ -589,7 +644,7 @@ WEAK CLINICAL DATA (Looks like news but isn't material)
 ├─ "Long-term safety" / "safety monitoring" / "tolerability" alone
 ├─ "License partner reports/announces" (their drug, not yours)
 ├─ Vague "positive results" with generic small molecule (not a hot modality)
-├─ "In vitro" / "in vivo" = PRECLINICAL (ALWAYS SKIP, even for hot modalities)
+├─ "In vitro" / "in vivo" = PRECLINICAL (SKIP by default, even for hot modalities — narrow override in SUPERLATIVE PRECLINICAL EXCEPTION section)
 ├─ "Potential" / "may" / "could" = speculative, not proven
 ├─ VAGUE PHASE 2/3 WITHOUT DATA = SKIP
 │   "Positive Phase 2 Outcomes" or "Positive Phase 2 Results" WITHOUT any
@@ -713,7 +768,7 @@ ALWAYS SKIP:
 - Offerings / dilution (ordinary PIPEs, RDOs, ATMs)
 - IND clearance (permission to start trials, not approval)
 - Conferences (future presentations)
-- In vitro / in vivo (preclinical)
+- In vitro / in vivo / animal-model data (preclinical) — UNLESS SUPERLATIVE PRECLINICAL EXCEPTION applies
 - Trial initiation with no results ("Initiates", "begins", "doses first patient", "enrolls first patient")
 - Extension studies (continuation, not new data)
 - "Potential" / "may" / "could" (speculative language)
@@ -729,7 +784,7 @@ RED FLAGS (weaken any headline):
 - "Safety/tolerability" alone = not efficacy
 - "License partner" = indirect
 - "Open-label" = weaker evidence
-- "In vitro" / "in vivo" = ALWAYS SKIP (preclinical)
+- "In vitro" / "in vivo" = SKIP unless SUPERLATIVE PRECLINICAL EXCEPTION applies
 
 MATERIAL DEAL OVERRIDE: If the headline describes a NEW deal/order/contract/agreement with a SPECIFIC dollar amount
 that is >25% of the company'''s market cap (provided in CONTEXT), it is almost certainly TRADE regardless of whether

@@ -11699,7 +11699,7 @@
       "market_cap_millions": 32566.165504
     },
     "ATCX": {
-      "market_cap_millions": 29.13511
+      "market_cap_millions": 27.735826
     },
     "GCLWW": {
       "market_cap_millions": 0.6435
@@ -16260,7 +16260,7 @@
       "float_shares": 25229213
     },
     "SMXWW": {
-      "float_shares": 34663
+      "float_shares": 1729457
     },
     "LBTYA": {
       "market_cap_millions": 3818.879488,
@@ -16317,7 +16317,7 @@
       "float_shares": 13502571
     },
     "ROC": {
-      "market_cap_millions": 122.876024
+      "market_cap_millions": 115.434776
     },
     "FACT": {
       "market_cap_millions": 255.861744
@@ -16645,6 +16645,44 @@
     "NHP": {
       "market_cap_millions": 948.159872,
       "float_shares": 28340868
+    },
+    "QXL": {
+      "market_cap_millions": 40.009176,
+      "float_shares": 7268067
+    },
+    "FLNA": {
+      "market_cap_millions": 66.664896,
+      "float_shares": 45050011
+    },
+    "AVEX": {
+      "market_cap_millions": 1279.260672,
+      "float_shares": 42966750
+    },
+    "VBIO": {
+      "market_cap_millions": 3.170486,
+      "float_shares": 2516113
+    },
+    "CNTMD": {
+      "market_cap_millions": 34.606012,
+      "float_shares": 2582408
+    },
+    "ONT": {
+      "market_cap_millions": 798.267008
+    },
+    "AVLN": {
+      "market_cap_millions": 1146.904448,
+      "float_shares": 16422412
+    },
+    "VGNT": {
+      "market_cap_millions": 2658.474496
+    },
+    "TMCR": {
+      "market_cap_millions": 853.447232,
+      "float_shares": 23233239
+    },
+    "FABC": {
+      "market_cap_millions": 4.892076,
+      "float_shares": 1445871
     }
   }
 }
