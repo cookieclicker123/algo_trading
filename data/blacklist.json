@@ -484,5 +484,47 @@
     "permanent": false,
     "created_at": "2026-04-30T13:35:35.805879",
     "last_fp_date": "2026-04-30"
+  },
+  "AMZE": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-05-14T18:47:48.920258",
+    "last_fp_date": "2026-05-14"
+  },
+  "ARTV": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-05-14T18:49:43.637275",
+    "last_fp_date": "2026-05-14"
+  },
+  "DEVS": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-05-14T18:50:00.497129",
+    "last_fp_date": "2026-05-14"
+  },
+  "DPRO": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-05-14T18:50:04.209920",
+    "last_fp_date": "2026-05-14"
+  },
+  "GCTS": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-05-14T18:50:11.498037",
+    "last_fp_date": "2026-05-14"
+  },
+  "REKR": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-05-14T18:50:23.325045",
+    "last_fp_date": "2026-05-14"
+  },
+  "INGM": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-05-14T23:49:05.563773",
+    "last_fp_date": "2026-05-14"
   }
 }

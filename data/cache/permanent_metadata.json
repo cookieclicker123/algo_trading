@@ -3142,7 +3142,9 @@
     "sector": "Basic Materials"
   },
   "AGD": {
-    "exchange": "NYSE"
+    "exchange": "NYSE",
+    "industry": "Asset Management",
+    "sector": "Financial Services"
   },
   "AGDXF": {
     "exchange": "OTC",
@@ -141786,5 +141788,69 @@
   "FABC": {
     "industry": "Auto Manufacturers",
     "sector": "Consumer Cyclical"
+  },
+  "REA": {
+    "industry": "Other Industrial Metals & Mining",
+    "sector": "Basic Materials"
+  },
+  "HCIC": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
+  },
+  "SBMT": {
+    "industry": "Other Industrial Metals & Mining",
+    "sector": "Basic Materials"
+  },
+  "CAST": {
+    "industry": "Broadcasting",
+    "sector": "Communication Services"
+  },
+  "AGNT": {
+    "industry": "Real Estate Services",
+    "sector": "Real Estate"
+  },
+  "MCAHU": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
+  },
+  "P": {
+    "industry": "Computer Hardware",
+    "sector": "Technology"
+  },
+  "ALP": {
+    "industry": "Asset Management",
+    "sector": "Financial Services"
+  },
+  "ENHA": {
+    "industry": "Packaged Foods",
+    "sector": "Consumer Defensive"
+  },
+  "PLGO": {
+    "industry": "Insurance - Diversified",
+    "sector": "Financial Services"
+  },
+  "NSTS": {
+    "industry": "Banks - Regional",
+    "sector": "Financial Services"
+  },
+  "GMRS": {
+    "industry": "Medical Care Facilities",
+    "sector": "Healthcare"
+  },
+  "IPFXU": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
+  },
+  "QSEAR": {
+    "industry": "",
+    "sector": ""
+  },
+  "AYA": {
+    "industry": "Silver",
+    "sector": "Basic Materials"
+  },
+  "FGMC": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
   }
 }

@@ -123,6 +123,9 @@ class RecallAnalytics:
     skip_reason: Optional[str] = None
     skip_filter: Optional[str] = None
 
+    # Late-trade candidate flag (activity-gate skip but stock moved >= threshold)
+    late_trade_candidate: Optional[Dict[str, Any]] = None
+
     # Retrospective AI classification (for articles filtered pre-classification
     # that ended up moving >=10% during the 10-min hold).
     # Shape mirrors retrospective_classifier.RetrospectiveClassifier.classify().
@@ -219,6 +222,46 @@ class DailyAnalyticsJob:
     Collects all trade data from the day, enriches with market regime data,
     and saves structured analytics for pattern analysis.
     """
+
+    @staticmethod
+    def _summarize_late_trade_candidates(
+        missed_opportunities: Optional[List["RecallAnalytics"]],
+    ) -> Dict[str, Any]:
+        """
+        Surface activity-gate skips that moved anyway (flag stamped in repository
+        at 10-min check time). Top-level navigation aid for review.
+        """
+        if not missed_opportunities:
+            return {"count": 0, "total_missed_gain_pct": 0.0, "by_headline_type": {}, "examples": []}
+
+        examples = []
+        by_ht: Dict[str, int] = {}
+        total_pct = 0.0
+        for m in missed_opportunities:
+            ltc = getattr(m, "late_trade_candidate", None)
+            if not ltc:
+                continue
+            gain = ltc.get("missed_gain_pct") or 0
+            total_pct += gain
+            ht = ltc.get("headline_type") or m.headline_type or "unknown"
+            by_ht[ht] = by_ht.get(ht, 0) + 1
+            examples.append({
+                "article_id": m.article_id,
+                "ticker": m.ticker,
+                "headline": m.headline,
+                "headline_type": ht,
+                "session": m.session,
+                "missed_gain_pct": gain,
+                "activity_gate_telemetry": ltc.get("activity_gate_telemetry"),
+                "pub_to_recv_seconds": ltc.get("pub_to_recv_seconds"),
+            })
+        examples.sort(key=lambda x: x["missed_gain_pct"], reverse=True)
+        return {
+            "count": len(examples),
+            "total_missed_gain_pct": round(total_pct, 2),
+            "by_headline_type": by_ht,
+            "examples": examples,
+        }
 
     @staticmethod
     def _summarize_retrospective_fns(
@@ -455,6 +498,7 @@ class DailyAnalyticsJob:
             decision_ask_size=record.get("decision_ask_size"),
             sector=meta.get("sector"),
             industry=meta.get("industry"),
+            late_trade_candidate=record.get("late_trade_candidate"),
         )
 
     def process_record(self, record: Dict[str, Any]) -> TradeAnalytics:
@@ -819,6 +863,7 @@ class DailyAnalyticsJob:
                 "avg_missed_gain_pct": report.avg_missed_gain_pct,
                 "total_missed_gain_usd": report.total_missed_gain_usd,
             },
+            "late_trade_candidates": self._summarize_late_trade_candidates(report.missed_opportunities),
             "by_industry": report.by_industry,
             "by_sector": report.by_sector,
             "by_market_cap_bucket": report.by_market_cap_bucket,

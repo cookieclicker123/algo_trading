@@ -7152,7 +7152,7 @@
       "market_cap_millions": 650.201408
     },
     "AGD": {
-      "market_cap_millions": 288.579648
+      "market_cap_millions": 328.83504
     },
     "FCO": {
       "market_cap_millions": 41.77728
@@ -16260,7 +16260,7 @@
       "float_shares": 25229213
     },
     "SMXWW": {
-      "float_shares": 1729457
+      "float_shares": 86472
     },
     "LBTYA": {
       "market_cap_millions": 3818.879488,
@@ -16683,6 +16683,61 @@
     "FABC": {
       "market_cap_millions": 4.892076,
       "float_shares": 1445871
+    },
+    "REA": {
+      "market_cap_millions": 368.433952
+    },
+    "HCIC": {
+      "market_cap_millions": 350.5184,
+      "float_shares": 25103438
+    },
+    "SBMT": {
+      "market_cap_millions": 304.040544,
+      "float_shares": 17336402
+    },
+    "CAST": {
+      "market_cap_millions": 72.317704,
+      "float_shares": 16068830
+    },
+    "AGNT": {
+      "market_cap_millions": 824.084416,
+      "float_shares": 95076179
+    },
+    "P": {
+      "market_cap_millions": 28043.644928,
+      "float_shares": 312721787
+    },
+    "ALP": {
+      "market_cap_millions": 6.278126,
+      "float_shares": 8542692
+    },
+    "ENHA": {
+      "market_cap_millions": 645.376832
+    },
+    "PLGO": {
+      "market_cap_millions": 1747.087744,
+      "float_shares": 39714277
+    },
+    "NSTS": {
+      "market_cap_millions": 65.926512,
+      "float_shares": 4557036
+    },
+    "GMRS": {
+      "float_shares": 12630109
+    },
+    "IPFXU": {
+      "float_shares": 22000000
+    },
+    "QSEAR": {
+      "float_shares": 7427389
+    },
+    "AYA": {
+      "market_cap_millions": 3059.911936,
+      "float_shares": 138732697
+    },
+    "FGMC": {
+      "market_cap_millions": 106.149704,
+      "float_shares": 10285813
     }
   }
 }

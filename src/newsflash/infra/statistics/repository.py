@@ -25,6 +25,10 @@ from ...domain.brokerage.models import MarketSession
 
 logger = get_logger(__name__)
 
+# Late-trade candidate: activity-gate skip whose 10-min move >= this threshold.
+# 5% captures SHAZ-class misses (+9.5%) without diluting with sub-threshold noise.
+LATE_TRADE_CANDIDATE_MIN_GAIN_PCT = 5.0
+
 
 class StatisticsRepository:
     """
@@ -399,6 +403,35 @@ class StatisticsRepository:
                             if old_filter_reason and not record.is_traded:
                                 session_file.summary["missed_opportunities"] = max(0, session_file.summary["missed_opportunities"] - 1)
 
+                        # Late-trade candidate: activity-gate blocked but the
+                        # stock moved anyway. Stamp at 10-min check time so
+                        # reviewers can grep recall files for examples.
+                        postfilter = record.postfilter_reason or ""
+                        gain_pct = (new_price_check or {}).get("percent_change")
+                        if (
+                            postfilter.startswith("postfilter_activity_gate")
+                            and gain_pct is not None
+                            and gain_pct >= LATE_TRADE_CANDIDATE_MIN_GAIN_PCT
+                        ):
+                            telemetry = postfilter.split(":", 1)[1] if ":" in postfilter else ""
+                            pub_to_recv_s = None
+                            if record.published_at and record.received_at:
+                                try:
+                                    pub_to_recv_s = round(
+                                        (record.received_at - record.published_at).total_seconds(), 2
+                                    )
+                                except Exception:
+                                    pub_to_recv_s = None
+                            record.late_trade_candidate = {
+                                "missed_gain_pct": round(gain_pct, 2),
+                                "activity_gate_telemetry": telemetry.strip(),
+                                "headline_type": record.headline_type,
+                                "pub_to_recv_seconds": pub_to_recv_s,
+                            }
+                            session_file.summary["late_trade_candidates"] = (
+                                session_file.summary.get("late_trade_candidates", 0) + 1
+                            )
+
                         # Update large trade pattern stats (for pump-and-dump analysis)
                         # Only update when we first get price_check data (not on subsequent updates)
                         if new_price_check and not old_price_check:
@@ -669,6 +702,7 @@ class StatisticsRepository:
             "articles_with_1_percent_move": 0,
             "articles_traded": 0,
             "missed_opportunities": 0,
+            "late_trade_candidates": 0,
             "filter_breakdown": {},
             "ticker_breakdown": {},
             "large_trade_stats": {

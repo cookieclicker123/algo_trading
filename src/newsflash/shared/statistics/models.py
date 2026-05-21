@@ -234,6 +234,14 @@ class RecallRecord(BaseModel):
         description="Headline type from universal triage (e.g., major_contract, government_contract). Set for all post-prefilter articles."
     )
 
+    # Late-trade candidate marker — stamped at 10-min price-check time when the
+    # article was blocked by the activity gate but the stock moved anyway.
+    # Lets reviewers grep recall files for examples worth studying.
+    late_trade_candidate: Optional[Dict[str, Any]] = Field(
+        None,
+        description="If activity-gate blocked + 10min move >= threshold: {missed_gain_pct, activity_gate_telemetry, headline_type, pub_to_recv_seconds}"
+    )
+
     # Time-of-day tracking (for hour-by-hour win rate analysis)
     hour: Optional[int] = Field(None, description="Hour of day (0-23 ET) when article was received")
 
@@ -458,6 +466,7 @@ class RecallSessionFile(BaseModel):
             "articles_with_1_percent_move": 0,
             "articles_traded": 0,
             "missed_opportunities": 0,
+            "late_trade_candidates": 0,
             "filter_breakdown": {},
             "ticker_breakdown": {},
             # Large trade pattern analysis (pump-and-dump detection)
