@@ -141852,5 +141852,13 @@
   "FGMC": {
     "industry": "Shell Companies",
     "sector": "Financial Services"
+  },
+  "ARCLU": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
+  },
+  "TRAX": {
+    "industry": "Biotechnology",
+    "sector": "Healthcare"
   }
 }

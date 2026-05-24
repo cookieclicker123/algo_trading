@@ -235,11 +235,13 @@ class RecallRecord(BaseModel):
     )
 
     # Late-trade candidate marker — stamped at 10-min price-check time when the
-    # article was blocked by the activity gate but the stock moved anyway.
-    # Lets reviewers grep recall files for examples worth studying.
+    # article was blocked at the tape-level gate (activity_gate or
+    # no_strength_or_surge_or_late) but the stock peaked >= threshold anyway.
+    # Uses PEAK gain (not 10-min change) so slow-wake winners that peaked-then-
+    # faded still surface. Grep recall files for `late_trade_candidate`.
     late_trade_candidate: Optional[Dict[str, Any]] = Field(
         None,
-        description="If activity-gate blocked + 10min move >= threshold: {missed_gain_pct, activity_gate_telemetry, headline_type, pub_to_recv_seconds}"
+        description="If tape-level block + peak gain >= threshold: {peak_gain_pct, time_to_peak_seconds, ten_min_gain_pct, block_reason, block_telemetry, monitoring_status, headline_type, pub_to_recv_seconds}"
     )
 
     # Time-of-day tracking (for hour-by-hour win rate analysis)

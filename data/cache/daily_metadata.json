@@ -16260,7 +16260,7 @@
       "float_shares": 25229213
     },
     "SMXWW": {
-      "float_shares": 86472
+      "float_shares": 79839
     },
     "LBTYA": {
       "market_cap_millions": 3818.879488,
@@ -16738,6 +16738,13 @@
     "FGMC": {
       "market_cap_millions": 106.149704,
       "float_shares": 10285813
+    },
+    "ARCLU": {
+      "float_shares": 3006986
+    },
+    "TRAX": {
+      "market_cap_millions": 584.796288,
+      "float_shares": 31082482
     }
   }
 }

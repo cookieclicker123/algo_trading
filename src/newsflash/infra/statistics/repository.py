@@ -25,9 +25,18 @@ from ...domain.brokerage.models import MarketSession
 
 logger = get_logger(__name__)
 
-# Late-trade candidate: activity-gate skip whose 10-min move >= this threshold.
-# 5% captures SHAZ-class misses (+9.5%) without diluting with sub-threshold noise.
+# Late-trade candidate: post-classification skip whose peak move >= this threshold.
+# Peak (not 10-min change) is the gauge — slow-wake winners often peak then fade.
+# 5% captures SHAZ/YMT-class misses without diluting with sub-threshold noise.
 LATE_TRADE_CANDIDATE_MIN_GAIN_PCT = 5.0
+
+# Postfilter prefixes that indicate "trade approved by classification but blocked
+# at tape level" — the population of interest for late-winner analysis. Prefilter
+# skips (sector/market-cap/spread) are a different category and excluded.
+LATE_TRADE_BLOCK_PREFIXES = (
+    "postfilter_activity_gate",
+    "postfilter_no_strength_or_surge_or_late",
+)
 
 
 class StatisticsRepository:
@@ -403,16 +412,35 @@ class StatisticsRepository:
                             if old_filter_reason and not record.is_traded:
                                 session_file.summary["missed_opportunities"] = max(0, session_file.summary["missed_opportunities"] - 1)
 
-                        # Late-trade candidate: activity-gate blocked but the
-                        # stock moved anyway. Stamp at 10-min check time so
-                        # reviewers can grep recall files for examples.
+                        # Late-trade candidate: classification approved the trade
+                        # but it was blocked at the tape-level gate (activity_gate
+                        # or no_strength_or_surge_or_late) — and the stock peaked
+                        # >= threshold anyway. Uses PEAK gain, not 10-min change,
+                        # because slow-wake winners frequently peak then fade
+                        # (YMT: peak +10.2% / 10m -1.9%). Reviewers can grep
+                        # recall files for `late_trade_candidate` to find all
+                        # post-classification late misses.
                         postfilter = record.postfilter_reason or ""
-                        gain_pct = (new_price_check or {}).get("percent_change")
+                        new_highest = updates.get("highest_price_during_hold") or {}
+                        peak_gain_pct = new_highest.get("percent_gain_from_entry")
+                        ten_min_pct = (new_price_check or {}).get("percent_change")
+                        is_late_block = any(
+                            postfilter.startswith(prefix)
+                            for prefix in LATE_TRADE_BLOCK_PREFIXES
+                        )
                         if (
-                            postfilter.startswith("postfilter_activity_gate")
-                            and gain_pct is not None
-                            and gain_pct >= LATE_TRADE_CANDIDATE_MIN_GAIN_PCT
+                            is_late_block
+                            and peak_gain_pct is not None
+                            and peak_gain_pct >= LATE_TRADE_CANDIDATE_MIN_GAIN_PCT
                         ):
+                            block_reason = next(
+                                (
+                                    prefix.replace("postfilter_", "")
+                                    for prefix in LATE_TRADE_BLOCK_PREFIXES
+                                    if postfilter.startswith(prefix)
+                                ),
+                                "unknown",
+                            )
                             telemetry = postfilter.split(":", 1)[1] if ":" in postfilter else ""
                             pub_to_recv_s = None
                             if record.published_at and record.received_at:
@@ -422,9 +450,34 @@ class StatisticsRepository:
                                     )
                                 except Exception:
                                     pub_to_recv_s = None
+                            time_to_peak_s = None
+                            peak_ts = new_highest.get("timestamp")
+                            if peak_ts and record.published_at:
+                                try:
+                                    peak_dt = datetime.fromisoformat(
+                                        peak_ts.replace("Z", "+00:00")
+                                        if isinstance(peak_ts, str)
+                                        else peak_ts
+                                    )
+                                    pub_dt = record.published_at
+                                    if pub_dt.tzinfo is None:
+                                        pub_dt = pub_dt.replace(tzinfo=pytz.UTC)
+                                    if peak_dt.tzinfo is None:
+                                        peak_dt = peak_dt.replace(tzinfo=pytz.UTC)
+                                    time_to_peak_s = round(
+                                        (peak_dt - pub_dt).total_seconds(), 1
+                                    )
+                                except Exception:
+                                    time_to_peak_s = None
                             record.late_trade_candidate = {
-                                "missed_gain_pct": round(gain_pct, 2),
-                                "activity_gate_telemetry": telemetry.strip(),
+                                "peak_gain_pct": round(peak_gain_pct, 2),
+                                "time_to_peak_seconds": time_to_peak_s,
+                                "ten_min_gain_pct": (
+                                    round(ten_min_pct, 2) if ten_min_pct is not None else None
+                                ),
+                                "block_reason": block_reason,
+                                "block_telemetry": telemetry.strip(),
+                                "monitoring_status": record.monitoring_status,
                                 "headline_type": record.headline_type,
                                 "pub_to_recv_seconds": pub_to_recv_s,
                             }

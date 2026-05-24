@@ -228,11 +228,13 @@ class DailyAnalyticsJob:
         missed_opportunities: Optional[List["RecallAnalytics"]],
     ) -> Dict[str, Any]:
         """
-        Surface activity-gate skips that moved anyway (flag stamped in repository
-        at 10-min check time). Top-level navigation aid for review.
+        Surface post-classification tape-level skips that peaked anyway.
+        Flag is stamped in repository at 10-min check using peak gain (not 10-min
+        change) so slow-wake winners that peaked-then-faded still surface.
+        Top-level navigation aid for review.
         """
         if not missed_opportunities:
-            return {"count": 0, "total_missed_gain_pct": 0.0, "by_headline_type": {}, "examples": []}
+            return {"count": 0, "total_peak_gain_pct": 0.0, "by_headline_type": {}, "examples": []}
 
         examples = []
         by_ht: Dict[str, int] = {}
@@ -241,7 +243,7 @@ class DailyAnalyticsJob:
             ltc = getattr(m, "late_trade_candidate", None)
             if not ltc:
                 continue
-            gain = ltc.get("missed_gain_pct") or 0
+            gain = ltc.get("peak_gain_pct") or 0
             total_pct += gain
             ht = ltc.get("headline_type") or m.headline_type or "unknown"
             by_ht[ht] = by_ht.get(ht, 0) + 1
@@ -251,14 +253,18 @@ class DailyAnalyticsJob:
                 "headline": m.headline,
                 "headline_type": ht,
                 "session": m.session,
-                "missed_gain_pct": gain,
-                "activity_gate_telemetry": ltc.get("activity_gate_telemetry"),
+                "peak_gain_pct": gain,
+                "time_to_peak_seconds": ltc.get("time_to_peak_seconds"),
+                "ten_min_gain_pct": ltc.get("ten_min_gain_pct"),
+                "block_reason": ltc.get("block_reason"),
+                "block_telemetry": ltc.get("block_telemetry"),
+                "monitoring_status": ltc.get("monitoring_status"),
                 "pub_to_recv_seconds": ltc.get("pub_to_recv_seconds"),
             })
-        examples.sort(key=lambda x: x["missed_gain_pct"], reverse=True)
+        examples.sort(key=lambda x: x["peak_gain_pct"], reverse=True)
         return {
             "count": len(examples),
-            "total_missed_gain_pct": round(total_pct, 2),
+            "total_peak_gain_pct": round(total_pct, 2),
             "by_headline_type": by_ht,
             "examples": examples,
         }
