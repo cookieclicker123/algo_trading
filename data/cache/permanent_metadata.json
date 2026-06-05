@@ -141860,5 +141860,161 @@
   "TRAX": {
     "industry": "Biotechnology",
     "sector": "Healthcare"
+  },
+  "GENB": {
+    "industry": "Biotechnology",
+    "sector": "Healthcare"
+  },
+  "CBRS": {
+    "industry": "Semiconductors",
+    "sector": "Technology"
+  },
+  "FXACU": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
+  },
+  "QTEX": {
+    "industry": "Computer Hardware",
+    "sector": "Technology"
+  },
+  "ELMT": {
+    "industry": "Aerospace & Defense",
+    "sector": "Industrials"
+  },
+  "NXB": {
+    "industry": "Auto & Truck Dealerships",
+    "sector": "Consumer Cyclical"
+  },
+  "SKYA": {
+    "industry": "Software - Infrastructure",
+    "sector": "Technology"
+  },
+  "OPTH": {
+    "industry": "Drug Manufacturers - Specialty & Generic",
+    "sector": "Healthcare"
+  },
+  "FDXF": {
+    "industry": "Integrated Freight & Logistics",
+    "sector": "Industrials"
+  },
+  "SPTX": {
+    "industry": "Biotechnology",
+    "sector": "Healthcare"
+  },
+  "SSAC": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
+  },
+  "SVAQ": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
+  },
+  "WSE": {
+    "industry": "Information Technology Services",
+    "sector": "Technology"
+  },
+  "YSWY": {
+    "industry": "Grocery Stores",
+    "sector": "Consumer Defensive"
+  },
+  "ARXS": {
+    "industry": "Aerospace & Defense",
+    "sector": "Industrials"
+  },
+  "VSXY": {
+    "industry": "Apparel Retail",
+    "sector": "Consumer Cyclical"
+  },
+  "PUSA": {
+    "industry": "Leisure",
+    "sector": "Consumer Cyclical"
+  },
+  "AIAI": {
+    "industry": "Conglomerates",
+    "sector": "Industrials"
+  },
+  "CNXU": {
+    "industry": "Biotechnology",
+    "sector": "Healthcare"
+  },
+  "PECEU": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
+  },
+  "PSUS": {
+    "industry": "Asset Management",
+    "sector": "Financial Services"
+  },
+  "SUJA": {
+    "industry": "Beverages - Non-Alcoholic",
+    "sector": "Consumer Defensive"
+  },
+  "OCTV": {
+    "industry": "Software - Application",
+    "sector": "Technology"
+  },
+  "EXYN": {
+    "industry": "Software - Infrastructure",
+    "sector": "Technology"
+  },
+  "FGMCU": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
+  },
+  "BAYA": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
+  },
+  "LTGRU": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
+  },
+  "QNT": {
+    "industry": "Software - Application",
+    "sector": "Technology"
+  },
+  "INIO": {
+    "industry": "Specialty Industrial Machinery",
+    "sector": "Industrials"
+  },
+  "SSMR": {
+    "industry": "Other Industrial Metals & Mining",
+    "sector": "Basic Materials"
+  },
+  "IPVVU": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
+  },
+  "CHRN": {
+    "industry": "Information Technology Services",
+    "sector": "Technology"
+  },
+  "HDRN": {
+    "industry": "Specialty Industrial Machinery",
+    "sector": "Industrials"
+  },
+  "BOT": {
+    "industry": "Asset Management",
+    "sector": "Financial Services"
+  },
+  "KEYYU": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
+  },
+  "OHACU": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
+  },
+  "LKFT": {
+    "industry": "Biotechnology",
+    "sector": "Healthcare"
+  },
+  "AESPU": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
+  },
+  "APMCU": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
   }
 }

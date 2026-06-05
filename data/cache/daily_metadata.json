@@ -11699,7 +11699,7 @@
       "market_cap_millions": 32566.165504
     },
     "ATCX": {
-      "market_cap_millions": 27.735826
+      "market_cap_millions": 22.038736
     },
     "GCLWW": {
       "market_cap_millions": 0.6435
@@ -16260,7 +16260,7 @@
       "float_shares": 25229213
     },
     "SMXWW": {
-      "float_shares": 79839
+      "float_shares": 34940
     },
     "LBTYA": {
       "market_cap_millions": 3818.879488,
@@ -16320,7 +16320,7 @@
       "market_cap_millions": 115.434776
     },
     "FACT": {
-      "market_cap_millions": 255.861744
+      "market_cap_millions": 259.266736
     },
     "HAYW": {
       "market_cap_millions": 3398.246912,
@@ -16745,6 +16745,118 @@
     "TRAX": {
       "market_cap_millions": 584.796288,
       "float_shares": 31082482
+    },
+    "GENB": {
+      "market_cap_millions": 1534.464,
+      "float_shares": 60287643
+    },
+    "CBRS": {
+      "market_cap_millions": 51942.240256,
+      "float_shares": 8670606
+    },
+    "QTEX": {
+      "market_cap_millions": 110.14028,
+      "float_shares": 32167595
+    },
+    "ELMT": {
+      "market_cap_millions": 665.646016,
+      "float_shares": 5971355
+    },
+    "NXB": {
+      "market_cap_millions": 63.2475,
+      "float_shares": 7751222
+    },
+    "SKYA": {
+      "market_cap_millions": 60.943924,
+      "float_shares": 34337245
+    },
+    "OPTH": {
+      "market_cap_millions": 32.911404,
+      "float_shares": 2388943
+    },
+    "FDXF": {
+      "market_cap_millions": 22833.270784
+    },
+    "SPTX": {
+      "market_cap_millions": 912.60864,
+      "float_shares": 2892698
+    },
+    "SSAC": {
+      "market_cap_millions": 237.447584,
+      "float_shares": 16985579
+    },
+    "SVAQ": {
+      "market_cap_millions": 293.209536,
+      "float_shares": 21730049
+    },
+    "RKTO": {
+      "market_cap_millions": 42.463372
+    },
+    "WSE": {
+      "market_cap_millions": 11543.053312,
+      "float_shares": 706339790
+    },
+    "YSWY": {
+      "market_cap_millions": 623.711232
+    },
+    "ARXS": {
+      "market_cap_millions": 17578.739712,
+      "float_shares": 67073316
+    },
+    "VSXY": {
+      "market_cap_millions": 6358.818304,
+      "float_shares": 69085758
+    },
+    "PUSA": {
+      "market_cap_millions": 138.269968,
+      "float_shares": 14402761
+    },
+    "AIAI": {
+      "market_cap_millions": 914.08192
+    },
+    "CNXU": {
+      "float_shares": 20088520
+    },
+    "SUJA": {
+      "market_cap_millions": 305.6848
+    },
+    "OCTV": {
+      "market_cap_millions": 5360.702464
+    },
+    "EXYN": {
+      "market_cap_millions": 48.479924,
+      "float_shares": 736408
+    },
+    "FGMCU": {
+      "float_shares": 10285813
+    },
+    "BAYA": {
+      "market_cap_millions": 33.270246,
+      "float_shares": 611488
+    },
+    "QNT": {
+      "market_cap_millions": 1893.691648,
+      "float_shares": 287946001
+    },
+    "INIO": {
+      "market_cap_millions": 24974.999552
+    },
+    "SSMR": {
+      "market_cap_millions": 2415.411968
+    },
+    "PBK": {
+      "market_cap_millions": 48.835056
+    },
+    "CHRN": {
+      "market_cap_millions": 3342.661376,
+      "float_shares": 81673
+    },
+    "HDRN": {
+      "market_cap_millions": 207.34664
+    },
+    "LKFT": {
+      "market_cap_millions": 1852.36672,
+      "float_shares": 44538512
     }
   }
 }

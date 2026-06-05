@@ -9,7 +9,7 @@ REFACTORED: Now uses native async `websockets` library instead of thread-based
 import asyncio
 import json
 from typing import Dict, Any, Optional
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 try:
     import websockets
@@ -141,10 +141,15 @@ class BenzingaWebSocketMicroservice:
         logger.info("Starting Benzinga WebSocket microservice (native async)")
         self._running = True
         self._reconnect_allowed = True
-        self._startup_time = datetime.now()
+        # Freshness baseline: only articles published at/after this moment (minus a
+        # small grace) are ingested. Captured in UTC because Benzinga timestamps are
+        # UTC. Set once per process start and never pushed forward on reconnect, so a
+        # replayed backlog (e.g. after the feed was offline for days) is always dropped.
+        self._startup_time = datetime.now(timezone.utc)
 
         logger.info(
-            f"WebSocket startup time recorded - will skip articles older than {self._startup_skip_old_minutes} minutes"
+            f"WebSocket startup time recorded - will skip any article published more than "
+            f"{self._startup_skip_old_minutes} minutes before startup"
         )
 
         # Start health monitor
@@ -315,7 +320,10 @@ class BenzingaWebSocketMicroservice:
                 self._operational_stats["missed_pongs"] = 0
                 self._reconnect_attempts = 0
                 self._reconnect_delay = 5.0
-                self._startup_time = now
+                # Do NOT reset the freshness baseline on reconnect. It is the
+                # process-start time; resetting it here would re-open the door to a
+                # replayed backlog on every reconnection. Live articles published
+                # after the original startup always pass the filter regardless.
 
                 # Publish connected event
                 await self._publish_connected()
@@ -425,7 +433,7 @@ class BenzingaWebSocketMicroservice:
                 if self._should_skip_old_article(article_data):
                     article_id = article_data.get("id") or article_data.get("benzinga_id") or "unknown"
                     logger.info(
-                        "Skipping old article during startup",
+                        "Skipping stale article (published before startup baseline)",
                         article_id=article_id,
                         published=article_data.get("published"),
                         created_at=article_data.get("created_at"),
@@ -454,16 +462,24 @@ class BenzingaWebSocketMicroservice:
                 await self._publish_error(f"Article processing error: {str(e)}", is_rate_limit=False)
 
     def _should_skip_old_article(self, article_data: Dict[str, Any]) -> bool:
-        """Check if article should be skipped because it's too old (during startup period)."""
+        """Skip any article published before this process started listening.
+
+        We only want to ingest news that breaks AFTER startup. When the feed has been
+        offline for a while, Benzinga replays a backlog of historical articles on
+        (re)connect; those are stale and untradable, and previously leaked into the
+        pipeline (and the recall files) once the old startup *window* expired.
+
+        This filter is now ALWAYS active (no time-boxed window) and compares the
+        article's publish time against the fixed startup baseline. An article is
+        skipped if it was published more than ``_startup_skip_old_minutes`` before
+        startup (a small grace so news that broke moments before boot still counts).
+        Articles published after startup are always fresh and pass, no matter how long
+        the process has been running.
+        """
         if not self._startup_time:
             return False
 
-        startup_period_end = self._startup_time + timedelta(minutes=self._startup_skip_old_minutes)
-        if datetime.now() > startup_period_end:
-            return False
-
         article_timestamp = None
-
         for field in ["published", "created_at", "updated_at", "last_updated"]:
             timestamp_str = article_data.get(field)
             if timestamp_str:
@@ -479,6 +495,7 @@ class BenzingaWebSocketMicroservice:
                 except (ValueError, TypeError):
                     continue
 
+        # Can't determine age — let it through; downstream latency filters still apply.
         if not article_timestamp:
             return False
 
@@ -489,12 +506,8 @@ class BenzingaWebSocketMicroservice:
         if startup_time_aware.tzinfo is None:
             startup_time_aware = startup_time_aware.replace(tzinfo=timezone.utc)
 
-        article_age = (startup_time_aware - article_timestamp).total_seconds() / 60.0
-
-        if article_age > self._startup_skip_old_minutes:
-            return True
-
-        return False
+        article_age_minutes = (startup_time_aware - article_timestamp).total_seconds() / 60.0
+        return article_age_minutes > self._startup_skip_old_minutes
 
     async def _ping_loop(self) -> None:
         """Ping loop for keepalive."""
