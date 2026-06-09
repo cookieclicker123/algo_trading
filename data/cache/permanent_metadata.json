@@ -142016,5 +142016,53 @@
   "APMCU": {
     "industry": "Shell Companies",
     "sector": "Financial Services"
+  },
+  "AMSS": {
+    "industry": "Beverages - Wineries & Distilleries",
+    "sector": "Consumer Defensive"
+  },
+  "KWY": {
+    "industry": "Asset Management",
+    "sector": "Financial Services"
+  },
+  "AIFA": {
+    "industry": "Software - Infrastructure",
+    "sector": "Technology"
+  },
+  "UZX": {
+    "industry": "Internet Retail",
+    "sector": "Consumer Cyclical"
+  },
+  "LFTO": {
+    "industry": "Advertising Agencies",
+    "sector": "Communication Services"
+  },
+  "IPFX": {
+    "industry": "Shell Companies",
+    "sector": "Financial Services"
+  },
+  "HAWK": {
+    "industry": "Aerospace & Defense",
+    "sector": "Industrials"
+  },
+  "AIIR": {
+    "industry": "Tobacco",
+    "sector": "Consumer Defensive"
+  },
+  "PBK": {
+    "industry": "Utilities - Renewable",
+    "sector": "Utilities"
+  },
+  "ONT": {
+    "industry": "Waste Management",
+    "sector": "Industrials"
+  },
+  "MWC": {
+    "industry": "Auto Parts",
+    "sector": "Consumer Cyclical"
+  },
+  "PPLI": {
+    "industry": "Internet Content & Information",
+    "sector": "Communication Services"
   }
 }

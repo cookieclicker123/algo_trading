@@ -296,6 +296,59 @@ def get_prompt_directory(sector: str) -> str:
     return sector.lower().replace(" ", "_")
 
 
+def parse_sector_response(raw_text: str) -> Tuple[str, Optional[str], Optional[str]]:
+    """Parse the sector LLM's two-line entity-CoT response.
+
+    Expected format (healthcare prompts, 2026-06-09):
+        ENTITIES: <terse entity extraction — the reasoning>
+        DECISION: TRADE MODERATE | SKIP | ...
+
+    Returns (classification, position_size, entities):
+      - classification: "TRADE" or "SKIP"
+      - position_size:  "MAX"/"LARGE"/"MODERATE"/"SMALL" or None
+      - entities:       the extracted entity string, or None
+
+    Robust to missing labels, extra prose, casing, and the legacy bare-token
+    format ("TRADE MODERATE" / "SKIP") so non-CoT prompts still parse. The
+    TRADE/SKIP decision is read ONLY from the DECISION segment to avoid
+    misreading phrases like "would not TRADE" inside the entity line.
+    """
+    if not raw_text:
+        return "SKIP", None, None
+    text = raw_text.strip()
+    low = text.lower()
+
+    ent_idx = low.find("entities:")
+    dec_idx = low.find("decision:")
+
+    entities = None
+    if ent_idx != -1:
+        end = dec_idx if (dec_idx != -1 and dec_idx > ent_idx) else len(text)
+        entities = text[ent_idx + len("entities:"):end].strip().strip("-—").strip()
+        entities = " ".join(entities.split()) or None
+
+    if dec_idx != -1:
+        decision_seg = text[dec_idx + len("decision:"):]
+    else:
+        lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+        decision_seg = lines[-1] if lines else text
+    decision_up = decision_seg.upper()
+
+    if "TRADE" in decision_up:
+        if "MAX" in decision_up:
+            size = "MAX"
+        elif "LARGE" in decision_up:
+            size = "LARGE"
+        elif "MODERATE" in decision_up:
+            size = "MODERATE"
+        elif "SMALL" in decision_up:
+            size = "SMALL"
+        else:
+            size = "MODERATE"
+        return "TRADE", size, entities
+    return "SKIP", None, entities
+
+
 class SectorClassifier:
     """
     Fast multi-sector headline classifier using industry-specific prompts.
@@ -425,7 +478,7 @@ strong catalyst in the sector where the deal actually belongs.
         ticker: str,
         prefer_groq: bool = False,
         headline_type: Optional[str] = None,
-    ) -> Tuple[str, Optional[str], Optional[str], float, Optional[str]]:
+    ) -> Tuple[str, Optional[str], Optional[str], float, Optional[str], Optional[str]]:
         """
         Classify a headline from any supported sector.
 
@@ -459,7 +512,7 @@ strong catalyst in the sector where the deal actually belongs.
                 headline=headline[:50]
             )
             self._stats["not_supported_sector"] += 1
-            return "NOT_SUPPORTED_SECTOR", None, None, latency_ms, None
+            return "NOT_SUPPORTED_SECTOR", None, None, latency_ms, None, None
 
         sector = metadata.get("sector", "")
         industry = metadata.get("industry", "")
@@ -474,7 +527,7 @@ strong catalyst in the sector where the deal actually belongs.
                 headline=headline[:50]
             )
             self._stats["not_supported_sector"] += 1
-            return "NOT_SUPPORTED_SECTOR", sector, None, latency_ms, None
+            return "NOT_SUPPORTED_SECTOR", sector, None, latency_ms, None, None
 
         # Step 3: Check if supported industry within sector
         # Normalize FMP/yfinance industry names to our canonical names
@@ -491,7 +544,7 @@ strong catalyst in the sector where the deal actually belongs.
                 headline=headline[:50]
             )
             self._stats["unsupported_industry"] += 1
-            return "UNSUPPORTED_INDUSTRY", sector, industry, latency_ms, None
+            return "UNSUPPORTED_INDUSTRY", sector, industry, latency_ms, None, None
 
         # Step 4: Load industry-specific prompt
         prompt = self._load_prompt(sector, industry)
@@ -499,14 +552,14 @@ strong catalyst in the sector where the deal actually belongs.
             latency_ms = (datetime.now() - start_time).total_seconds() * 1000
             logger.error("Failed to load prompt", sector=sector, industry=industry)
             self._stats["errors"] += 1
-            return "SKIP", sector, industry, latency_ms, None
+            return "SKIP", sector, industry, latency_ms, None, None
 
         # Step 5: Call Anthropic Claude for classification
         if not self.client:
             latency_ms = (datetime.now() - start_time).total_seconds() * 1000
             logger.error("Anthropic client not initialized")
             self._stats["errors"] += 1
-            return "SKIP", sector, industry, latency_ms, None
+            return "SKIP", sector, industry, latency_ms, None, None
 
         try:
             # Build context-aware user message
@@ -566,7 +619,7 @@ assess them RELATIVE to the company's market cap:
 - Investment/contract > 100% of market cap = massive, almost certainly TRADE
 - A "$40M investment" means very different things for a $2M vs $500M company{acquisition_materiality_note}
 
-Respond: TRADE or SKIP"""
+Respond using the exact output format specified in your instructions above."""
             else:
                 # Fallback to headline-only if no metadata
                 user_message = headline
@@ -581,27 +634,15 @@ Respond: TRADE or SKIP"""
                             {"role": "user", "content": user_message},
                         ],
                         temperature=0.0,
-                        max_tokens=10,
+                        max_tokens=120,  # room for ENTITIES line + DECISION
                     )
-                    result = groq_response.choices[0].message.content.strip().upper()
-
-                    position_size = None
-                    if "TRADE" in result:
-                        classification = "TRADE"
+                    classification, position_size, entities = parse_sector_response(
+                        groq_response.choices[0].message.content
+                    )
+                    if classification == "TRADE":
                         self._stats["trade_signals"] += 1
                         self._stats["by_sector"][sector]["trade"] += 1
-                        if "MAX" in result:
-                            position_size = "MAX"
-                        elif "LARGE" in result:
-                            position_size = "LARGE"
-                        elif "MODERATE" in result:
-                            position_size = "MODERATE"
-                        elif "SMALL" in result:
-                            position_size = "SMALL"
-                        else:
-                            position_size = "MODERATE"
                     else:
-                        classification = "SKIP"
                         self._stats["skip_signals"] += 1
                         self._stats["by_sector"][sector]["skip"] += 1
 
@@ -617,7 +658,7 @@ Respond: TRADE or SKIP"""
                         position_size=position_size, headline=headline[:60],
                         latency_ms=round(latency_ms, 1),
                     )
-                    return classification, sector, industry, latency_ms, position_size
+                    return classification, sector, industry, latency_ms, position_size, entities
                 except Exception as groq_err:
                     logger.debug(
                         "Groq primary failed, falling through to Anthropic",
@@ -642,30 +683,14 @@ Respond: TRADE or SKIP"""
                 extra_headers={"anthropic-beta": "extended-cache-ttl-2025-04-11"},
             )
 
-            # Parse response
-            result = response.content[0].text.strip().upper()
-
-            # Extract position size from response (TRADE SMALL, TRADE MODERATE, TRADE LARGE, TRADE MAX)
-            position_size = None
-            if "TRADE" in result:
-                classification = "TRADE"
+            # Parse response (two-line entity-CoT format: ENTITIES + DECISION)
+            classification, position_size, entities = parse_sector_response(
+                response.content[0].text
+            )
+            if classification == "TRADE":
                 self._stats["trade_signals"] += 1
                 self._stats["by_sector"][sector]["trade"] += 1
-
-                # Parse position size
-                if "MAX" in result:
-                    position_size = "MAX"
-                elif "LARGE" in result:
-                    position_size = "LARGE"
-                elif "MODERATE" in result:
-                    position_size = "MODERATE"
-                elif "SMALL" in result:
-                    position_size = "SMALL"
-                else:
-                    # Default to MODERATE if just "TRADE" without size
-                    position_size = "MODERATE"
             else:
-                classification = "SKIP"
                 self._stats["skip_signals"] += 1
                 self._stats["by_sector"][sector]["skip"] += 1
 
@@ -688,7 +713,7 @@ Respond: TRADE or SKIP"""
                 latency_ms=round(latency_ms, 1)
             )
 
-            return classification, sector, industry, latency_ms, position_size
+            return classification, sector, industry, latency_ms, position_size, entities
 
         except RateLimitError as e:
             # Anthropic 429 rate limit — fall back to Groq if available
@@ -707,27 +732,15 @@ Respond: TRADE or SKIP"""
                             {"role": "user", "content": user_message},
                         ],
                         temperature=0.0,
-                        max_tokens=10,
+                        max_tokens=120,  # room for ENTITIES line + DECISION
                     )
-                    result = groq_response.choices[0].message.content.strip().upper()
-
-                    position_size = None
-                    if "TRADE" in result:
-                        classification = "TRADE"
+                    classification, position_size, entities = parse_sector_response(
+                        groq_response.choices[0].message.content
+                    )
+                    if classification == "TRADE":
                         self._stats["trade_signals"] += 1
                         self._stats["by_sector"][sector]["trade"] += 1
-                        if "MAX" in result:
-                            position_size = "MAX"
-                        elif "LARGE" in result:
-                            position_size = "LARGE"
-                        elif "MODERATE" in result:
-                            position_size = "MODERATE"
-                        elif "SMALL" in result:
-                            position_size = "SMALL"
-                        else:
-                            position_size = "MODERATE"
                     else:
-                        classification = "SKIP"
                         self._stats["skip_signals"] += 1
                         self._stats["by_sector"][sector]["skip"] += 1
 
@@ -747,7 +760,7 @@ Respond: TRADE or SKIP"""
                         headline=headline[:60],
                         latency_ms=round(latency_ms, 1),
                     )
-                    return classification, sector, industry, latency_ms, position_size
+                    return classification, sector, industry, latency_ms, position_size, entities
 
                 except Exception as groq_err:
                     latency_ms = (datetime.now() - start_time).total_seconds() * 1000
@@ -758,7 +771,7 @@ Respond: TRADE or SKIP"""
                         error=str(groq_err),
                     )
                     self._stats["errors"] += 1
-                    return "SKIP", sector, industry, latency_ms, None
+                    return "SKIP", sector, industry, latency_ms, None, None
             else:
                 latency_ms = (datetime.now() - start_time).total_seconds() * 1000
                 logger.error(
@@ -768,7 +781,7 @@ Respond: TRADE or SKIP"""
                     error=str(e)[:100],
                 )
                 self._stats["errors"] += 1
-                return "SKIP", sector, industry, latency_ms, None
+                return "SKIP", sector, industry, latency_ms, None, None
 
         except Exception as e:
             latency_ms = (datetime.now() - start_time).total_seconds() * 1000
@@ -780,7 +793,7 @@ Respond: TRADE or SKIP"""
                 headline=headline[:50]
             )
             self._stats["errors"] += 1
-            return "SKIP", sector, industry, latency_ms, None
+            return "SKIP", sector, industry, latency_ms, None, None
 
     async def classify_batch(
         self,

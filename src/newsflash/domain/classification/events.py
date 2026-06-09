@@ -44,6 +44,8 @@ class ArticleClassifiedDomainEvent(BaseModel):
     position_size: Optional[str] = Field(None, description="AI position size: SMALL, MODERATE, LARGE, MAX")
     # Headline type for high-conviction bypass (e.g. military_contract, fda_approval)
     headline_type: Optional[str] = Field(None, description="Headline type from HeadlineTypeClassifier")
+    # Entity-CoT extraction from the sector LLM (for recall analysis)
+    entities: Optional[str] = Field(None, description="Entity constellation extracted by the sector LLM")
     source: str = Field(default="domain.classification", description="Event source")
 
     model_config = {"frozen": True}  # Immutable

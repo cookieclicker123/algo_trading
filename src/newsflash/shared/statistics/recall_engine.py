@@ -132,6 +132,7 @@ class RecallStatsEngine:
         self._trade_executed_wrapper: Optional[Any] = None
         self._trade_failed_wrapper: Optional[Any] = None
         self._classification_skipped_wrapper: Optional[Any] = None
+        self._entities_extracted_wrapper: Optional[Any] = None
 
         logger.info("RecallStatsEngine initialized with modules")
 
@@ -162,6 +163,10 @@ class RecallStatsEngine:
             InfrastructureEventType.CLASSIFICATION_SKIPPED,
             self._handle_classification_skipped
         )
+        self._entities_extracted_wrapper = self.event_bus.subscribe(
+            InfrastructureEventType.CLASSIFICATION_ENTITIES_EXTRACTED,
+            self._handle_entities_extracted
+        )
 
         # Start record manager finalization loop
         await self.record_manager.start_finalization_loop()
@@ -180,6 +185,8 @@ class RecallStatsEngine:
             self.event_bus.unsubscribe(DomainEventType.TRADE_FAILED, self._trade_failed_wrapper)
         if self._classification_skipped_wrapper:
             self.event_bus.unsubscribe(InfrastructureEventType.CLASSIFICATION_SKIPPED, self._classification_skipped_wrapper)
+        if self._entities_extracted_wrapper:
+            self.event_bus.unsubscribe(InfrastructureEventType.CLASSIFICATION_ENTITIES_EXTRACTED, self._entities_extracted_wrapper)
 
         # Stop record manager
         await self.record_manager.stop_finalization_loop()
@@ -296,6 +303,10 @@ class RecallStatsEngine:
             # Store headline_type from triage (already set by classification service)
             if event.headline_type:
                 await self.record_manager.update_headline_type(article_id, event.headline_type)
+
+            # Store entity-CoT extraction from the sector LLM (for headline pattern analysis)
+            if getattr(event, "entities", None):
+                await self.record_manager.update_entities(article_id, event.entities)
         except Exception as e:
             logger.error("Error handling classification", error=str(e), exc_info=True)
 
@@ -375,8 +386,23 @@ class RecallStatsEngine:
                 await self.record_manager.update_headline_type(
                     event.request_data.article_id, event.headline_type
                 )
+            # Store entity-CoT extraction if available (only LLM skips carry it)
+            if getattr(event, "entities", None):
+                await self.record_manager.update_entities(
+                    event.request_data.article_id, event.entities
+                )
         except Exception as e:
             logger.error("Error handling classification skipped", error=str(e), exc_info=True)
+
+    async def _handle_entities_extracted(self, event_type: str, event_data: Dict[str, Any]) -> None:
+        """Handle Infrastructure.ClassificationEntitiesExtracted — async entity annotation for HC-bypass headlines."""
+        try:
+            article_id = event_data.get("article_id")
+            entities = event_data.get("entities")
+            if article_id and entities:
+                await self.record_manager.update_entities(article_id, entities)
+        except Exception as e:
+            logger.error("Error handling entities extracted", error=str(e), exc_info=True)
 
     async def record_postfilter_skip(self, article_id: str, reason: str) -> bool:
         """

@@ -33,6 +33,7 @@ class InfrastructureClassificationResponseData(BaseModel):
     reasoning: str = Field(..., description="Reasoning for classification")
     position_size: Optional[str] = Field(None, description="AI-determined position size: 'SMALL', 'MODERATE', 'LARGE', 'MAX'")
     headline_type: Optional[str] = Field(None, description="Headline type from HeadlineTypeClassifier (e.g. 'military_contract', 'fda_approval')")
+    entities: Optional[str] = Field(None, description="Entity-CoT extraction from the sector LLM (the ENTITIES line) — the constellation reasoning behind the decision")
     # Raw Groq API response fields can be added here
 
 
@@ -87,6 +88,7 @@ class ClassificationSkippedInfrastructureEvent(BaseModel):
     reason: str = Field(..., description="Skip reason: 'no_tickers', 'invalid_exchange', 'broker_not_tradeable', 'nbbo_unavailable', or 'no_volume_since_publication'")
     source: str = Field(default="classification_infrastructure", description="Event source")
     headline_type: Optional[str] = Field(None, description="Headline type from universal triage (for statistics). Only set for post-prefilter skips.")
+    entities: Optional[str] = Field(None, description="Entity-CoT extraction from the sector LLM (only set for LLM skips, not prefilter skips)")
     
     model_config = {"frozen": False}
 

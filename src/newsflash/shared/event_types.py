@@ -68,7 +68,9 @@ class InfrastructureEventType:
     CLASSIFICATION_COMPLETED = "ClassificationCompleted"
     CLASSIFICATION_FAILED = "ClassificationFailed"
     CLASSIFICATION_SKIPPED = "ClassificationSkipped"
-    
+    # Async, post-execution entity extraction for HC-bypass headlines (recall annotation only)
+    CLASSIFICATION_ENTITIES_EXTRACTED = "ClassificationEntitiesExtracted"
+
     # Storage infrastructure events
     ARTICLE_STORAGE_REQUESTED = "ArticleStorageRequested"
     ARTICLE_STORED = "ArticleStored"

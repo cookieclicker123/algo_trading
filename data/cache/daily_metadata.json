@@ -1,5 +1,5 @@
 {
-  "date": "2026-05-02",
+  "date": "2026-06-08",
   "data": {
     "ORCL": {
       "market_cap_millions": 459538.399232
@@ -11699,7 +11699,7 @@
       "market_cap_millions": 32566.165504
     },
     "ATCX": {
-      "market_cap_millions": 22.038736
+      "market_cap_millions": 20.83935
     },
     "GCLWW": {
       "market_cap_millions": 0.6435
@@ -16667,7 +16667,8 @@
       "float_shares": 2582408
     },
     "ONT": {
-      "market_cap_millions": 798.267008
+      "market_cap_millions": 619.787776,
+      "float_shares": 33460226
     },
     "AVLN": {
       "market_cap_millions": 1146.904448,
@@ -16845,7 +16846,8 @@
       "market_cap_millions": 2415.411968
     },
     "PBK": {
-      "market_cap_millions": 48.835056
+      "market_cap_millions": 43.265984,
+      "float_shares": 44107352
     },
     "CHRN": {
       "market_cap_millions": 3342.661376,
@@ -16857,6 +16859,44 @@
     "LKFT": {
       "market_cap_millions": 1852.36672,
       "float_shares": 44538512
+    },
+    "AMSS": {
+      "market_cap_millions": 55.896992,
+      "float_shares": 9725699
+    },
+    "KWY": {
+      "market_cap_millions": 288.83376,
+      "float_shares": 9990362
+    },
+    "AIFA": {
+      "market_cap_millions": 14.843679,
+      "float_shares": 17512381
+    },
+    "UZX": {
+      "market_cap_millions": 25.215066,
+      "float_shares": 1930112
+    },
+    "LFTO": {
+      "market_cap_millions": 4566.560768
+    },
+    "IPFX": {
+      "market_cap_millions": 336.658624,
+      "float_shares": 5658152
+    },
+    "HAWK": {
+      "market_cap_millions": 2344.796416,
+      "float_shares": 2791352
+    },
+    "AIIR": {
+      "market_cap_millions": 1108.271488
+    },
+    "MWC": {
+      "market_cap_millions": 293.189792,
+      "float_shares": 22628560
+    },
+    "PPLI": {
+      "market_cap_millions": 3130.22592,
+      "float_shares": 55071736
     }
   }
 }

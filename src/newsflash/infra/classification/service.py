@@ -19,6 +19,7 @@ STATISTICAL IMPACT (January 2026 backtest):
   - + All microstructure filters: +$1,850 profit, 24.5% win rate
   - Improvement: +$5,472 per month
 """
+import asyncio
 import html
 import json
 import re
@@ -106,6 +107,10 @@ class ClassificationInfrastructureService(InfrastructureClassificationRequestEve
 
         # Multi-sector classifier (initialized lazily when metadata_cache is set)
         self._sector_classifier: Optional[SectorClassifier] = None
+
+        # Background tasks for async post-execution entity extraction (HC-bypass headlines).
+        # Held in a set so they aren't GC'd mid-flight; self-discard on completion.
+        self._entity_tasks: set = set()
 
         # Triage cache: article_id → headline_type from prefilter LLM triage
         # Reused in _classify_via_sector to avoid duplicate LLM call.
@@ -684,7 +689,7 @@ Summary: {summary}"""
                 # ====================================================================
                 spread = nbbo_snapshot.get("spread", 0)
                 spread_pct = nbbo_snapshot.get("spread_pct", 0)
-                MAX_SPREAD_PCT_PREFILTER = 7.5  # Raised from 5.0 — trust the AI more, accept wider entry slippage on a few trades/day strategy
+                MAX_SPREAD_PCT_PREFILTER = 5.0  # Hard cap (2026-06-09). No headline-type exceptions — edge is at ≤5% spread; wide spreads lose to slippage.
 
                 # HIGH-CONVICTION SPREAD BYPASS: If headline is high-conviction (e.g. military_contract),
                 # relax spread from 5% → 10%. Uses early triage result (already populated above).
@@ -739,62 +744,13 @@ Summary: {summary}"""
                     )
                 )
 
-                if is_high_conviction_headline:
-                    effective_spread_threshold = MAX_SPREAD_PCT_HIGH_CONVICTION
-                elif is_clinical_breakthrough_headline:
-                    effective_spread_threshold = 10.0
-                elif is_acquisition_with_dollars:
-                    effective_spread_threshold = MAX_SPREAD_PCT_ACQUISITION_WITH_DOLLARS
-                elif is_merger_headline:
-                    effective_spread_threshold = MAX_SPREAD_PCT_MERGER
-                elif is_ai_breakthrough_headline and current_price:
-                    if current_price < 0.30:
-                        effective_spread_threshold = 10.0
-                    else:
-                        effective_spread_threshold = 7.5
-                else:
-                    effective_spread_threshold = MAX_SPREAD_PCT_PREFILTER
-
-                if is_merger_headline and spread_pct and spread_pct > MAX_SPREAD_PCT_PREFILTER:
-                    logger.info(
-                        f"🤝 MERGER AGREEMENT: Relaxing spread prefilter (5% → {MAX_SPREAD_PCT_MERGER}%)",
-                        article_id=request_data.article_id,
-                        ticker=primary_ticker,
-                        spread_pct=round(spread_pct, 2),
-                        headline_type=triage_headline_type,
-                        effective_threshold=MAX_SPREAD_PCT_MERGER,
-                    )
-
-                if is_acquisition_with_dollars and spread_pct and spread_pct > MAX_SPREAD_PCT_PREFILTER:
-                    logger.info(
-                        f"💰 ACQUISITION WITH $: Relaxing spread prefilter (5% → {MAX_SPREAD_PCT_ACQUISITION_WITH_DOLLARS}%)",
-                        article_id=request_data.article_id,
-                        ticker=primary_ticker,
-                        spread_pct=round(spread_pct, 2),
-                        headline_type=triage_headline_type,
-                        effective_threshold=MAX_SPREAD_PCT_ACQUISITION_WITH_DOLLARS,
-                    )
-
-                if is_high_conviction_headline and spread_pct and spread_pct > MAX_SPREAD_PCT_PREFILTER:
-                    logger.info(
-                        "✅ HIGH-CONVICTION HEADLINE: Relaxing spread prefilter (5% → 10%)",
-                        article_id=request_data.article_id,
-                        ticker=primary_ticker,
-                        spread_pct=round(spread_pct, 2),
-                        headline_type=triage_headline_type,
-                        effective_threshold=MAX_SPREAD_PCT_HIGH_CONVICTION,
-                    )
-
-                if is_ai_breakthrough_headline and spread_pct and spread_pct > MAX_SPREAD_PCT_PREFILTER:
-                    logger.info(
-                        "🤖 AI BREAKTHROUGH HEADLINE: Price-tiered spread prefilter",
-                        article_id=request_data.article_id,
-                        ticker=primary_ticker,
-                        price=round(current_price, 2) if current_price else None,
-                        spread_pct=round(spread_pct, 2),
-                        headline_type=triage_headline_type,
-                        effective_threshold=effective_spread_threshold,
-                    )
+                # HARD 5% SPREAD CAP (2026-06-09): all headline-type spread
+                # relaxations (HC/merger/acquisition/clinical/ai_breakthrough → 7.5–10%)
+                # REMOVED. June-8 evidence: surge winners live at ≤4% spread (8/11 up,
+                # +15% mean); the 4–7.5% band was 0/4 (all faded), and wide-spread
+                # "monsters" (SUNE 12.45%) carry slippage risk that dwarfs the win.
+                # Discipline on spread is what lets us retire the broken activity gate.
+                effective_spread_threshold = MAX_SPREAD_PCT_PREFILTER
 
                 if spread_pct and spread_pct > effective_spread_threshold:
                     logger.info(
@@ -1171,13 +1127,25 @@ Summary: {summary}"""
                     InfrastructureEventType.CLASSIFICATION_COMPLETED,
                     completed_event.model_dump()
                 )
+
+                # Non-blocking: the fast-path trade has already fired above. For
+                # Healthcare tickers, run the sector prompt asynchronously to capture
+                # the entity constellation for recall analysis (we keep only the
+                # ENTITIES line; the bypass TRADE decision is NOT overridden).
+                task = asyncio.create_task(
+                    self._extract_bypass_entities(
+                        request_data.article_id, headline, primary_ticker, triage_headline_type
+                    )
+                )
+                self._entity_tasks.add(task)
+                task.add_done_callback(self._entity_tasks.discard)
                 return
 
             # Classify via multi-sector classifier
             # Pass triage_headline_type so type-specific guidance (e.g. acquisition
             # materiality gate for acquisition_with_revenue_generating_business)
             # is injected into the sector prompt's user message at runtime.
-            classification, sector, industry, latency_ms, position_size = await self.sector_classifier.classify(
+            classification, sector, industry, latency_ms, position_size, entities = await self.sector_classifier.classify(
                 headline=headline,
                 ticker=primary_ticker,
                 headline_type=triage_headline_type,
@@ -1226,6 +1194,7 @@ Summary: {summary}"""
                     reasoning=f"{sector}/{industry} - LLM classified as tradeable",
                     position_size=position_size,
                     headline_type=headline_type,
+                    entities=entities,
                 )
 
                 completed_event = ClassificationCompletedInfrastructureEvent(
@@ -1262,7 +1231,7 @@ Summary: {summary}"""
 
             else:
                 # SKIP signal - LLM determined not tradeable
-                await self._publish_skipped_event(infra_event, f"llm_skip:{sector}/{industry}", headline_type=triage_headline_type)
+                await self._publish_skipped_event(infra_event, f"llm_skip:{sector}/{industry}", headline_type=triage_headline_type, entities=entities)
 
         except Exception as e:
             logger.error(
@@ -1347,11 +1316,48 @@ Summary: {summary}"""
             return max(amounts)  # Return the largest amount found
         return None
 
+    async def _extract_bypass_entities(
+        self,
+        article_id: str,
+        headline: str,
+        ticker: str,
+        headline_type: Optional[str],
+    ) -> None:
+        """
+        Async, best-effort entity extraction for HC-bypass headlines.
+
+        HC_BYPASS types skip the sector LLM on the fast path (for speed). This runs the
+        sector prompt AFTER the trade has already fired, purely to annotate the recall
+        record with the entity constellation. Only Healthcare tickers produce entities
+        (only HC prompts emit the ENTITIES line); everything else is a no-op. The sector
+        LLM's TRADE/SKIP decision here is discarded — the bypass already decided to trade.
+        """
+        try:
+            classifier = self.sector_classifier
+            if not classifier or not self.metadata_cache:
+                return
+            meta = await self.metadata_cache.get_permanent(ticker)
+            if (meta or {}).get("sector") != "Healthcare":
+                return
+            _, _, _, _, _, entities = await classifier.classify(
+                headline=headline,
+                ticker=ticker,
+                headline_type=headline_type,
+            )
+            if entities:
+                await self.event_bus.publish(
+                    InfrastructureEventType.CLASSIFICATION_ENTITIES_EXTRACTED,
+                    {"article_id": article_id, "entities": entities},
+                )
+        except Exception as e:
+            logger.debug(f"Bypass entity extraction failed (non-blocking): {e}")
+
     async def _publish_skipped_event(
         self,
         infra_event: ClassificationRequestedInfrastructureEvent,
         reason: str,
         headline_type: Optional[str] = None,
+        entities: Optional[str] = None,
     ) -> None:
         """
         Publish ClassificationSkipped infrastructure event.
@@ -1360,6 +1366,7 @@ Summary: {summary}"""
             infra_event: Original classification request event
             reason: Skip reason ('no_tickers', 'invalid_exchange', 'broker_not_tradeable', 'nbbo_unavailable', or 'no_volume_since_publication')
             headline_type: Headline type from universal triage (only for post-prefilter skips)
+            entities: Entity-CoT extraction from the sector LLM (only for LLM skips)
         """
         skipped_event = ClassificationSkippedInfrastructureEvent(
             request_data=infra_event.request_data,
@@ -1367,6 +1374,7 @@ Summary: {summary}"""
             reason=reason,
             source="classification_infrastructure",
             headline_type=headline_type,
+            entities=entities,
         )
         
         await self.event_bus.publish(

@@ -112,6 +112,8 @@ class RecordManager:
 
         self._pending_headline_types: Dict[str, str] = {}
         self._headline_types_lock = asyncio.Lock()
+        self._pending_entities: Dict[str, str] = {}
+        self._entities_lock = asyncio.Lock()
 
         # Record locations cache (article_id -> (session, date))
         self._record_locations: Dict[str, tuple[str, datetime]] = {}
@@ -244,6 +246,29 @@ class RecordManager:
             except Exception as e:
                 logger.warning(
                     "RecordManager: Failed to apply pending headline_type",
+                    article_id=article_id,
+                    error=str(e)
+                )
+
+        # Also apply any pending entity-CoT extraction
+        pending_entities = None
+        async with self._entities_lock:
+            pending_entities = self._pending_entities.get(article_id)
+
+        if pending_entities:
+            try:
+                updated = await self.repository.update_recall_record(
+                    article_id=article_id,
+                    updates={"entities": pending_entities},
+                    session=session,
+                    date=received_at
+                )
+                if updated:
+                    async with self._entities_lock:
+                        self._pending_entities.pop(article_id, None)
+            except Exception as e:
+                logger.warning(
+                    "RecordManager: Failed to apply pending entities",
                     article_id=article_id,
                     error=str(e)
                 )
@@ -603,6 +628,46 @@ class RecordManager:
 
         return updated
 
+    async def update_entities(
+        self,
+        article_id: str,
+        entities: str,
+    ) -> bool:
+        """
+        Update record with the sector LLM's entity-CoT extraction.
+
+        Mirrors update_headline_type: writes immediately if the record exists,
+        otherwise queues for apply_pending_updates to flush at record creation.
+        This is an analytics field (the constellation reasoning behind the
+        TRADE/SKIP decision), recorded for both traded and skipped articles.
+
+        Returns:
+            True if updated immediately, False if queued/failed.
+        """
+        record_loc = self._record_locations.get(article_id)
+        if not record_loc:
+            async with self._entities_lock:
+                self._pending_entities[article_id] = entities
+            self._pending_insert_times[f"ent:{article_id}"] = datetime.now()
+            return False
+
+        updated = await self.repository.update_recall_record(
+            article_id=article_id,
+            updates={"entities": entities},
+            session=record_loc[0],
+            date=record_loc[1]
+        )
+
+        if updated:
+            async with self._entities_lock:
+                self._pending_entities.pop(article_id, None)
+        else:
+            async with self._entities_lock:
+                self._pending_entities[article_id] = entities
+            self._pending_insert_times[f"ent:{article_id}"] = datetime.now()
+
+        return updated
+
     # ==================== Trade Updates ====================
 
     async def update_trade_executed(
@@ -714,6 +779,15 @@ class RecordManager:
             for aid in stale:
                 self._pending_headline_types.pop(aid, None)
                 self._pending_insert_times.pop(f"ht:{aid}", None)
+            evicted += len(stale)
+
+        # Evict stale pending entities
+        async with self._entities_lock:
+            stale = [aid for aid in self._pending_entities
+                     if now - self._pending_insert_times.get(f"ent:{aid}", now) > self._PENDING_TTL]
+            for aid in stale:
+                self._pending_entities.pop(aid, None)
+                self._pending_insert_times.pop(f"ent:{aid}", None)
             evicted += len(stale)
 
         # Evict stale pending metadata (cancel the task too)

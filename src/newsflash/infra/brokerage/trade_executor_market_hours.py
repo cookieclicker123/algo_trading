@@ -18,11 +18,6 @@ from .event_builders import build_infrastructure_trade_request_data
 from .quote_fetcher import AlpacaQuoteFetcher
 from .utils import (
     calculate_trade_quantity,
-    wait_for_activity_gate,
-    QI_THRESHOLD,
-    TPS_THRESHOLD,
-    MD_THRESHOLD_PCT,
-    ACTIVITY_GATE_MAX_WAIT_S,
 )
 from ..notification.fast_trade_notifier import FastTradeNotifier
 
@@ -146,61 +141,10 @@ class AlpacaMarketHoursTradeExecutor:
             else:
                 logger.debug("Using explicit quantity for market-hours trade", quantity=quantity)
 
-            # ===============================================================
-            # 🚦 ACTIVITY GATE — second-stage precision filter on STRENGTH/SURGE/LATE
-            # ===============================================================
-            # Replaces the prior sustained-depth probe (zero edge). Confirms
-            # microstructure activity since publication: fires when ANY of
-            # qi≥5/s, tps≥5/s, mid_drift≥3% is true. Catches the "snapshot
-            # flicker" losers that triggered STRENGTH then died (~93% of them).
-            # SELLs are NEVER gated.
-            pub_time = (metadata or {}).get("published_at_dt") if isinstance(metadata, dict) else None
-            if isinstance(pub_time, str):
-                # Round-trip via JSON may stringify the datetime — coerce back.
-                try:
-                    pub_time = datetime.fromisoformat(pub_time.replace("Z", "+00:00"))
-                except Exception:
-                    pub_time = None
-            if action == "BUY" and pub_time is not None:
-                gate_passed, last_nbbo, gate_telemetry = await wait_for_activity_gate(
-                    quote_fetcher=self.quote_fetcher,
-                    ticker=trade_request.ticker,
-                    pub_time=pub_time,
-                    max_wait_s=ACTIVITY_GATE_MAX_WAIT_S,
-                    qi_threshold=QI_THRESHOLD,
-                    tps_threshold=TPS_THRESHOLD,
-                    md_threshold_pct=MD_THRESHOLD_PCT,
-                )
-
-                if not gate_passed:
-                    error_msg = (
-                        f"Activity gate: no sustained activity since pub "
-                        f"(qi={gate_telemetry.get('activity_gate_qi')}/s, "
-                        f"tps={gate_telemetry.get('activity_gate_tps')}/s, "
-                        f"md={gate_telemetry.get('activity_gate_md_pct')}%, "
-                        f"elapsed={gate_telemetry.get('activity_gate_elapsed_since_pub_s')}s)"
-                    )
-                    logger.warning(
-                        "🚦 TRADE ABORTED: Activity gate (no sustained activity)",
-                        ticker=trade_request.ticker,
-                        **gate_telemetry,
-                    )
-                    error_result = {
-                        "success": False,
-                        "error": error_msg,
-                        "session": "market_hours",
-                        "order_type": "MARKET",
-                        "instrument": "stock",
-                        "activity_gate": gate_telemetry,
-                    }
-                    await self._publish_failed_event(trade_request, error_result["error"])
-                    return error_result
-
-                logger.info(
-                    "✅ Activity gate passed",
-                    ticker=trade_request.ticker,
-                    **gate_telemetry,
-                )
+            # ACTIVITY GATE REMOVED (2026-06-09): its realtime stream cache was
+            # empty (qi=0/tps=0) for the low-priced micro-caps we trade, blocking
+            # winners indiscriminately. STRENGTH/SURGE/LATE gate real activity
+            # upstream; the 5% spread cap is the liquidity check.
 
             # Create market order
             order_create_start = time.time()

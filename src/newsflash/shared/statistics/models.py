@@ -184,7 +184,19 @@ class RecallRecord(BaseModel):
     session: MarketSession = Field(..., description="Market session when article was received")
     published_at: datetime = Field(..., description="When article was published")
     received_at: datetime = Field(..., description="When article was received")
-    
+
+    # Entity-CoT extraction from the sector LLM + headline_type, kept at the TOP of
+    # the record for fast scanning of healthcare winner/loser patterns (2026-06-09).
+    entities: Optional[str] = Field(
+        None,
+        description="Sector-LLM entity constellation (asset, counterparty, disease/market, modality, event, $) — the reasoning behind the TRADE/SKIP decision. Set for both traded and skipped articles."
+    )
+    # Headline type classification (for statistical analysis)
+    headline_type: Optional[str] = Field(
+        None,
+        description="Headline type from universal triage (e.g., major_contract, government_contract). Set for all post-prefilter articles."
+    )
+
     # Initial NBBO snapshot (when article received)
     initial_nbbo: Optional[Dict[str, Any]] = Field(
         None,
@@ -226,12 +238,6 @@ class RecallRecord(BaseModel):
     postfilter_reason: Optional[str] = Field(
         None,
         description="Post-AI skip reason: 'postfilter_no_surge', 'postfilter_low_volume', 'postfilter_spread_too_wide', etc."
-    )
-
-    # Headline type classification (for statistical analysis)
-    headline_type: Optional[str] = Field(
-        None,
-        description="Headline type from universal triage (e.g., major_contract, government_contract). Set for all post-prefilter articles."
     )
 
     # Late-trade candidate marker — stamped at 10-min price-check time when the

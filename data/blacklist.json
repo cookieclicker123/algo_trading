@@ -526,5 +526,35 @@
     "permanent": false,
     "created_at": "2026-05-14T23:49:05.563773",
     "last_fp_date": "2026-05-14"
+  },
+  "ADTX": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-06-09T12:45:50.713609",
+    "last_fp_date": "2026-06-09"
+  },
+  "RYET": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-06-09T13:30:40.885220",
+    "last_fp_date": "2026-06-09"
+  },
+  "JFB": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-06-09T13:31:51.506342",
+    "last_fp_date": "2026-06-09"
+  },
+  "OPTX": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-06-09T13:32:44.543521",
+    "last_fp_date": "2026-06-09"
+  },
+  "BKSY": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-06-09T13:33:04.160731",
+    "last_fp_date": "2026-06-09"
   }
 }

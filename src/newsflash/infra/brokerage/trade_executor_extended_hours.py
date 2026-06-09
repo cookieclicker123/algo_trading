@@ -19,11 +19,6 @@ from .event_builders import build_infrastructure_trade_request_data
 from .quote_fetcher import AlpacaQuoteFetcher
 from .utils import (
     calculate_trade_quantity,
-    wait_for_activity_gate,
-    QI_THRESHOLD,
-    TPS_THRESHOLD,
-    MD_THRESHOLD_PCT,
-    ACTIVITY_GATE_MAX_WAIT_S,
 )
 from ...utils.brokerage.ladder_algorithms import (
     calculate_ladder_base_price,
@@ -266,73 +261,11 @@ class AlpacaExtendedHoursTradeExecutor:
                             max_allowed_pct=max_execution_slippage,
                         )
 
-                # ===============================================================
-                # 🚦 ACTIVITY GATE — second-stage precision filter on STRENGTH/SURGE/LATE
-                # ===============================================================
-                # Replaces the sustained-depth probe (zero edge — calm books were
-                # losers, bursty books were winners). Reads cached quotes/trades
-                # since publication and fires when ANY of qi≥5/s, tps≥5/s, mid
-                # drift ≥3% holds. Catches ~93% of "snapshot flicker" losers
-                # that triggered STRENGTH then died.
-                pub_time = (metadata or {}).get("published_at_dt") if isinstance(metadata, dict) else None
-                if isinstance(pub_time, str):
-                    try:
-                        pub_time = datetime.fromisoformat(pub_time.replace("Z", "+00:00"))
-                    except Exception:
-                        pub_time = None
-                if pub_time is None:
-                    logger.warning(
-                        "Activity gate skipped: no published_at_dt in metadata",
-                        ticker=trade_request.ticker,
-                    )
-                    gate_passed = True
-                    last_nbbo = None
-                    gate_telemetry = {"activity_gate_skipped": "no_pub_time"}
-                else:
-                    gate_passed, last_nbbo, gate_telemetry = await wait_for_activity_gate(
-                        quote_fetcher=self.quote_fetcher,
-                        ticker=trade_request.ticker,
-                        pub_time=pub_time,
-                        max_wait_s=ACTIVITY_GATE_MAX_WAIT_S,
-                        qi_threshold=QI_THRESHOLD,
-                        tps_threshold=TPS_THRESHOLD,
-                        md_threshold_pct=MD_THRESHOLD_PCT,
-                    )
-
-                if not gate_passed:
-                    error_msg = (
-                        f"Activity gate: no sustained activity since pub "
-                        f"(qi={gate_telemetry.get('activity_gate_qi')}/s, "
-                        f"tps={gate_telemetry.get('activity_gate_tps')}/s, "
-                        f"md={gate_telemetry.get('activity_gate_md_pct')}%, "
-                        f"elapsed={gate_telemetry.get('activity_gate_elapsed_since_pub_s')}s)"
-                    )
-                    logger.warning(
-                        "🚦 TRADE ABORTED: Activity gate (no sustained activity)",
-                        ticker=trade_request.ticker,
-                        **gate_telemetry,
-                    )
-                    error_result = {
-                        "success": False,
-                        "error": error_msg,
-                        "session": session,
-                        "order_type": "LIMIT",
-                        "instrument": "stock",
-                        "activity_gate": gate_telemetry,
-                    }
-                    await self._publish_failed_event(trade_request, error_result["error"])
-                    return error_result
-
-                logger.info(
-                    "✅ Activity gate passed",
-                    ticker=trade_request.ticker,
-                    **gate_telemetry,
-                )
-
-                # Refresh initial_ask from the most recent NBBO seen during
-                # the gate — it can drift over the wait window.
-                if last_nbbo and last_nbbo.get("ask"):
-                    initial_ask = last_nbbo["ask"]
+                # ACTIVITY GATE REMOVED (2026-06-09): it read an empty realtime
+                # stream cache for low-priced micro-caps (qi=0/tps=0 for every name
+                # on 2026-06-08, incl. NCRA +86% and ABAT +37%), so it blocked the
+                # very winners it was meant to confirm. STRENGTH/SURGE/LATE already
+                # gate on real activity upstream; the 5% spread cap handles liquidity.
 
                 # Price collar: Maximum we're willing to pay (10% above initial ask for extended chase)
                 # This prevents chasing into pump-and-dumps while allowing runners

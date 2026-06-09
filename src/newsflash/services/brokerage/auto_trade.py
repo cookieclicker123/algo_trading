@@ -576,14 +576,15 @@ MIN_ABSOLUTE_VOLUME = 2000            # Absolute minimum volume (even if prior i
 MIN_ABSOLUTE_TRADES = 20              # Absolute minimum trades (even if prior is 0)
 
 # Late entry monitoring: extended window after initial STRENGTH/SURGE checks fail
-LATE_ENTRY_MAX_SECONDS = 45.0         # Default cutoff: was 90s — too generous, catches noise/decay
-LATE_ENTRY_MAX_SECONDS_SLOW_BUILD = 180.0  # Slow-build catalysts: SAGT (revenue_milestone) first showed sustained deep book at +89.8s; default 45s missed a +39.89% move
+LATE_ENTRY_MAX_SECONDS = 30.0         # Cutoff: tightened 45→30s (2026-06-09) — late surges decay (CYAB surged @112s, faded). Favour early entries.
+LATE_ENTRY_MAX_SECONDS_SLOW_BUILD = 120.0  # Slow-build catalysts: trimmed 180→120s (2026-06-09) to deprioritise the long late tail; still clears SAGT (deep book +89.8s) and RVMD (clinical, +45s).
 LATE_ENTRY_POLL_INTERVAL = 1.0        # Check every 1s (WebSocket data is instant)
 LATE_STRENGTH_MIN_TRADES = 5          # Min trades to confirm real activity
 
-# Headline types whose catalyst typically takes >45s for liquidity to arrive.
+# Headline types whose catalyst typically takes >30s for liquidity to arrive.
 # Small-float or niche-audience announcements need longer monitoring; the
-# sustained-depth probe at execution time still gates penny-float fakes.
+# STRENGTH/SURGE confluence check and the 5% spread cap gate penny-float fakes
+# (the old sustained-depth probe and activity gate have both been removed).
 SLOW_BUILD_HEADLINE_TYPES = frozenset({
     "revenue_milestone",            # SAGT 2026-04-29: first deep book +89.8s, peak +39.89% at +231s
     "listing_compliance_regained",  # Small-float compliance news propagates slowly
@@ -2194,7 +2195,7 @@ async def process_imminent_article(
                 ticker=ticker,
                 headline_type=headline_type,
                 article_id=article_id,
-                relaxed_filters="circuit_breaker=SKIP, spread=10%, selling_pressure=SKIP, pub_to_recv=SKIP, recv_to_fill=SKIP, fill_spread=10%, momentum_exhaustion=SKIP, late_entry=25s, pre_news_runup=10%",
+                relaxed_filters="circuit_breaker=SKIP, spread=5% (HARD CAP), selling_pressure=SKIP, pub_to_recv=SKIP, recv_to_fill=SKIP, fill_spread=5% (HARD CAP), momentum_exhaustion=SKIP, late_entry=25s, pre_news_runup=10%",
             )
 
         # ============================================================
@@ -2580,17 +2581,11 @@ async def process_imminent_article(
         # Raised from 5% → 7.5% for normal trades (2026-04-22) — on a few-trades-a-day
         # news strategy with big winners rare, allow slightly wider entry slippage
         # in exchange for catching more real movers. AI quality good enough to trust.
-        if is_high_conviction:
-            MAX_SPREAD_PCT = 10.0
-        elif is_clinical_breakthrough:
-            MAX_SPREAD_PCT = 10.0
-        elif headline_type in WIDE_SPREAD_HEADLINE_TYPES:
-            MAX_SPREAD_PCT = 10.0
-        elif is_ai_breakthrough:
-            _ab_price = confluence_metadata.get("initial_ask") or 0
-            MAX_SPREAD_PCT = _ai_breakthrough_spread_threshold(_ab_price)
-        else:
-            MAX_SPREAD_PCT = 7.5
+        # HARD 5% SPREAD CAP (2026-06-09): all headline-type relaxations (HC,
+        # clinical, wide-spread types, ai_breakthrough → 7.5–10%) REMOVED. The
+        # edge lives at ≤5% spread; wider books fade or bleed to slippage. This
+        # discipline is what replaces the retired activity gate.
+        MAX_SPREAD_PCT = 5.0
         initial_spread = confluence_metadata.get("initial_spread")
         initial_ask = confluence_metadata.get("initial_ask")
         initial_bid = confluence_metadata.get("initial_bid", 0)
@@ -2728,78 +2723,95 @@ async def process_imminent_article(
         # bid likely dipped causing ~5% fill spread — blocking a +69% winner.
         # Fix: If the initial spread was tight (< 3%) and widening is modest (< 3pp),
         # allow it — this is temporary noise, not genuine spread deterioration.
-        if is_high_conviction:
-            MAX_FILL_SPREAD_PCT = 10.0
-        elif is_clinical_breakthrough:
-            MAX_FILL_SPREAD_PCT = 10.0
-        elif headline_type in WIDE_SPREAD_HEADLINE_TYPES:
-            MAX_FILL_SPREAD_PCT = 10.0
-        elif is_ai_breakthrough:
-            _ab_fill_price = confluence_metadata.get("initial_ask") or 0
-            MAX_FILL_SPREAD_PCT = _ai_breakthrough_spread_threshold(_ab_fill_price)
-        else:
-            MAX_FILL_SPREAD_PCT = 5.0
+        # FILL-SPREAD CAP = 8% (2026-06-09, raised from 5%). The ENTRY cap stays a
+        # hard 5% (decision-time slippage discipline), but explosive sub-penny winners
+        # routinely FILL wider than they DECIDE as the book widens during the rip.
+        # ADTX 2026-06-09: 2.22% at decision → 5.6% at fill → +60% in 47s. A 5% fill
+        # cap (with only a <3pp widening carve-out) would have BLOCKED it. 8% lets a
+        # name that already qualified at ≤5% entry survive the momentary fill widening;
+        # a genuinely wide ENTRY book still never gets here. (The carve-out below is
+        # now belt-and-suspenders for the rare tight-name dip beyond 8%.)
+        MAX_FILL_SPREAD_PCT = 8.0
         SPREAD_TIGHT_INITIAL = 3.0  # Initial spread considered "tight"
         SPREAD_WIDENING_TOLERANCE = 3.0  # Max acceptable widening from initial (percentage points)
+
+        # Gate on the MEDIAN of a few NBBO snapshots, not one noisy instant. Sub-penny
+        # books oscillate fast — ADTX 2026-06-09 flickered 2.76% ↔ 6.65% second-to-second,
+        # and a single 5.6% sample at fill time massively overstated the real cost (it
+        # actually filled at mid, +60% in 47s). The median of a few snapshots reflects
+        # the typical book and is immune to a single wide flicker. Cache reads are
+        # instant; the short sleeps just let fresh WebSocket quotes arrive between samples.
+        FILL_SPREAD_SAMPLES = 3
+        FILL_SPREAD_SAMPLE_INTERVAL_S = 0.1  # ~200ms total added latency
 
         pre_entry_nbbo = None
         if quote_fetcher:
             try:
-                pre_entry_nbbo = await quote_fetcher.get_nbbo_snapshot(ticker)
-                if pre_entry_nbbo:
+                samples = []  # (spread_pct, nbbo) per snapshot
+                for i in range(FILL_SPREAD_SAMPLES):
+                    if i > 0:
+                        await asyncio.sleep(FILL_SPREAD_SAMPLE_INTERVAL_S)
+                    snap = await quote_fetcher.get_nbbo_snapshot(ticker)
+                    if not snap:
+                        continue
+                    s_bid = snap.get("bid", 0)
+                    s_ask = snap.get("ask", 0)
+                    if s_bid and s_ask and s_ask > s_bid:
+                        s_mid = (s_ask + s_bid) / 2
+                        if s_mid > 0:
+                            samples.append(((s_ask - s_bid) / s_mid * 100, snap))
+
+                if samples:
+                    # Median spread (and its matching NBBO) — robust to a lone wide flicker
+                    samples.sort(key=lambda s: s[0])
+                    fill_spread_pct, pre_entry_nbbo = samples[len(samples) // 2]
+                    sampled_spreads = [round(s[0], 2) for s in samples]
                     current_bid = pre_entry_nbbo.get("bid", 0)
                     current_ask = pre_entry_nbbo.get("ask", 0)
-                    if current_bid and current_ask and current_ask > current_bid:
-                        current_spread = current_ask - current_bid
-                        current_mid = (current_ask + current_bid) / 2
-                        fill_spread_pct = (current_spread / current_mid) * 100 if current_mid > 0 else 0
+                    current_spread = current_ask - current_bid
 
-                        if fill_spread_pct > MAX_FILL_SPREAD_PCT:
-                            # Check if this is temporary volatility on a normally liquid stock
-                            initial_spread_pct_val = confluence_metadata.get("initial_spread_pct", 0)
-                            spread_widening = fill_spread_pct - initial_spread_pct_val if initial_spread_pct_val > 0 else fill_spread_pct
-                            initial_was_tight = initial_spread_pct_val > 0 and initial_spread_pct_val < SPREAD_TIGHT_INITIAL
-                            widening_is_modest = spread_widening < SPREAD_WIDENING_TOLERANCE
+                    if fill_spread_pct > MAX_FILL_SPREAD_PCT:
+                        # Median is genuinely wide — but allow if the book was tight at
+                        # decision and the widening is modest (temporary volatility).
+                        initial_spread_pct_val = confluence_metadata.get("initial_spread_pct", 0)
+                        spread_widening = fill_spread_pct - initial_spread_pct_val if initial_spread_pct_val > 0 else fill_spread_pct
+                        initial_was_tight = initial_spread_pct_val > 0 and initial_spread_pct_val < SPREAD_TIGHT_INITIAL
+                        widening_is_modest = spread_widening < SPREAD_WIDENING_TOLERANCE
 
-                            if initial_was_tight and widening_is_modest:
-                                # Temporary volatility on a liquid stock — allow it
-                                logger.info(
-                                    "✅ FILL-TIME SPREAD: Exceeds 5% but initial was tight and widening modest — temporary volatility",
-                                    ticker=ticker,
-                                    fill_spread_pct=round(fill_spread_pct, 2),
-                                    initial_spread_pct=round(initial_spread_pct_val, 2),
-                                    spread_widening_pp=round(spread_widening, 2),
-                                    tolerance_pp=SPREAD_WIDENING_TOLERANCE,
-                                    current_bid=current_bid,
-                                    current_ask=current_ask,
-                                )
-                                confluence_metadata["fill_spread_pct"] = round(fill_spread_pct, 2)
-                            else:
-                                # Genuine deterioration or already wide — block
-                                logger.info(
-                                    "⏭️ AUTO-TRADE SKIPPED: Spread widened beyond threshold at fill time",
-                                    ticker=ticker,
-                                    fill_spread_pct=round(fill_spread_pct, 2),
-                                    initial_spread_pct=round(initial_spread_pct_val, 2) if initial_spread_pct_val else None,
-                                    spread_widening_pp=round(spread_widening, 2),
-                                    max_allowed=MAX_FILL_SPREAD_PCT,
-                                    current_bid=current_bid,
-                                    current_ask=current_ask,
-                                    current_spread=round(current_spread, 4),
-                                    article_id=article_id,
-                                    reason="Spread genuinely deteriorated or initial already wide"
-                                )
-                                await _record_postfilter_skip(article_id, f"postfilter_fill_spread_too_wide:{fill_spread_pct:.1f}%")
-                                return
+                        if initial_was_tight and widening_is_modest:
+                            logger.info(
+                                "✅ FILL-TIME SPREAD: Median exceeds cap but initial was tight and widening modest — temporary volatility",
+                                ticker=ticker,
+                                median_fill_spread_pct=round(fill_spread_pct, 2),
+                                sampled_spreads=sampled_spreads,
+                                initial_spread_pct=round(initial_spread_pct_val, 2),
+                                spread_widening_pp=round(spread_widening, 2),
+                                tolerance_pp=SPREAD_WIDENING_TOLERANCE,
+                            )
                         else:
                             logger.info(
-                                "✅ FILL-TIME SPREAD CHECK PASSED",
+                                "⏭️ AUTO-TRADE SKIPPED: Median fill spread beyond threshold across samples",
                                 ticker=ticker,
-                                fill_spread_pct=round(fill_spread_pct, 2),
+                                median_fill_spread_pct=round(fill_spread_pct, 2),
+                                sampled_spreads=sampled_spreads,
+                                initial_spread_pct=round(initial_spread_pct_val, 2) if initial_spread_pct_val else None,
+                                spread_widening_pp=round(spread_widening, 2),
                                 max_allowed=MAX_FILL_SPREAD_PCT,
+                                article_id=article_id,
+                                reason="Median spread genuinely wide across samples"
                             )
+                            await _record_postfilter_skip(article_id, f"postfilter_fill_spread_too_wide:{fill_spread_pct:.1f}%")
+                            return
+                    else:
+                        logger.info(
+                            "✅ FILL-TIME SPREAD CHECK PASSED (median of samples)",
+                            ticker=ticker,
+                            median_fill_spread_pct=round(fill_spread_pct, 2),
+                            sampled_spreads=sampled_spreads,
+                            max_allowed=MAX_FILL_SPREAD_PCT,
+                        )
 
-                        confluence_metadata["fill_spread_pct"] = round(fill_spread_pct, 2)
+                    confluence_metadata["fill_spread_pct"] = round(fill_spread_pct, 2)
             except Exception as e:
                 logger.warning(f"Fill-time spread check failed: {e} - proceeding with caution")
 
