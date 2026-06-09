@@ -2917,15 +2917,23 @@ async def process_imminent_article(
 
             if pub_to_recv_pct > effective_max_pct and absolute_move >= MIN_ABSOLUTE_ASK_MOVE:
                 # High-conviction headlines: skip pub_to_recv filter (legitimate market reaction)
-                # Strong signal bypass — general rule, any headline type:
-                #   confluence_score >= 4 AND surge detected.
-                # IMMINENT is implicit (this function only runs on IMMINENT). No
-                # ceiling — if all three criteria hold, the move is real momentum
-                # being priced in live, not exhausted front-running. The depth
-                # gate at submit-time is the tail safety net on sizing.
+                # STRONG-SIGNAL BYPASS (2026-06-09): allow front-running up to a 15%
+                # ceiling for any STRENGTH or SURGE entry with confluence_score >= 4.
+                # IMMINENT is implicit (this function only runs on IMMINENT), and every
+                # trade here already passed the STRENGTH/SURGE gate. FEED 2026-06-09
+                # entered on STRENGTH and surged 7s later — the old `is_surge_trade`
+                # (surge-path only) gate missed it and the 7.5% cap blocked a +104%
+                # winner. The 15% CEILING is the safety: it admits real momentum being
+                # priced in live (FEED 9.2%, GXAI 10.7%, OMEX 6%) but still blocks
+                # exhausted blow-offs (DGNX 27%, ARAI 15.8% — both deep-MAE stop-outs).
+                # We accept the occasional won't-surge fader (FRSX) slipping through —
+                # it stops out small; recall over precision (validated n=6, 45d replay
+                # pending). NOTE: this ceiling const must exist — it was referenced in
+                # the log below but previously undefined (latent NameError).
+                STRONG_SIGNAL_RUNUP_CEILING_PCT = 15.0
                 is_strong_signal_bypass = (
                     confluence_score >= 4
-                    and is_surge_trade
+                    and pub_to_recv_pct <= STRONG_SIGNAL_RUNUP_CEILING_PCT
                 )
 
                 if is_high_conviction:
@@ -2939,7 +2947,7 @@ async def process_imminent_article(
                     )
                 elif is_strong_signal_bypass:
                     logger.info(
-                        "🔥 STRONG SIGNAL BYPASS: pub_to_recv filter skipped (confluence >= 4 + surge + runup < 30%)",
+                        "🔥 STRONG SIGNAL BYPASS: pub_to_recv filter skipped (STRENGTH/SURGE entry + confluence >= 4 + runup <= 15%)",
                         ticker=ticker,
                         pub_to_recv_pct=round(pub_to_recv_pct, 2),
                         normal_max=effective_max_pct,
