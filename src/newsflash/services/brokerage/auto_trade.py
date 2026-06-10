@@ -27,6 +27,7 @@ Price movement filter: 3% max ask change per leg (pub→recv, recv→fill).
 
 Pure functions for trade processing logic, with minimal service class for event subscriptions.
 """
+import asyncio
 from decimal import Decimal
 from datetime import datetime, timezone, timedelta, date
 from typing import Optional
@@ -153,6 +154,15 @@ def _ai_breakthrough_spread_threshold(price: float) -> float:
     if price < 0.30:
         return 10.0
     return 7.5
+
+
+# Strong-signal runup bypass (front-run filter family) — single source of truth in
+# postfilter_engine.py, imported so production and the backtest share identical logic.
+from .postfilter_engine import (
+    PostfilterInputs,
+    evaluate_microstructure_postfilters,
+)
+from .entry_gate import evaluate_strength_gate
 
 
 # ============================================================
@@ -637,7 +647,6 @@ async def monitor_for_last_chance_surge(
     Returns:
         Dict with surge data and NBBO if qualifying surge found, None otherwise
     """
-    import asyncio
 
     # Get stream manager for WebSocket data
     stream_manager = getattr(quote_fetcher, 'stream_manager', None) if quote_fetcher else None
@@ -896,7 +905,6 @@ async def monitor_for_late_entry(
     Returns:
         Dict with late entry metadata if signal found, None otherwise
     """
-    import asyncio
 
     stream_manager = getattr(quote_fetcher, 'stream_manager', None) if quote_fetcher else None
     if not stream_manager:
@@ -1100,7 +1108,6 @@ async def check_confluence_signals(
     Returns:
         Tuple of (ConvictionLevel, metadata_dict with confluence stats)
     """
-    import asyncio
     from datetime import timedelta
 
     metadata = {
@@ -1749,7 +1756,6 @@ async def fetch_article_for_trade(
     Returns:
         Domain Article model, or None if not found after retries
     """
-    import asyncio
     
     # Try fetching with exponential backoff retry
     for attempt in range(max_retries):
@@ -2195,7 +2201,7 @@ async def process_imminent_article(
                 ticker=ticker,
                 headline_type=headline_type,
                 article_id=article_id,
-                relaxed_filters="circuit_breaker=SKIP, spread=5% (HARD CAP), selling_pressure=SKIP, pub_to_recv=SKIP, recv_to_fill=SKIP, fill_spread=5% (HARD CAP), momentum_exhaustion=SKIP, late_entry=25s, pre_news_runup=10%",
+                relaxed_filters="circuit_breaker=SKIP, spread=5% (HARD CAP), selling_pressure=SKIP, pub_to_recv=SKIP, recv_to_fill=SKIP, fill_spread=5% (HARD CAP), momentum_exhaustion=SKIP, late_entry=25s",
             )
 
         # ============================================================
@@ -2306,68 +2312,38 @@ async def process_imminent_article(
         max_excursion_pct = confluence_metadata.get("confluence_price_excursion_pct", 0.0)
         confluence_trade_count = confluence_metadata.get("confluence_trade_count", 0)
 
-        # Minimum trade count: 1-2 trades is not "confluence" — it's one person.
-        # Require at least 3 independent trades to confirm real market interest.
-        # EXCEPTION: HC trades bypass this — the headline type IS the confirmation.
-        MIN_CONFLUENCE_TRADES = 3
-        if confluence_trade_count < MIN_CONFLUENCE_TRADES and not is_high_conviction:
+        # ── STRENGTH-FAMILY ENTRY GATE — pure decision (entry_gate.py, single source) ──
+        _gate = evaluate_strength_gate(
+            confluence_score=confluence_score,
+            max_excursion_pct=max_excursion_pct,
+            confluence_trade_count=confluence_trade_count,
+            is_high_conviction=is_high_conviction,
+            initial_spread=confluence_metadata.get('initial_spread'),
+            initial_ask=confluence_metadata.get('initial_ask'),
+        )
+        confluence_score = _gate.effective_score  # too-few-trades override propagates downstream
+        has_strength = _gate.has_strength
+        has_high_confluence = _gate.has_high_confluence
+        has_hc_bypass = _gate.has_hc_bypass
+        has_tight_spread_bypass = _gate.has_tight_spread_bypass
+        if _gate.too_few_trades_non_hc:
             logger.info(
-                f"⏭️ TOO FEW TRADES: Only {confluence_trade_count} trade(s) in confluence window — not real activity",
-                ticker=ticker,
-                confluence_trade_count=confluence_trade_count,
-                confluence_score=confluence_score,
-                article_id=article_id,
+                f'⏭️ TOO FEW TRADES: Only {confluence_trade_count} trade(s) in confluence window — not real activity',
+                ticker=ticker, confluence_trade_count=confluence_trade_count,
+                confluence_score=confluence_score, article_id=article_id,
             )
-            confluence_score = 0  # Override score — single trade can't confirm anything
-        elif confluence_trade_count < MIN_CONFLUENCE_TRADES and is_high_conviction:
+        elif confluence_trade_count < 3 and is_high_conviction:
             logger.info(
-                f"🎖️ HC BYPASS: Only {confluence_trade_count} trade(s) but high-conviction headline — keeping score {confluence_score}",
-                ticker=ticker,
-                confluence_trade_count=confluence_trade_count,
-                confluence_score=confluence_score,
-                headline_type=headline_type,
-                article_id=article_id,
+                f'🎖️ HC BYPASS: Only {confluence_trade_count} trade(s) but high-conviction headline — keeping score {confluence_score}',
+                ticker=ticker, confluence_trade_count=confluence_trade_count,
+                confluence_score=confluence_score, headline_type=headline_type, article_id=article_id,
             )
-
-        # STRENGTH check: score >= 1 AND excursion >= 0.5%
-        has_strength = confluence_score >= 1 and max_excursion_pct >= MIN_STRENGTH_EXCURSION_PCT
-
-        # HIGH CONFLUENCE check: score >= 3 AND price must have moved >= 0.5%
-        # Without price movement, high score can be faked by a few trades at same price (SPAI pattern)
-        # Stocks that don't move in 2s but move later get caught by surge (8s) or late (30s) monitoring
-        HIGH_CONFLUENCE_SCORE = 3
-        has_high_confluence = confluence_score >= HIGH_CONFLUENCE_SCORE and max_excursion_pct >= MIN_STRENGTH_EXCURSION_PCT
-
-        # HC BYPASS: High-conviction headlines (gov/military contracts) don't need activity confirmation.
-        # The headline type IS the catalyst — 12% stop loss protects us. Any activity (score >= 1) is enough.
-        has_hc_bypass = is_high_conviction and confluence_score >= 1
-
-        # TIGHT SPREAD BYPASS: For HC headlines only (gov/military contracts),
-        # a tight initial spread (≤ 2.5%) means limited downside risk from spread alone.
-        # Trade regardless of market activity — contract authenticity check is the guardrail.
-        # CGNT ($535M, 0.62% spread, gov contract) moved +8.7% with zero initial activity.
-        # clinical_breakthrough REMOVED from bypass — LLM misclassification risk too high,
-        # late entry monitoring (45s) catches real catalysts that start slow (BEAM pattern).
-        TIGHT_SPREAD_BYPASS_PCT = 2.5
-        has_tight_spread_bypass = False
-        if is_high_conviction:
-            _bypass_initial_spread = confluence_metadata.get("initial_spread")
-            _bypass_initial_ask = confluence_metadata.get("initial_ask")
-            if _bypass_initial_spread and _bypass_initial_ask and _bypass_initial_ask > 0:
-                _bypass_initial_mid = _bypass_initial_ask - (_bypass_initial_spread / 2)
-                if _bypass_initial_mid > 0:
-                    _bypass_spread_pct = (_bypass_initial_spread / _bypass_initial_mid) * 100
-                    if _bypass_spread_pct <= TIGHT_SPREAD_BYPASS_PCT:
-                        has_tight_spread_bypass = True
-                        logger.info(
-                            f"🎯 TIGHT SPREAD BYPASS: High-signal headline with {_bypass_spread_pct:.2f}% spread ≤ {TIGHT_SPREAD_BYPASS_PCT}% — activity confirmation not required",
-                            ticker=ticker,
-                            spread_pct=round(_bypass_spread_pct, 2),
-                            headline_type=headline_type,
-                            is_high_conviction=is_high_conviction,
-                            is_clinical_breakthrough=is_clinical_breakthrough,
-                            article_id=article_id,
-                        )
+        if has_tight_spread_bypass:
+            logger.info(
+                f'🎯 TIGHT SPREAD BYPASS: High-signal headline with {_gate.tight_spread_pct:.2f}% spread ≤ 2.5% — activity confirmation not required',
+                ticker=ticker, spread_pct=round(_gate.tight_spread_pct, 2),
+                headline_type=headline_type, article_id=article_id,
+            )
 
         if has_strength or has_high_confluence or has_hc_bypass or has_tight_spread_bypass:
             # Activity confirmed - use AI conviction for position sizing
@@ -2572,80 +2548,33 @@ async def process_imminent_article(
             except Exception as e:
                 logger.debug(f"Could not check market cap/biotech filter: {e}")
 
-        # ============================================================
-        # 📊 SPREAD FILTER: Reject wide spreads (>7.5% of mid for normal)
-        # ============================================================
-        # 🎯 WIDE SPREAD TRAP FILTER
-        # ============================================================
-        # Wide spreads cause instant losses. IINN lesson: 35% spread = untradeable.
-        # Raised from 5% → 7.5% for normal trades (2026-04-22) — on a few-trades-a-day
-        # news strategy with big winners rare, allow slightly wider entry slippage
-        # in exchange for catching more real movers. AI quality good enough to trust.
-        # HARD 5% SPREAD CAP (2026-06-09): all headline-type relaxations (HC,
-        # clinical, wide-spread types, ai_breakthrough → 7.5–10%) REMOVED. The
-        # edge lives at ≤5% spread; wider books fade or bleed to slippage. This
-        # discipline is what replaces the retired activity gate.
-        MAX_SPREAD_PCT = 5.0
-        initial_spread = confluence_metadata.get("initial_spread")
-        initial_ask = confluence_metadata.get("initial_ask")
-        initial_bid = confluence_metadata.get("initial_bid", 0)
-
+        # ── SPREAD + SELLING_PRESSURE (postfilter engine — single source of truth) ──
+        # Cheap pure checks, run BEFORE the expensive NBBO sampling below (fail cheap
+        # before doing I/O — preserves the original order, contract, and latency).
+        initial_spread = confluence_metadata.get('initial_spread')
+        initial_ask = confluence_metadata.get('initial_ask')
+        initial_bid = confluence_metadata.get('initial_bid', 0)
+        _entry_spread_pct = None
         if initial_spread and initial_ask:
-            # Calculate mid price (use bid if available, otherwise estimate from ask and spread)
             if initial_bid and initial_bid > 0:
                 initial_mid = (initial_ask + initial_bid) / 2
             else:
                 initial_mid = initial_ask - (initial_spread / 2)
-
             if initial_mid > 0:
-                spread_pct_of_mid = (initial_spread / initial_mid) * 100
-                confluence_metadata["initial_spread_pct"] = round(spread_pct_of_mid, 2)
-
-                if spread_pct_of_mid > MAX_SPREAD_PCT:
-                    logger.info(
-                        f"⏭️ AUTO-TRADE SKIPPED: Spread too wide (>{MAX_SPREAD_PCT}% of mid) - instant loss trap",
-                        ticker=ticker,
-                        spread_pct_of_mid=round(spread_pct_of_mid, 2),
-                        max_allowed=MAX_SPREAD_PCT,
-                        initial_spread=initial_spread,
-                        initial_bid=initial_bid,
-                        initial_ask=initial_ask,
-                        initial_mid=round(initial_mid, 4),
-                        article_id=article_id,
-                        reason="Wide spreads cause massive slippage and are manipulation targets"
-                    )
-                    await _record_postfilter_skip(article_id, f"postfilter_spread_too_wide:{spread_pct_of_mid:.0f}%")
-                    return
-
-        # ============================================================
-        # 🎯 SELLING PRESSURE FILTER: Block heavy selling
-        # ============================================================
-        # If imbalance ratio is strongly negative, there's more selling than buying.
-        # This is a red flag - someone knows something we don't.
-        SELLING_PRESSURE_THRESHOLD = -0.3  # More than 65% selling = block
-        confluence_imbalance = confluence_metadata.get("confluence_imbalance_ratio")
-        if confluence_imbalance is not None and confluence_imbalance < SELLING_PRESSURE_THRESHOLD:
-            if is_high_conviction:
-                logger.info(
-                    "🎖️ HIGH-CONVICTION BYPASS: selling_pressure filter skipped (trusting headline signal)",
-                    ticker=ticker,
-                    imbalance_ratio=round(confluence_imbalance, 3),
-                    headline_type=headline_type,
-                    article_id=article_id,
-                )
-            else:
-                buying_pct = ((confluence_imbalance + 1) / 2) * 100  # Convert to buying %
-                logger.info(
-                    "⏭️ AUTO-TRADE SKIPPED: Heavy selling pressure detected",
-                    ticker=ticker,
-                    imbalance_ratio=round(confluence_imbalance, 3),
-                    buying_pressure_pct=round(buying_pct, 1),
-                    threshold=SELLING_PRESSURE_THRESHOLD,
-                    article_id=article_id,
-                    reason="Imbalance strongly negative - more sellers than buyers, someone knows something"
-                )
-                await _record_postfilter_skip(article_id, f"postfilter_selling_pressure:{confluence_imbalance:.2f}")
-                return
+                _entry_spread_pct = (initial_spread / initial_mid) * 100
+                confluence_metadata['initial_spread_pct'] = round(_entry_spread_pct, 2)
+        _pf_early = evaluate_microstructure_postfilters(PostfilterInputs(
+            is_high_conviction=is_high_conviction,
+            initial_spread_pct=_entry_spread_pct,
+            confluence_imbalance_ratio=confluence_metadata.get('confluence_imbalance_ratio'),
+        ))
+        if not _pf_early.passed:
+            logger.info(
+                '⏭️ AUTO-TRADE SKIPPED (postfilter engine: spread/selling)',
+                ticker=ticker, reason=_pf_early.reason, article_id=article_id, **_pf_early.computed,
+            )
+            await _record_postfilter_skip(article_id, _pf_early.reason)
+            return
 
         logger.info(
             "✅ SAFETY FILTERS PASSED - Proceeding to trade",
@@ -2731,9 +2660,6 @@ async def process_imminent_article(
         # name that already qualified at ≤5% entry survive the momentary fill widening;
         # a genuinely wide ENTRY book still never gets here. (The carve-out below is
         # now belt-and-suspenders for the rare tight-name dip beyond 8%.)
-        MAX_FILL_SPREAD_PCT = 8.0
-        SPREAD_TIGHT_INITIAL = 3.0  # Initial spread considered "tight"
-        SPREAD_WIDENING_TOLERANCE = 3.0  # Max acceptable widening from initial (percentage points)
 
         # Gate on the MEDIAN of a few NBBO snapshots, not one noisy instant. Sub-penny
         # books oscillate fast — ADTX 2026-06-09 flickered 2.76% ↔ 6.65% second-to-second,
@@ -2745,6 +2671,7 @@ async def process_imminent_article(
         FILL_SPREAD_SAMPLE_INTERVAL_S = 0.1  # ~200ms total added latency
 
         pre_entry_nbbo = None
+        sampled_spreads: list = []
         if quote_fetcher:
             try:
                 samples = []  # (spread_pct, nbbo) per snapshot
@@ -2762,58 +2689,14 @@ async def process_imminent_article(
                             samples.append(((s_ask - s_bid) / s_mid * 100, snap))
 
                 if samples:
-                    # Median spread (and its matching NBBO) — robust to a lone wide flicker
+                    # GATHER ONLY — the fill-spread DECISION is made by the postfilter
+                    # engine below (single source of truth). Keep the median snapshot
+                    # (pre_entry_nbbo) + per-sample spreads to feed the engine.
                     samples.sort(key=lambda s: s[0])
-                    fill_spread_pct, pre_entry_nbbo = samples[len(samples) // 2]
+                    _, pre_entry_nbbo = samples[len(samples) // 2]
                     sampled_spreads = [round(s[0], 2) for s in samples]
-                    current_bid = pre_entry_nbbo.get("bid", 0)
-                    current_ask = pre_entry_nbbo.get("ask", 0)
-                    current_spread = current_ask - current_bid
-
-                    if fill_spread_pct > MAX_FILL_SPREAD_PCT:
-                        # Median is genuinely wide — but allow if the book was tight at
-                        # decision and the widening is modest (temporary volatility).
-                        initial_spread_pct_val = confluence_metadata.get("initial_spread_pct", 0)
-                        spread_widening = fill_spread_pct - initial_spread_pct_val if initial_spread_pct_val > 0 else fill_spread_pct
-                        initial_was_tight = initial_spread_pct_val > 0 and initial_spread_pct_val < SPREAD_TIGHT_INITIAL
-                        widening_is_modest = spread_widening < SPREAD_WIDENING_TOLERANCE
-
-                        if initial_was_tight and widening_is_modest:
-                            logger.info(
-                                "✅ FILL-TIME SPREAD: Median exceeds cap but initial was tight and widening modest — temporary volatility",
-                                ticker=ticker,
-                                median_fill_spread_pct=round(fill_spread_pct, 2),
-                                sampled_spreads=sampled_spreads,
-                                initial_spread_pct=round(initial_spread_pct_val, 2),
-                                spread_widening_pp=round(spread_widening, 2),
-                                tolerance_pp=SPREAD_WIDENING_TOLERANCE,
-                            )
-                        else:
-                            logger.info(
-                                "⏭️ AUTO-TRADE SKIPPED: Median fill spread beyond threshold across samples",
-                                ticker=ticker,
-                                median_fill_spread_pct=round(fill_spread_pct, 2),
-                                sampled_spreads=sampled_spreads,
-                                initial_spread_pct=round(initial_spread_pct_val, 2) if initial_spread_pct_val else None,
-                                spread_widening_pp=round(spread_widening, 2),
-                                max_allowed=MAX_FILL_SPREAD_PCT,
-                                article_id=article_id,
-                                reason="Median spread genuinely wide across samples"
-                            )
-                            await _record_postfilter_skip(article_id, f"postfilter_fill_spread_too_wide:{fill_spread_pct:.1f}%")
-                            return
-                    else:
-                        logger.info(
-                            "✅ FILL-TIME SPREAD CHECK PASSED (median of samples)",
-                            ticker=ticker,
-                            median_fill_spread_pct=round(fill_spread_pct, 2),
-                            sampled_spreads=sampled_spreads,
-                            max_allowed=MAX_FILL_SPREAD_PCT,
-                        )
-
-                    confluence_metadata["fill_spread_pct"] = round(fill_spread_pct, 2)
             except Exception as e:
-                logger.warning(f"Fill-time spread check failed: {e} - proceeding with caution")
+                logger.warning(f"Fill-spread sampling failed: {e} - proceeding with caution")
 
         # ============================================================
         # 🏃 TWO-LEG PRICE MOVEMENT FILTER: Prevent front-run / pumped entries
@@ -2829,8 +2712,6 @@ async def process_imminent_article(
         # Raised from 3% → 7.5%: big winners are volatile from the jump. The LLM
         # already validated the headline — fast movers are a buy signal, not front-running.
         # OMEX merger moved 6.6% in 2.8s and was a +80% winner killed at 3%.
-        MAX_ASK_CHANGE_PER_LEG_PCT = 7.5
-        MIN_ABSOLUTE_ASK_MOVE = 0.05  # $0.05 minimum move to trigger filter (penny stock protection)
         initial_ask = confluence_metadata.get("initial_ask")  # Ask at reception/confluence time
 
         # LEG 1: Publication → Reception price change
@@ -2907,376 +2788,47 @@ async def process_imminent_article(
         # The percentage only matters for non-penny stocks where absolute > $0.05.
         # 8% is conservative but still above normal 3% — absolute floor handles penny stocks.
         is_mega_trade = confluence_metadata.get("is_mega_trade", False)
-        MEGA_MAX_ASK_CHANGE_PER_LEG_PCT = 8.0  # 8% vs 3% normal (MOBX was 12% but passes via $0.05 floor)
-        effective_max_pct = MEGA_MAX_ASK_CHANGE_PER_LEG_PCT if is_mega_trade else MAX_ASK_CHANGE_PER_LEG_PCT
 
-        # Check pub → recv change if we have both prices
-        if pub_time_ask and initial_ask and pub_time_ask > 0:
-            pub_to_recv_pct = ((initial_ask - pub_time_ask) / pub_time_ask) * 100
-            absolute_move = abs(initial_ask - pub_time_ask)
-
-            if pub_to_recv_pct > effective_max_pct and absolute_move >= MIN_ABSOLUTE_ASK_MOVE:
-                # High-conviction headlines: skip pub_to_recv filter (legitimate market reaction)
-                # STRONG-SIGNAL BYPASS (2026-06-09): allow front-running up to a 15%
-                # ceiling for any STRENGTH or SURGE entry with confluence_score >= 4.
-                # IMMINENT is implicit (this function only runs on IMMINENT), and every
-                # trade here already passed the STRENGTH/SURGE gate. FEED 2026-06-09
-                # entered on STRENGTH and surged 7s later — the old `is_surge_trade`
-                # (surge-path only) gate missed it and the 7.5% cap blocked a +104%
-                # winner. The 15% CEILING is the safety: it admits real momentum being
-                # priced in live (FEED 9.2%, GXAI 10.7%, OMEX 6%) but still blocks
-                # exhausted blow-offs (DGNX 27%, ARAI 15.8% — both deep-MAE stop-outs).
-                # We accept the occasional won't-surge fader (FRSX) slipping through —
-                # it stops out small; recall over precision (validated n=6, 45d replay
-                # pending). NOTE: this ceiling const must exist — it was referenced in
-                # the log below but previously undefined (latent NameError).
-                STRONG_SIGNAL_RUNUP_CEILING_PCT = 15.0
-                is_strong_signal_bypass = (
-                    confluence_score >= 4
-                    and pub_to_recv_pct <= STRONG_SIGNAL_RUNUP_CEILING_PCT
-                )
-
-                if is_high_conviction:
-                    logger.info(
-                        "🎖️ HIGH-CONVICTION BYPASS: pub_to_recv filter skipped (legitimate market reaction to gov/mil contract)",
-                        ticker=ticker,
-                        pub_to_recv_pct=round(pub_to_recv_pct, 2),
-                        normal_max=effective_max_pct,
-                        headline_type=headline_type,
-                        article_id=article_id,
-                    )
-                elif is_strong_signal_bypass:
-                    logger.info(
-                        "🔥 STRONG SIGNAL BYPASS: pub_to_recv filter skipped (STRENGTH/SURGE entry + confluence >= 4 + runup <= 15%)",
-                        ticker=ticker,
-                        pub_to_recv_pct=round(pub_to_recv_pct, 2),
-                        normal_max=effective_max_pct,
-                        ceiling=STRONG_SIGNAL_RUNUP_CEILING_PCT,
-                        confluence_score=confluence_score,
-                        is_surge_trade=is_surge_trade,
-                        article_id=article_id,
-                    )
-                else:
-                    logger.info(
-                        "⏭️ AUTO-TRADE SKIPPED: Ask moved too much between publication and reception",
-                        ticker=ticker,
-                        pub_time_ask=round(pub_time_ask, 4),
-                        recv_time_ask=round(initial_ask, 4),
-                        pub_to_recv_pct=round(pub_to_recv_pct, 2),
-                        absolute_move=round(absolute_move, 4),
-                        max_allowed_pct=effective_max_pct,
-                        min_absolute=MIN_ABSOLUTE_ASK_MOVE,
-                        is_mega_trade=is_mega_trade,
-                        article_id=article_id,
-                        reason="Front-running detected: move happened BEFORE we received the article"
-                    )
-                    await _record_postfilter_skip(article_id, f"postfilter_pub_to_recv:{pub_to_recv_pct:.1f}%")
-                    return
-
-            logger.info(
-                "✅ PUB→RECV CHECK PASSED",
-                ticker=ticker,
-                pub_time_ask=round(pub_time_ask, 4),
-                recv_time_ask=round(initial_ask, 4),
-                pub_to_recv_pct=round(pub_to_recv_pct, 2),
-                absolute_move=round(absolute_move, 4),
-                max_allowed_pct=effective_max_pct,
-                is_mega_trade=is_mega_trade,
-            )
-
-            # Store pub_time_ask in metadata for statistics
+        # ── POSTFILTER ENGINE (single source of truth, shared with the backtest) ──
+        # fill-spread + two-leg (pub→recv / recv→fill) + pump-and-dump. The impure
+        # inputs (NBBO median snapshot, pub_time_ask) were gathered above; the engine
+        # makes the pure decision. Spread + selling_pressure ran inline earlier;
+        # momentum_exhaustion runs below. Logic lives in postfilter_engine.py.
+        if pub_time_ask:
             confluence_metadata["pub_time_ask"] = pub_time_ask
-            confluence_metadata["pub_to_recv_pct"] = round(pub_to_recv_pct, 2)
-
-        # LEG 2: Reception → Fill price change
-        # Check if ask moved too much since reception (chase/volatility filter)
-        if pre_entry_nbbo and initial_ask and initial_ask > 0:
-            # Use already-fetched NBBO for chase check
-            current_ask = pre_entry_nbbo.get("ask", 0)
-            if current_ask and current_ask > 0:
-                recv_to_fill_pct = ((current_ask - initial_ask) / initial_ask) * 100
-                absolute_move_leg2 = abs(current_ask - initial_ask)
-
-                if recv_to_fill_pct > effective_max_pct and absolute_move_leg2 >= MIN_ABSOLUTE_ASK_MOVE:
-                    if is_high_conviction:
-                        logger.info(
-                            "🎖️ HIGH-CONVICTION BYPASS: recv_to_fill filter skipped (fast price movement is the signal)",
-                            ticker=ticker,
-                            recv_to_fill_pct=round(recv_to_fill_pct, 2),
-                            normal_max=effective_max_pct,
-                            headline_type=headline_type,
-                            article_id=article_id,
-                        )
-                    else:
-                        logger.info(
-                            "⏭️ AUTO-TRADE SKIPPED: Ask moved too much between reception and fill",
-                            ticker=ticker,
-                            recv_time_ask=round(initial_ask, 4),
-                            fill_time_ask=round(current_ask, 4),
-                            recv_to_fill_pct=round(recv_to_fill_pct, 2),
-                            absolute_move=round(absolute_move_leg2, 4),
-                            max_allowed_pct=effective_max_pct,
-                            min_absolute=MIN_ABSOLUTE_ASK_MOVE,
-                            is_mega_trade=is_mega_trade,
-                            article_id=article_id,
-                            reason="Price too volatile during our checks - likely pump in progress"
-                        )
-                        await _record_postfilter_skip(article_id, f"postfilter_recv_to_fill:{recv_to_fill_pct:.1f}%")
-                        return
-
-                logger.info(
-                    "✅ RECV→FILL CHECK PASSED",
-                    ticker=ticker,
-                    recv_time_ask=round(initial_ask, 4),
-                    fill_time_ask=round(current_ask, 4),
-                    recv_to_fill_pct=round(recv_to_fill_pct, 2),
-                    absolute_move=round(absolute_move_leg2, 4),
-                    max_allowed_pct=effective_max_pct,
-                    is_mega_trade=is_mega_trade,
-                )
-
-                # Store recv_to_fill_pct in metadata for statistics
-                confluence_metadata["recv_to_fill_pct"] = round(recv_to_fill_pct, 2)
-
-        # ============================================================
-        # 🎯 PUMP-AND-DUMP FILTER: Ask-to-ask change (pub → fill)
-        # ============================================================
-        # REPLACES the earlier fill_ask-vs-confluence_vwap implementation.
-        # VWAP proved unreliable: early-1s shakeouts inside the 2-second
-        # confluence window artificially depress VWAP and manufacture false
-        # "pump" signals on stocks that never moved to a pump price.
-        # AGPU 2026-04-22 — ask was stable at $6.43 at both receive and fill,
-        # but a 1-second dip inside the confluence window pulled VWAP to
-        # $5.30, producing a spurious 21% "pump" signal on a flat market.
-        #
-        # New check: fill_ask vs pub_ask (the ask at publication time).
-        # Simple, intuitive, robust — if the ask we'd pay is materially higher
-        # than where the stock was pre-news, we're paying a premium. Clean.
-        PUMP_AND_DUMP_MAX_PCT = 12.0 if is_ai_breakthrough else 5.5
-        PUMP_AND_DUMP_MIN_ABSOLUTE = 0.08  # $0.08 floor (penny stock protection)
-        pub_time_ask_baseline = confluence_metadata.get("pub_time_ask")
-        fill_ask = pre_entry_nbbo.get("ask") if pre_entry_nbbo else None
-
-        if pub_time_ask_baseline and fill_ask and pub_time_ask_baseline > 0:
-            pump_pct = ((fill_ask - pub_time_ask_baseline) / pub_time_ask_baseline) * 100
-            absolute_gap = abs(fill_ask - pub_time_ask_baseline)
-
-            if pump_pct > PUMP_AND_DUMP_MAX_PCT and absolute_gap >= PUMP_AND_DUMP_MIN_ABSOLUTE:
-                # Strong signal bypass — mirrors pub_to_recv / pre_news_runup.
-                # confluence_score >= 4 + surge detected. IMMINENT is implicit
-                # (this function only runs on IMMINENT classifications). No
-                # ceiling: if all three criteria hold, the ask move is genuine
-                # momentum and we are NOT paying a pump premium — the "premium"
-                # is the news being priced in live.
-                is_strong_signal_bypass = (
-                    confluence_score >= 4
-                    and is_surge_trade
-                )
-
-                if is_high_conviction:
-                    logger.info(
-                        "🎖️ HIGH-CONVICTION BYPASS: pump_and_dump filter skipped",
-                        ticker=ticker,
-                        pump_pct=round(pump_pct, 2),
-                        headline_type=headline_type,
-                        article_id=article_id,
-                    )
-                elif is_strong_signal_bypass:
-                    logger.info(
-                        "🔥 STRONG SIGNAL BYPASS: pump_and_dump filter skipped (confluence >= 4 + surge)",
-                        ticker=ticker,
-                        pub_ask=round(pub_time_ask_baseline, 4),
-                        fill_ask=round(fill_ask, 4),
-                        pump_pct=round(pump_pct, 2),
-                        confluence_score=confluence_score,
-                        is_surge_trade=is_surge_trade,
-                        article_id=article_id,
-                    )
-                else:
-                    logger.info(
-                        "⏭️ AUTO-TRADE SKIPPED: Ask ran too far since publication (pump-and-dump)",
-                        ticker=ticker,
-                        pub_ask=round(pub_time_ask_baseline, 4),
-                        fill_ask=round(fill_ask, 4),
-                        pump_pct=round(pump_pct, 2),
-                        absolute_gap=round(absolute_gap, 4),
-                        max_allowed_pct=PUMP_AND_DUMP_MAX_PCT,
-                        min_absolute=PUMP_AND_DUMP_MIN_ABSOLUTE,
-                        article_id=article_id,
-                        reason="Entry ask ran above publication ask - paying the pump premium"
-                    )
-                    await _record_postfilter_skip(article_id, f"postfilter_pump_and_dump:{pump_pct:.1f}%")
-                    return
-
+        _pf = evaluate_microstructure_postfilters(PostfilterInputs(
+            confluence_score=confluence_score,
+            is_high_conviction=is_high_conviction,
+            is_mega_trade=is_mega_trade,
+            is_ai_breakthrough=is_ai_breakthrough,
+            initial_spread_pct=confluence_metadata.get("initial_spread_pct"),
+            fill_spread_samples_pct=sampled_spreads,
+            pub_time_ask=pub_time_ask,
+            recv_ask=initial_ask,
+            fill_ask=(pre_entry_nbbo or {}).get("ask"),
+            entry_reference_price=confluence_metadata.get("initial_ask") or confluence_metadata.get("confluence_first_price"),
+            confluence_max_price=confluence_metadata.get("confluence_max_price"),
+        ))
+        confluence_metadata.update(_pf.computed)
+        if not _pf.passed:
             logger.info(
-                "✅ PUMP-AND-DUMP CHECK PASSED",
+                "⏭️ AUTO-TRADE SKIPPED (postfilter engine)",
                 ticker=ticker,
-                pub_ask=round(pub_time_ask_baseline, 4),
-                fill_ask=round(fill_ask, 4),
-                pump_pct=round(pump_pct, 2),
-                absolute_gap=round(absolute_gap, 4),
-                max_allowed_pct=PUMP_AND_DUMP_MAX_PCT,
-                min_absolute=PUMP_AND_DUMP_MIN_ABSOLUTE,
+                reason=_pf.reason,
+                article_id=article_id,
+                **_pf.computed,
             )
+            await _record_postfilter_skip(article_id, _pf.reason)
+            return
 
-            # Store for statistics (ask_pub_to_fill_pct is the new metric name)
-            confluence_metadata["ask_pub_to_fill_pct"] = round(pump_pct, 2)
+        # PRE-NEWS RUNUP FILTER REMOVED (2026-06-09): never useful in practice. It
+        # blocked trades because the stock moved in the 30m before we saw the news —
+        # but for real catalysts that pre-move is the norm, not a leak warning. Recall
+        # over precision; the entry gate + spread + pub/recv + pump checks remain.
 
-        # ============================================================
-        # 🎯 PRE-NEWS RUNUP FILTER
-        # ============================================================
-        # Check if stock already moved significantly BEFORE the news.
-        # If it ran 5%+ in the 30 minutes prior, the news may already be priced in.
-        # Could indicate: insider buying, leaked news, or technical breakout unrelated to news.
-        PRE_NEWS_LOOKBACK_SECONDS = 1800  # 30 minutes
-        PRE_NEWS_RUNUP_THRESHOLD = 10.0 if is_high_conviction else 5.0  # High-conviction: 10% (pre-positioning normal for defense)
-
-        pre_news_change_pct = None
-        stream_manager = getattr(quote_fetcher, 'stream_manager', None) if quote_fetcher else None
-
-        if stream_manager and published_at:
-            try:
-                # Get historical quotes from WebSocket cache
-                cached_quotes = await stream_manager.get_recent_quotes(ticker, max_quotes=3000)
-
-                if cached_quotes and len(cached_quotes) > 10:
-                    pub_time_utc = published_at.replace(tzinfo=timezone.utc) if published_at.tzinfo is None else published_at
-                    target_time = pub_time_utc - timedelta(seconds=PRE_NEWS_LOOKBACK_SECONDS)
-
-                    # Find quote closest to 30 min ago
-                    price_30min_ago = None
-                    price_at_pub = None
-
-                    for quote in cached_quotes:
-                        quote_time = quote.get("timestamp")
-                        if quote_time:
-                            if isinstance(quote_time, str):
-                                quote_time = datetime.fromisoformat(quote_time.replace('Z', '+00:00'))
-
-                            # Find price around 30 min before publication
-                            time_diff_30min = abs((quote_time - target_time).total_seconds())
-                            if time_diff_30min < 120 and price_30min_ago is None:  # Within 2 min of target
-                                price_30min_ago = quote.get("ask") or quote.get("mid")
-
-                            # Find price around publication time
-                            time_diff_pub = abs((quote_time - pub_time_utc).total_seconds())
-                            if time_diff_pub < 5 and price_at_pub is None:  # Within 5s of pub
-                                price_at_pub = quote.get("ask") or quote.get("mid")
-
-                    if price_30min_ago and price_at_pub and price_30min_ago > 0:
-                        pre_news_change_pct = ((price_at_pub - price_30min_ago) / price_30min_ago) * 100
-
-                        if pre_news_change_pct > PRE_NEWS_RUNUP_THRESHOLD:
-                            # High-conviction full bypass — mirrors pump_and_dump / pub_to_recv.
-                            # For gov / military / major_contract / defense_order / merger /
-                            # buyback / ai_rebranding, a real mega catalyst is *expected* to
-                            # have already started moving by the time we see it. Pre-news
-                            # runup is a feature of these signals, not a warning. The depth
-                            # gate at submit time is the tail safety net on sizing — if the
-                            # book can't absorb us we still won't trade.
-                            #
-                            # Strong signal bypass (confluence >= 4 + surge) still applies
-                            # to non-HC headlines that show institutional confirmation.
-                            is_strong_signal_bypass = (
-                                confluence_score >= 4
-                                and is_surge_trade
-                            )
-                            if is_high_conviction:
-                                logger.info(
-                                    "🎖️ HIGH-CONVICTION BYPASS: pre_news_runup filter skipped (mega catalysts expected to have already started moving)",
-                                    ticker=ticker,
-                                    pre_news_change_pct=round(pre_news_change_pct, 2),
-                                    headline_type=headline_type,
-                                    article_id=article_id,
-                                )
-                            elif is_strong_signal_bypass:
-                                logger.info(
-                                    "🔥 STRONG SIGNAL BYPASS: pre_news_runup filter skipped (confluence >= 4 + surge + runup < 30%)",
-                                    ticker=ticker,
-                                    pre_news_change_pct=round(pre_news_change_pct, 2),
-                                    normal_max=PRE_NEWS_RUNUP_THRESHOLD,
-                                    ceiling=PRE_NEWS_STRONG_SIGNAL_CEILING_PCT,
-                                    confluence_score=confluence_score,
-                                    is_surge_trade=is_surge_trade,
-                                    article_id=article_id,
-                                )
-                            else:
-                                logger.info(
-                                    "⏭️ AUTO-TRADE SKIPPED: Pre-news runup detected (stock already moved >5% before news)",
-                                    ticker=ticker,
-                                    price_30min_ago=round(price_30min_ago, 4),
-                                    price_at_pub=round(price_at_pub, 4),
-                                    pre_news_change_pct=round(pre_news_change_pct, 2),
-                                    max_allowed=PRE_NEWS_RUNUP_THRESHOLD,
-                                    article_id=article_id,
-                                    reason="Stock already ran before news - could be priced in or leaked"
-                                )
-                                await _record_postfilter_skip(article_id, f"postfilter_pre_news_runup:{pre_news_change_pct:.1f}%")
-                                return
-
-                        logger.debug(
-                            "✅ PRE-NEWS CHECK PASSED",
-                            ticker=ticker,
-                            pre_news_change_pct=round(pre_news_change_pct, 2),
-                            max_allowed=PRE_NEWS_RUNUP_THRESHOLD
-                        )
-
-                        # Store for statistics
-                        confluence_metadata["pre_news_30min_change_pct"] = round(pre_news_change_pct, 2)
-
-            except Exception as e:
-                logger.debug(f"Pre-news runup check failed (non-blocking): {e}")
-
-        # ============================================================
-        # 🎯 MOMENTUM EXHAUSTION FILTER
-        # ============================================================
-        # If the max trade price in confluence is X% above our actual entry price (initial_ask),
-        # the move already happened. We'd be buying at the peak.
-        # Uses initial_ask (NBBO ask at reception) as base — NOT first_trade_price which
-        # can be a stale pre-news tick (e.g. GFAI $0.44 stale → $0.50 real = false 13.6% runup).
-        MAX_CONFLUENCE_RUNUP_PCT = 5.0  # If max price ran 5% above our entry price, we're late
-        confluence_max_price = confluence_metadata.get("confluence_max_price")
-        entry_reference_price = confluence_metadata.get("initial_ask") or confluence_first_price
-
-        if entry_reference_price and confluence_max_price and entry_reference_price > 0:
-            confluence_runup_pct = ((confluence_max_price - entry_reference_price) / entry_reference_price) * 100
-
-            if confluence_runup_pct > MAX_CONFLUENCE_RUNUP_PCT:
-                # High-conviction headlines: skip momentum exhaustion (these sustain momentum)
-                if is_high_conviction:
-                    logger.info(
-                        "🎖️ HIGH-CONVICTION BYPASS: momentum_exhaustion filter skipped (gov/mil contracts sustain momentum)",
-                        ticker=ticker,
-                        confluence_runup_pct=round(confluence_runup_pct, 2),
-                        normal_max=MAX_CONFLUENCE_RUNUP_PCT,
-                        headline_type=headline_type,
-                        article_id=article_id,
-                    )
-                else:
-                    logger.info(
-                        "⏭️ AUTO-TRADE SKIPPED: Momentum exhausted (max price >5% above entry)",
-                        ticker=ticker,
-                        entry_reference_price=round(entry_reference_price, 4),
-                        confluence_max_price=round(confluence_max_price, 4),
-                        confluence_runup_pct=round(confluence_runup_pct, 2),
-                        max_allowed=MAX_CONFLUENCE_RUNUP_PCT,
-                        article_id=article_id,
-                        reason="Max confluence price is above our entry price - entering at the top"
-                    )
-                    await _record_postfilter_skip(article_id, f"postfilter_momentum_exhausted:{confluence_runup_pct:.1f}%")
-                    return
-
-            logger.info(
-                "✅ MOMENTUM CHECK PASSED",
-                ticker=ticker,
-                entry_reference_price=round(entry_reference_price, 4),
-                confluence_max_price=round(confluence_max_price, 4),
-                confluence_runup_pct=round(confluence_runup_pct, 2),
-                max_allowed=MAX_CONFLUENCE_RUNUP_PCT
-            )
-
-            # Store for statistics
-            confluence_metadata["confluence_runup_pct"] = round(confluence_runup_pct, 2)
+        # MOMENTUM EXHAUSTION now evaluated inside the postfilter engine call above
+        # (postfilter_engine.py) — runup of confluence_max_price vs entry ask, 5% cap,
+        # HC bypass. Removed the inline duplicate (2026-06-09).
 
         # ============================================================
         # 🎯 LATE ENTRY FILTER

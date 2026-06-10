@@ -54,3 +54,9 @@ disallow_untyped_defs = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+# importlib mode does NOT prepend test dirs onto sys.path, so a test subpackage
+# named like a stdlib module (e.g. tests/unit/statistics) can never shadow the real
+# one. pythonpath=src makes `import newsflash...` work without setting PYTHONPATH.
+# (2026-06-09: fixes `import statistics` silently resolving to tests/unit/statistics.)
+addopts = "--import-mode=importlib"
+pythonpath = ["src"]
