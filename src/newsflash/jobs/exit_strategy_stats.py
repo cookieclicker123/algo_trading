@@ -24,9 +24,9 @@ from ..utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 
-# Only use data from April 7, 2026 onward (post-triage-overhaul)
+# All-time expanding window from this date (pre-this-date headline typing was
+# incomplete, pre-triage-overhaul). Samples accumulate over time, never drop off.
 DEFAULT_DATA_START = date(2026, 4, 7)
-DEFAULT_LOOKBACK_DAYS = 14
 MIN_MID_EXCURSION_PCT = 10.0
 
 OUTPUT_DIR = Path("tmp/exit_strategy_stats")
@@ -469,7 +469,6 @@ def save_files(
 async def run_exit_strategy_stats(
     recall_base_path: Path = Path("tmp/statistics/recall"),
     output_dir: Path = OUTPUT_DIR,
-    lookback_days: int = DEFAULT_LOOKBACK_DAYS,
     data_start_override: Optional[date] = None,
     skip_scoring: bool = False,
 ) -> Optional[Dict[str, Any]]:
@@ -479,8 +478,7 @@ async def run_exit_strategy_stats(
     Args:
         recall_base_path: Root of recall statistics tree
         output_dir: Where to save the output files
-        lookback_days: How many days back to scan
-        data_start_override: Override start date
+        data_start_override: Override the all-time start date
         skip_scoring: Skip Claude Haiku scoring (for testing)
     """
     today = date.today()
@@ -548,13 +546,9 @@ if __name__ == "__main__":
     import sys
 
     skip = "--skip-scoring" in sys.argv
-    lookback = DEFAULT_LOOKBACK_DAYS
-    for arg in sys.argv[1:]:
-        if arg.isdigit():
-            lookback = int(arg)
 
     result = asyncio.run(
-        run_exit_strategy_stats(lookback_days=lookback, skip_scoring=skip)
+        run_exit_strategy_stats(skip_scoring=skip)
     )
 
     if result:

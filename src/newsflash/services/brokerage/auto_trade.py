@@ -502,21 +502,23 @@ def cleanup_stale_tracking() -> None:
 # catalyst strength, and counterparty quality.
 # REDUCED 100x from original sizes while de-risking during bug triage.
 # Paper shadow trades use 50x these amounts for meaningful stats.
+# PRODUCTION (full design) scale as of 2026-06-10 — was /500 test scale ($1.00–1.20).
+# These are the $-per-trade BASE sizes; actual size = BASE × confluence_multiplier.
 POSITION_SIZES_USD = {
-    ConvictionLevel.MINIMUM: Decimal("1.00"),         # AI: SMALL - $1.00 (test scale, floored at Alpaca min)
-    ConvictionLevel.STANDARD: Decimal("1.00"),        # AI: MODERATE - $1.00 (test scale, floored at Alpaca min)
-    ConvictionLevel.HIGH: Decimal("1.00"),            # AI: LARGE - $1.00 (test scale, floored at Alpaca min)
-    ConvictionLevel.VERY_HIGH: Decimal("1.20"),       # AI: MAX - $1.20 (was $600, /500 test scale)
+    ConvictionLevel.MINIMUM: Decimal("500.00"),       # AI: SMALL
+    ConvictionLevel.STANDARD: Decimal("500.00"),      # AI: MODERATE
+    ConvictionLevel.HIGH: Decimal("500.00"),          # AI: LARGE
+    ConvictionLevel.VERY_HIGH: Decimal("600.00"),     # AI: MAX
 }
 
 # High-conviction headline types (gov/military contracts, major commercial contracts):
 # Structural edge — real government/commercial money, less manipulation than biotech.
 # Volume and float in defense headlines is usually sufficient for full fills.
 HC_POSITION_SIZES_USD = {
-    ConvictionLevel.MINIMUM: Decimal("1.50"),         # AI: SMALL → overridden to MODERATE ($1.50, was $750, /500 test scale)
-    ConvictionLevel.STANDARD: Decimal("1.50"),        # AI: MODERATE - $1.50 (was $750, /500 test scale)
-    ConvictionLevel.HIGH: Decimal("2.00"),            # AI: LARGE - $2.00 (was $1000, /500 test scale)
-    ConvictionLevel.VERY_HIGH: Decimal("2.50"),       # AI: MAX - $2.50 (was $1250, /500 test scale)
+    ConvictionLevel.MINIMUM: Decimal("750.00"),       # AI: SMALL → overridden to MODERATE ($750)
+    ConvictionLevel.STANDARD: Decimal("750.00"),      # AI: MODERATE - $750
+    ConvictionLevel.HIGH: Decimal("1000.00"),         # AI: LARGE - $1000
+    ConvictionLevel.VERY_HIGH: Decimal("1250.00"),    # AI: MAX - $1250
 }
 
 # Map AI position size strings to ConvictionLevel

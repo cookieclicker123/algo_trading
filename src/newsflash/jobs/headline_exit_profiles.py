@@ -22,8 +22,10 @@ from ..utils.logging_config import get_logger
 logger = get_logger(__name__)
 
 # Only use data from April 7, 2026 onward (post-triage-overhaul: all 38 headline types have criteria)
+# All-time expanding window: profiles use ALL valid data from this date forward
+# (pre-this-date headline_type classification was incomplete, pre-triage-overhaul).
+# Samples accumulate over time toward the 150+/headline-type target.
 DEFAULT_DATA_START = date(2026, 4, 7)
-DEFAULT_LOOKBACK_DAYS = 14
 MIN_MID_EXCURSION_PCT = 10.0
 MIN_SAMPLES_FOR_PROFILE = 2
 
@@ -579,7 +581,6 @@ def run_headline_exit_profiles(
     recall_base_path: Path = Path("tmp/statistics/recall"),
     signal_base_path: Path = Path("tmp/statistics/signal"),
     output_path: Path = Path("tmp/statistics/headline_exit_profiles"),
-    lookback_days: int = DEFAULT_LOOKBACK_DAYS,
     data_start_override: Optional[date] = None,
 ) -> Dict[str, HeadlineExitProfile]:
     """
@@ -593,8 +594,7 @@ def run_headline_exit_profiles(
         recall_base_path: Root of recall statistics tree (missed opportunities).
         signal_base_path: Root of signal statistics tree (executed trades).
         output_path: Where to save the profiles JSON.
-        lookback_days: How many days back to scan (from today).
-        data_start_override: Override the start date (default: DEFAULT_DATA_START).
+        data_start_override: Override the all-time start date (default: DEFAULT_DATA_START).
     """
     today = date.today()
 
@@ -649,9 +649,11 @@ def run_headline_exit_profiles(
 # CLI entry point
 if __name__ == "__main__":
     import sys
+    from datetime import date as _date
 
-    lookback = int(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_LOOKBACK_DAYS
-    profiles = run_headline_exit_profiles(lookback_days=lookback)
+    # Optional arg: data start date (YYYY-MM-DD) to extend earlier than the default.
+    data_start = _date.fromisoformat(sys.argv[1]) if len(sys.argv) > 1 else None
+    profiles = run_headline_exit_profiles(data_start_override=data_start)
 
     if profiles:
         print(f"\n{print_profiles_table(profiles)}")
