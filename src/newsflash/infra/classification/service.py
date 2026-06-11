@@ -1103,7 +1103,9 @@ Summary: {summary}"""
                     headline=headline[:60],
                 )
 
-                # Buybacks get LARGE; HC contract types get MODERATE (confluence multiplier scales up)
+                # Buybacks get LARGE ($5k); other HC-bypass types get MODERATE ($2k).
+                # No sector LLM runs on this path to judge LARGE/MAX, so these trades
+                # are pinned to the small size unless this default changes.
                 bypass_size = "LARGE" if triage_headline_type == "stock_buyback" else "MODERATE"
 
                 response_data = InfrastructureClassificationResponseData(

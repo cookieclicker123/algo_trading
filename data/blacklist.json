@@ -186,10 +186,12 @@
     "last_fp_date": "2026-03-24"
   },
   "PRZO": {
-    "consecutive_fps": 2,
-    "permanent": false,
+    "consecutive_fps": 3,
+    "permanent": true,
     "created_at": "2026-03-13T12:57:41.963083",
-    "last_fp_date": "2026-04-13"
+    "last_fp_date": "2026-06-10",
+    "reason": "3 consecutive false positives",
+    "blacklisted_at": "2026-06-10T13:27:22.557297"
   },
   "CTMX": {
     "consecutive_fps": 1,
@@ -556,5 +558,41 @@
     "permanent": false,
     "created_at": "2026-06-09T13:33:04.160731",
     "last_fp_date": "2026-06-09"
+  },
+  "KIDZ": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-06-10T12:18:43.078178",
+    "last_fp_date": "2026-06-10"
+  },
+  "TKLF": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-06-10T13:03:36.327087",
+    "last_fp_date": "2026-06-10"
+  },
+  "MMA": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-06-10T13:31:57.200075",
+    "last_fp_date": "2026-06-10"
+  },
+  "NUWE": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-06-10T13:33:41.641551",
+    "last_fp_date": "2026-06-10"
+  },
+  "MVIS": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-06-10T14:20:39.803787",
+    "last_fp_date": "2026-06-10"
+  },
+  "ZENA": {
+    "consecutive_fps": 1,
+    "permanent": false,
+    "created_at": "2026-06-11T13:02:18.493207",
+    "last_fp_date": "2026-06-11"
   }
 }

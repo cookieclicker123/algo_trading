@@ -2,16 +2,9 @@
 Auto-trade service - subscribes to domain events and handles trading logic.
 
 AI-BASED POSITION SIZING (Immediate entry on classification):
-SCALED DOWN 100x FOR VALIDATION — multiply by 100 to restore full sizes.
-Regular path:
-- SMALL: $300 position (full: $30,000)
-- MODERATE: $375 position (full: $37,500)
-- LARGE: $450 position (full: $45,000)
-- MAX: $600 position (full: $60,000)
-High-conviction headline types (gov/military contracts, major commercial contracts):
-- SMALL/MODERATE: $750 position (full: $75,000)
-- LARGE: $1,000 position (full: $100,000)
-- MAX: $1,250 position (full: $125,000)
+LIVE MONEY — two trade sizes only, regardless of high-conviction status:
+- SMALL/MODERATE: $2,000 position
+- LARGE/MAX: $5,000 position
 
 The AI determines position size based on:
 1. Headline concreteness (specific $ amounts, named parties, definitive terms)
@@ -72,8 +65,8 @@ logger = get_logger(__name__)
 #   circuit_breaker: SKIP (don't let unrelated losses block proven patterns)
 #   initial_spread: 10% (matches prefilter, defense stocks have wider spreads)
 #   selling_pressure: SKIP (trust the headline signal)
-#   pub_to_recv: SKIP (legitimate market reaction, not front-running)
-#   recv_to_fill: SKIP (fast price movement IS the signal)
+#   pub_to_recv: bypassed only up to the 15% HARD CEILING (TGL +18.6% lesson 2026-06-11)
+#   recv_to_fill: bypassed only up to the 15% HARD CEILING
 #   fill_spread: 10% (spreads widen during fast moves but settle)
 #   momentum_exhaustion: SKIP (these headlines sustain momentum)
 #   late_entry: 25s (10s extra over normal, pump-and-dump filter protects)
@@ -191,7 +184,7 @@ TICKER_COOLDOWN_LOSS_MINUTES = 30     # Wait 30 min after a loss
 
 _skipped_tickers: dict = {}  # ticker -> skip_time
 SKIPPED_TICKER_WINDOW_MINUTES = 10  # Remember skips for 10 minutes
-SKIPPED_TICKER_MAX_POSITION_USD = 50  # Cap at $50 for recently skipped tickers (scaled down 100x from $5,000)
+SKIPPED_TICKER_MAX_POSITION_USD = 2000  # Recently skipped tickers capped at the small size ($2,000) — keeps two trade sizes only
 
 # Housekeeping: last time we swept stale entries from module-level dicts
 _last_cleanup_time: Optional[datetime] = None
@@ -496,30 +489,23 @@ def cleanup_stale_tracking() -> None:
 
 
 # ============================================================
-# POSITION SIZING - AI-BASED (TESTING MODE - 100x REDUCED)
+# POSITION SIZING - LIVE MONEY, TWO SIZES ONLY (2026-06-11)
 # ============================================================
-# Position size determined by AI based on headline quality, deal size vs market cap,
-# catalyst strength, and counterparty quality.
-# REDUCED 100x from original sizes while de-risking during bug triage.
-# Paper shadow trades use 50x these amounts for meaningful stats.
-# PRODUCTION (full design) scale as of 2026-06-10 — was /500 test scale ($1.00–1.20).
-# These are the $-per-trade BASE sizes; actual size = BASE × confluence_multiplier.
+# Exactly two trade sizes, regardless of headline type or high-conviction status:
+#   SMALL/MODERATE → $2,000
+#   LARGE/MAX      → $5,000
+# Confluence multipliers are neutralized (all 1.0) so the final size always
+# equals one of these two amounts (share rounding aside).
 POSITION_SIZES_USD = {
-    ConvictionLevel.MINIMUM: Decimal("500.00"),       # AI: SMALL
-    ConvictionLevel.STANDARD: Decimal("500.00"),      # AI: MODERATE
-    ConvictionLevel.HIGH: Decimal("500.00"),          # AI: LARGE
-    ConvictionLevel.VERY_HIGH: Decimal("600.00"),     # AI: MAX
+    ConvictionLevel.MINIMUM: Decimal("2000.00"),      # AI: SMALL
+    ConvictionLevel.STANDARD: Decimal("2000.00"),     # AI: MODERATE
+    ConvictionLevel.HIGH: Decimal("5000.00"),         # AI: LARGE
+    ConvictionLevel.VERY_HIGH: Decimal("5000.00"),    # AI: MAX
 }
 
-# High-conviction headline types (gov/military contracts, major commercial contracts):
-# Structural edge — real government/commercial money, less manipulation than biotech.
-# Volume and float in defense headlines is usually sufficient for full fills.
-HC_POSITION_SIZES_USD = {
-    ConvictionLevel.MINIMUM: Decimal("750.00"),       # AI: SMALL → overridden to MODERATE ($750)
-    ConvictionLevel.STANDARD: Decimal("750.00"),      # AI: MODERATE - $750
-    ConvictionLevel.HIGH: Decimal("1000.00"),         # AI: LARGE - $1000
-    ConvictionLevel.VERY_HIGH: Decimal("1250.00"),    # AI: MAX - $1250
-}
+# High-conviction headline types no longer size differently — alias to the
+# single source of truth above so there are only two trading amounts.
+HC_POSITION_SIZES_USD = POSITION_SIZES_USD
 
 # Map AI position size strings to ConvictionLevel
 AI_SIZE_TO_CONVICTION = {
@@ -530,7 +516,7 @@ AI_SIZE_TO_CONVICTION = {
 }
 
 # Paper shadow multiplier - paper trades use this multiplier for comparison
-PAPER_SHADOW_MULTIPLIER = 50  # Paper trades at 50x live size
+PAPER_SHADOW_MULTIPLIER = 1  # Live is at full production size — paper mirrors 1:1 (was 50x when live was scaled down)
 
 # Thresholds for 2-second observation window (publication-anchored)
 OBSERVATION_WINDOW_SECONDS = 2.0      # 2-second window after article publication
@@ -565,11 +551,14 @@ FIRST_TRADE_LATENCY_THRESHOLD_MS = 1500  # First trade within 1.5s of publicatio
 VOLUME_SURGE_THRESHOLD = 2000         # Legacy: 2000 shares
 BUYING_PRESSURE_THRESHOLD = 0.80      # Legacy: 80% buying pressure
 
-# Microstructure multipliers applied to AI base size
+# Microstructure multipliers applied to AI base size.
+# NEUTRALIZED 2026-06-11: all 1.0 so there are only two final trade sizes
+# ($2k SMALL/MODERATE, $5k LARGE/MAX). Confluence level is still recorded
+# for stats; it just no longer scales position size.
 CONFLUENCE_MULTIPLIERS = {
-    "full": 1.0,       # 4-5 criteria met → full AI size
-    "partial": 0.75,   # 2-3 criteria met → 75% of AI size
-    "no_volume": 0.5,  # 0-1 criteria met → 50% (await confirmation)
+    "full": 1.0,       # 4-5 criteria met
+    "partial": 1.0,    # 2-3 criteria met
+    "no_volume": 1.0,  # 0-1 criteria met
 }
 
 # ============================================================
@@ -1806,25 +1795,19 @@ def build_trade_request_for_article(
     """
     Build a trade request from an article with conviction-based position sizing.
 
-    Position sizes: AI_BASE × CONFLUENCE_MULTIPLIER
+    Two position sizes only (high-conviction or not):
+    - SMALL/MODERATE: $2,000
+    - LARGE/MAX: $5,000
 
-    AI Base (headline quality - your edge):
-    - MAX: $4 base (transformational)
-    - LARGE: $3 base (strong, specific)
-    - MODERATE: $2 base (decent)
-    - SMALL: $1 base (weak)
-
-    Confluence Multiplier (microstructure confirmation):
-    - full (4-5 criteria): 1.0x
-    - partial (2-3 criteria): 0.75x
-    - no_volume (0-1 criteria): 0.5x
+    Confluence multipliers are neutralized (all 1.0) so the final size
+    always equals one of these two amounts.
 
     Args:
         article: Domain Article model
         current_price: Current ask price for buying
         ticker: Specific ticker to trade
         conviction: AI-determined conviction level
-        confluence_multiplier: Microstructure confirmation multiplier (0.5-1.0)
+        confluence_multiplier: Microstructure confirmation multiplier (neutralized to 1.0)
 
     Returns:
         Domain TradeRequest model or None if invalid
@@ -2203,7 +2186,7 @@ async def process_imminent_article(
                 ticker=ticker,
                 headline_type=headline_type,
                 article_id=article_id,
-                relaxed_filters="circuit_breaker=SKIP, spread=5% (HARD CAP), selling_pressure=SKIP, pub_to_recv=SKIP, recv_to_fill=SKIP, fill_spread=5% (HARD CAP), momentum_exhaustion=SKIP, late_entry=25s",
+                relaxed_filters="circuit_breaker=SKIP, spread=5% (HARD CAP), selling_pressure=SKIP, pub_to_recv=15% (HARD CEILING), recv_to_fill=15% (HARD CEILING), fill_spread=5% (HARD CAP), momentum_exhaustion=SKIP, late_entry=25s",
             )
 
         # ============================================================
@@ -2219,7 +2202,7 @@ async def process_imminent_article(
 
         if is_high_conviction:
             # HIGH-CONVICTION DEFENSE: Use AI position size with minimum MODERATE
-            # Sized up: uses HC_POSITION_SIZES_USD (MODERATE=$750, LARGE=$1000, MAX=$1250)
+            # HC no longer sizes up — same two sizes ($2k MODERATE, $5k LARGE/MAX)
             if ai_position_size == "SMALL":
                 ai_position_size = "MODERATE"
             ai_conviction = AI_SIZE_TO_CONVICTION.get(ai_position_size, ConvictionLevel.STANDARD)
@@ -2275,7 +2258,7 @@ async def process_imminent_article(
             )
         else:
             # NORMAL TRADES: Use AI-determined position size
-            # Uses POSITION_SIZES_USD, modified by confluence multiplier (0.5x-1.0x)
+            # Uses POSITION_SIZES_USD (confluence multiplier neutralized to 1.0)
             ai_conviction = AI_SIZE_TO_CONVICTION.get(ai_position_size, ConvictionLevel.STANDARD)
             size_dict = POSITION_SIZES_USD
             logger.info(

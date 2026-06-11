@@ -142064,5 +142064,21 @@
   "PPLI": {
     "industry": "Internet Content & Information",
     "sector": "Communication Services"
+  },
+  "FRVO": {
+    "industry": "Utilities - Renewable",
+    "sector": "Utilities"
+  },
+  "ENRD": {
+    "industry": "Software - Application",
+    "sector": "Technology"
+  },
+  "FAC": {
+    "industry": "Electrical Equipment & Parts",
+    "sector": "Industrials"
+  },
+  "WHK": {
+    "industry": "Oil & Gas Midstream",
+    "sector": "Energy"
   }
 }

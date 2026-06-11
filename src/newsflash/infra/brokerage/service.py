@@ -343,7 +343,7 @@ class BrokerageService:
         """
         Execute a shadow paper trade (fire-and-forget).
 
-        Shadow trades mirror live trades to paper account with 50x position size.
+        Shadow trades mirror live trades to paper account at 1:1 size.
         This allows comparing live vs paper performance.
 
         Args:
@@ -354,8 +354,8 @@ class BrokerageService:
             is_market_hours: Whether this is market hours trading
         """
         try:
-            # Create shadow trade request with 50x position size
-            PAPER_MULTIPLIER = 50  # Paper trades at 50x live size
+            # Create shadow trade request mirroring live size 1:1
+            PAPER_MULTIPLIER = 1  # Live is at full production size — paper mirrors 1:1 (was 50x when live was scaled down)
             shadow_request = deepcopy(trade_request)
             if shadow_request.amount_usd:
                 shadow_request.amount_usd = shadow_request.amount_usd * PAPER_MULTIPLIER

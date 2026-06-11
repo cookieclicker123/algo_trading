@@ -31,6 +31,22 @@ from ..notification.fast_trade_notifier import FastTradeNotifier
 logger = get_logger(__name__)
 
 
+# ============================================================
+# EXIT RECOVERY — a SELL must NEVER be abandoned (TGL 2026-06-11)
+# ============================================================
+# The old chase-the-bid path ABORTED when the bid fell >5% below the initial
+# bid, leaving the position live and untracked (PositionManager had already
+# deregistered it). TGL's resting limit happened to fill on a bounce, but no
+# TradeExecuted event ever fired — no exit stats, no telegram.
+# Recovery instead: Phase A rests a limit at the floor waiting for a bounce
+# (keeps the floor's don't-sell-the-flash-crash intent), then Phase B
+# capitulates and chases the bid with NO floor until flat. Every fill
+# publishes TradeExecuted so the exit message always arrives.
+EXIT_RECOVERY_RESTING_SECONDS = 120   # Phase A: resting limit at the floor
+EXIT_RECOVERY_POLL_SECONDS = 2.0      # Phase A poll interval
+EXIT_CAPITULATION_MAX_ATTEMPTS = 30   # Phase B: chase bid, ~1s per attempt
+
+
 class AlpacaExtendedHoursTradeExecutor:
     """
     Executes stock trades during extended hours.
@@ -42,12 +58,13 @@ class AlpacaExtendedHoursTradeExecutor:
     - Abort if price exceeds 5% above initial ask (price collar)
     - Mid-first saves half the spread on calm fills while ask-chase catches runners
 
-    Exit (SELL) Strategy - Chase-the-Bid:
+    Exit (SELL) Strategy - Chase-the-Bid, then guaranteed recovery:
     - Place limit order at current bid (no discount)
     - If not filled in 500ms, re-check NBBO and place at new bid
     - Repeat up to 10 times (5 seconds total)
-    - Abort if bid falls below 5% under initial bid (price floor)
-    - This saves money by not giving away unnecessary discounts
+    - If bid falls below 5% floor OR attempts exhaust: NEVER abandon —
+      rest a limit at the floor for a bounce, then capitulate at the bid
+      until flat (see _execute_exit_recovery)
 
     Responsibilities:
     - Execute limit orders (stocks only)
@@ -698,10 +715,11 @@ class AlpacaExtendedHoursTradeExecutor:
                         await asyncio.sleep(CHASE_INTERVAL_MS / 1000)
                         continue
 
-                    # Check price floor - abort if bid falls below min acceptable price
+                    # Price floor breached — stop chasing DOWN, but never abandon the
+                    # exit (the old abort here orphaned TGL's live position, 2026-06-11).
                     if current_bid < min_price:
                         logger.warning(
-                            f"🛑 EXIT ABORTED: Price fell below {MAX_SLIPPAGE_PCT*100:.0f}% floor",
+                            f"🛟 EXIT FLOOR BREACHED: Entering guaranteed-exit recovery",
                             ticker=trade_request.ticker,
                             current_bid=current_bid,
                             min_price=min_price,
@@ -709,20 +727,18 @@ class AlpacaExtendedHoursTradeExecutor:
                             slippage_pct=f"{((initial_bid - current_bid) / initial_bid * 100):.1f}%",
                             attempts_made=attempt - 1,
                         )
-                        error_result = {
-                            "success": False,
-                            "error": f"Price fell below {MAX_SLIPPAGE_PCT*100:.0f}% floor (bid ${current_bid} < min ${min_price})",
-                            "session": session,
-                            "order_type": "CHASE_LIMIT",
-                            "instrument": "stock",
-                            "initial_bid": initial_bid,
-                            "final_bid": current_bid,
-                            "min_price": min_price,
-                            "chase_attempts": chase_attempts,
-                            "nbbo": nbbo_snapshot,
-                        }
-                        await self._publish_failed_event(trade_request, error_result["error"], error_result)
-                        return error_result
+                        return await self._execute_exit_recovery(
+                            trade_request=trade_request,
+                            quantity=quantity,
+                            min_price=min_price,
+                            initial_bid=initial_bid,
+                            current_order_id=current_order_id,
+                            nbbo_snapshot=nbbo_snapshot,
+                            session=session,
+                            chase_attempts=chase_attempts,
+                            metadata=_local_metadata,
+                            trigger="floor_breach",
+                        )
 
                     # Place limit order at current bid (no discount - save money)
                     limit_price = round(current_bid, 2)
@@ -914,35 +930,28 @@ class AlpacaExtendedHoursTradeExecutor:
                             "error": str(status_error),
                         })
 
-                # All attempts exhausted - cancel any pending order and fail
-                if current_order_id:
-                    await self._cancel_order_safely(current_order_id)
-                    current_order_id = None
-
+                # All attempts exhausted — never abandon the exit, hand off to recovery
                 final_bid = nbbo_snapshot.get("bid") if nbbo_snapshot else None
                 logger.warning(
-                    f"❌ EXIT FAILED: All {MAX_CHASE_ATTEMPTS} chase attempts exhausted",
+                    f"🛟 EXIT CHASE EXHAUSTED: All {MAX_CHASE_ATTEMPTS} attempts — entering guaranteed-exit recovery",
                     ticker=trade_request.ticker,
                     initial_bid=initial_bid,
                     final_bid=final_bid,
                     min_price=min_price,
                     chase_attempts=chase_attempts,
                 )
-
-                error_result = {
-                    "success": False,
-                    "error": f"Exit failed after {MAX_CHASE_ATTEMPTS} chase attempts",
-                    "session": session,
-                    "order_type": "CHASE_LIMIT",
-                    "instrument": "stock",
-                    "initial_bid": initial_bid,
-                    "final_bid": final_bid,
-                    "min_price": min_price,
-                    "chase_attempts": chase_attempts,
-                    "nbbo": nbbo_snapshot,
-                }
-                await self._publish_failed_event(trade_request, error_result["error"], error_result)
-                return error_result
+                return await self._execute_exit_recovery(
+                    trade_request=trade_request,
+                    quantity=quantity,
+                    min_price=min_price,
+                    initial_bid=initial_bid,
+                    current_order_id=current_order_id,
+                    nbbo_snapshot=nbbo_snapshot,
+                    session=session,
+                    chase_attempts=chase_attempts,
+                    metadata=_local_metadata,
+                    trigger="chase_exhausted",
+                )
             
             # Legacy ladder logic (should not be reached for SELL, but kept for safety)
             # Calculate ladder base price (start at midprice for better fills)
@@ -1249,6 +1258,254 @@ class AlpacaExtendedHoursTradeExecutor:
             await self._publish_failed_event(trade_request, str(exc), error_result)
             return error_result
     
+    async def _execute_exit_recovery(
+        self,
+        trade_request: TradeRequest,
+        quantity: float,
+        min_price: float,
+        initial_bid: float,
+        current_order_id,
+        nbbo_snapshot: Dict[str, Any],
+        session,
+        chase_attempts: list,
+        metadata: Optional[Dict[str, Any]],
+        trigger: str,
+    ) -> Dict[str, Any]:
+        """
+        Guaranteed-exit recovery for SELL orders. Entered when the normal chase
+        breaches the 5% floor or exhausts its attempts. A position-closing SELL
+        must terminate in one of exactly two states:
+          - FLAT, with a TradeExecuted event (exit stats telegram always fires), or
+          - a TradeFailed event that says POSITION STILL OPEN in the error text
+            (only reachable if order submission itself errors repeatedly).
+
+        Phase A: rest a limit at the floor (min_price) for a bounce — preserves the
+        floor's intent (don't dump into a flash crash) without abandoning the exit.
+        Phase B: capitulate — chase the bid with NO floor until flat.
+        Partial fills accumulate; the published fill_price is the weighted average.
+        """
+        ticker = trade_request.ticker
+        recovery_start = time.time()
+        filled_qty_total = 0.0
+        filled_notional_total = 0.0
+        recovery_attempts: list = []
+
+        def _absorb_fill_progress(order_status) -> None:
+            """Accumulate (partial) fills from a finished/cancelled order."""
+            nonlocal filled_qty_total, filled_notional_total
+            try:
+                qty = float(order_status.filled_qty or 0)
+                avg = float(order_status.filled_avg_price or 0)
+            except (TypeError, ValueError):
+                return
+            if qty > 0 and avg > 0:
+                filled_qty_total += qty
+                filled_notional_total += qty * avg
+
+        async def _settle_order(order_id) -> str:
+            """Read final fill progress from an order and cancel it if still open.
+            Returns the order's status string ('unknown' on API errors)."""
+            nonlocal filled_qty_total, filled_notional_total
+            try:
+                status = self.trading_client.get_order_by_id(order_id)
+                if status.status == "filled":
+                    # _get_fill_price retries until filled_avg_price is populated
+                    fill_price = await self._get_fill_price(order_id, status, min_price, ticker)
+                    qty = float(status.filled_qty or 0) or (quantity - filled_qty_total)
+                    filled_qty_total += qty
+                    filled_notional_total += qty * fill_price
+                    return "filled"
+                if status.status not in ["canceled", "expired", "rejected"]:
+                    self.trading_client.cancel_order_by_id(order_id)
+                    await asyncio.sleep(0.15)  # let the cancel/fill race settle
+                    status = self.trading_client.get_order_by_id(order_id)
+                _absorb_fill_progress(status)
+                return str(status.status)
+            except Exception as e:
+                logger.warning("Exit recovery: could not settle order", ticker=ticker, order_id=str(order_id), error=str(e))
+                return "unknown"
+
+        async def _publish_recovered_exit(phase: str) -> Dict[str, Any]:
+            avg_fill = filled_notional_total / filled_qty_total
+            logger.info(
+                f"✅ EXIT RECOVERED ({phase}): Position closed",
+                ticker=ticker,
+                fill_price=round(avg_fill, 4),
+                shares=filled_qty_total,
+                initial_bid=initial_bid,
+                slippage=f"{((initial_bid - avg_fill) / initial_bid * 100):.2f}%" if avg_fill < initial_bid else "0%",
+                recovery_seconds=round(time.time() - recovery_start, 1),
+                trigger=trigger,
+            )
+            result = {
+                "success": True,
+                "shares": filled_qty_total,
+                "fill_price": round(avg_fill, 4),
+                "total_cost": filled_notional_total,
+                "commission": 0.0,
+                "session": session,
+                "order_type": "CHASE_LIMIT_RECOVERY",
+                "instrument": "stock",
+                "limit_price_used": min_price,
+                # timing_info is Dict[str, float] on the event model — numbers only
+                "timing_info": {
+                    "recovery_seconds": round(time.time() - recovery_start, 1),
+                },
+                "instrument_details": {
+                    "nbbo": nbbo_snapshot,
+                    "initial_bid": initial_bid,
+                    "min_price": min_price,
+                    "recovery_trigger": trigger,
+                    "recovery_phase": phase,
+                    "chase_attempts_detail": chase_attempts,
+                    "recovery_attempts_detail": recovery_attempts,
+                },
+            }
+            await self._publish_executed_event(trade_request, result, metadata=metadata)
+            return result
+
+        # ── Take over any live order left by the chase (it may even have filled
+        # in the meantime — exactly what happened to TGL's resting limit) ──
+        if current_order_id:
+            status = await _settle_order(current_order_id)
+            recovery_attempts.append({"phase": "takeover", "order_id": str(current_order_id), "status": status})
+            if filled_qty_total >= quantity:
+                return await _publish_recovered_exit("takeover")
+
+        remaining = quantity - filled_qty_total
+
+        # ── Phase A: resting limit at the floor, wait for a bounce ──
+        resting_order_id = None
+        try:
+            order = self.trading_client.submit_order(order_data=LimitOrderRequest(
+                symbol=ticker,
+                qty=remaining,
+                side=OrderSide.SELL,
+                limit_price=round(min_price, 2),
+                time_in_force=TimeInForce.DAY,
+                extended_hours=True,
+            ))
+            resting_order_id = order.id
+            logger.info(
+                f"🛟 EXIT RECOVERY Phase A: Resting limit at floor, waiting up to {EXIT_RECOVERY_RESTING_SECONDS}s for a bounce",
+                ticker=ticker,
+                limit_price=round(min_price, 2),
+                shares=remaining,
+                trigger=trigger,
+            )
+        except Exception as e:
+            logger.error("Exit recovery: Phase A submission failed — going straight to capitulation", ticker=ticker, error=str(e))
+            recovery_attempts.append({"phase": "resting", "result": "submission_failed", "error": str(e)})
+
+        if resting_order_id:
+            deadline = time.time() + EXIT_RECOVERY_RESTING_SECONDS
+            while time.time() < deadline:
+                await asyncio.sleep(EXIT_RECOVERY_POLL_SECONDS)
+                try:
+                    status = self.trading_client.get_order_by_id(resting_order_id)
+                except Exception as e:
+                    logger.warning("Exit recovery: Phase A status check failed", ticker=ticker, error=str(e))
+                    continue
+                if status.status == "filled":
+                    fill_price = await self._get_fill_price(resting_order_id, status, min_price, ticker)
+                    qty = float(status.filled_qty or 0) or remaining
+                    filled_qty_total += qty
+                    filled_notional_total += qty * fill_price
+                    recovery_attempts.append({"phase": "resting", "result": "filled", "fill_price": fill_price})
+                    return await _publish_recovered_exit("resting_at_floor")
+                if status.status in ["canceled", "expired", "rejected"]:
+                    _absorb_fill_progress(status)  # keep any partial fill
+                    recovery_attempts.append({"phase": "resting", "result": str(status.status)})
+                    resting_order_id = None  # already settled — don't absorb twice below
+                    break  # order died externally — capitulate now
+            # Timeout — settle whatever the resting order did (cancel + absorb partials)
+            if resting_order_id:
+                status = await _settle_order(resting_order_id)
+                if status == "filled" or filled_qty_total >= quantity:
+                    return await _publish_recovered_exit("resting_at_floor")
+
+        remaining = quantity - filled_qty_total
+
+        # ── Phase B: capitulation — chase the bid with NO floor until flat ──
+        logger.warning(
+            f"🛟 EXIT RECOVERY Phase B: Capitulating — chasing bid with no floor",
+            ticker=ticker,
+            remaining_shares=remaining,
+            trigger=trigger,
+        )
+        capitulation_order_id = None
+        for attempt in range(1, EXIT_CAPITULATION_MAX_ATTEMPTS + 1):
+            fresh_nbbo = await self.quote_fetcher.get_nbbo_snapshot(ticker)
+            current_bid = fresh_nbbo.get("bid") if fresh_nbbo else None
+            if not current_bid or current_bid <= 0:
+                await asyncio.sleep(1.0)
+                continue
+
+            if capitulation_order_id:
+                status = await _settle_order(capitulation_order_id)
+                capitulation_order_id = None
+                if status == "filled" or filled_qty_total >= quantity:
+                    return await _publish_recovered_exit("capitulation")
+                remaining = quantity - filled_qty_total
+
+            try:
+                order = self.trading_client.submit_order(order_data=LimitOrderRequest(
+                    symbol=ticker,
+                    qty=remaining,
+                    side=OrderSide.SELL,
+                    limit_price=round(current_bid, 2),
+                    time_in_force=TimeInForce.DAY,
+                    extended_hours=True,
+                ))
+                capitulation_order_id = order.id
+                recovery_attempts.append({"phase": "capitulation", "attempt": attempt, "limit_price": round(current_bid, 2)})
+            except Exception as e:
+                logger.error(f"Exit recovery: capitulation attempt {attempt} submission failed", ticker=ticker, error=str(e))
+                recovery_attempts.append({"phase": "capitulation", "attempt": attempt, "result": "submission_failed", "error": str(e)})
+                await asyncio.sleep(1.0)
+                continue
+
+            await asyncio.sleep(1.0)
+            try:
+                status = self.trading_client.get_order_by_id(capitulation_order_id)
+                if status.status == "filled":
+                    fill_price = await self._get_fill_price(capitulation_order_id, status, current_bid, ticker)
+                    qty = float(status.filled_qty or 0) or remaining
+                    filled_qty_total += qty
+                    filled_notional_total += qty * fill_price
+                    return await _publish_recovered_exit("capitulation")
+            except Exception as e:
+                logger.warning(f"Exit recovery: capitulation attempt {attempt} status check failed", ticker=ticker, error=str(e))
+
+        # Settle any final open order before declaring failure
+        if capitulation_order_id:
+            status = await _settle_order(capitulation_order_id)
+            if status == "filled" or filled_qty_total >= quantity:
+                return await _publish_recovered_exit("capitulation")
+
+        # ── Terminal failure (API-level only) — be LOUD that the position is open ──
+        remaining = quantity - filled_qty_total
+        error_msg = (
+            f"🚨 POSITION STILL OPEN — MANUAL ACTION REQUIRED: exit recovery exhausted "
+            f"({remaining:g} of {quantity:g} {ticker} shares unsold after floor breach + "
+            f"{EXIT_RECOVERY_RESTING_SECONDS}s resting + {EXIT_CAPITULATION_MAX_ATTEMPTS} capitulation attempts)"
+        )
+        logger.error(error_msg, ticker=ticker, recovery_attempts=recovery_attempts)
+        error_result = {
+            "success": False,
+            "error": error_msg,
+            "session": session,
+            "order_type": "CHASE_LIMIT_RECOVERY",
+            "instrument": "stock",
+            "initial_bid": initial_bid,
+            "min_price": min_price,
+            "chase_attempts": chase_attempts,
+            "recovery_attempts": recovery_attempts,
+            "nbbo": nbbo_snapshot,
+        }
+        await self._publish_failed_event(trade_request, error_msg, error_result)
+        return error_result
+
     async def _cancel_order_safely(self, order_id: str) -> None:
         """
         Cancel an order safely, handling cases where it may already be filled/cancelled.

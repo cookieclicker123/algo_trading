@@ -120,9 +120,13 @@ def test_pub_to_recv_ceiling_and_bypass():
     # conf < 4: no strong-signal bypass -> blocked at the 7.5% leg cap
     d = evaluate(_inp(confluence_score=3, pub_time_ask=1.0, recv_ask=_runup_ask(1.0, 9.0)))
     assert d.passed is False and d.reason.startswith("postfilter_pub_to_recv")
-    # but HC always bypasses
+    # HC bypasses below the ceiling...
     assert evaluate(_inp(confluence_score=3, is_high_conviction=True,
-                         pub_time_ask=1.0, recv_ask=_runup_ask(1.0, 20.0))).passed is True
+                         pub_time_ask=1.0, recv_ask=_runup_ask(1.0, 12.0))).passed is True
+    # ...but the 15% ceiling is a HARD CAP even for HC (TGL +18.6% lesson, 2026-06-11)
+    d = evaluate(_inp(confluence_score=3, is_high_conviction=True,
+                      pub_time_ask=1.0, recv_ask=_runup_ask(1.0, 20.0)))
+    assert d.passed is False and d.reason.startswith("postfilter_pub_to_recv")
 
 def test_pump_and_dump_ai_threshold():
     # non-AI: 6% premium > 5.5% (abs move $0.60 clears the $0.08 floor), conf<4 -> block

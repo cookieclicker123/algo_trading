@@ -34,6 +34,10 @@ from typing import Optional, List, Dict, Any
 # ============================================================
 # Single home for the bypass that was previously duplicated (and drifted) across
 # pub_to_recv / pump_and_dump / pre_news_runup. auto_trade.py imports this.
+# 2026-06-11: the ceiling is now a HARD CAP for the entire front-run family —
+# NO bypass (high-conviction included) survives a runup above 15%. TGL entered
+# at +18.6% pub→recv via the unconditional HC bypass and was instant exit
+# liquidity (-16% stop in 21s). Above the ceiling the move already happened.
 STRONG_SIGNAL_RUNUP_CEILING_PCT = 15.0
 
 
@@ -144,36 +148,44 @@ def evaluate_microstructure_postfilters(
 
     leg_max = cfg.leg_max_pct_mega if inp.is_mega_trade else cfg.leg_max_pct
 
-    # 4) PUB -> RECV (leg 1) — front-running, with strong-signal bypass up to the ceiling
+    # 4) PUB -> RECV (leg 1) — front-running. The 15% ceiling is a HARD CAP:
+    # high-conviction and strong-signal bypasses only apply BELOW it (TGL lesson).
     if inp.pub_time_ask and inp.recv_ask and inp.pub_time_ask > 0:
         pub_to_recv_pct = (inp.recv_ask - inp.pub_time_ask) / inp.pub_time_ask * 100
         absolute_move = abs(inp.recv_ask - inp.pub_time_ask)
         computed["pub_to_recv_pct"] = round(pub_to_recv_pct, 2)
         if pub_to_recv_pct > leg_max and absolute_move >= cfg.leg_min_absolute_move:
-            bypass = inp.is_high_conviction or strong_signal_runup_bypass(
-                inp.confluence_score, pub_to_recv_pct, cfg.strong_signal_runup_ceiling_pct
+            within_ceiling = pub_to_recv_pct <= cfg.strong_signal_runup_ceiling_pct
+            bypass = within_ceiling and (
+                inp.is_high_conviction or strong_signal_runup_bypass(
+                    inp.confluence_score, pub_to_recv_pct, cfg.strong_signal_runup_ceiling_pct
+                )
             )
             if not bypass:
                 return _block(f"postfilter_pub_to_recv:{pub_to_recv_pct:.1f}%", computed)
 
-    # 5) RECV -> FILL (leg 2) — chase during our checks (HC bypass only, as in production)
+    # 5) RECV -> FILL (leg 2) — chase during our checks. HC bypass, also capped at the ceiling.
     if inp.recv_ask and inp.fill_ask and inp.recv_ask > 0:
         recv_to_fill_pct = (inp.fill_ask - inp.recv_ask) / inp.recv_ask * 100
         absolute_move_leg2 = abs(inp.fill_ask - inp.recv_ask)
         computed["recv_to_fill_pct"] = round(recv_to_fill_pct, 2)
         if recv_to_fill_pct > leg_max and absolute_move_leg2 >= cfg.leg_min_absolute_move:
-            if not inp.is_high_conviction:
+            within_ceiling = recv_to_fill_pct <= cfg.strong_signal_runup_ceiling_pct
+            if not (within_ceiling and inp.is_high_conviction):
                 return _block(f"postfilter_recv_to_fill:{recv_to_fill_pct:.1f}%", computed)
 
-    # 6) PUMP-AND-DUMP — fill premium vs publication ask, with strong-signal bypass
+    # 6) PUMP-AND-DUMP — fill premium vs publication ask. Bypasses capped at the ceiling.
     pump_max = cfg.pump_max_pct_ai_breakthrough if inp.is_ai_breakthrough else cfg.pump_max_pct
     if inp.pub_time_ask and inp.fill_ask and inp.pub_time_ask > 0:
         pump_pct = (inp.fill_ask - inp.pub_time_ask) / inp.pub_time_ask * 100
         absolute_gap = abs(inp.fill_ask - inp.pub_time_ask)
         computed["ask_pub_to_fill_pct"] = round(pump_pct, 2)
         if pump_pct > pump_max and absolute_gap >= cfg.pump_min_absolute:
-            bypass = inp.is_high_conviction or strong_signal_runup_bypass(
-                inp.confluence_score, pump_pct, cfg.strong_signal_runup_ceiling_pct
+            within_ceiling = pump_pct <= cfg.strong_signal_runup_ceiling_pct
+            bypass = within_ceiling and (
+                inp.is_high_conviction or strong_signal_runup_bypass(
+                    inp.confluence_score, pump_pct, cfg.strong_signal_runup_ceiling_pct
+                )
             )
             if not bypass:
                 return _block(f"postfilter_pump_and_dump:{pump_pct:.1f}%", computed)

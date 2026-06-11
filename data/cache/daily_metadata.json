@@ -16317,7 +16317,7 @@
       "float_shares": 13502571
     },
     "ROC": {
-      "market_cap_millions": 115.434776
+      "market_cap_millions": 87.386984
     },
     "FACT": {
       "market_cap_millions": 259.266736
@@ -16791,7 +16791,7 @@
       "float_shares": 21730049
     },
     "RKTO": {
-      "market_cap_millions": 42.463372
+      "market_cap_millions": 29.688694
     },
     "WSE": {
       "market_cap_millions": 11543.053312,
@@ -16897,6 +16897,17 @@
     "PPLI": {
       "market_cap_millions": 3130.22592,
       "float_shares": 55071736
+    },
+    "FRVO": {
+      "market_cap_millions": 9870.201856,
+      "float_shares": 7854420
+    },
+    "FAC": {
+      "market_cap_millions": 2356.706816
+    },
+    "WHK": {
+      "market_cap_millions": 603.660224,
+      "float_shares": 17116616
     }
   }
 }
